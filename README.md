@@ -21,3 +21,14 @@ Plan: "Sudarshan Local Migration Plan" (Claude Docs).
 - Node.js 24 LTS, Python 3.13 (`C:\Users\Admin\AppData\Local\Programs\Python\Python313`)
 
 Secrets live in `.env` (generated, git-ignored, readable by administrators only).
+
+## Yarago sync
+```
+python sync/yarago_sync.py full [--force]   # full copy (blocked 07:00-21:00 without --force)
+python sync/yarago_sync.py incremental      # one cycle of hot tables + child rows of changed visits
+python sync/yarago_sync.py service          # every 150 s, full copy nightly at 01:00
+python sync/yarago_sync.py verify [--all]   # row counts Yarago vs mirror
+python sync/yarago_sync.py status
+python scripts/migrate.py                   # apply db/migrations
+```
+Run history: table `app.sync_runs`. Log: `logs/yarago_sync.log`.
