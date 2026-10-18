@@ -32,3 +32,7 @@ python sync/yarago_sync.py status
 python scripts/migrate.py                   # apply db/migrations
 ```
 Run history: table `app.sync_runs`. Log: `logs/yarago_sync.log`.
+
+## API server
+Windows service `SudarshanServer` (NSSM), `http://shichika:8484`, LAN only. Install / rebuild:
+`powershell -ExecutionPolicy Bypass -File D:\Sudarshan\app\scripts\install-server.ps1`. Details: `server/README.md`.
