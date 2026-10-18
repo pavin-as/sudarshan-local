@@ -61,6 +61,7 @@ TEXT_TYPES = {"char", "varchar", "tinytext", "text", "mediumtext", "longtext", "
 BIN_TYPES = {"binary", "varbinary", "tinyblob", "blob", "mediumblob", "longblob"}
 
 log = logging.getLogger("yarago_sync")
+UNRELIABLE_MOD = set()   # tables whose modified column matched most of the table; use id only (nightly copy covers edits)
 
 
 def setup_logging():
@@ -443,11 +444,16 @@ def incremental():
             if t.idcol and last_id is not None:
                 where.append(f"{q(t.idcol)} > %s")
                 params.append(last_id)
-            if t.modcol and last_mod is not None:
+            if t.modcol and last_mod is not None and t.name not in UNRELIABLE_MOD:
                 where.append(f"{q(t.modcol)} >= %s")
                 params.append(last_mod - OVERLAP)
             if where and t.key:
                 rows = fetch_all(mc, f"SELECT * FROM {q(t.name)} WHERE " + " OR ".join(where), params, t)
+                if t.modcol and len(rows) > 5000 and len(rows) > 0.5 * max(t.approx_rows, 1):
+                    UNRELIABLE_MOD.add(t.name)
+                    log.warning("  %s: modified column %s matched %d rows (most of the table); "
+                                "using new ids only from now on, edits arrive with the nightly copy",
+                                name, t.modcol, len(rows))
                 n = upsert(pc, t, rows)
             elif t.approx_rows < SMALL_TABLE_ROWS:
                 rows = fetch_all(mc, f"SELECT * FROM {q(t.name)}", None, t)
