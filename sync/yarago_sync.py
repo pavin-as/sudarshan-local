@@ -61,6 +61,23 @@ TEXT_TYPES = {"char", "varchar", "tinytext", "text", "mediumtext", "longtext", "
 BIN_TYPES = {"binary", "varbinary", "tinyblob", "blob", "mediumblob", "longblob"}
 
 log = logging.getLogger("yarago_sync")
+RE_HIGH = re.compile("[\u0080-\u00ff]")
+
+
+def fix_mojibake(s):
+    """Yarago keeps UTF-8 text (e.g. Malayalam) in latin1 columns; read as utf8mb4 it arrives garbled.
+    Turn the characters back into the original bytes and decode them as UTF-8. Real Latin-1 text
+    (e.g. 'café') is not valid UTF-8 as bytes, so it is left unchanged."""
+    if not RE_HIGH.search(s):
+        return s
+    try:
+        b = bytearray()
+        for ch in s:
+            o = ord(ch)
+            b.extend((o,) if o < 256 else ch.encode("cp1252"))
+        return b.decode("utf-8")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return s
 UNRELIABLE_MOD = set()   # tables whose modified column matched most of the table; use id only (nightly copy covers edits)
 
 
@@ -195,7 +212,7 @@ def make_converter(table):
                     v = bytes(v).decode("utf-8", "replace")
                 elif v is not None and not isinstance(v, str):
                     v = str(v)
-                return v.replace("\x00", "") if v else v
+                return fix_mojibake(v.replace("\x00", "")) if v else v
             fns.append((i, clean))
     if not fns:
         return lambda r: r
@@ -373,6 +390,7 @@ def full(force=False):
     pc.execute(sql.SQL("DROP SCHEMA IF EXISTS {} CASCADE").format(sql.Identifier(STAGING)))
     pc.execute(sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(STAGING)))
     pg.commit()
+    warnings.extend(apply_views(pg))
     if rebuilt:
         warnings.append("structure changed (dependent views must be recreated): " + ", ".join(rebuilt))
     status = "warning" if warnings else "ok"
@@ -382,6 +400,20 @@ def full(force=False):
     log.info("FULL copy %s: %d tables, %d rows, %.1f min%s", status, len(staged), total, (time.time() - t0) / 60,
              f" | {msg}" if msg else "")
     return 0
+
+
+def apply_views(pg):
+    """Re-create db/views/*.sql (a full copy may have dropped tables they depend on)."""
+    problems = []
+    for f in sorted((ROOT / "db" / "views").glob("*.sql")):
+        try:
+            pg.execute(f.read_text(encoding="utf-8"))
+            pg.commit()
+        except Exception as e:
+            pg.rollback()
+            problems.append(f"view file {f.name}: {e}")
+            log.exception("applying %s failed", f.name)
+    return problems
 
 
 # ------------------------------------------------------------------ incremental
