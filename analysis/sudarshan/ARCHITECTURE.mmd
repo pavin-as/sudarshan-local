@@ -1,0 +1,68 @@
+graph TD
+  subgraph Platform
+    D1[D1 Auth & Roles]
+    D2[D2 Settings & Config]
+    D3[D3 Audit & Journey]
+    D4[D4 Remarks/Comments/Tags]
+  end
+  subgraph FrontOffice[Front office]
+    D6[D6 Patient Master]
+    D7[D7 Appointment Lifecycle]
+    D8[D8 Follow-up & Direct Call]
+    D9[D9 Triage]
+  end
+  subgraph Engine[Scheduling engine]
+    D5[D5 Capacity & Availability]
+    D10[D10 Rule Checks & Slot Optimizer]
+  end
+  subgraph Outward[Insight & external]
+    D11[D11 Reporting & Analytics]
+    D12[D12 Payments / WhatsApp / Transfer]
+  end
+  subgraph External
+    YG[(Yarago exports: yaragoPatientMaster, followupMaster 1/2)]
+    GEM[Gemini API]
+    RZP[Razorpay]
+    AIS[AiSensy WhatsApp]
+    XSS[(External spreadsheet)]
+  end
+  D2 --> D1
+  D2 --> D3
+  D3 --> D1
+  D4 --> D3
+  D7 --> D1
+  D7 --> D2
+  D7 --> D3
+  D7 --> D4
+  D7 --> D5
+  D7 --> D6
+  D7 --> D12
+  D7 --> D10
+  D8 --> D7
+  D8 --> D5
+  D8 --> D6
+  D8 --> D4
+  D8 --> D3
+  D9 --> D3
+  D9 --> D1
+  D6 --> D3
+  D5 --> D2
+  D5 -. reads appointment .-> D7
+  D10 --> D7
+  D10 --> D2
+  D11 --> D7
+  D11 --> D5
+  D11 --> D8
+  D11 --> D9
+  D11 --> D3
+  D12 --> D7
+  D12 --> D5
+  D12 --> D2
+  D12 --> D3
+  YG --> D6
+  YG --> D8
+  D10 --> GEM
+  D12 --> RZP
+  RZP -- doPost --> D12
+  D12 --> AIS
+  D12 --> XSS

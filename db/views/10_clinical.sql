@@ -85,15 +85,15 @@ CREATE TABLE IF NOT EXISTS app.code_labels (
   PRIMARY KEY (kind, code)
 );
 INSERT INTO app.code_labels (kind, code, label, confirmed) VALUES
-  ('appointment_status', 0, 'Status 0 (to confirm)', false),
-  ('appointment_status', 1, 'Status 1 (to confirm)', false),
-  ('appointment_status', 2, 'Status 2 (to confirm)', false),
+  ('appointment_status', 0, 'Booked, not arrived (to confirm)', false),
+  ('appointment_status', 1, 'Checked in, waiting (to confirm)', false),
+  ('appointment_status', 2, 'In examination (to confirm)', false),
   ('appointment_status', 3, 'Completed (to confirm)', false),
-  ('appointment_status', 4, 'Status 4 (to confirm)', false),
+  ('appointment_status', 4, 'Cancelled (to confirm)', false),
   ('followup_status', 0, 'Pending (to confirm)', false),
   ('followup_status', 1, 'Realised (to confirm)', false),
   ('followup_status', 2, 'Status 2 (to confirm)', false)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (kind, code) DO UPDATE SET label = EXCLUDED.label WHERE NOT app.code_labels.confirmed;
 
 -- ---------- patients -----------------------------------------------------------------
 CREATE OR REPLACE VIEW clinical.patient AS
@@ -290,12 +290,13 @@ WHERE coalesce(t.isdeleted, 0) = 0;
 CREATE OR REPLACE VIEW clinical.patient_due AS
 SELECT DISTINCT ON (d.npatientid)
        d.npatientid                               AS patient_id,
-       round(d.dueamttowardspatient::numeric, 2)  AS due_total,
+       round(d.dueamttowardshospital::numeric, 2) AS due_total,          -- patient owes the clinic
        round(d.opddueamt::numeric, 2)             AS due_opd,
        round(d.pharmacydueamt::numeric, 2)        AS due_pharmacy,
        round(d.opticaldueamt::numeric, 2)         AS due_optical,
        round(d.ipddueamt::numeric, 2)             AS due_ipd,
-       d.modifieddate                             AS updated_at
+       d.modifieddate                             AS updated_at,
+       round(d.dueamttowardspatient::numeric, 2)  AS clinic_owes_patient  -- refunds / advances (new columns go last)
 FROM yarago.tbl_patient_payment_mainduedetails d
 WHERE coalesce(d.isactive, 1) = 1 AND coalesce(d.isdeleted, 0) = 0
 ORDER BY d.npatientid, d.modifieddate DESC NULLS LAST, d.amainduerowid DESC;
