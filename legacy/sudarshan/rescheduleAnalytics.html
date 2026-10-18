@@ -1,0 +1,1256 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      :root {
+        --primary-color: #4a90e2;
+        --primary-light: #e8f0fe;
+        --primary-dark: #2c5282;
+        --success-color: #48bb78;
+        --warning-color: #ed8936;
+        --danger-color: #e53e3e;
+        --text-primary: #2d3748;
+        --text-secondary: #4a5568;
+        --bg-light: #f7fafc;
+        --bg-white: #ffffff;
+        --header-height: 64px; /* Added from sharedLayout */
+      }
+
+      body {
+        background-color: var(--bg-light);
+        color: var(--text-primary);
+        min-height: 100vh;
+        transition:
+          background 0.3s,
+          color 0.3s; /* Added from sharedLayout */
+        padding: 2rem; /* Keep existing padding from rescheduleAnalytics */
+      }
+
+      .dark-mode {
+        /* Added from sharedLayout */
+        --primary-color: #90cdf4;
+        --primary-light: #2d3748;
+        --primary-dark: #1a202c;
+        --success-color: #68d391;
+        --warning-color: #f6ad55;
+        --danger-color: #fc8181;
+        --text-primary: #e2e8f0;
+        --text-secondary: #a0aec0;
+        --bg-light: #1a202c;
+        --bg-white: #2d3748;
+        background-color: var(--bg-light);
+        color: var(--text-primary);
+      }
+
+      .shared-header {
+        /* Added from sharedLayout */
+        background: var(--bg-white);
+        border-bottom: 1px solid var(--primary-light);
+        height: var(--header-height);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 2rem;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+
+      .shared-header .user-info {
+        /* Added from sharedLayout */
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .shared-header .user-avatar {
+        /* Added from sharedLayout */
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+
+      .shared-header .user-name {
+        /* Added from sharedLayout */
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.95rem;
+      }
+
+      .shared-header .user-actions {
+        /* Added from sharedLayout */
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .shared-header .btn {
+        /* Added from sharedLayout */
+        font-size: 0.8rem;
+        padding: 0.375rem 0.75rem;
+      }
+
+      .shared-header .dark-toggle {
+        /* Added from sharedLayout */
+        margin-left: 1rem;
+        cursor: pointer;
+        background: none;
+        border: none;
+        color: var(--primary-color);
+        font-size: 1.2rem;
+        transition: color 0.2s;
+      }
+
+      .shared-header .dark-toggle:focus {
+        /* Added from sharedLayout */
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+      }
+
+      nav[role="navigation"] {
+        /* Added from sharedLayout */
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+      }
+
+      nav[role="navigation"] a {
+        /* Added from sharedLayout */
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        transition:
+          background 0.2s,
+          color 0.2s;
+      }
+
+      nav[role="navigation"] a:focus {
+        /* Added from sharedLayout */
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+        background: var(--primary-light);
+      }
+
+      nav[role="navigation"] a.active, /* Added from sharedLayout */
+        nav[role="navigation"] a[aria-current="page"] {
+        background: var(--primary-color);
+        color: white;
+      }
+
+      /* Dropdown styles */ /* Added from sharedLayout */
+      .nav-dropdown {
+        position: relative;
+        display: inline-block;
+      }
+
+      .nav-dropdown-btn {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        transition:
+          background 0.2s,
+          color 0.2s;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: inherit;
+        font-family: inherit;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+
+      .nav-dropdown-btn:hover {
+        color: var(--primary-color);
+        background: var(--primary-light);
+      }
+
+      .nav-dropdown-btn:focus {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+        background: var(--primary-light);
+      }
+
+      .nav-dropdown-content {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: var(--bg-white);
+        min-width: 180px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        border-radius: 8px;
+        z-index: 1001;
+        padding: 0.5rem 0;
+        margin-top: 0.25rem;
+      }
+
+      .nav-dropdown-content a {
+        display: block;
+        padding: 0.5rem 1rem;
+        color: var(--text-primary);
+        text-decoration: none;
+        font-weight: 500;
+        transition: background 0.2s;
+        border-radius: 0;
+      }
+
+      .nav-dropdown-content a:hover {
+        background: var(--primary-light);
+        color: var(--primary-color);
+      }
+
+      .nav-dropdown:hover .nav-dropdown-content,
+      .nav-dropdown.show .nav-dropdown-content {
+        display: block;
+      }
+
+      .nav-dropdown-btn i {
+        font-size: 0.7rem;
+        transition: transform 0.2s;
+      }
+
+      .nav-dropdown:hover .nav-dropdown-btn i,
+      .nav-dropdown.show .nav-dropdown-btn i {
+        transform: rotate(180deg);
+      }
+
+      @media (max-width: 768px) {
+        /* Added from sharedLayout */
+        .shared-header {
+          flex-direction: column;
+          height: auto;
+          padding: 1rem;
+          gap: 0.5rem;
+        }
+
+        nav[role="navigation"] {
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+      }
+      .container {
+        max-width: 1400px;
+      }
+
+      .page-header {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .page-header h1 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin: 0;
+      }
+
+      .back-button {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        text-decoration: none;
+        transition: all 0.3s ease;
+      }
+
+      .back-button:hover {
+        background: var(--primary-dark);
+        color: white;
+        transform: translateY(-2px);
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+      }
+
+      .stat-card {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        text-align: center;
+      }
+
+      .stat-card .value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+      }
+
+      .stat-card .label {
+        color: var(--text-secondary);
+        font-size: 1rem;
+        font-weight: 500;
+      }
+
+      .chart-section {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      }
+
+      .chart-section h3 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+      }
+
+      .table-section {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      }
+
+      .table-section h3 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+      }
+
+      .export-button {
+        background: var(--success-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .export-button:hover {
+        background: #38a169;
+        color: white;
+      }
+
+      .alert-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        max-width: 400px;
+      }
+
+      .custom-alert {
+        background: var(--bg-white);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid var(--primary-color);
+      }
+
+      .custom-alert.success {
+        border-left-color: var(--success-color);
+      }
+
+      .custom-alert.error {
+        border-left-color: var(--danger-color);
+      }
+
+      .custom-alert.warning {
+        border-left-color: var(--warning-color);
+      }
+
+      .alert {
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      }
+
+      .alert-warning {
+        background: rgba(237, 137, 54, 0.1);
+        color: var(--warning-color);
+        border-left: 4px solid var(--warning-color);
+      }
+
+      .alert-info {
+        background: rgba(74, 144, 226, 0.1);
+        color: var(--primary-color);
+        border-left: 4px solid var(--primary-color);
+      }
+
+      .alert-heading {
+        color: var(--warning-color);
+        font-weight: 600;
+      }
+
+      .alert-info .alert-heading {
+        color: var(--primary-color);
+      }
+
+      .alert-link {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+      }
+
+      .alert-link:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+      }
+
+      .loading {
+        opacity: 0.6;
+        pointer-events: none;
+      }
+
+      .loading::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 20px;
+        height: 20px;
+        margin: -10px 0 0 -10px;
+        border: 2px solid var(--primary-color);
+        border-top: 2px solid transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="shared-header" role="banner">
+      <nav role="navigation" aria-label="Main navigation">
+        <a
+          href="javascript:void(0)"
+          onclick="goToPage('Dashboard')"
+          id="nav-dashboard"
+          >Dashboard</a
+        >
+        <a
+          href="javascript:void(0)"
+          onclick="goToPage('bookAppointment')"
+          id="nav-book"
+          >Booking</a
+        >
+        <a
+          href="javascript:void(0)"
+          onclick="goToPage('appointmentList')"
+          id="nav-appointments"
+          >Appointments</a
+        >
+        <a
+          href="javascript:void(0)"
+          onclick="goToPage('followupAppointment')"
+          id="nav-followup"
+          >Followup</a
+        >
+        <a
+          href="javascript:void(0)"
+          onclick="goToPage('dayOverview')"
+          id="nav-day"
+          >Day</a
+        >
+        <a
+          href="javascript:void(0)"
+          onclick="goToPage('cancelList')"
+          id="nav-cancel"
+          >Cancelled</a
+        >
+        <a
+          href="javascript:void(0)"
+          onclick="goToPage('monthOverview')"
+          id="nav-month"
+          >Month</a
+        >
+        <div class="nav-dropdown" id="moreDropdown">
+          <button
+            class="nav-dropdown-btn"
+            onclick="toggleDropdown('moreDropdown')"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >
+            More <i class="fas fa-chevron-down"></i>
+          </button>
+          <div class="nav-dropdown-content">
+            <a
+              href="javascript:void(0)"
+              onclick="goToPage('directCall')"
+              id="nav-directcall"
+            >
+              <i class="fas fa-phone-alt me-2"></i>Direct Call
+            </a>
+            <a
+              href="javascript:void(0)"
+              onclick="goToPage('identification')"
+              id="nav-identification"
+            >
+              <i class="fas fa-stethoscope me-2"></i>Triage
+            </a>
+            <a
+              href="javascript:void(0)"
+              onclick="goToPage('SlotOptimization')"
+              id="nav-slot"
+            >
+              <i class="fas fa-clock me-2"></i>Slot Optimization
+            </a>
+            <a
+              href="javascript:void(0)"
+              onclick="goToPage('patientMaster')"
+              id="nav-patient"
+            >
+              <i class="fas fa-users me-2"></i>Patients
+            </a>
+            <a
+              href="javascript:void(0)"
+              onclick="goToPage('archiveList')"
+              id="nav-archive"
+            >
+              <i class="fas fa-archive me-2"></i>Archive
+            </a>
+          </div>
+        </div>
+      </nav>
+      <div class="user-info" aria-label="User info">
+        <div class="user-avatar" id="userAvatar">U</div>
+        <span class="user-name" id="userName">Loading...</span>
+        <div class="user-actions">
+          <button
+            class="btn btn-outline-secondary btn-sm"
+            onclick="goToPage('Dashboard')"
+            aria-label="Go to Dashboard"
+          >
+            <i class="fas fa-home"></i>
+          </button>
+          <button
+            class="btn btn-danger btn-sm"
+            onclick="logout()"
+            aria-label="Logout"
+          >
+            <i class="fas fa-sign-out-alt"></i>
+          </button>
+          <button
+            class="dark-toggle"
+            id="darkModeToggle"
+            aria-label="Toggle dark mode"
+            tabindex="0"
+          >
+            <i class="fas fa-moon"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+    <script>
+      // Keyboard accessibility for nav
+      document.addEventListener("DOMContentLoaded", function () {
+        const navLinks = document.querySelectorAll('nav[role="navigation"] a');
+        navLinks.forEach((link) => {
+          link.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              link.click();
+            }
+          });
+        });
+        // Dark mode
+        const darkToggle = document.getElementById("darkModeToggle");
+        function setDarkMode(enabled) {
+          if (enabled) {
+            document.body.classList.add("dark-mode");
+            localStorage.setItem("darkMode", "1");
+          } else {
+            document.body.classList.remove("dark-mode");
+            localStorage.setItem("darkMode", "0");
+          }
+        }
+        darkToggle.addEventListener("click", function () {
+          setDarkMode(!document.body.classList.contains("dark-mode"));
+        });
+        darkToggle.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            darkToggle.click();
+          }
+        });
+        // Load dark mode preference
+        if (localStorage.getItem("darkMode") === "1") {
+          setDarkMode(true);
+        }
+        // Load user info
+        if (
+          typeof google !== "undefined" &&
+          google.script &&
+          window.sessionToken
+        ) {
+          google.script.run
+            .withSuccessHandler(function (fullName) {
+              if (fullName) {
+                document.getElementById("userName").textContent = fullName;
+                document.getElementById("userAvatar").textContent = fullName
+                  .charAt(0)
+                  .toUpperCase();
+              }
+            })
+            .getCurrentUserFullName(window.sessionToken);
+        }
+      });
+      // Navigation function
+      function goToPage(pageName) {
+        var newUrl =
+          window.baseUrl +
+          "?page=" +
+          pageName +
+          "&sessionToken=" +
+          encodeURIComponent(window.sessionToken);
+        window.top.location.href = newUrl;
+      }
+
+      // Dropdown toggle function
+      function toggleDropdown(dropdownId) {
+        const dropdown = document.getElementById(dropdownId);
+        if (dropdown) {
+          dropdown.classList.toggle("show");
+        }
+      }
+
+      // Close dropdown when clicking outside
+      document.addEventListener("click", function (e) {
+        const dropdowns = document.querySelectorAll(".nav-dropdown");
+        dropdowns.forEach(function (dropdown) {
+          if (!dropdown.contains(e.target)) {
+            dropdown.classList.remove("show");
+          }
+        });
+      });
+      // Logout function
+      function logout() {
+        if (
+          typeof google !== "undefined" &&
+          google.script &&
+          window.sessionToken
+        ) {
+          google.script.run
+            .withSuccessHandler(function () {
+              window.top.location.href = window.baseUrl;
+            })
+            .withFailureHandler(function (error) {
+              window.top.location.href = window.baseUrl;
+            })
+            .clearSession(window.sessionToken);
+        } else {
+          window.top.location.href = window.baseUrl;
+        }
+      }
+    </script>
+    <div class="container">
+      <!-- Alert Container -->
+      <div id="alertContainer" class="alert-container"></div>
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1>
+          <i class="fas fa-chart-line text-primary"></i>
+          Detailed Rescheduling Analytics
+        </h1>
+        <div>
+          <a
+            href="#"
+            onclick="goToPage('Visualization')"
+            class="back-button me-2"
+          >
+            <i class="fas fa-arrow-left"></i> Back to Visualization
+          </a>
+          <!-- The logout button will be in the shared header, so this is removed -->
+        </div>
+      </div>
+
+      <!-- Summary Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="value" id="totalReschedules">0</div>
+          <div class="label">Total Reschedules</div>
+        </div>
+        <div class="stat-card">
+          <div class="value" id="highRiskAppointments">0</div>
+          <div class="label">High Risk Appointments</div>
+        </div>
+        <div class="stat-card">
+          <div class="value" id="avgReschedules">0</div>
+          <div class="label">Avg Reschedules/Appointment</div>
+        </div>
+        <div class="stat-card">
+          <div class="value" id="currentMonthReschedules">0</div>
+          <div class="label">This Month's Reschedules</div>
+        </div>
+      </div>
+
+      <!-- Charts Section -->
+      <div class="row">
+        <div class="col-md-6">
+          <div class="chart-section">
+            <h3><i class="fas fa-chart-pie"></i> Reschedules by Month</h3>
+            <canvas id="monthlyChart" width="400" height="300"></canvas>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="chart-section">
+            <h3><i class="fas fa-chart-bar"></i> Top Rescheduling Staff</h3>
+            <canvas id="staffChart" width="400" height="300"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- High Risk Appointments Table -->
+      <div class="table-section">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3>
+            <i class="fas fa-exclamation-triangle text-warning"></i> High Risk
+            Appointments (3+ Reschedules)
+          </h3>
+          <button class="export-button" onclick="exportHighRiskData()">
+            <i class="fas fa-download"></i> Export Data
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-striped table-hover">
+            <thead class="table-dark">
+              <tr>
+                <th>Appointment ID</th>
+                <th>Patient Name</th>
+                <th>MRD No</th>
+                <th>Reschedule Count</th>
+                <th>Last Rescheduled By</th>
+                <th>Last Reschedule Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="highRiskTableBody">
+              <tr>
+                <td colspan="8" class="text-center text-muted">Loading...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Frequent Reschedules Table -->
+      <div class="table-section">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3>
+            <i class="fas fa-clock text-info"></i> Frequent Reschedules (2+
+            Times)
+          </h3>
+          <button class="export-button" onclick="exportFrequentData()">
+            <i class="fas fa-download"></i> Export Data
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-striped table-hover">
+            <thead class="table-dark">
+              <tr>
+                <th>Appointment ID</th>
+                <th>Patient Name</th>
+                <th>MRD No</th>
+                <th>Reschedule Count</th>
+                <th>Last Rescheduled By</th>
+                <th>Last Reschedule Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="frequentTableBody">
+              <tr>
+                <td colspan="7" class="text-center text-muted">Loading...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      window.baseUrl = "<?= webAppUrl ?>";
+      window.sessionToken = "<?= sessionToken ?>";
+
+      // Date display helper. This page does not include sharedLayout, so it keeps its own copy:
+      // Date -> "Fri, 09 Oct 2026" (same format as the other pages).
+      function formatDisplayDate(value) {
+        const date = value instanceof Date ? value : new Date(value);
+        if (isNaN(date.getTime())) return value ? String(value) : "";
+        const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const months = [
+          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+        ];
+        return (
+          weekdays[date.getDay()] +
+          ", " +
+          String(date.getDate()).padStart(2, "0") +
+          " " +
+          months[date.getMonth()] +
+          " " +
+          date.getFullYear()
+        );
+      }
+
+      // Initialize when page loads
+      document.addEventListener("DOMContentLoaded", function () {
+        // Check access before loading data
+        checkAccessAndLoad();
+      });
+
+      function checkAccessAndLoad() {
+        google.script.run
+          .withSuccessHandler(function (hasAccess) {
+            if (hasAccess) {
+              loadReschedulingAnalytics();
+            } else {
+              showAccessDenied();
+            }
+          })
+          .withFailureHandler(function (error) {
+            showAccessDenied();
+          })
+          .canAccessRescheduleAnalytics(sessionToken);
+      }
+
+      function showAccessDenied() {
+        const container = document.querySelector(".container");
+        container.innerHTML = `
+        <div class="page-header">
+          <h1>
+            <i class="fas fa-exclamation-triangle text-warning"></i>
+            Access Denied
+          </h1>
+          <div>
+            <a href="#" onclick="goToPage('Dashboard')" class="back-button">
+              <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+            <!-- Logout button is handled by shared layout -->
+          </div>
+        </div>
+        <div class="alert alert-warning" role="alert">
+          <h4 class="alert-heading">
+            <i class="fas fa-lock"></i> Insufficient Permissions
+          </h4>
+          <p>You do not have permission to access the Rescheduling Analytics page. This feature requires administrator-level access (Level 1).</p>
+          <hr>
+          <p class="mb-0">
+            <a href="#" onclick="goToPage('Dashboard')" class="alert-link">Return to Dashboard</a> or 
+            <a href="#" onclick="goToPage('Visualization')" class="alert-link">Go to Visualization Dashboard</a>
+          </p>
+        </div>
+        <div class="alert alert-info" role="alert">
+          <h5 class="alert-heading">
+            <i class="fas fa-info-circle"></i> Access Level Information
+          </h5>
+          <p>Your current access level is being checked...</p>
+          <div id="accessLevelInfo"></div>
+        </div>
+      `;
+
+        // Check and display user's current access level
+        checkUserAccessLevel();
+      }
+
+      function checkUserAccessLevel() {
+        google.script.run
+          .withSuccessHandler(function (result) {
+            const accessLevelInfo = document.getElementById("accessLevelInfo");
+            if (result.success) {
+              accessLevelInfo.innerHTML = `
+              <p><strong>Your Role:</strong> ${result.roleName} (Level ${result.level})</p>
+              <p><strong>Required Level:</strong> Director/Admin (Level 1)</p>
+              <p><em>Contact your system administrator if you need access to this feature.</em></p>
+            `;
+            } else {
+              accessLevelInfo.innerHTML = `
+              <p><strong>Error:</strong> ${result.message}</p>
+              <p><em>Unable to determine your access level.</em></p>
+            `;
+            }
+          })
+          .withFailureHandler(function (error) {
+            const accessLevelInfo = document.getElementById("accessLevelInfo");
+            accessLevelInfo.innerHTML = `
+            <p><strong>Error:</strong> ${error}</p>
+            <p><em>Unable to check your access level.</em></p>
+          `;
+          })
+          .getCurrentUserAccessLevel(sessionToken);
+      }
+
+      function loadReschedulingAnalytics() {
+        // Show loading state
+        document.querySelectorAll(".stat-card").forEach((card) => {
+          card.classList.add("loading");
+        });
+
+        google.script.run
+          .withSuccessHandler(function (data) {
+            // Update summary stats
+            document.getElementById("totalReschedules").textContent =
+              data.totalReschedules || 0;
+            document.getElementById("highRiskAppointments").textContent =
+              data.highRiskAppointments ? data.highRiskAppointments.length : 0;
+            document.getElementById("avgReschedules").textContent =
+              data.averageReschedulesPerAppointment || 0;
+            document.getElementById("currentMonthReschedules").textContent =
+              data.currentMonthReschedules || 0;
+
+            // Remove loading state
+            document.querySelectorAll(".stat-card").forEach((card) => {
+              card.classList.remove("loading");
+            });
+
+            // Update tables
+            updateHighRiskTable(data.highRiskAppointments || []);
+            updateFrequentTable(data.frequentReschedules || []);
+
+            // Update charts
+            updateMonthlyChart(data.reschedulesByMonth || {});
+            updateStaffChart(data.reschedulesByStaff || {});
+
+            // Store data for export
+            window.reschedulingData = data;
+          })
+          .withFailureHandler(function (error) {
+            showAlert(
+              "Error loading rescheduling analytics: " + error,
+              "error",
+            );
+
+            // Remove loading state
+            document.querySelectorAll(".stat-card").forEach((card) => {
+              card.classList.remove("loading");
+            });
+          })
+          .getReschedulingAnalytics();
+      }
+
+      function updateHighRiskTable(highRiskAppointments) {
+        const tbody = document.getElementById("highRiskTableBody");
+        tbody.innerHTML = "";
+
+        if (highRiskAppointments.length > 0) {
+          highRiskAppointments.forEach((appointment) => {
+            const lastRescheduleDate = appointment.lastReschedule
+              ? formatDisplayDate(new Date(appointment.lastReschedule))
+              : "N/A";
+            const row = document.createElement("tr");
+            row.innerHTML = `
+            <td><strong>${appointment.appointmentId}</strong></td>
+            <td>${appointment.patientName || "N/A"}</td>
+            <td>${appointment.mrdNo || "N/A"}</td>
+            <td><span class="badge bg-danger fs-6">${appointment.rescheduleCount}</span></td>
+            <td>${appointment.rescheduledBy || "Unknown"}</td>
+            <td>${lastRescheduleDate}</td>
+            <td><span class="badge bg-${appointment.status === "Archived" ? "secondary" : "primary"}">${appointment.status || "Active"}</span></td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary" onclick="viewAppointmentHistory('${appointment.appointmentId}')">
+                <i class="fas fa-history"></i> History
+              </button>
+            </td>
+          `;
+            tbody.appendChild(row);
+          });
+        } else {
+          tbody.innerHTML =
+            '<tr><td colspan="8" class="text-center text-muted">No high risk appointments found</td></tr>';
+        }
+      }
+
+      function updateFrequentTable(frequentReschedules) {
+        const tbody = document.getElementById("frequentTableBody");
+        tbody.innerHTML = "";
+
+        if (frequentReschedules.length > 0) {
+          frequentReschedules.forEach((appointment) => {
+            const lastRescheduleDate = appointment.lastReschedule
+              ? formatDisplayDate(new Date(appointment.lastReschedule))
+              : "N/A";
+            const row = document.createElement("tr");
+            row.innerHTML = `
+            <td><strong>${appointment.appointmentId}</strong></td>
+            <td>${appointment.patientName || "N/A"}</td>
+            <td>${appointment.mrdNo || "N/A"}</td>
+            <td><span class="badge bg-warning fs-6">${appointment.rescheduleCount}</span></td>
+            <td>${appointment.rescheduledBy || "Unknown"}</td>
+            <td>${lastRescheduleDate}</td>
+            <td><span class="badge bg-${appointment.status === "Archived" ? "secondary" : "primary"}">${appointment.status || "Active"}</span></td>
+          `;
+            tbody.appendChild(row);
+          });
+        } else {
+          tbody.innerHTML =
+            '<tr><td colspan="7" class="text-center text-muted">No frequent reschedules found</td></tr>';
+        }
+      }
+
+      function updateMonthlyChart(reschedulesByMonth) {
+        const ctx = document.getElementById("monthlyChart").getContext("2d");
+
+        // Sort months chronologically
+        const sortedMonths = Object.keys(reschedulesByMonth).sort();
+        const data = sortedMonths.map((month) => reschedulesByMonth[month]);
+        const labels = sortedMonths.map((month) => {
+          const [year, monthNum] = month.split("-");
+          return `${monthNum}/${year}`;
+        });
+
+        new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "Reschedules",
+                data: data,
+                borderColor: "#4a90e2",
+                backgroundColor: "rgba(74, 144, 226, 0.1)",
+                tension: 0.4,
+                fill: true,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                display: false,
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  stepSize: 1,
+                },
+              },
+            },
+          },
+        });
+      }
+
+      function updateStaffChart(reschedulesByStaff) {
+        const ctx = document.getElementById("staffChart").getContext("2d");
+
+        // Get top 10 staff members
+        const sortedStaff = Object.entries(reschedulesByStaff)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 10);
+
+        const labels = sortedStaff.map(([staff]) => staff);
+        const data = sortedStaff.map(([, count]) => count);
+
+        new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "Reschedules",
+                data: data,
+                backgroundColor: "#4a90e2",
+                borderColor: "#2c5282",
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                display: false,
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  stepSize: 1,
+                },
+              },
+            },
+          },
+        });
+      }
+
+      function viewAppointmentHistory(appointmentId) {
+        google.script.run
+          .withSuccessHandler(function (data) {
+            // Check if data is null or has an error
+            if (!data) {
+              showAlert("Appointment not found or no data available", "error");
+              return;
+            }
+
+            if (data.error) {
+              if (data.debug) {
+                let debugText = `Error: ${data.error}\n\nDebug Information:\n`;
+                debugText += `Available Sheets: ${data.debug.availableSheets.join(", ")}\n\n`;
+                debugText += `Sheets Checked:\n`;
+                data.debug.sheetsChecked.forEach((sheet) => {
+                  debugText += `- ${sheet.sheetName}: ${sheet.hasAppointmentId ? "Has AppointmentID column" : "No AppointmentID column"}, ${sheet.foundAppointment ? "Found appointment" : "Appointment not found"}, ${sheet.totalRows} rows\n`;
+                });
+                alert(debugText);
+              } else {
+                showAlert(
+                  "Error loading appointment history: " + data.error,
+                  "error",
+                );
+              }
+              return;
+            }
+
+            let historyText = `Appointment ID: ${data.appointmentId}\n`;
+            historyText += `Patient: ${data.patientName}\n`;
+            historyText += `MRD: ${data.mrdNo}\n`;
+            historyText += `Reschedule Count: ${data.rescheduleCount}\n\n`;
+            historyText += `Reschedule History:\n`;
+
+            if (data.rescheduleHistory && data.rescheduleHistory.length > 0) {
+              data.rescheduleHistory.forEach((entry, index) => {
+                const entryTime = new Date(entry.timestamp);
+                const date =
+                  formatDisplayDate(entryTime) + ", " + entryTime.toLocaleTimeString();
+                const action = entry.action || "rescheduled";
+                historyText += `${index + 1}. ${date} by ${entry.by} (${action})\n`;
+
+                if (entry.fromDate && entry.toDate) {
+                  const fromDate = formatDisplayDate(new Date(entry.fromDate));
+                  const toDate = formatDisplayDate(new Date(entry.toDate));
+                  historyText += `   From: ${fromDate} ${entry.fromTime || ""}\n`;
+                  historyText += `   To: ${toDate} ${entry.toTime || ""}\n`;
+                } else if (entry.previousDate) {
+                  // Handle old format for backward compatibility
+                  historyText += `   Previous Date: ${formatDisplayDate(new Date(entry.previousDate))}\n`;
+                  if (entry.previousTime) {
+                    historyText += `   Previous Time: ${entry.previousTime}\n`;
+                  }
+                }
+                historyText += "\n";
+              });
+            } else {
+              historyText += "No reschedule history found.";
+            }
+
+            alert(historyText);
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error loading appointment history: " + error, "error");
+          })
+          .getAppointmentRescheduleHistory(appointmentId);
+      }
+
+      function exportHighRiskData() {
+        if (
+          !window.reschedulingData ||
+          !window.reschedulingData.highRiskAppointments
+        ) {
+          showAlert("No high risk data available for export", "error");
+          return;
+        }
+
+        let csvContent =
+          "Appointment ID,Patient Name,MRD No,Reschedule Count,Last Rescheduled By,Last Reschedule Date,Status\n";
+
+        window.reschedulingData.highRiskAppointments.forEach((appointment) => {
+          const lastRescheduleDate = appointment.lastReschedule
+            ? new Date(appointment.lastReschedule).toLocaleDateString()
+            : "N/A";
+          csvContent += `${appointment.appointmentId},${appointment.patientName || "N/A"},${appointment.mrdNo || "N/A"},${appointment.rescheduleCount},${appointment.rescheduledBy || "Unknown"},${lastRescheduleDate},${appointment.status || "Active"}\n`;
+        });
+
+        downloadCSV(csvContent, "high_risk_appointments");
+      }
+
+      function exportFrequentData() {
+        if (
+          !window.reschedulingData ||
+          !window.reschedulingData.frequentReschedules
+        ) {
+          showAlert(
+            "No frequent reschedule data available for export",
+            "error",
+          );
+          return;
+        }
+
+        let csvContent =
+          "Appointment ID,Patient Name,MRD No,Reschedule Count,Last Rescheduled By,Last Reschedule Date,Status\n";
+
+        window.reschedulingData.frequentReschedules.forEach((appointment) => {
+          const lastRescheduleDate = appointment.lastReschedule
+            ? new Date(appointment.lastReschedule).toLocaleDateString()
+            : "N/A";
+          csvContent += `${appointment.appointmentId},${appointment.patientName || "N/A"},${appointment.mrdNo || "N/A"},${appointment.rescheduleCount},${appointment.rescheduledBy || "Unknown"},${lastRescheduleDate},${appointment.status || "Active"}\n`;
+        });
+
+        downloadCSV(csvContent, "frequent_reschedules");
+      }
+
+      function downloadCSV(csvContent, filename) {
+        const blob = new Blob([csvContent], { type: "text/csv" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${filename}_${new Date().toISOString().split("T")[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        showAlert("Data exported successfully", "success");
+      }
+
+      function showAlert(message, type = "info") {
+        const container = document.getElementById("alertContainer");
+        const alert = document.createElement("div");
+        alert.className = `custom-alert ${type}`;
+        alert.textContent = message;
+
+        container.appendChild(alert);
+
+        setTimeout(() => {
+          alert.remove();
+        }, 5000);
+      }
+    </script>
+  </body>
+</html>

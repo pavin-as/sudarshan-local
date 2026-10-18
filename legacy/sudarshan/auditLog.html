@@ -1,0 +1,1132 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+      :root {
+        --primary-color: #4a90e2;
+        --primary-light: #e8f0fe;
+        --primary-dark: #2c5282;
+        --success-color: #48bb78;
+        --warning-color: #ed8936;
+        --danger-color: #e53e3e;
+        --text-primary: #2d3748;
+        --text-secondary: #4a5568;
+        --bg-light: #f7fafc;
+        --bg-white: #ffffff;
+      }
+
+      body {
+        background: var(--bg-light);
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--text-primary);
+      }
+
+      .main-container {
+        padding: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      .card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        margin-bottom: 2rem;
+      }
+
+      .card-header {
+        background: linear-gradient(
+          135deg,
+          var(--primary-light),
+          var(--bg-white)
+        );
+        border-bottom: 1px solid #e2e8f0;
+        border-radius: 12px 12px 0 0 !important;
+        padding: 1.5rem;
+      }
+
+      .btn-primary {
+        background: var(--primary-color);
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+      }
+
+      .btn-primary:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+      }
+
+      .filter-section {
+        background: var(--bg-white);
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+      }
+
+      .form-control,
+      .form-select {
+        border: 2px solid var(--primary-light);
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        transition: all 0.3s ease;
+      }
+
+      .form-control:focus,
+      .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.25);
+      }
+
+      .table {
+        font-size: 0.9rem;
+      }
+
+      .table thead th {
+        background: var(--primary-color);
+        color: white;
+        font-weight: 600;
+        border: none;
+        padding: 1rem 0.75rem;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      .table tbody tr {
+        transition: all 0.2s ease;
+      }
+
+      .table tbody tr:hover {
+        background: var(--primary-light);
+        transform: scale(1.01);
+      }
+
+      .badge {
+        padding: 0.5rem 0.75rem;
+        font-weight: 500;
+        border-radius: 6px;
+      }
+
+      .timestamp {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+      }
+
+      .details-cell {
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+
+      .details-cell:hover {
+        text-decoration: underline;
+      }
+
+      .pagination-info {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+      }
+
+      .stats-card {
+        background: linear-gradient(
+          135deg,
+          var(--primary-light),
+          var(--bg-white)
+        );
+        border-left: 4px solid var(--primary-color);
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+      }
+
+      .stats-card h3 {
+        color: var(--primary-dark);
+        font-size: 1.5rem;
+        margin: 0;
+      }
+
+      .stats-card p {
+        color: var(--text-secondary);
+        margin: 0;
+        font-size: 0.9rem;
+      }
+
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.9);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+
+      .loading-overlay.active {
+        display: flex;
+      }
+
+      .spinner {
+        width: 3rem;
+        height: 3rem;
+        border: 0.4rem solid var(--primary-light);
+        border-top-color: var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Chart Container Styles */
+      .card-body canvas {
+        max-height: 400px;
+      }
+
+      .chart-no-data {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-secondary);
+      }
+
+      .chart-no-data i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      window.sessionToken = "<?= sessionToken ?>";
+      window.baseUrl = "<?= webAppUrl ?>";
+    </script>
+    <?!= include('sharedLayout') ?>
+
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="spinner"></div>
+    </div>
+
+    <div class="main-container">
+      <div class="alert-container" id="alertContainer"></div>
+
+      <!-- Page Header -->
+      <div class="card">
+        <div class="card-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h4 class="mb-0">
+                <i class="fas fa-clipboard-list me-2"></i>
+                Audit Log Viewer
+              </h4>
+              <p class="mb-0 text-muted">
+                View and analyze system activity logs
+              </p>
+            </div>
+            <div>
+              <button
+                class="btn btn-outline-primary"
+                onclick="exportAuditLogs()"
+              >
+                <i class="fas fa-download me-2"></i>Export
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistics -->
+      <div class="row mb-3">
+        <div class="col-md-3">
+          <div class="stats-card">
+            <h3 id="totalLogsCount">-</h3>
+            <p>Total Logs</p>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stats-card">
+            <h3 id="filteredLogsCount">-</h3>
+            <p>Filtered Results</p>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stats-card">
+            <h3 id="currentPageCount">-</h3>
+            <p>Current Page</p>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stats-card">
+            <h3 id="dateRangeDisplay">-</h3>
+            <p>Date Range</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Section -->
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="fas fa-chart-bar me-2"></i>Work Distribution by Team
+                Member
+              </h5>
+              <small class="text-muted"
+                >Actions performed by each user (excluding login/logout)</small
+              >
+            </div>
+            <div class="card-body">
+              <canvas id="workDistributionChart"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="fas fa-chart-pie me-2"></i>Action Distribution
+              </h5>
+              <small class="text-muted">Total count of each action type</small>
+            </div>
+            <div class="card-body">
+              <canvas id="actionDistributionChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="card">
+        <div class="card-body">
+          <h5 class="mb-3"><i class="fas fa-filter me-2"></i>Filters</h5>
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label">Date From</label>
+              <input type="date" class="form-control" id="dateFrom" />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Date To</label>
+              <input type="date" class="form-control" id="dateTo" />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Username</label>
+              <input
+                type="text"
+                class="form-control"
+                id="usernameFilter"
+                placeholder="Search username..."
+              />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Action Type</label>
+              <select class="form-select" id="actionTypeFilter">
+                <option value="">All Actions</option>
+              </select>
+            </div>
+          </div>
+          <div class="row g-3 mt-2">
+            <div class="col-md-3">
+              <label class="form-label">Target Type</label>
+              <select class="form-select" id="targetTypeFilter">
+                <option value="">All Targets</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Search</label>
+              <input
+                type="text"
+                class="form-control"
+                id="searchTerm"
+                placeholder="Search in all fields..."
+              />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Records Per Page</label>
+              <select class="form-select" id="recordsPerPage">
+                <option value="50">50</option>
+                <option value="100" selected>100</option>
+                <option value="200">200</option>
+                <option value="500">500</option>
+              </select>
+            </div>
+          </div>
+          <div class="mt-3">
+            <button class="btn btn-primary" onclick="applyFilters()">
+              <i class="fas fa-search me-2"></i>Apply Filters
+            </button>
+            <button class="btn btn-outline-secondary" onclick="clearFilters()">
+              <i class="fas fa-times me-2"></i>Clear Filters
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Audit Logs Table -->
+      <div class="card">
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th style="width: 180px">Timestamp</th>
+                  <th style="width: 120px">Username</th>
+                  <th style="width: 150px">Full Name</th>
+                  <th style="width: 100px">Role</th>
+                  <th style="width: 150px">Action</th>
+                  <th style="width: 120px">Target Type</th>
+                  <th style="width: 120px">Target ID</th>
+                  <th>Details</th>
+                  <th style="width: 100px">IP</th>
+                </tr>
+              </thead>
+              <tbody id="auditLogsTableBody">
+                <tr>
+                  <td colspan="9" class="text-center py-5">
+                    <i class="fas fa-spinner fa-spin me-2"></i>Loading audit
+                    logs...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="pagination-info" id="paginationInfo">
+              Showing 0 of 0 entries
+            </div>
+            <nav>
+              <ul class="pagination mb-0" id="paginationControls">
+                <li class="page-item disabled">
+                  <a class="page-link" href="#" tabindex="-1">Previous</a>
+                </li>
+                <li class="page-item disabled">
+                  <a class="page-link" href="#">Next</a>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Details Modal -->
+    <div
+      class="modal fade"
+      id="detailsModal"
+      tabindex="-1"
+      aria-labelledby="detailsModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="detailsModalLabel">
+              <i class="fas fa-info-circle me-2"></i>Audit Log Details
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div id="detailsContent"></div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      var sessionToken = "<?= sessionToken ?>";
+
+      let currentPage = 1;
+      let recordsPerPage = 100;
+      let totalRecords = 0;
+      let currentFilters = {};
+
+      document.addEventListener("DOMContentLoaded", function () {
+        checkAdminAccess();
+        loadFilterOptions();
+        setDefaultDateRange();
+        loadAuditLogs();
+      });
+
+      function checkAdminAccess() {
+        google.script.run
+          .withSuccessHandler(function (hasAccess) {
+            if (!hasAccess) {
+              showAlert("Access denied. Admin privileges required.", "danger");
+              setTimeout(function () {
+                goToPage("Dashboard");
+              }, 2000);
+            }
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error checking access: " + error, "danger");
+            goToPage("Dashboard");
+          })
+          .canAccessAuditLogs(sessionToken);
+      }
+
+      function setDefaultDateRange() {
+        const today = new Date();
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(today.getDate() - 7);
+
+        document.getElementById("dateTo").value = formatDateForInput(today);
+        document.getElementById("dateFrom").value =
+          formatDateForInput(sevenDaysAgo);
+      }
+
+      function formatDateForInput(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+
+      function loadFilterOptions() {
+        // Load action types
+        google.script.run
+          .withSuccessHandler(function (result) {
+            if (result && result.success) {
+              const select = document.getElementById("actionTypeFilter");
+              result.actionTypes.forEach((type) => {
+                const option = document.createElement("option");
+                option.value = type;
+                option.textContent = type;
+                select.appendChild(option);
+              });
+            }
+          })
+          .getAuditActionTypes(sessionToken);
+
+        // Load target types
+        google.script.run
+          .withSuccessHandler(function (result) {
+            if (result && result.success) {
+              const select = document.getElementById("targetTypeFilter");
+              result.targetTypes.forEach((type) => {
+                const option = document.createElement("option");
+                option.value = type;
+                option.textContent = type;
+                select.appendChild(option);
+              });
+            }
+          })
+          .getAuditTargetTypes(sessionToken);
+      }
+
+      function applyFilters() {
+        currentPage = 1;
+        loadAuditLogs();
+      }
+
+      function clearFilters() {
+        document.getElementById("dateFrom").value = "";
+        document.getElementById("dateTo").value = "";
+        document.getElementById("usernameFilter").value = "";
+        document.getElementById("actionTypeFilter").value = "";
+        document.getElementById("targetTypeFilter").value = "";
+        document.getElementById("searchTerm").value = "";
+        setDefaultDateRange();
+        currentPage = 1;
+        loadAuditLogs();
+      }
+
+      function loadAuditLogs() {
+        showLoading(true);
+
+        // Build filters object
+        const filters = {};
+
+        const dateFrom = document.getElementById("dateFrom").value;
+        const dateTo = document.getElementById("dateTo").value;
+        const username = document.getElementById("usernameFilter").value.trim();
+        const actionType = document.getElementById("actionTypeFilter").value;
+        const targetType = document.getElementById("targetTypeFilter").value;
+        const searchTerm = document.getElementById("searchTerm").value.trim();
+
+        if (dateFrom) filters.dateFrom = dateFrom;
+        if (dateTo) filters.dateTo = dateTo;
+        if (username) filters.username = username;
+        if (actionType) filters.actionType = actionType;
+        if (targetType) filters.targetType = targetType;
+        if (searchTerm) filters.searchTerm = searchTerm;
+
+        currentFilters = filters;
+
+        recordsPerPage = parseInt(
+          document.getElementById("recordsPerPage").value,
+        );
+        const offset = (currentPage - 1) * recordsPerPage;
+
+        google.script.run
+          .withSuccessHandler(function (result) {
+            showLoading(false);
+            if (result && result.success) {
+              displayAuditLogs(result.logs);
+              totalRecords = result.totalCount;
+              updatePagination(result.totalCount, result.returnedCount, offset);
+              updateStats(result.totalCount, result.returnedCount);
+
+              // Update charts
+              updateWorkDistributionChart(result.logs);
+              updateActionDistributionChart(result.logs);
+            } else {
+              showAlert(result.message || "Error loading audit logs", "danger");
+              document.getElementById("auditLogsTableBody").innerHTML = `
+              <tr>
+                <td colspan="9" class="text-center text-danger py-5">
+                  ${result.message || "Error loading audit logs"}
+                </td>
+              </tr>
+            `;
+            }
+          })
+          .withFailureHandler(function (error) {
+            showLoading(false);
+            showAlert("Error loading audit logs: " + error, "danger");
+            document.getElementById("auditLogsTableBody").innerHTML = `
+            <tr>
+              <td colspan="9" class="text-center text-danger py-5">
+                Error: ${error}
+              </td>
+            </tr>
+          `;
+          })
+          .getAuditLogs(filters, recordsPerPage, offset, sessionToken);
+      }
+
+      // Global chart instances
+      let workDistributionChart = null;
+      let actionDistributionChart = null;
+
+      /**
+       * Creates/updates the work distribution chart (Actions by Team Member)
+       * @param {Array} logs - Array of audit log entries
+       */
+      function updateWorkDistributionChart(logs) {
+        // Filter out LOGIN_SUCCESS and LOGOUT
+        const filteredLogs = logs.filter(
+          (log) =>
+            log.actionType !== "LOGIN_SUCCESS" && log.actionType !== "LOGOUT",
+        );
+
+        // Group by full name and count actions
+        const userActions = {};
+        filteredLogs.forEach((log) => {
+          const name = log.fullName || log.username || "Unknown";
+          if (!userActions[name]) {
+            userActions[name] = {};
+          }
+          const action = log.actionType;
+          userActions[name][action] = (userActions[name][action] || 0) + 1;
+        });
+
+        // Get all unique action types (for consistent coloring)
+        const allActions = [
+          ...new Set(filteredLogs.map((log) => log.actionType)),
+        ];
+
+        // Prepare data for stacked bar chart
+        const labels = Object.keys(userActions);
+        const datasets = allActions.map((action, index) => {
+          return {
+            label: action,
+            data: labels.map((name) => userActions[name][action] || 0),
+            backgroundColor: getActionColor(action, 0.7),
+            borderColor: getActionColor(action, 1),
+            borderWidth: 1,
+          };
+        });
+
+        // Create or update chart
+        const ctx = document.getElementById("workDistributionChart");
+        if (!ctx) return;
+
+        if (workDistributionChart) {
+          workDistributionChart.destroy();
+        }
+
+        if (labels.length === 0) {
+          ctx.parentElement.innerHTML =
+            '<div class="chart-no-data"><i class="fas fa-chart-bar"></i><p>No data available</p></div>';
+          return;
+        }
+
+        workDistributionChart = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: labels,
+            datasets: datasets,
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              title: {
+                display: false,
+              },
+              legend: {
+                display: true,
+                position: "bottom",
+              },
+              tooltip: {
+                mode: "index",
+                intersect: false,
+              },
+            },
+            scales: {
+              x: {
+                stacked: true,
+                title: {
+                  display: true,
+                  text: "Team Member",
+                },
+              },
+              y: {
+                stacked: true,
+                title: {
+                  display: true,
+                  text: "Number of Actions",
+                },
+                beginAtZero: true,
+                ticks: {
+                  stepSize: 1,
+                },
+              },
+            },
+          },
+        });
+      }
+
+      /**
+       * Creates/updates the action distribution chart (Count by Action Type)
+       * @param {Array} logs - Array of audit log entries
+       */
+      function updateActionDistributionChart(logs) {
+        // Filter out LOGIN_SUCCESS and LOGOUT
+        const filteredLogs = logs.filter(
+          (log) =>
+            log.actionType !== "LOGIN_SUCCESS" && log.actionType !== "LOGOUT",
+        );
+
+        // Count each action type
+        const actionCounts = {};
+        filteredLogs.forEach((log) => {
+          const action = log.actionType;
+          actionCounts[action] = (actionCounts[action] || 0) + 1;
+        });
+
+        // Sort by count descending
+        const sortedActions = Object.entries(actionCounts).sort(
+          (a, b) => b[1] - a[1],
+        );
+
+        const labels = sortedActions.map(([action, _]) => action);
+        const data = sortedActions.map(([_, count]) => count);
+        const colors = labels.map((action) => getActionColor(action, 0.7));
+        const borderColors = labels.map((action) => getActionColor(action, 1));
+
+        // Create or update chart
+        const ctx = document.getElementById("actionDistributionChart");
+        if (!ctx) return;
+
+        if (actionDistributionChart) {
+          actionDistributionChart.destroy();
+        }
+
+        if (labels.length === 0) {
+          ctx.parentElement.innerHTML =
+            '<div class="chart-no-data"><i class="fas fa-chart-pie"></i><p>No data available</p></div>';
+          return;
+        }
+
+        actionDistributionChart = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "Count",
+                data: data,
+                backgroundColor: colors,
+                borderColor: borderColors,
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            indexAxis: "y", // Horizontal bar chart
+            plugins: {
+              title: {
+                display: false,
+              },
+              legend: {
+                display: false,
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    return context.parsed.x + " actions";
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: "Number of Actions",
+                },
+                beginAtZero: true,
+                ticks: {
+                  stepSize: 1,
+                },
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: "Action Type",
+                },
+              },
+            },
+          },
+        });
+      }
+
+      /**
+       * Get color for action type (consistent with badge colors)
+       * @param {string} actionType - The action type
+       * @param {number} alpha - Opacity (0-1)
+       * @returns {string} RGBA color string
+       */
+      function getActionColor(actionType, alpha = 1) {
+        const colorMap = {
+          LOGIN_SUCCESS: `rgba(72, 187, 120, ${alpha})`, // success-color (green)
+          LOGIN_FAILURE: `rgba(229, 62, 62, ${alpha})`, // danger-color (red)
+          LOGOUT: `rgba(74, 144, 226, ${alpha})`, // primary-color (blue)
+          USER_CREATED: `rgba(74, 144, 226, ${alpha})`, // primary-color (blue)
+          USER_UPDATED: `rgba(237, 137, 54, ${alpha})`, // warning-color (orange)
+          USER_DELETED: `rgba(229, 62, 62, ${alpha})`, // danger-color (red)
+          PASSWORD_CHANGED: `rgba(237, 137, 54, ${alpha})`, // warning-color (orange)
+          SETTINGS_CHANGE: `rgba(74, 144, 226, ${alpha})`, // primary-color (blue)
+          APPOINTMENT_CREATED: `rgba(72, 187, 120, ${alpha})`, // green
+          APPOINTMENT_UPDATED: `rgba(237, 137, 54, ${alpha})`, // orange
+          APPOINTMENT_CANCELLED: `rgba(229, 62, 62, ${alpha})`, // red
+          APPOINTMENT_CONFIRMED: `rgba(72, 187, 120, ${alpha})`, // green
+          CREATE_DIRECT_CALL: `rgba(59, 130, 246, ${alpha})`, // bright blue
+          BOOK_APPOINTMENT_FROM_DIRECT_CALL: `rgba(139, 92, 246, ${alpha})`, // purple
+          ARCHIVE_APPOINTMENT: `rgba(234, 179, 8, ${alpha})`, // yellow
+          RESCHEDULE_APPOINTMENT: `rgba(236, 72, 153, ${alpha})`, // pink
+          CANCEL_APPOINTMENT: `rgba(239, 68, 68, ${alpha})`, // bright red
+          FOLLOWUP_APPOINTMENT_CREATED: `rgba(34, 197, 94, ${alpha})`, // bright green
+          PATIENT_CREATED: `rgba(14, 165, 233, ${alpha})`, // sky blue
+          PATIENT_UPDATED: `rgba(168, 85, 247, ${alpha})`, // violet
+          UPDATE_APPOINTMENT: `rgba(251, 146, 60, ${alpha})`, // amber
+          CONFIRM_APPOINTMENT: `rgba(16, 185, 129, ${alpha})`, // emerald
+        };
+
+        // If not in map, generate a consistent color based on the action type string
+        if (!colorMap[actionType]) {
+          // Use a simple hash function to generate consistent colors for unknown action types
+          let hash = 0;
+          for (let i = 0; i < actionType.length; i++) {
+            hash = actionType.charCodeAt(i) + ((hash << 5) - hash);
+          }
+          const hue = Math.abs(hash % 360);
+          return `hsla(${hue}, 65%, 55%, ${alpha})`;
+        }
+
+        return colorMap[actionType];
+      }
+
+      function displayAuditLogs(logs) {
+        const tbody = document.getElementById("auditLogsTableBody");
+
+        if (!logs || logs.length === 0) {
+          tbody.innerHTML = `
+          <tr>
+            <td colspan="9" class="text-center py-5 text-muted">
+              <i class="fas fa-inbox me-2"></i>No audit logs found
+            </td>
+          </tr>
+        `;
+          return;
+        }
+
+        tbody.innerHTML = "";
+
+        logs.forEach((log) => {
+          const row = document.createElement("tr");
+          const timestamp = formatTimestamp(log.timestamp);
+          const actionBadge = getActionBadge(log.actionType);
+          const detailsPreview = getDetailsPreview(log.details);
+
+          row.innerHTML = `
+          <td class="timestamp">${timestamp}</td>
+          <td>${escapeHtml(log.username)}</td>
+          <td>${escapeHtml(log.fullName || "-")}</td>
+          <td><span class="badge bg-secondary">${escapeHtml(log.userRole)}</span></td>
+          <td>${actionBadge}</td>
+          <td>${escapeHtml(log.targetType || "-")}</td>
+          <td>${escapeHtml(log.targetId || "-")}</td>
+          <td class="details-cell" onclick='showDetails(${JSON.stringify(log).replace(/'/g, "&#39;")})'>${detailsPreview}</td>
+          <td><small>${escapeHtml(log.ipAddress || "N/A")}</small></td>
+        `;
+          tbody.appendChild(row);
+        });
+      }
+
+      function formatTimestamp(timestamp) {
+        const date = new Date(timestamp);
+        const dateStr = formatDisplayDate(date);
+        const timeStr = date.toLocaleTimeString();
+        return `${dateStr}<br><small>${timeStr}</small>`;
+      }
+
+      function getActionBadge(actionType) {
+        const actionColors = {
+          LOGIN_SUCCESS: "success",
+          LOGIN_FAILURE: "danger",
+          LOGOUT: "info",
+          USER_CREATED: "primary",
+          USER_UPDATED: "warning",
+          USER_DELETED: "danger",
+          PASSWORD_CHANGED: "warning",
+          SETTINGS_CHANGE: "info",
+        };
+
+        const color = actionColors[actionType] || "secondary";
+        return `<span class="badge bg-${color}">${escapeHtml(actionType)}</span>`;
+      }
+
+      function getDetailsPreview(details) {
+        if (!details || details === "{}") return "-";
+        try {
+          const obj =
+            typeof details === "string" ? JSON.parse(details) : details;
+          const keys = Object.keys(obj);
+          if (keys.length === 0) return "-";
+          return `${keys.length} field(s) - Click to view`;
+        } catch (e) {
+          return details.substring(0, 50) + "...";
+        }
+      }
+
+      function showDetails(log) {
+        const content = document.getElementById("detailsContent");
+
+        let detailsHtml = `
+        <table class="table table-bordered">
+          <tr><th>Timestamp</th><td>${formatDisplayDate(new Date(log.timestamp))}, ${new Date(log.timestamp).toLocaleTimeString()}</td></tr>
+          <tr><th>Username</th><td>${escapeHtml(log.username)}</td></tr>
+          <tr><th>Full Name</th><td>${escapeHtml(log.fullName || "-")}</td></tr>
+          <tr><th>User Role</th><td>${escapeHtml(log.userRole)}</td></tr>
+          <tr><th>Action Type</th><td>${escapeHtml(log.actionType)}</td></tr>
+          <tr><th>Target Type</th><td>${escapeHtml(log.targetType || "-")}</td></tr>
+          <tr><th>Target ID</th><td>${escapeHtml(log.targetId || "-")}</td></tr>
+          <tr><th>IP Address</th><td>${escapeHtml(log.ipAddress || "N/A")}</td></tr>
+          <tr><th>Sheet Name</th><td>${escapeHtml(log.sheetName || "N/A")}</td></tr>
+        </table>
+      `;
+
+        if (log.details && log.details !== "{}") {
+          try {
+            const details =
+              typeof log.details === "string"
+                ? JSON.parse(log.details)
+                : log.details;
+            detailsHtml += '<h6 class="mt-3">Additional Details:</h6>';
+            detailsHtml +=
+              '<pre class="bg-light p-3 rounded">' +
+              JSON.stringify(details, null, 2) +
+              "</pre>";
+          } catch (e) {
+            detailsHtml += '<h6 class="mt-3">Details:</h6>';
+            detailsHtml +=
+              '<pre class="bg-light p-3 rounded">' +
+              escapeHtml(log.details) +
+              "</pre>";
+          }
+        }
+
+        content.innerHTML = detailsHtml;
+
+        const modal = new bootstrap.Modal(
+          document.getElementById("detailsModal"),
+        );
+        modal.show();
+      }
+
+      function updatePagination(totalCount, returnedCount, offset) {
+        const totalPages = Math.ceil(totalCount / recordsPerPage);
+        const paginationControls =
+          document.getElementById("paginationControls");
+
+        let html = "";
+
+        // Previous button
+        if (currentPage > 1) {
+          html += `<li class="page-item"><a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">Previous</a></li>`;
+        } else {
+          html += `<li class="page-item disabled"><a class="page-link" href="#" tabindex="-1">Previous</a></li>`;
+        }
+
+        // Page numbers
+        const startPage = Math.max(1, currentPage - 2);
+        const endPage = Math.min(totalPages, currentPage + 2);
+
+        if (startPage > 1) {
+          html += `<li class="page-item"><a class="page-link" href="#" onclick="changePage(1); return false;">1</a></li>`;
+          if (startPage > 2) {
+            html += `<li class="page-item disabled"><a class="page-link" href="#">...</a></li>`;
+          }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+          if (i === currentPage) {
+            html += `<li class="page-item active"><a class="page-link" href="#">${i}</a></li>`;
+          } else {
+            html += `<li class="page-item"><a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a></li>`;
+          }
+        }
+
+        if (endPage < totalPages) {
+          if (endPage < totalPages - 1) {
+            html += `<li class="page-item disabled"><a class="page-link" href="#">...</a></li>`;
+          }
+          html += `<li class="page-item"><a class="page-link" href="#" onclick="changePage(${totalPages}); return false;">${totalPages}</a></li>`;
+        }
+
+        // Next button
+        if (currentPage < totalPages) {
+          html += `<li class="page-item"><a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">Next</a></li>`;
+        } else {
+          html += `<li class="page-item disabled"><a class="page-link" href="#">Next</a></li>`;
+        }
+
+        paginationControls.innerHTML = html;
+
+        // Update pagination info
+        const start = offset + 1;
+        const end = offset + returnedCount;
+        document.getElementById("paginationInfo").textContent =
+          `Showing ${start} to ${end} of ${totalCount} entries`;
+      }
+
+      function changePage(page) {
+        currentPage = page;
+        loadAuditLogs();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      function updateStats(totalCount, returnedCount) {
+        document.getElementById("totalLogsCount").textContent =
+          totalCount.toLocaleString();
+        document.getElementById("filteredLogsCount").textContent =
+          totalCount.toLocaleString();
+        document.getElementById("currentPageCount").textContent =
+          returnedCount.toLocaleString();
+
+        const dateFrom = document.getElementById("dateFrom").value;
+        const dateTo = document.getElementById("dateTo").value;
+        let dateRangeText = "All Time";
+
+        if (dateFrom && dateTo) {
+          dateRangeText =
+            formatDisplayDate(dateFrom) + " - " + formatDisplayDate(dateTo);
+        } else if (dateFrom) {
+          dateRangeText = "From " + formatDisplayDate(dateFrom);
+        } else if (dateTo) {
+          dateRangeText = "Until " + formatDisplayDate(dateTo);
+        }
+
+        document.getElementById("dateRangeDisplay").textContent = dateRangeText;
+        document.getElementById("dateRangeDisplay").style.fontSize = "0.9rem";
+      }
+
+      function exportAuditLogs() {
+        showAlert("Export functionality will be available soon", "info");
+        // TODO: Implement CSV export
+      }
+
+      function showLoading(show) {
+        const overlay = document.getElementById("loadingOverlay");
+        if (show) {
+          overlay.classList.add("active");
+        } else {
+          overlay.classList.remove("active");
+        }
+      }
+
+      function showAlert(message, type) {
+        const alertContainer = document.getElementById("alertContainer");
+        const alertDiv = document.createElement("div");
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+
+        alertContainer.appendChild(alertDiv);
+
+        setTimeout(() => {
+          if (alertDiv.parentNode) {
+            alertDiv.remove();
+          }
+        }, 5000);
+      }
+
+      function escapeHtml(text) {
+        if (text === null || text === undefined) return "";
+        const map = {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#039;",
+        };
+        return String(text).replace(/[&<>"']/g, (m) => map[m]);
+      }
+    </script>
+  </body>
+</html>

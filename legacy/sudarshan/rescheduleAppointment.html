@@ -1,0 +1,2468 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <base target="_top" />
+    <meta charset="UTF-8" />
+    <title>Reschedule Appointment - Sampada VR Eye Care</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary-color: #4a90e2;
+        --primary-light: #e8f0fe;
+        --primary-dark: #2c5282;
+        --success-color: #48bb78;
+        --warning-color: #ed8936;
+        --danger-color: #e53e3e;
+        --text-primary: #2d3748;
+        --text-secondary: #4a5568;
+        --bg-light: #f7fafc;
+        --bg-white: #ffffff;
+      }
+
+      body {
+        background-color: var(--bg-light);
+        color: var(--text-primary);
+        padding: 2rem;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+      }
+
+      .container {
+        max-width: 1200px;
+        background: var(--bg-white);
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        margin: 0 auto;
+      }
+
+      h2 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 2rem;
+        text-align: center;
+        position: relative;
+        padding-bottom: 1rem;
+      }
+
+      h2::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 4px;
+        background: linear-gradient(
+          90deg,
+          var(--primary-color),
+          var(--success-color)
+        );
+        border-radius: 2px;
+      }
+
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+
+      .form-label {
+        font-weight: 500;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+        display: block;
+      }
+
+      .form-control,
+      .form-select {
+        border: 2px solid var(--primary-light);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+        width: 100%;
+        font-size: 1rem;
+      }
+
+      .form-control:focus,
+      .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 4px 12px rgba(74, 144, 226, 0.15);
+        outline: none;
+      }
+
+      .btn {
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        font-size: 1rem;
+        cursor: pointer;
+        border: none;
+      }
+
+      .btn-primary {
+        background: var(--primary-color);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(74, 144, 226, 0.2);
+      }
+
+      .btn-outline-secondary {
+        border: 2px solid var(--text-secondary);
+        color: var(--text-secondary);
+        background: transparent;
+      }
+
+      .btn-outline-secondary:hover {
+        background: var(--text-secondary);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(74, 144, 226, 0.2);
+      }
+
+      .current-appointment {
+        background: var(--primary-light);
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+      }
+
+      .current-appointment h4 {
+        color: var(--primary-dark);
+        margin-bottom: 1rem;
+        font-weight: 600;
+      }
+
+      .section-header {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--primary-light);
+      }
+
+      #slotIntervalSection {
+        margin: 1.5rem 0;
+        padding: 1rem;
+        background: var(--bg-light);
+        border-radius: 8px;
+      }
+
+      .btn-group {
+        display: flex;
+        gap: 1rem;
+        margin-top: 0.5rem;
+      }
+
+      .btn-check {
+        display: none;
+      }
+
+      .btn-check + .btn-outline-primary {
+        border: 2px solid var(--primary-color);
+        color: var(--primary-color);
+        background: transparent;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .btn-check:checked + .btn-outline-primary {
+        background: var(--primary-color);
+        color: white;
+      }
+
+      .btn-check + .btn-outline-primary:hover {
+        background: var(--primary-light);
+        color: var(--primary-color);
+      }
+
+      .btn-check:checked + .btn-outline-primary:hover {
+        background: var(--primary-dark);
+        color: white;
+      }
+
+      #timeSlotSection {
+        margin-top: 1.5rem;
+      }
+
+      #timeSlotSection .form-select {
+        margin-top: 0.5rem;
+      }
+
+      .calendar-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 1rem 0;
+        padding: 0.5rem;
+        background: var(--bg-light);
+        border-radius: 8px;
+      }
+
+      .calendar-nav button {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .calendar-nav button:hover {
+        background: var(--primary-dark);
+      }
+
+      #calendarMonthYear {
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .alert-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-width: 400px;
+      }
+
+      .custom-alert {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 16px 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transform: translateX(120%);
+        animation: slideIn 0.3s forwards;
+      }
+
+      @keyframes slideIn {
+        to {
+          transform: translateX(0);
+        }
+      }
+
+      .custom-alert.closing {
+        animation: slideOut 0.3s forwards;
+      }
+
+      @keyframes slideOut {
+        to {
+          transform: translateX(120%);
+        }
+      }
+
+      .loading-spinner {
+        border: 3px solid var(--primary-light);
+        border-top: 3px solid var(--primary-color);
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .loading-text {
+        text-align: center;
+        color: var(--text-secondary);
+        margin-top: 0.5rem;
+      }
+
+      #calendarContainer {
+        background: var(--bg-white);
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      }
+
+      .day-header {
+        text-align: center;
+        font-weight: 600;
+        padding: 0.5rem;
+        color: var(--text-secondary);
+      }
+
+      .day {
+        text-align: center;
+        padding: 0.5rem;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: all 0.3s ease;
+      }
+
+      .day:hover:not(.disabled) {
+        background: var(--primary-light);
+      }
+
+      .day.selected {
+        background: var(--primary-color);
+        color: white;
+      }
+
+      .day.disabled {
+        color: #cbd5e0;
+        cursor: not-allowed;
+      }
+
+      #dateDisplay {
+        background: var(--bg-white);
+        padding: 0.75rem 1rem;
+        border: 2px solid var(--primary-light);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 1rem;
+      }
+
+      #dateDisplay:hover {
+        border-color: var(--primary-color);
+      }
+
+      #additionalInfo {
+        background: var(--bg-light);
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-top: 2rem;
+      }
+
+      #actionButtons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        justify-content: flex-end;
+      }
+
+      #actionButtons .btn {
+        min-width: 120px;
+      }
+
+      .btn-warning {
+        background: var(--warning-color);
+        color: white;
+      }
+
+      .btn-warning:hover {
+        background: #dd6b20;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(237, 137, 54, 0.2);
+      }
+
+      .btn-danger {
+        background: var(--danger-color);
+        color: white;
+      }
+
+      .btn-danger:hover {
+        background: #c53030;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(229, 62, 62, 0.2);
+      }
+
+      /* Define styles for suggestion items and selected procedures */
+      .suggestion-item {
+        cursor: pointer;
+        padding: 8px 12px;
+        transition: all 0.2s ease;
+      }
+
+      .suggestion-item:hover {
+        background-color: var(--primary-light);
+      }
+
+      #suggestionsDropdown {
+        max-height: 200px;
+        overflow-y: auto;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        display: none;
+        z-index: 100;
+      }
+
+      #selectedProceduresList > div {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--primary-light);
+        padding: 8px 12px;
+        border-radius: 6px;
+        margin-bottom: 6px;
+      }
+
+      .remove-procedure {
+        cursor: pointer;
+        opacity: 0.7;
+        margin-left: 10px;
+        transition: all 0.2s ease;
+      }
+
+      .remove-procedure:hover {
+        opacity: 1;
+      }
+
+      /* Eye selection button group */
+      #eyeSelectionContainer {
+        background: var(--bg-light);
+        padding: 10px;
+        border-radius: 6px;
+      }
+
+      #eyeSelectionContainer .btn-group {
+        margin-top: 0;
+      }
+
+      #eyeSelectionContainer .btn {
+        padding: 4px 8px;
+        font-size: 0.9rem;
+      }
+
+      /* User Information Header Styles */
+      .user-info-header {
+        background: var(--bg-white);
+        border-bottom: 1px solid var(--primary-light);
+        padding: 0.75rem 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+
+      .user-info-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .user-details {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .user-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+
+      .user-text {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+      }
+
+      .user-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.95rem;
+      }
+
+      .user-role {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+      }
+
+      .user-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .user-actions .btn {
+        font-size: 0.8rem;
+        padding: 0.375rem 0.75rem;
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 768px) {
+        .user-info-content {
+          flex-direction: column;
+          gap: 0.75rem;
+          align-items: flex-start;
+        }
+
+        .user-actions {
+          width: 100%;
+          justify-content: flex-end;
+        }
+      }
+
+      /* Custom modal styles */
+      .custom-modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); display: flex; align-items: center;
+        justify-content: center; z-index: 10000; backdrop-filter: blur(4px);
+      }
+      .custom-modal {
+        background: var(--bg-white, #fff); border-radius: 16px; padding: 0;
+        max-width: 480px; width: 90%; max-height: 80vh; overflow-y: auto;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      }
+      .custom-modal-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 20px 24px 16px; border-bottom: 2px solid var(--primary-light, #e8f0fe);
+      }
+      .custom-modal-title { font-size: 1.25rem; font-weight: 600; color: var(--text-primary, #2d3748); margin: 0; }
+      .custom-modal-close {
+        background: none; border: none; font-size: 1.5rem; color: var(--text-secondary, #4a5568);
+        cursor: pointer; padding: 0; width: 32px; height: 32px;
+        display: flex; align-items: center; justify-content: center; border-radius: 50%;
+      }
+      .custom-modal-body { padding: 20px 24px; }
+      .custom-modal-message { color: var(--text-secondary, #4a5568); line-height: 1.6; margin-bottom: 12px; }
+      .custom-modal-footer {
+        padding: 16px 24px 20px; display: flex; justify-content: flex-end; gap: 12px;
+        border-top: 1px solid var(--primary-light, #e8f0fe);
+      }
+      .custom-modal-btn {
+        padding: 10px 20px; border: none; border-radius: 8px;
+        font-weight: 500; cursor: pointer; transition: all 0.2s;
+      }
+      .custom-modal-btn-primary { background: var(--primary-color, #4a90e2); color: white; }
+    </style>
+  </head>
+  <body>
+    <script>
+      window.sessionToken = "<?= sessionToken ?>";
+      window.baseUrl = "<?= webAppUrl ?>";
+    </script>
+    <?!= include('sharedLayout') ?>
+    <div class="alert-container" id="alertContainer"></div>
+
+    <div class="container my-4">
+      <h2 class="mb-4 text-center">Reschedule Appointment</h2>
+
+      <!-- Current Appointment Details -->
+      <div class="current-appointment mb-4">
+        <h4 class="section-header">Current Appointment Details</h4>
+        <div id="currentAppointmentDetails" class="p-3 bg-light rounded"></div>
+      </div>
+
+      <!-- Appointment Details Section -->
+      <div id="appointmentDetails" class="mb-4">
+        <h4 class="section-header">New Appointment Details</h4>
+        <div class="row">
+          <div class="col-md-6">
+            <div class="form-group">
+              <label for="appointmentType" class="form-label"
+                >Appointment Type</label
+              >
+              <select
+                class="form-select"
+                id="appointmentType"
+                onchange="handleAppointmentTypeChange()"
+              >
+                <option value="">Select Appointment Type</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-group">
+              <label for="doctor" class="form-label">Doctor</label>
+              <select
+                class="form-select"
+                id="doctor"
+                onchange="loadDoctorSchedule()"
+              >
+                <option value="">Select a Doctor</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Appointment Date Selection -->
+      <div id="dateSelection" class="mb-4">
+        <h4 class="section-header">Select New Appointment Date</h4>
+        <div class="form-group">
+          <label class="form-label">Selected Date</label>
+          <div id="dateDisplay" class="form-control">Select Date</div>
+        </div>
+        <div id="calendarContainer" class="mt-3">
+          <div id="calendarLoading">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Loading calendar...</div>
+          </div>
+        </div>
+        <div class="calendar-nav">
+          <button class="btn" onclick="prevMonth()">&lt; Previous</button>
+          <span id="calendarMonthYear"></span>
+          <button class="btn" onclick="nextMonth()">Next &gt;</button>
+        </div>
+      </div>
+
+      <!-- Time Slot Selection -->
+      <div id="timeSlotSection" class="mb-4">
+        <h4 class="section-header">Select Time Slot</h4>
+        <div class="form-group">
+          <label class="form-label">Time Slot Interval</label>
+          <div class="btn-group" role="group">
+            <input
+              type="radio"
+              class="btn-check"
+              name="slotInterval"
+              id="interval10"
+              value="10"
+              autocomplete="off"
+              checked
+            />
+            <label class="btn btn-outline-primary" for="interval10"
+              >10 Minutes</label
+            >
+            <input
+              type="radio"
+              class="btn-check"
+              name="slotInterval"
+              id="interval5"
+              value="5"
+              autocomplete="off"
+            />
+            <label class="btn btn-outline-primary" for="interval5"
+              >5 Minutes</label
+            >
+          </div>
+        </div>
+        <div class="form-group mt-3">
+          <label for="timeSlot" class="form-label">Available Time Slot</label>
+          <select class="form-select" id="timeSlot">
+            <option value="">Select a Time Slot</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Additional Appointment Information -->
+      <div id="additionalInfo" class="mb-4">
+        <h4 class="section-header">Additional Information</h4>
+        <div class="form-group">
+          <label for="procedureInput" class="form-label">Plan of Action</label>
+          <div id="planOfActionContainer">
+            <!-- Autocomplete Input -->
+            <div id="procedureInputContainer" class="position-relative">
+              <input
+                type="text"
+                id="procedureInput"
+                class="form-control"
+                placeholder="Type to search…"
+              />
+              <div
+                id="suggestionsDropdown"
+                class="list-group position-absolute w-100"
+              ></div>
+            </div>
+
+            <!-- Eye Selection (hidden until needed) -->
+            <div id="eyeSelectionContainer" class="mt-2 d-none">
+              <span class="form-label">Select Eye:</span>
+              <div class="btn-group ms-2">
+                <input
+                  type="radio"
+                  name="eyeSelection"
+                  id="re"
+                  value="RE"
+                  class="btn-check"
+                />
+                <label for="re" class="btn btn-outline-secondary btn-sm"
+                  >RE</label
+                >
+
+                <input
+                  type="radio"
+                  name="eyeSelection"
+                  id="le"
+                  value="LE"
+                  class="btn-check"
+                />
+                <label for="le" class="btn btn-outline-secondary btn-sm"
+                  >LE</label
+                >
+
+                <input
+                  type="radio"
+                  name="eyeSelection"
+                  id="be"
+                  value="BE"
+                  class="btn-check"
+                />
+                <label for="be" class="btn btn-outline-secondary btn-sm"
+                  >BE</label
+                >
+              </div>
+            </div>
+
+            <!-- Selected Items List -->
+            <div id="selectedProceduresList" class="mt-2"></div>
+
+            <!-- Hidden JSON Field -->
+            <input type="hidden" id="planOfAction" name="planOfAction" />
+          </div>
+        </div>
+        <!-- Display Current Latest Remark (Read-only) -->
+        <div class="form-group">
+          <label class="form-label">Current Latest Remark</label>
+          <div class="card">
+            <div class="card-body">
+              <p id="currentRemarkDisplay" class="mb-0 text-muted">
+                No remarks yet
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add New Remark -->
+        <div class="form-group">
+          <label for="newRemark" class="form-label"
+            >Add New Remark (Optional)</label
+          >
+          <textarea
+            class="form-control"
+            id="newRemark"
+            rows="3"
+            placeholder="Enter a new remark to add to history..."
+          ></textarea>
+          <small class="form-text text-muted"
+            >This will be added to the remarks history when you
+            reschedule.</small
+          >
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div id="actionButtons">
+        <button
+          class="btn btn-primary"
+          id="submitBtn"
+          onclick="submitReschedule()"
+        >
+          <span class="normal-text">Reschedule Appointment</span>
+          <span class="loading-text" style="display: none">
+            <span
+              class="spinner-border spinner-border-sm"
+              role="status"
+              aria-hidden="true"
+            ></span>
+            Processing...
+          </span>
+        </button>
+        <button
+          class="btn btn-warning"
+          id="restoreBtn"
+          onclick="submitRestore()"
+        >
+          Restore Delete
+        </button>
+        <button class="btn btn-warning" onclick="resetForm()">Reset</button>
+        <button class="btn btn-danger" onclick="goBack()">Cancel</button>
+      </div>
+    </div>
+
+    <script>
+      // Global variables
+      let cachedHolidays = [];
+      let currentCalendarYear = new Date().getFullYear();
+      let currentCalendarMonth = new Date().getMonth();
+      let selectedAppointmentDate = null;
+      const sessionToken = "<?= sessionToken ?>";
+      const baseUrl = "<?= webAppUrl ?>";
+      const appointmentId = "<?= appointmentId ?>";
+      let currentAppointment = null;
+      let cachedDoctorData = {
+        doctor: "",
+        month: "",
+        availability: {},
+        bookedSlots: {},
+        exceptions: {},
+      };
+
+      // Plan of Action variables and functions
+      let planOptions = [],
+        selectedProcedures = [],
+        currentProcedure = null;
+
+      function loadPlanOfActionOptions() {
+        google.script.run
+          .withSuccessHandler((r) => {
+            if (r.success) planOptions = r.options;
+          })
+          .getPlanOfActionOptions();
+      }
+
+      function initProcedureInput() {
+        const procedureInputContainer = document.getElementById(
+          "procedureInputContainer",
+        );
+        const procedureInput = document.getElementById("procedureInput");
+        const suggestionsDropdown = document.getElementById(
+          "suggestionsDropdown",
+        );
+        const eyeSelectionContainer = document.getElementById(
+          "eyeSelectionContainer",
+        );
+
+        // 1. Autocomplete as you type
+        procedureInput.addEventListener("input", function () {
+          const term = this.value.toLowerCase();
+          suggestionsDropdown.innerHTML = "";
+          if (term.length < 1) {
+            suggestionsDropdown.style.display = "none";
+            return;
+          }
+          planOptions
+            .filter((opt) => opt.name.toLowerCase().startsWith(term))
+            .forEach((opt) => {
+              const item = document.createElement("div");
+              item.className =
+                "suggestion-item list-group-item list-group-item-action";
+              item.textContent = opt.name;
+              item.addEventListener("click", () => {
+                procedureInput.value = opt.name;
+                suggestionsDropdown.style.display = "none";
+                currentProcedure = opt;
+                if (opt.requiresEyeSelection) {
+                  eyeSelectionContainer.classList.remove("d-none");
+                } else {
+                  addProcedureToSelection(opt.name);
+                  procedureInput.value = "";
+                }
+              });
+              suggestionsDropdown.appendChild(item);
+            });
+          suggestionsDropdown.style.display =
+            suggestionsDropdown.childElementCount ? "block" : "none";
+        });
+
+        // 2. Hide suggestions if clicking outside the input area
+        document.addEventListener("click", (e) => {
+          if (!procedureInputContainer.contains(e.target)) {
+            suggestionsDropdown.style.display = "none";
+          }
+        });
+
+        // 3. Handle eye selection immediately
+        document
+          .querySelectorAll('input[name="eyeSelection"]')
+          .forEach((radio) => {
+            radio.addEventListener("change", () => {
+              const selectedEye = document.querySelector(
+                'input[name="eyeSelection"]:checked',
+              );
+              if (selectedEye && currentProcedure) {
+                addProcedureToSelection(
+                  `${currentProcedure.name} (${selectedEye.value})`,
+                );
+                currentProcedure = null;
+                eyeSelectionContainer.classList.add("d-none");
+                procedureInput.value = "";
+                // Clear the radio selection
+                selectedEye.checked = false;
+              }
+            });
+          });
+      }
+
+      function addProcedureToSelection(text) {
+        selectedProcedures.push(text);
+        updateDisplay();
+        updateHiddenField();
+      }
+
+      function updateDisplay() {
+        const c = document.getElementById("selectedProceduresList");
+        c.innerHTML = "";
+        selectedProcedures.forEach((p, i) => {
+          const div = document.createElement("div");
+          div.innerHTML = `<span>${p}</span><span class="remove-procedure" data-i="${i}">❌</span>`;
+          c.appendChild(div);
+        });
+        document.querySelectorAll(".remove-procedure").forEach((btn) => {
+          btn.onclick = () => {
+            selectedProcedures.splice(btn.dataset.i, 1);
+            updateDisplay();
+            updateHiddenField();
+          };
+        });
+      }
+
+      function updateHiddenField() {
+        document.getElementById("planOfAction").value =
+          JSON.stringify(selectedProcedures);
+      }
+
+      // Load appointment details when page loads
+      window.onload = function () {
+        if (!appointmentId) {
+          showAlert("No appointment ID provided", "error");
+          return;
+        }
+
+        loadAppointmentDetails();
+
+        loadAppointmentTypes();
+
+        loadDoctors();
+
+        loadHolidays();
+
+        loadCalendar(currentCalendarYear, currentCalendarMonth);
+
+        loadPlanOfActionOptions();
+
+        initProcedureInput();
+
+        // Add event listeners
+        document.getElementById("dateDisplay").onclick = function () {
+          document.getElementById("calendarContainer").style.display = "block";
+        };
+
+        document
+          .querySelectorAll('input[name="slotInterval"]')
+          .forEach((radio) => {
+            radio.addEventListener("change", function () {
+              if (selectedAppointmentDate) {
+                loadAvailableTimeSlotsForDoctor();
+              }
+            });
+          });
+      };
+
+      function loadAppointmentDetails() {
+        showAlert("Loading appointment details...", "info");
+
+        const loadingTimeout = setTimeout(() => {
+          showAlert("Still loading appointment details...", "warning");
+        }, 3000);
+
+        google.script.run
+          .withSuccessHandler((response) => {
+            clearTimeout(loadingTimeout);
+
+            if (!response) {
+              showAlert("Server didn't respond. Please try again.", "error");
+              return;
+            }
+
+            if (response.success) {
+              currentAppointment = response.appointment;
+              displayCurrentAppointment();
+              // Pre-fill form with current appointment details
+              document.getElementById("appointmentType").value =
+                currentAppointment["I: AppointmentType"] || "";
+              document.getElementById("doctor").value =
+                currentAppointment["J: Doctor"] || "";
+
+              // Handle plan of action
+              if (currentAppointment["K: PlanOfAction"]) {
+                try {
+                  // Try to parse as JSON (new format)
+                  const planData = JSON.parse(
+                    currentAppointment["K: PlanOfAction"],
+                  );
+                  if (Array.isArray(planData)) {
+                    selectedProcedures = planData;
+                    updateDisplay();
+                    updateHiddenField();
+                  } else {
+                    // If it's not an array, treat as a single item
+                    selectedProcedures = [
+                      currentAppointment["K: PlanOfAction"],
+                    ];
+                    updateDisplay();
+                    updateHiddenField();
+                  }
+                } catch (e) {
+                  // If parsing fails, assume it's the old string format
+                  selectedProcedures = [currentAppointment["K: PlanOfAction"]];
+                  updateDisplay();
+                  updateHiddenField();
+                }
+              }
+
+              // Display the current latest remark (read-only)
+              const currentRemark =
+                currentAppointment["L: Remarks"] || "No remarks yet";
+              document.getElementById("currentRemarkDisplay").textContent =
+                currentRemark;
+              if (currentRemark !== "No remarks yet") {
+                document
+                  .getElementById("currentRemarkDisplay")
+                  .classList.remove("text-muted");
+              }
+              showAlert("Appointment details loaded", "success");
+            } else {
+              // Enhanced error handling
+              if (response.errorCode === "APPOINTMENT_NOT_FOUND") {
+                showAlert(
+                  `Appointment not found. Please check the ID and try again.`,
+                  "error",
+                );
+              } else {
+                showAlert(
+                  response.message || "Error loading appointment details",
+                  "error",
+                );
+              }
+            }
+          })
+          .withFailureHandler((error) => {
+            clearTimeout(loadingTimeout);
+            showAlert(`Connection failed: ${error.message}`, "error");
+          })
+          .getAppointmentDetails(appointmentId);
+      }
+
+      function handleErrorResponse(response) {
+        const errorMap = {
+          INVALID_ID_FORMAT: `Invalid ID format. Use ${response.suggestedFormat || "YYYYMMDD-HH:mm:ss"}`,
+          DEFAULT: response.message || "Unknown error occurred",
+        };
+
+        const errorMessage = errorMap[response.errorCode] || errorMap.DEFAULT;
+        showAlert(errorMessage, "error");
+
+        if (response.errorCode === "INVALID_ID_FORMAT") {
+          document.getElementById("appointmentIdHelp").textContent =
+            `Example valid ID: ${Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd-HH:mm:ss")}`;
+        }
+      }
+
+      function displayCurrentAppointment() {
+        const details = currentAppointment;
+        const container = document.getElementById("currentAppointmentDetails");
+
+        if (!details) {
+          container.innerHTML =
+            "<p>Error: Could not load appointment details</p>";
+          return;
+        }
+
+        const formatDate = (dateString) => {
+          if (!dateString) return "N/A";
+          try {
+            const date = new Date(dateString);
+            return isNaN(date.getTime()) ? "N/A" : formatDisplayDate(date);
+          } catch (e) {
+            return "N/A";
+          }
+        };
+
+        const formatTime = (dateString) => {
+          if (!dateString) return "N/A";
+          try {
+            const date = new Date(dateString);
+            return isNaN(date.getTime())
+              ? "N/A"
+              : date.toLocaleTimeString("en-GB", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+          } catch (e) {
+            return "N/A";
+          }
+        };
+
+        container.innerHTML = `
+      <div class="row">
+        <div class="col-md-6">
+          <p><strong>Patient:</strong> ${details["PatientName"] || "N/A"}</p>
+          <p><strong>MRD No:</strong> ${details["MRDNo"] || "N/A"}</p>
+          <p><strong>Current Date:</strong> ${formatDate(details["AppointmentDate"])}</p>
+          <p><strong>Current Time:</strong> ${formatTime(details["TimeSlot"])}</p>
+        </div>
+        <div class="col-md-6">
+          <p><strong>Type:</strong> ${details["AppointmentType"] || "N/A"}</p>
+          <p><strong>Doctor:</strong> ${details["Doctor"] || "N/A"}</p>
+          <p><strong>Plan:</strong> ${details["PlanOfAction"] || "N/A"}</p>
+          <p><strong>Remarks:</strong> ${details["Remarks"] || "N/A"}</p>
+        </div>
+      </div>
+    `;
+      }
+
+      function loadAppointmentTypes() {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (!response) {
+              showAlert("Error loading appointment types", "error");
+              return;
+            }
+            if (response.success) {
+              var selectElem = document.getElementById("appointmentType");
+              if (!selectElem) {
+                return;
+              }
+              selectElem.innerHTML =
+                '<option value="">Select Appointment Type</option>';
+              response.appointmentTypes.forEach(function (type) {
+                var option = document.createElement("option");
+                option.value = type;
+                option.textContent = type;
+                selectElem.appendChild(option);
+              });
+            } else {
+              showAlert(
+                "Error loading appointment types: " + response.message,
+                "error",
+              );
+            }
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error loading appointment types: " + error, "error");
+          })
+          .getAppointmentTypes();
+      }
+
+      function loadDoctors() {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response.success) {
+              var doctorSelect = document.getElementById("doctor");
+              doctorSelect.innerHTML =
+                '<option value="">Select a Doctor</option>';
+              response.doctors.forEach(function (doc) {
+                var option = document.createElement("option");
+                option.value = doc;
+                option.textContent = doc;
+                doctorSelect.appendChild(option);
+              });
+            } else {
+              showAlert("Error loading doctors: " + response.message, "error");
+            }
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error loading doctors: " + error, "error");
+          })
+          .getDoctors();
+      }
+
+      function loadHolidays() {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response.success) {
+              cachedHolidays = response.holidays;
+            } else {
+              cachedHolidays = [];
+            }
+          })
+          .withFailureHandler(function (error) {
+            cachedHolidays = [];
+          })
+          .getHolidays();
+      }
+
+      function loadCalendar(year, month) {
+        currentCalendarYear = year;
+        currentCalendarMonth = month;
+        const calendarMonthYear = document.getElementById("calendarMonthYear");
+        const dateObj = new Date(year, month);
+        calendarMonthYear.textContent = dateObj.toLocaleString("default", {
+          month: "long",
+          year: "numeric",
+        });
+        const calendarContainer = document.getElementById("calendarContainer");
+        calendarContainer.innerHTML = "";
+
+        // Add loading indicator back
+        const loadingDiv = document.createElement("div");
+        loadingDiv.id = "calendarLoading";
+        loadingDiv.innerHTML = `
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Loading calendar...</div>
+    `;
+        calendarContainer.appendChild(loadingDiv);
+        loadingDiv.style.display = "block";
+
+        // 1) Render weekday header row
+        const headerRow = document.createElement("div");
+        headerRow.className = "d-flex";
+        ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].forEach((d) => {
+          const cell = document.createElement("div");
+          cell.className = "day-header flex-fill";
+          cell.textContent = d;
+          headerRow.appendChild(cell);
+        });
+        calendarContainer.appendChild(headerRow);
+
+        // 2) Render date cells
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const today = new Date();
+        let day = 1;
+
+        // Get holidays first
+        google.script.run
+          .withSuccessHandler(function (holidaysResponse) {
+            var holidays =
+              holidaysResponse && holidaysResponse.success
+                ? holidaysResponse.holidays
+                : [];
+
+            const doctorVal = document.getElementById("doctor").value;
+            if (!doctorVal) {
+              renderCalendar(holidays, []);
+            } else {
+              google.script.run
+                .withSuccessHandler(function (leaveResponse) {
+                  var leaveDays =
+                    leaveResponse &&
+                    leaveResponse.success &&
+                    leaveResponse.leaveDates
+                      ? leaveResponse.leaveDates
+                      : [];
+                  renderCalendar(holidays, leaveDays);
+                })
+                .getAllDoctorLeaveDays(doctorVal);
+            }
+          })
+          .getHolidays();
+
+        function renderCalendar(holidays, leaveDays) {
+          // Hide loading indicator
+          document.getElementById("calendarLoading").style.display = "none";
+
+          for (let i = 0; i < 6; i++) {
+            const rowDiv = document.createElement("div");
+            rowDiv.className = "d-flex";
+            for (let j = 0; j < 7; j++) {
+              const cell = document.createElement("div");
+              cell.className = "day flex-fill";
+              if ((i === 0 && j < firstDay) || day > daysInMonth) {
+                cell.innerHTML = "&nbsp;";
+              } else {
+                const currentDate = new Date(year, month, day);
+                const dateStr = formatLocalDate(currentDate);
+                cell.textContent = day;
+
+                if (
+                  (year === today.getFullYear() &&
+                    month === today.getMonth() &&
+                    day < today.getDate()) ||
+                  holidays.includes(dateStr) ||
+                  leaveDays.includes(dateStr)
+                ) {
+                  cell.classList.add("disabled");
+                } else {
+                  let dayValue = day;
+                  cell.onclick = function () {
+                    // Remove selected class from all days
+                    document
+                      .querySelectorAll(".day")
+                      .forEach((d) => d.classList.remove("selected"));
+                    // Add selected class to clicked day
+                    cell.classList.add("selected");
+                    selectDate(dayValue);
+                  };
+                }
+                day++;
+              }
+              rowDiv.appendChild(cell);
+            }
+            calendarContainer.appendChild(rowDiv);
+          }
+        }
+      }
+
+      function nextMonth() {
+        currentCalendarMonth++;
+        if (currentCalendarMonth > 11) {
+          currentCalendarMonth = 0;
+          currentCalendarYear++;
+        }
+        if (document.getElementById("doctor").value) {
+          loadDoctorSchedule();
+        } else {
+          loadCalendar(currentCalendarYear, currentCalendarMonth);
+        }
+      }
+
+      function prevMonth() {
+        const today = new Date();
+        let newMonth = currentCalendarMonth - 1;
+        let newYear = currentCalendarYear;
+        if (newMonth < 0) {
+          newMonth = 11;
+          newYear--;
+        }
+        if (
+          newYear < today.getFullYear() ||
+          (newYear === today.getFullYear() && newMonth < today.getMonth())
+        ) {
+          return;
+        }
+        currentCalendarMonth = newMonth;
+        currentCalendarYear = newYear;
+        if (document.getElementById("doctor").value) {
+          loadDoctorSchedule();
+        } else {
+          loadCalendar(currentCalendarYear, currentCalendarMonth);
+        }
+      }
+
+      function selectDate(day) {
+        selectedAppointmentDate = new Date(
+          currentCalendarYear,
+          currentCalendarMonth,
+          day,
+        );
+        const selectedDateStr = formatLocalDate(selectedAppointmentDate);
+        // Display only - the date value itself is always taken from selectedAppointmentDate
+        document.getElementById("dateDisplay").textContent =
+          formatDisplayDate(selectedDateStr);
+        document.getElementById("calendarContainer").style.display = "none";
+
+        showAlert(`Selected date: ${formatDisplayDate(selectedDateStr)}`, "info", "Date Selected");
+
+        // Make sure we have a selected doctor and appointment type before attempting to load slots
+        const doctor = document.getElementById("doctor").value;
+        const appointmentType =
+          document.getElementById("appointmentType").value;
+
+        if (doctor && appointmentType) {
+          loadAvailableTimeSlotsForDoctor();
+        } else {
+          if (!doctor) {
+            showAlert(
+              "Please select a doctor before choosing time slots",
+              "warning",
+            );
+          }
+          if (!appointmentType) {
+            showAlert(
+              "Please select an appointment type before choosing time slots",
+              "warning",
+            );
+          }
+        }
+      }
+
+      function formatLocalDate(date) {
+        if (!date) return "";
+
+        try {
+          const year = date.getFullYear();
+          const month = (date.getMonth() + 1).toString().padStart(2, "0");
+          const day = date.getDate().toString().padStart(2, "0");
+          return `${year}-${month}-${day}`;
+        } catch (e) {
+          return "";
+        }
+      }
+
+      function loadDoctorSchedule() {
+        const doctor = document.getElementById("doctor").value;
+        if (!doctor) {
+          cachedDoctorData = {
+            doctor: "",
+            month: "",
+            availability: {},
+            bookedSlots: {},
+            exceptions: {},
+          };
+          loadCalendar(currentCalendarYear, currentCalendarMonth);
+          return;
+        }
+
+        // Show loading indicator
+        const calendarLoading = document.getElementById("calendarLoading");
+        if (calendarLoading) calendarLoading.style.display = "block";
+
+        const calendarContainer = document.getElementById("calendarContainer");
+        if (calendarContainer) {
+          calendarContainer
+            .querySelectorAll(".d-flex")
+            .forEach((el) => (el.style.display = "none"));
+        }
+
+        var monthKey =
+          currentCalendarYear +
+          "-" +
+          (currentCalendarMonth + 1).toString().padStart(2, "0");
+        if (
+          cachedDoctorData.doctor === doctor &&
+          cachedDoctorData.month === monthKey
+        ) {
+          // Hide loading indicator
+          if (calendarLoading) calendarLoading.style.display = "none";
+          if (calendarContainer) {
+            calendarContainer
+              .querySelectorAll(".d-flex")
+              .forEach((el) => (el.style.display = "flex"));
+          }
+          loadCalendar(currentCalendarYear, currentCalendarMonth);
+          return;
+        }
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            cachedDoctorData.doctor = doctor;
+            cachedDoctorData.month = monthKey;
+            cachedDoctorData.bookedSlots = response.bookedSlots || {};
+            cachedDoctorData.exceptions = response.exceptions || {};
+            google.script.run
+              .withSuccessHandler(function (availResponse) {
+                cachedDoctorData.availability =
+                  availResponse.availability || {};
+                // Hide loading indicator
+                if (calendarLoading) calendarLoading.style.display = "none";
+                if (calendarContainer) {
+                  calendarContainer
+                    .querySelectorAll(".d-flex")
+                    .forEach((el) => (el.style.display = "flex"));
+                }
+                loadCalendar(currentCalendarYear, currentCalendarMonth);
+              })
+              .withFailureHandler(function (error) {
+                // Hide loading indicator on error
+                if (calendarLoading) calendarLoading.style.display = "none";
+                if (calendarContainer) {
+                  calendarContainer
+                    .querySelectorAll(".d-flex")
+                    .forEach((el) => (el.style.display = "flex"));
+                }
+                showAlert(
+                  "Error loading doctor availability: " + error,
+                  "error",
+                );
+              })
+              .getDoctorAvailabilityData(doctor);
+          })
+          .withFailureHandler(function (error) {
+            // Hide loading indicator on error
+            if (calendarLoading) calendarLoading.style.display = "none";
+            if (calendarContainer) {
+              calendarContainer
+                .querySelectorAll(".d-flex")
+                .forEach((el) => (el.style.display = "flex"));
+            }
+            showAlert("Error loading doctor schedule: " + error, "error");
+          })
+          .getDoctorMonthlyData(doctor, monthKey);
+      }
+
+      function loadAvailableTimeSlotsForDoctor() {
+        const doctor = document.getElementById("doctor").value;
+        const date = selectedAppointmentDate
+          ? formatLocalDate(selectedAppointmentDate)
+          : "";
+        const appointmentType =
+          document.getElementById("appointmentType").value;
+
+        if (!doctor || !date || !appointmentType || date === "Select Date") {
+          if (!doctor) {
+            showAlert("Please select a doctor", "warning");
+          } else if (!appointmentType) {
+            showAlert("Please select an appointment type", "warning");
+          } else if (!date || date === "Select Date") {
+            showAlert("Please select a date", "warning");
+          }
+          return;
+        }
+
+        // Show loading indicator
+        const timeSlotDropdown = document.getElementById("timeSlot");
+        timeSlotDropdown.innerHTML =
+          '<option value="">Loading time slots...</option>';
+        timeSlotDropdown.disabled = true;
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            timeSlotDropdown.disabled = false;
+            timeSlotDropdown.innerHTML =
+              '<option value="">Select a Time Slot</option>';
+
+            if (
+              response &&
+              response.success &&
+              response.slots &&
+              response.slots.length > 0
+            ) {
+              response.slots.forEach(function (slot) {
+                var option = document.createElement("option");
+                option.value = slot;
+                option.textContent = slot;
+                timeSlotDropdown.appendChild(option);
+              });
+              // Show slot availability info
+              const remainingInfo =
+                response.remainingSlots !== undefined
+                  ? ` (${response.remainingSlots} of ${response.maxSlots} remaining)`
+                  : "";
+              showAlert(
+                `${response.slots.length} time slots available${remainingInfo}`,
+                "success",
+              );
+            } else {
+              // No slots available or error
+              if (response && response.message) {
+                showAlert(
+                  "No available time slots for the selected date. " +
+                    response.message,
+                  "warning",
+                );
+              } else if (
+                response &&
+                response.slots &&
+                response.slots.length === 0
+              ) {
+                showAlert(
+                  "No available time slots for the selected date. All slots may be booked or maxSlots not set.",
+                  "warning",
+                );
+              } else {
+                showAlert(
+                  "Error: " + (response ? response.message : "Unknown error"),
+                  "error",
+                );
+              }
+            }
+          })
+          .withFailureHandler(function (error) {
+            timeSlotDropdown.disabled = false;
+            timeSlotDropdown.innerHTML =
+              '<option value="">Select a Time Slot</option>';
+
+            showAlert("Error loading time slots: " + error, "error");
+          })
+          .getAvailableSlotsFromPlanningA(date);
+      }
+
+      function handleAppointmentTypeChange() {
+        const selectedType = document.getElementById("appointmentType").value;
+        if (!selectedType) return;
+
+        showAlert(
+          `Selected appointment type: ${selectedType}`,
+          "info",
+          "Appointment Type Selected",
+        );
+
+        const dateSelection = document.getElementById("dateSelection");
+        const slotIntervalSection = document.getElementById(
+          "slotIntervalSection",
+        );
+        const timeSlotSection = document.getElementById("timeSlotSection");
+
+        if (selectedType === "WAITING LIST") {
+          if (dateSelection) dateSelection.style.display = "block";
+          if (slotIntervalSection) slotIntervalSection.style.display = "none";
+          if (timeSlotSection) timeSlotSection.style.display = "none";
+          const timeSlot = document.getElementById("timeSlot");
+          if (timeSlot)
+            timeSlot.innerHTML = '<option value="">Select a Time Slot</option>';
+        } else {
+          if (dateSelection) dateSelection.style.display = "block";
+          if (slotIntervalSection) slotIntervalSection.style.display = "block";
+          if (timeSlotSection) timeSlotSection.style.display = "block";
+        }
+
+        loadAvailableTimeSlotsForDoctor();
+      }
+
+      function submitReschedule() {
+        const appointmentType =
+          document.getElementById("appointmentType").value;
+        const doctor = document.getElementById("doctor").value;
+
+        // Extract and format date value
+        let appointmentDate = selectedAppointmentDate
+          ? formatLocalDate(selectedAppointmentDate)
+          : "";
+
+        // Extract and format time value
+        let timeSlot = document.getElementById("timeSlot").value;
+
+        // Apply formatting functions
+        appointmentDate = formatAppointmentDate(appointmentDate);
+        timeSlot = formatTimeSlot(timeSlot);
+
+        // Validate plan of action
+        const planOfActionValue = document.getElementById("planOfAction").value;
+
+        if (!planOfActionValue || JSON.parse(planOfActionValue).length === 0) {
+          showAlert(
+            "Please add at least one plan of action before submitting.",
+            "warning",
+          );
+          return;
+        }
+
+        // Check if any procedure requires eye selection but wasn't completed
+        const eyeSelectionContainer = document.getElementById(
+          "eyeSelectionContainer",
+        );
+        if (!eyeSelectionContainer.classList.contains("d-none")) {
+          const selectedEye = document.querySelector(
+            'input[name="eyeSelection"]:checked',
+          );
+          if (!selectedEye) {
+            showAlert(
+              "Please select an eye for the current procedure before proceeding.",
+              "warning",
+            );
+            return;
+          }
+        }
+
+        const newRemark = document.getElementById("newRemark").value.trim();
+        const isWaitingList = appointmentType === "WAITING LIST";
+
+        if (!appointmentDate || (!timeSlot && !isWaitingList)) {
+          showAlert("Please select a new date and time slot", "warning");
+          return;
+        }
+
+        // Validate date format
+        if (!isValidDateFormat(appointmentDate)) {
+          showAlert(
+            "Invalid date format. Please ensure the date is in YYYY-MM-DD format.",
+            "error",
+          );
+          return;
+        }
+
+        // Validate time format (only if not waiting list)
+        if (!isWaitingList && !isValidTimeFormat(timeSlot)) {
+          showAlert(
+            "Invalid time format. Please ensure the time is in HH:MM format.",
+            "error",
+          );
+          return;
+        }
+
+        const rescheduleData = {
+          appointmentId: appointmentId,
+          newDate: appointmentDate,
+          newTimeSlot: isWaitingList ? "" : timeSlot, // No time slot for waiting list
+          appointmentType: appointmentType,
+          doctor: doctor,
+          newPlanOfAction: planOfActionValue,
+          newRemarks: newRemark, // Send the new remark to be added to history
+          sessionToken: sessionToken,
+        };
+
+        // Show loading state
+        const submitBtn = document.getElementById("submitBtn");
+        submitBtn.disabled = true;
+        submitBtn.querySelector(".normal-text").style.display = "none";
+        submitBtn.querySelector(".loading-text").style.display = "inline-block";
+
+        // For WAITING LIST, skip early booking restriction and only check waiting list limit
+        if (isWaitingList) {
+          google.script.run
+            .withSuccessHandler(function (limitResponse) {
+              if (limitResponse && limitResponse.allowed) {
+                // Waiting list has space, proceed with reschedule
+                proceedWithReschedule();
+              } else {
+                // Waiting list is full
+                submitBtn.disabled = false;
+                submitBtn.querySelector(".normal-text").style.display =
+                  "inline-block";
+                submitBtn.querySelector(".loading-text").style.display = "none";
+                const errorMsg = limitResponse
+                  ? limitResponse.message
+                  : "Waiting list is full for the selected date";
+                showWaitingListFullModal(errorMsg);
+              }
+            })
+            .withFailureHandler(function (error) {
+              submitBtn.disabled = false;
+              submitBtn.querySelector(".normal-text").style.display =
+                "inline-block";
+              submitBtn.querySelector(".loading-text").style.display = "none";
+              showAlert(
+                "Error checking waiting list: " + error.message,
+                "error",
+              );
+            })
+            .checkWaitingListLimit(appointmentDate);
+          return;
+        }
+
+        // For regular appointments, check early booking restrictions first
+        google.script.run
+          .withSuccessHandler(function (availResult) {
+            // Check for early booking restriction first
+            if (availResult.restricted) {
+              // Early booking restriction applies - show warning modal and stop
+              submitBtn.disabled = false;
+              submitBtn.querySelector(".normal-text").style.display =
+                "inline-block";
+              submitBtn.querySelector(".loading-text").style.display = "none";
+              displayRestrictionWarning(availResult);
+              return;
+            }
+
+            // Check slot availability
+            if (!availResult.available) {
+              // Slots not available - show warning and stop
+              submitBtn.disabled = false;
+              submitBtn.querySelector(".normal-text").style.display =
+                "inline-block";
+              submitBtn.querySelector(".loading-text").style.display = "none";
+              showMaxSlotsFullModal(availResult.message);
+              return;
+            }
+
+            // Slots available and no restrictions, proceed with reschedule
+            proceedWithReschedule();
+          })
+          .withFailureHandler(function (error) {
+            // On error checking restrictions, still proceed (don't block)
+            proceedWithReschedule();
+          })
+          .checkSlotAvailability(appointmentDate);
+
+        function proceedWithReschedule() {
+          google.script.run
+            .withSuccessHandler(function (response) {
+              submitBtn.disabled = false;
+              submitBtn.querySelector(".normal-text").style.display =
+                "inline-block";
+              submitBtn.querySelector(".loading-text").style.display = "none";
+
+              if (response && response.success) {
+                showAlert(
+                  "Appointment rescheduled successfully! Redirecting...",
+                  "success",
+                );
+                setTimeout(() => {
+                  redirectToDayOverview();
+                }, 1000);
+              } else {
+                const errorMsg = response
+                  ? response.message
+                  : "Unknown error occurred";
+                showAlert("Reschedule failed: " + errorMsg, "error");
+              }
+            })
+            .withFailureHandler(function (error) {
+              submitBtn.disabled = false;
+              submitBtn.querySelector(".normal-text").style.display =
+                "inline-block";
+              submitBtn.querySelector(".loading-text").style.display = "none";
+              showAlert("Reschedule failed: " + error.message, "error");
+            })
+            .rescheduleAppointment(rescheduleData);
+        }
+      }
+
+      function resetForm() {
+        if (currentAppointment) {
+          document.getElementById("appointmentType").value =
+            currentAppointment["I: AppointmentType"];
+          document.getElementById("doctor").value =
+            currentAppointment["Doctor"];
+
+          // Reset plan of action
+          if (currentAppointment["K: PlanOfAction"]) {
+            try {
+              // Try to parse as JSON (new format)
+              const planData = JSON.parse(
+                currentAppointment["K: PlanOfAction"],
+              );
+              if (Array.isArray(planData)) {
+                selectedProcedures = planData;
+              } else {
+                // If it's not an array, treat as a single item
+                selectedProcedures = [currentAppointment["K: PlanOfAction"]];
+              }
+            } catch (e) {
+              // If parsing fails, assume it's the old string format
+              selectedProcedures = [currentAppointment["K: PlanOfAction"]];
+            }
+            updateDisplay();
+            updateHiddenField();
+          } else {
+            selectedProcedures = [];
+            updateDisplay();
+            updateHiddenField();
+          }
+
+          // Reset the display of current remark (read-only)
+          const currentRemark =
+            currentAppointment["Remarks"] || "No remarks yet";
+          document.getElementById("currentRemarkDisplay").textContent =
+            currentRemark;
+          if (currentRemark !== "No remarks yet") {
+            document
+              .getElementById("currentRemarkDisplay")
+              .classList.remove("text-muted");
+          } else {
+            document
+              .getElementById("currentRemarkDisplay")
+              .classList.add("text-muted");
+          }
+
+          // Clear the new remark input
+          document.getElementById("newRemark").value = "";
+
+          document.getElementById("timeSlot").innerHTML =
+            '<option value="">Select a Time Slot</option>';
+          selectedAppointmentDate = null;
+          document.getElementById("dateDisplay").textContent = "Select Date";
+
+          // Reset eye selection
+          document
+            .getElementById("eyeSelectionContainer")
+            .classList.add("d-none");
+          document
+            .querySelectorAll('input[name="eyeSelection"]')
+            .forEach((radio) => {
+              radio.checked = false;
+            });
+
+          // Reset procedure input
+          document.getElementById("procedureInput").value = "";
+        }
+      }
+
+      function goBack() {
+        redirectToDayOverview();
+      }
+
+      function redirectToDayOverview() {
+        window.top.location.href =
+          baseUrl + "?page=dayOverview&sessionToken=" + encodeURIComponent(sessionToken);
+      }
+
+      function showAlert(message, type = "info", title = null) {
+        const container = document.getElementById("alertContainer");
+        const alert = document.createElement("div");
+        alert.className = `custom-alert ${type}`;
+
+        let icon = "";
+        switch (type) {
+          case "success":
+            icon = "✓";
+            title = title || "Success";
+            break;
+          case "error":
+            icon = "✕";
+            title = title || "Error";
+            break;
+          case "warning":
+            icon = "⚠";
+            title = title || "Warning";
+            break;
+          default:
+            icon = "ℹ";
+            title = title || "Information";
+        }
+
+        alert.innerHTML = `
+      <div class="alert-icon ${type}">${icon}</div>
+      <div class="alert-content">
+        <div class="alert-title">${title}</div>
+        <div class="alert-message">${message}</div>
+      </div>
+      <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+    `;
+
+        container.appendChild(alert);
+
+        setTimeout(() => {
+          alert.classList.add("closing");
+          setTimeout(() => alert.remove(), 300);
+        }, 5000);
+      }
+
+      // Helper functions for time handling
+      function timeStringToMinutes(timeStr) {
+        var parts = timeStr.split(":");
+        return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+      }
+
+      function formatTime(totalMinutes) {
+        var hours = Math.floor(totalMinutes / 60);
+        var minutes = totalMinutes % 60;
+        return ("0" + hours).slice(-2) + ":" + ("0" + minutes).slice(-2);
+      }
+
+      // ============================================
+      // Date/Time Formatting Utilities
+      // ============================================
+
+      /**
+       * Formats a date value to YYYY-MM-DD format
+       * @param {string|Date} dateValue - The date to format
+       * @return {string} Date in YYYY-MM-DD format
+       */
+      function formatAppointmentDate(dateValue) {
+        if (!dateValue) return "";
+
+        let date;
+        if (dateValue instanceof Date) {
+          date = dateValue;
+        } else if (typeof dateValue === "string") {
+          // Handle various string formats
+          date = new Date(dateValue);
+        } else {
+          return "";
+        }
+
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+          return "";
+        }
+
+        // Format as YYYY-MM-DD
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+
+        return `${year}-${month}-${day}`;
+      }
+
+      /**
+       * Formats a time value to HH:MM format (24-hour)
+       * @param {string} timeValue - The time to format
+       * @return {string} Time in HH:MM format
+       */
+      function formatTimeSlot(timeValue) {
+        if (!timeValue) return "";
+
+        // If already in HH:MM format, return as is
+        if (/^\d{2}:\d{2}$/.test(timeValue)) {
+          return timeValue;
+        }
+
+        // If in HH:MM:SS format, strip seconds
+        if (/^\d{2}:\d{2}:\d{2}$/.test(timeValue)) {
+          return timeValue.substring(0, 5);
+        }
+
+        // Handle datetime strings - extract time portion
+        if (timeValue.includes("T") || timeValue.includes(" ")) {
+          const date = new Date(timeValue);
+          if (!isNaN(date.getTime())) {
+            const hours = String(date.getHours()).padStart(2, "0");
+            const minutes = String(date.getMinutes()).padStart(2, "0");
+            return `${hours}:${minutes}`;
+          }
+        }
+
+        // Return as is if we can't parse it
+        return timeValue;
+      }
+
+      /**
+       * Validates date format before submission
+       * @param {string} dateStr - Date string to validate
+       * @return {boolean} True if valid YYYY-MM-DD format
+       */
+      function isValidDateFormat(dateStr) {
+        if (!dateStr) return false;
+
+        // Check format: YYYY-MM-DD
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(dateStr)) {
+          return false;
+        }
+
+        // Check if it's a valid date
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) {
+          return false;
+        }
+
+        // Verify the date components match (handles invalid dates like 2024-02-30)
+        const [year, month, day] = dateStr.split("-").map(Number);
+        return (
+          date.getFullYear() === year &&
+          date.getMonth() === month - 1 &&
+          date.getDate() === day
+        );
+      }
+
+      /**
+       * Validates time format before submission
+       * @param {string} timeStr - Time string to validate
+       * @return {boolean} True if valid HH:MM format
+       */
+      function isValidTimeFormat(timeStr) {
+        if (!timeStr) return false;
+
+        // Check format: HH:MM
+        const timeRegex = /^\d{2}:\d{2}$/;
+        if (!timeRegex.test(timeStr)) {
+          return false;
+        }
+
+        // Validate hour and minute ranges
+        const [hours, minutes] = timeStr.split(":").map(Number);
+        return hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59;
+      }
+
+      // ============================================
+      // End Date/Time Formatting Utilities
+      // ============================================
+
+      /**
+       * Display early booking restriction warning modal
+       * Shows details about why booking is restricted and suggests booking closer to the date
+       * @param {Object} restrictionData - Data from checkSlotAvailability response
+       */
+      function displayRestrictionWarning(restrictionData) {
+        // Remove any existing restriction modal
+        const existing = document.getElementById("restrictionWarningModal");
+        if (existing) existing.remove();
+
+        const currentTAA = restrictionData.currentTAA || 0;
+        const maxSlots = restrictionData.maxSlots || 0;
+        const percentageUsed = restrictionData.percentageUsed || 0;
+        const daysUntilAppointment = restrictionData.daysUntilAppointment || 0;
+
+        // Multi-threshold support
+        const triggeredThreshold = restrictionData.triggeredThreshold || {
+          days: 10,
+          percentage: 51,
+        };
+        const allThresholds = restrictionData.allThresholds || [
+          { days: 10, percentage: 51 },
+          { days: 5,  percentage: 79 },
+          { days: 4,  percentage: 85 },
+          { days: 1,  percentage: 95 },
+          { days: 0,  percentage: 100 },
+        ];
+
+        // Format threshold label
+        function formatThresholdLabel(days) {
+          if (days === 0) return "Same day";
+          if (days === 1) return "1 day";
+          if (days === 2) return "2 days";
+          return `${days}+ days`;
+        }
+
+        const thresholdLabel = formatThresholdLabel(triggeredThreshold.days);
+
+        const appointmentDate = selectedAppointmentDate
+          ? new Date(selectedAppointmentDate)
+          : null;
+
+        function unlockDateStr(daysAhead) {
+          if (!appointmentDate) return "";
+          const unlock = new Date(appointmentDate);
+          unlock.setDate(unlock.getDate() - daysAhead);
+          if (unlock.getDay() === 0) {
+            unlock.setDate(unlock.getDate() - 1);
+          }
+          return unlock.toLocaleDateString("en-GB", {
+            day: "numeric", month: "short", year: "numeric",
+          });
+        }
+
+        const upcomingThresholds = allThresholds
+          .filter((t) => t.days < triggeredThreshold.days)
+          .sort((a, b) => b.days - a.days);
+
+        // Create modal overlay
+        const modalOverlay = document.createElement("div");
+        modalOverlay.id = "restrictionWarningModal";
+        modalOverlay.style.cssText =
+          "position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(4px);";
+
+        modalOverlay.innerHTML = `
+      <div style="background: var(--bg-white, #ffffff); border-radius: 16px; padding: 24px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); animation: modalSlideIn 0.3s ease-out;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--primary-light, #e8f0fe);">
+          <h5 style="font-size: 1.5rem; font-weight: 600; color: var(--text-primary, #2d3748); margin: 0;">
+            <span style="color: var(--warning-color, #ed8936); margin-right: 8px;">⚠</span>
+            Early Booking Restriction
+          </h5>
+          <button onclick="document.getElementById('restrictionWarningModal').remove()" style="background: none; border: none; font-size: 1.5rem; color: var(--text-secondary, #4a5568); cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.2s;">×</button>
+        </div>
+        <div style="margin-bottom: 20px;">
+          <p style="color: var(--text-secondary, #4a5568); margin-bottom: 16px; line-height: 1.6;">
+            This appointment date is currently restricted for early booking. The system preserves slots for patients who need to book closer to the appointment date.
+          </p>
+          <div style="background: rgba(237, 137, 54, 0.1); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+            <h6 style="margin-bottom: 12px; color: var(--text-primary, #2d3748); font-weight: 600;">Current Status:</h6>
+            <ul style="list-style: none; padding: 0; margin: 0;">
+              <li style="margin-bottom: 8px;">
+                <strong>Days until appointment:</strong> ${daysUntilAppointment} ${daysUntilAppointment === 1 ? "day" : "days"}
+              </li>
+              <li style="margin-bottom: 8px;">
+                <strong>Triggered threshold:</strong> ${thresholdLabel}: ${triggeredThreshold.percentage}% limit
+              </li>
+              <li style="margin-bottom: 8px;">
+                <strong>Current TAA:</strong> ${currentTAA} appointments
+              </li>
+              <li style="margin-bottom: 8px;">
+                <strong>Max Slots:</strong> ${maxSlots} slots
+              </li>
+              <li style="margin-bottom: 8px;">
+                <strong>Percentage Used:</strong> ${percentageUsed}%
+              </li>
+            </ul>
+          </div>
+          <div style="background: rgba(74, 144, 226, 0.1); border-radius: 8px; padding: 16px;">
+            <h6 style="margin-bottom: 10px; color: var(--primary-color, #4a90e2); font-weight: 600;">💡 When can you book more slots?</h6>
+            ${upcomingThresholds.length > 0 ? `
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+              <thead>
+                <tr>
+                  <th style="text-align: left; padding: 6px 8px; color: var(--text-secondary, #4a5568); font-weight: 600; border-bottom: 1px solid rgba(74,144,226,0.2);">Days before appt.</th>
+                  <th style="text-align: left; padding: 6px 8px; color: var(--text-secondary, #4a5568); font-weight: 600; border-bottom: 1px solid rgba(74,144,226,0.2);">From date</th>
+                  <th style="text-align: left; padding: 6px 8px; color: var(--text-secondary, #4a5568); font-weight: 600; border-bottom: 1px solid rgba(74,144,226,0.2);">Capacity allowed</th>
+                  <th style="text-align: left; padding: 6px 8px; color: var(--text-secondary, #4a5568); font-weight: 600; border-bottom: 1px solid rgba(74,144,226,0.2);">Slots unlocked</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${upcomingThresholds.map((t, i) => {
+                  const slotsAllowed = Math.floor(maxSlots * t.percentage / 100);
+                  const prevPerc = i === 0 ? triggeredThreshold.percentage : upcomingThresholds[i - 1].percentage;
+                  const slotsGained = Math.floor(maxSlots * t.percentage / 100) - Math.floor(maxSlots * prevPerc / 100);
+                  const daysLabel = t.days === 0 ? "Same day" : t.days === 1 ? "1 day before" : t.days + " days before";
+                  const dateLabel = t.days === 0 ? "On appointment day" : unlockDateStr(t.days);
+                  return '<tr style="border-bottom: 1px solid rgba(74,144,226,0.1);"><td style="padding: 7px 8px; color: var(--text-primary, #2d3748); font-weight: 500;">' + daysLabel + '</td><td style="padding: 7px 8px; color: var(--text-secondary, #4a5568);">' + dateLabel + '</td><td style="padding: 7px 8px;"><span style="background: rgba(72,187,120,0.15); color: #276749; border-radius: 4px; padding: 2px 7px; font-weight: 600;">' + t.percentage + '%</span></td><td style="padding: 7px 8px; color: var(--text-primary, #2d3748);">' + slotsAllowed + ' / ' + maxSlots + (slotsGained > 0 ? ' <span style="color: #48bb78; font-size: 0.82rem;">(+' + slotsGained + ' new)</span>' : '') + '</td></tr>';
+                }).join("")}
+              </tbody>
+            </table>` : `<p style="margin: 0; color: var(--text-secondary, #4a5568);">No further unlocks available. Please select a different date.</p>`}
+          </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--primary-light, #e8f0fe);">
+          <button onclick="document.getElementById('restrictionWarningModal').remove()" style="padding: 10px 20px; border: none; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: var(--primary-color, #4a90e2); color: white;">
+            Understood
+          </button>
+        </div>
+      </div>
+    `;
+
+        document.body.appendChild(modalOverlay);
+
+        // Close modal when clicking outside
+        modalOverlay.addEventListener("click", function (e) {
+          if (e.target === modalOverlay) {
+            modalOverlay.remove();
+          }
+        });
+      }
+
+      function submitRestore() {
+        const appointmentType =
+          document.getElementById("appointmentType").value;
+        const doctor = document.getElementById("doctor").value;
+
+        // Extract and format date value
+        let appointmentDate = selectedAppointmentDate
+          ? formatLocalDate(selectedAppointmentDate)
+          : "";
+
+        // Extract and format time value
+        let timeSlot = document.getElementById("timeSlot").value;
+
+        // Apply formatting functions
+        appointmentDate = formatAppointmentDate(appointmentDate);
+        timeSlot = formatTimeSlot(timeSlot);
+
+        // Validate plan of action
+        const planOfActionValue = document.getElementById("planOfAction").value;
+
+        if (!planOfActionValue || JSON.parse(planOfActionValue).length === 0) {
+          showAlert(
+            "Please add at least one plan of action before submitting.",
+            "warning",
+          );
+          return;
+        }
+
+        // Check if any procedure requires eye selection but wasn't completed
+        const eyeSelectionContainer = document.getElementById(
+          "eyeSelectionContainer",
+        );
+        if (!eyeSelectionContainer.classList.contains("d-none")) {
+          const selectedEye = document.querySelector(
+            'input[name="eyeSelection"]:checked',
+          );
+          if (!selectedEye) {
+            showAlert(
+              "Please select an eye for the current procedure before proceeding.",
+              "warning",
+            );
+            return;
+          }
+        }
+
+        const newRemark = document.getElementById("newRemark").value.trim();
+        const isWaitingList = appointmentType === "WAITING LIST";
+
+        if (!appointmentDate || (!timeSlot && !isWaitingList)) {
+          showAlert("Please select a new date and time slot", "warning");
+          return;
+        }
+
+        // Validate date format
+        if (!isValidDateFormat(appointmentDate)) {
+          showAlert(
+            "Invalid date format. Please ensure the date is in YYYY-MM-DD format.",
+            "error",
+          );
+          return;
+        }
+
+        // Validate time format (only if not waiting list)
+        if (!isWaitingList && !isValidTimeFormat(timeSlot)) {
+          showAlert(
+            "Invalid time format. Please ensure the time is in HH:MM format.",
+            "error",
+          );
+          return;
+        }
+
+        const restoreData = {
+          appointmentId: appointmentId,
+          newDate: appointmentDate,
+          newTimeSlot: isWaitingList ? "" : timeSlot, // No time slot for waiting list
+          appointmentType: appointmentType,
+          doctor: doctor,
+          newPlanOfAction: planOfActionValue,
+          newRemarks: newRemark, // Send the new remark to be added to history
+          sessionToken: sessionToken,
+        };
+
+        // Show loading state
+        const submitBtn = document.getElementById("submitBtn");
+        submitBtn.disabled = true;
+        submitBtn.querySelector(".normal-text").style.display = "none";
+        submitBtn.querySelector(".loading-text").style.display = "inline-block";
+
+        // For WAITING LIST, skip early booking restriction and only check waiting list limit
+        if (isWaitingList) {
+          google.script.run
+            .withSuccessHandler(function (limitResponse) {
+              if (limitResponse && limitResponse.allowed) {
+                // Waiting list has space, proceed with restore
+                proceedWithRestore();
+              } else {
+                // Waiting list is full
+                submitBtn.disabled = false;
+                submitBtn.querySelector(".normal-text").style.display =
+                  "inline-block";
+                submitBtn.querySelector(".loading-text").style.display = "none";
+                const errorMsg = limitResponse
+                  ? limitResponse.message
+                  : "Waiting list is full for the selected date";
+                showWaitingListFullModal(errorMsg);
+              }
+            })
+            .withFailureHandler(function (error) {
+              submitBtn.disabled = false;
+              submitBtn.querySelector(".normal-text").style.display =
+                "inline-block";
+              submitBtn.querySelector(".loading-text").style.display = "none";
+              showAlert(
+                "Error checking waiting list: " + error.message,
+                "error",
+              );
+            })
+            .checkWaitingListLimit(appointmentDate);
+          return;
+        }
+
+        // For regular appointments, check early booking restrictions first
+        google.script.run
+          .withSuccessHandler(function (availResult) {
+            // Check for early booking restriction first
+            if (availResult.restricted) {
+              // Early booking restriction applies - show warning modal and stop
+              submitBtn.disabled = false;
+              submitBtn.querySelector(".normal-text").style.display =
+                "inline-block";
+              submitBtn.querySelector(".loading-text").style.display = "none";
+              displayRestrictionWarning(availResult);
+              return;
+            }
+
+            // Check slot availability
+            if (!availResult.available) {
+              // Slots not available - show warning and stop
+              submitBtn.disabled = false;
+              submitBtn.querySelector(".normal-text").style.display =
+                "inline-block";
+              submitBtn.querySelector(".loading-text").style.display = "none";
+              showMaxSlotsFullModal(availResult.message);
+              return;
+            }
+
+            // Slots available and no restrictions, proceed with restore
+            proceedWithRestore();
+          })
+          .withFailureHandler(function (error) {
+            // On error checking restrictions, still proceed (don't block)
+            proceedWithRestore();
+          })
+          .checkSlotAvailability(appointmentDate);
+
+        function proceedWithRestore() {
+          google.script.run
+            .withSuccessHandler(function (response) {
+              submitBtn.disabled = false;
+              submitBtn.querySelector(".normal-text").style.display =
+                "inline-block";
+              submitBtn.querySelector(".loading-text").style.display = "none";
+
+              if (response && response.success) {
+                showAlert(
+                  "Appointment restored successfully! Redirecting...",
+                  "success",
+                );
+                setTimeout(() => {
+                  redirectToDayOverview();
+                }, 1000);
+              } else {
+                const errorMsg = response
+                  ? response.message
+                  : "Unknown error occurred";
+                showAlert("Restore failed: " + errorMsg, "error");
+              }
+            })
+            .withFailureHandler(function (error) {
+              submitBtn.disabled = false;
+              submitBtn.querySelector(".normal-text").style.display =
+                "inline-block";
+              submitBtn.querySelector(".loading-text").style.display = "none";
+              showAlert("Restore failed: " + error.message, "error");
+            })
+            .restoreCancelledAppointment(restoreData);
+        }
+      }
+
+      function showMaxSlotsFullModal(message) {
+        const existing = document.getElementById("maxSlotsFullModal");
+        if (existing) existing.remove();
+        const overlay = document.createElement("div");
+        overlay.className = "custom-modal-overlay";
+        overlay.id = "maxSlotsFullModal";
+        const modal = document.createElement("div");
+        modal.className = "custom-modal";
+        const header = document.createElement("div");
+        header.className = "custom-modal-header";
+        header.innerHTML = `<h3 class="custom-modal-title">🚫 Appointments Full</h3>
+          <button class="custom-modal-close" onclick="closeMaxSlotsFullModal()">×</button>`;
+        const body = document.createElement("div");
+        body.className = "custom-modal-body";
+        body.innerHTML = `<p class="custom-modal-message">${message}</p>
+          <p class="custom-modal-message">Please select a different date or add this patient to the <strong>Waiting List</strong>.</p>`;
+        const footer = document.createElement("div");
+        footer.className = "custom-modal-footer";
+        footer.innerHTML = `<button class="custom-modal-btn custom-modal-btn-primary" onclick="closeMaxSlotsFullModal()">OK</button>`;
+        modal.appendChild(header);
+        modal.appendChild(body);
+        modal.appendChild(footer);
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+      }
+      function closeMaxSlotsFullModal() {
+        const m = document.getElementById("maxSlotsFullModal");
+        if (m) m.remove();
+      }
+
+      function showWaitingListFullModal(message) {
+        const existing = document.getElementById("waitingListFullModal");
+        if (existing) existing.remove();
+        const overlay = document.createElement("div");
+        overlay.className = "custom-modal-overlay";
+        overlay.id = "waitingListFullModal";
+        const modal = document.createElement("div");
+        modal.className = "custom-modal";
+        const header = document.createElement("div");
+        header.className = "custom-modal-header";
+        header.innerHTML = `<h3 class="custom-modal-title">🚫 Waiting List Full</h3>
+          <button class="custom-modal-close" onclick="closeWaitingListFullModal()">×</button>`;
+        const body = document.createElement("div");
+        body.className = "custom-modal-body";
+        body.innerHTML = `<p class="custom-modal-message">${message}</p>`;
+        const footer = document.createElement("div");
+        footer.className = "custom-modal-footer";
+        footer.innerHTML = `<button class="custom-modal-btn custom-modal-btn-primary" onclick="closeWaitingListFullModal()">OK</button>`;
+        modal.appendChild(header);
+        modal.appendChild(body);
+        modal.appendChild(footer);
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+      }
+      function closeWaitingListFullModal() {
+        const m = document.getElementById("waitingListFullModal");
+        if (m) m.remove();
+      }
+
+      // Load user information
+      function loadUserInfo() {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response.success) {
+              const user = response;
+              const nameEl = document.getElementById("userName");
+              const roleEl = document.getElementById("userRole");
+              const avatarEl = document.getElementById("userAvatar");
+              if (nameEl) nameEl.textContent = user.username;
+              if (roleEl) roleEl.textContent = `${user.roleName} (Level ${user.level})`;
+              if (avatarEl) avatarEl.textContent = user.username.charAt(0).toUpperCase();
+            } else {
+              // Redirect to login if session is invalid
+              window.top.location.href = baseUrl;
+            }
+          })
+          .withFailureHandler(function (error) {
+            // Redirect to login if there's an error
+            window.top.location.href = baseUrl;
+          })
+          .getCurrentUserAccessLevel(sessionToken);
+      }
+
+      // Navigation function
+      function goToPage(pageName) {
+        var newUrl =
+          baseUrl +
+          "?page=" +
+          pageName +
+          "&sessionToken=" +
+          encodeURIComponent(sessionToken);
+        window.top.location.href = newUrl;
+      }
+
+      // Logout function
+      function logout() {
+        google.script.run
+          .withSuccessHandler(function () {
+            window.top.location.href = baseUrl;
+          })
+          .withFailureHandler(function (error) {
+            window.top.location.href = baseUrl;
+          })
+          .clearSession(sessionToken);
+      }
+
+      // Load user info when page loads
+      document.addEventListener("DOMContentLoaded", function () {
+        loadUserInfo();
+      });
+    </script>
+  </body>
+</html>

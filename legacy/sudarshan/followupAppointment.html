@@ -1,0 +1,4270 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --primary-color: #4a90e2;
+        --primary-light: #e8f0fe;
+        --primary-dark: #2c5282;
+        --success-color: #48bb78;
+        --warning-color: #ed8936;
+        --danger-color: #e53e3e;
+        --text-primary: #2d3748;
+        --text-secondary: #4a5568;
+        --bg-light: #f7fafc;
+        --bg-white: #ffffff;
+      }
+
+      body {
+        background-color: var(--bg-light);
+        color: var(--text-primary);
+        min-height: 100vh;
+        padding: 2rem;
+      }
+
+      .container {
+        max-width: 1400px;
+      }
+
+      .page-header {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .page-header h1 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin: 0;
+        position: relative;
+        padding-left: 1rem;
+      }
+
+      .page-header h1::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 4px;
+        height: 70%;
+        background: linear-gradient(
+          to bottom,
+          var(--primary-color),
+          var(--success-color)
+        );
+        border-radius: 2px;
+      }
+
+      .search-section {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      }
+
+      .search-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+
+      .form-group {
+        margin-bottom: 0;
+      }
+
+      .form-control {
+        border: 2px solid var(--primary-light);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+      }
+
+      .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+      }
+
+      .followup-card {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+      }
+
+      .followup-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+      }
+
+      .followup-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--primary-light);
+      }
+
+      .followup-mrd {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 1.1rem;
+      }
+
+      .followup-date {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+      }
+
+      .source-badge {
+        display: inline-block;
+        margin-left: 0.5rem;
+        padding: 0.1rem 0.5rem;
+        border-radius: 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        vertical-align: middle;
+        background: var(--primary-light);
+        color: var(--primary-color);
+      }
+
+      .source-badge.source-fm2 {
+        background: #fff3cd;
+        color: #856404;
+      }
+
+      .duplicate-badge {
+        display: inline-block;
+        margin-left: 0.5rem;
+        padding: 0.1rem 0.5rem;
+        border: none;
+        border-radius: 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        vertical-align: middle;
+        background: #f8d7da;
+        color: #842029;
+        cursor: pointer;
+      }
+
+      .duplicate-badge:hover {
+        background: #f1aeb5;
+      }
+
+      /* Past follow-ups (read-only cards from followupArchive) */
+      #pastFollowupsContainer {
+        margin-top: 1.5rem;
+      }
+
+      .past-followups-note {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        margin: -0.5rem 0 1rem 0.25rem;
+      }
+
+      .followup-card.past-followup-card {
+        border-left: 4px solid #adb5bd;
+        border-style: dashed;
+        border-left-style: solid;
+        opacity: 0.85;
+        box-shadow: none;
+      }
+
+      .followup-card.past-followup-card:hover {
+        transform: none;
+        box-shadow: none;
+      }
+
+      .archive-reason-badge {
+        display: inline-block;
+        padding: 0.15rem 0.6rem;
+        border-radius: 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: #e2e3e5;
+        color: #41464b;
+      }
+
+      .followup-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+
+      .detail-group {
+        margin-bottom: 0.5rem;
+      }
+
+      .detail-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.25rem;
+      }
+
+      .detail-value {
+        font-weight: 500;
+      }
+
+      .comments-section {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 2px solid var(--primary-light);
+      }
+
+      .comments-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+      }
+
+      .comments-value {
+        background: var(--bg-light);
+        padding: 0.75rem;
+        border-radius: 8px;
+        color: var(--text-primary);
+      }
+
+      .alert-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+      }
+
+      .custom-alert {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+      }
+
+      .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid var(--primary-light);
+        border-top-color: var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .no-results {
+        text-align: center;
+        padding: 3rem;
+        color: var(--text-secondary);
+      }
+
+      .no-results i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: var(--text-secondary);
+      }
+
+      .followup-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 2px solid var(--primary-light);
+      }
+
+      .add-comment-section {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 2px solid var(--primary-light);
+      }
+
+      .comment-input-group {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+      }
+
+      .comment-input-group input {
+        flex: 1;
+      }
+
+      /* Plan of Action autocomplete styles */
+      #bookingSuggestionsDropdown {
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1055;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        margin-top: 4px;
+        display: none;
+      }
+
+      #bookingProcedureInputContainer {
+        position: relative;
+      }
+
+      .suggestion-item {
+        cursor: pointer;
+        padding: 0.75rem 1rem;
+      }
+
+      .suggestion-item:hover {
+        background-color: var(--primary-light);
+      }
+
+      .remove-procedure {
+        cursor: pointer;
+        margin-left: 0.5rem;
+        color: var(--danger-color);
+      }
+
+      .remove-procedure:hover {
+        color: var(--primary-dark);
+      }
+
+      /* Improved alert styling with better contrast */
+      .custom-alert.warning {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        color: #856404;
+        font-weight: 500;
+      }
+
+      .custom-alert.error {
+        background: #f8d7da;
+        border-left: 4px solid #dc3545;
+        color: #721c24;
+        font-weight: 500;
+      }
+
+      .custom-alert.success {
+        background: #d4edda;
+        border-left: 4px solid #28a745;
+        color: #155724;
+        font-weight: 500;
+      }
+
+      /* Custom Confirmation Modal Styles */
+      .custom-confirm-modal .modal-content {
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+      }
+
+      .custom-confirm-modal .modal-header {
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--primary-dark)
+        );
+        color: white;
+        border: none;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .custom-confirm-modal .modal-header .modal-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-weight: 600;
+        font-size: 1.25rem;
+        margin: 0;
+      }
+
+      .custom-confirm-modal .modal-header .modal-icon {
+        width: 48px;
+        height: 48px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+      }
+
+      .custom-confirm-modal .modal-header .btn-close {
+        filter: invert(1);
+        opacity: 0.9;
+        margin-left: auto;
+      }
+
+      .custom-confirm-modal .modal-header .btn-close:hover {
+        opacity: 1;
+      }
+
+      .custom-confirm-modal .modal-body {
+        padding: 2rem;
+        text-align: center;
+      }
+
+      .custom-confirm-modal .modal-body .confirm-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 1.5rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        animation: scaleIn 0.3s ease-out;
+      }
+
+      .custom-confirm-modal .modal-body .confirm-icon.cancel {
+        background: linear-gradient(135deg, #fee2e2, #fecaca);
+        color: var(--danger-color);
+      }
+
+      .custom-confirm-modal .modal-body .confirm-icon.archive {
+        background: linear-gradient(135deg, #e5e7eb, #d1d5db);
+        color: var(--text-secondary);
+      }
+
+      .custom-confirm-modal .modal-body .confirm-message {
+        font-size: 1.1rem;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+      }
+
+      .custom-confirm-modal .modal-body .confirm-details {
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+        margin-top: 1rem;
+        padding: 1rem;
+        background: var(--bg-light);
+        border-radius: 8px;
+        border-left: 4px solid var(--primary-color);
+      }
+
+      .custom-confirm-modal .modal-footer {
+        border: none;
+        padding: 1.5rem 2rem;
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+      }
+
+      .custom-confirm-modal .modal-footer .btn {
+        min-width: 120px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+      }
+
+      .custom-confirm-modal .modal-footer .btn-cancel-action {
+        background: var(--danger-color);
+        border-color: var(--danger-color);
+        color: white;
+      }
+
+      .custom-confirm-modal .modal-footer .btn-cancel-action:hover {
+        background: #c53030;
+        border-color: #c53030;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(229, 62, 62, 0.3);
+      }
+
+      .custom-confirm-modal .modal-footer .btn-archive-action {
+        background: var(--text-secondary);
+        border-color: var(--text-secondary);
+        color: white;
+      }
+
+      .custom-confirm-modal .modal-footer .btn-archive-action:hover {
+        background: #2d3748;
+        border-color: #2d3748;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(45, 55, 72, 0.3);
+      }
+
+      .custom-confirm-modal .modal-footer .btn-secondary {
+        background: white;
+        border: 2px solid var(--primary-light);
+        color: var(--text-primary);
+      }
+
+      .custom-confirm-modal .modal-footer .btn-secondary:hover {
+        background: var(--bg-light);
+        border-color: var(--primary-color);
+        transform: translateY(-2px);
+      }
+
+      @keyframes scaleIn {
+        from {
+          transform: scale(0);
+          opacity: 0;
+        }
+
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+
+        to {
+          opacity: 1;
+        }
+      }
+
+      .custom-confirm-modal.show {
+        animation: fadeIn 0.2s ease-out;
+      }
+
+      /* Tag Styles */
+      .tag-group {
+        grid-column: 1 / -1;
+      }
+
+      .tags-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      .tag-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--primary-dark)
+        );
+        color: white;
+        padding: 0.35rem 0.65rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
+      }
+
+      .tag-badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      .tag-text {
+        line-height: 1;
+      }
+
+      .tag-remove {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 1rem;
+        line-height: 1;
+        padding: 0;
+        transition: all 0.2s ease;
+      }
+
+      .tag-remove:hover {
+        background: rgba(255, 255, 255, 0.4);
+        transform: scale(1.1);
+      }
+
+      .no-tags-message {
+        color: var(--text-secondary);
+        font-style: italic;
+        font-size: 0.9rem;
+      }
+
+      .tag-input-container {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        align-items: center;
+      }
+
+      .tag-input {
+        flex: 1;
+        border: 2px solid var(--primary-light);
+        border-radius: 8px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+      }
+
+      .tag-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+      }
+
+      .tag-select {
+        flex: 1;
+        border: 2px solid var(--primary-light);
+        border-radius: 8px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+      }
+
+      .tag-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+      }
+
+      .btn-add-tag {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+      }
+
+      .btn-add-tag:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      .btn-add-tag:active {
+        transform: translateY(0);
+      }
+
+      .btn-add-tag:disabled {
+        background: #cbd5e0;
+        cursor: not-allowed;
+        opacity: 0.6;
+        transform: none;
+      }
+
+      .tag-input:disabled,
+      .tag-select:disabled {
+        background: #f7fafc;
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      .tag-remove:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+
+      /* Pagination Styles */
+      .pagination-container {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+
+      .pagination-info {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+      }
+
+      .pagination-controls {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .pagination-btn {
+        padding: 0.5rem 1rem;
+        border: 2px solid var(--primary-light);
+        background: var(--bg-white);
+        color: var(--text-primary);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 500;
+        min-width: 40px;
+        text-align: center;
+      }
+
+      .pagination-btn:hover:not(:disabled) {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+        transform: translateY(-2px);
+      }
+
+      .pagination-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        background: var(--bg-light);
+      }
+
+      .pagination-btn.active {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+      }
+
+      .pagination-ellipsis {
+        padding: 0.5rem;
+        color: var(--text-secondary);
+      }
+
+      .results-header {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .results-count {
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .results-count .count-number {
+        color: var(--primary-color);
+        font-size: 1.2rem;
+      }
+    </style>
+  </head>
+
+  <body>
+    <script>
+      window.sessionToken = "<?= sessionToken ?>";
+      window.baseUrl = "<?= webAppUrl ?>";
+    </script>
+    <?!= include('sharedLayout') ?>
+    <div class="alert-container" id="alertContainer"></div>
+
+    <div class="container">
+      <div class="page-header">
+        <h1>Follow-up Appointments</h1>
+        <button class="btn btn-primary" onclick="navigateToDashboard()">
+          <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </button>
+      </div>
+
+      <div class="search-section">
+        <form id="searchForm" class="search-form">
+          <div class="form-group">
+            <label for="mrdNo">MRD Number</label>
+            <input
+              type="text"
+              class="form-control"
+              id="mrdNo"
+              placeholder="Enter MRD No"
+            />
+          </div>
+          <div class="form-group">
+            <label for="patientName">Patient Name</label>
+            <input
+              type="text"
+              class="form-control"
+              id="patientName"
+              placeholder="Enter patient name"
+            />
+          </div>
+          <div class="form-group">
+            <label for="phone">Phone Number</label>
+            <input
+              type="text"
+              class="form-control"
+              id="phone"
+              placeholder="Enter phone number"
+            />
+          </div>
+          <div class="form-group">
+            <label for="remarks">Remarks</label>
+            <input
+              type="text"
+              class="form-control"
+              id="remarks"
+              placeholder="Search in remarks"
+            />
+          </div>
+          <div class="form-group">
+            <label for="tagFilter">Tag</label>
+            <select class="form-control" id="tagFilter">
+              <option value="">All Tags</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="specializationFilter">Specialization</label>
+            <select class="form-control" id="specializationFilter">
+              <option value="">All Specializations</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="categoryFilter">Category</label>
+            <select class="form-control" id="categoryFilter">
+              <option value="">All Categories</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="fromDate">From Date</label>
+            <input
+              type="date"
+              class="form-control"
+              id="fromDate"
+              placeholder="Select from date"
+            />
+          </div>
+          <div class="form-group">
+            <label for="toDate">To Date</label>
+            <input
+              type="date"
+              class="form-control"
+              id="toDate"
+              placeholder="Select to date"
+            />
+          </div>
+          <div class="form-group d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="fas fa-search"></i> Search
+            </button>
+          </div>
+          <div class="form-group d-flex align-items-end">
+            <button
+              type="button"
+              class="btn btn-outline-primary w-100 mt-2"
+              onclick="showDuplicateFollowups()"
+            >
+              <i class="fas fa-users"></i> Show Duplicates
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div id="resultsContainer">
+        <!-- Results will be displayed here after search -->
+      </div>
+
+      <div id="pastFollowupsContainer">
+        <!-- Past follow-ups (from followupArchive) are shown here on request -->
+      </div>
+    </div>
+
+    <!-- Booking Modal -->
+    <div class="modal fade" id="bookingModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Book Appointment from Follow-up</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <form id="bookingForm">
+              <input type="hidden" id="bookingAFollowID" />
+              <div class="mb-3">
+                <label for="bookingAppointmentDate" class="form-label"
+                  >Appointment Date</label
+                >
+                <input
+                  type="date"
+                  class="form-control"
+                  id="bookingAppointmentDate"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label for="bookingDoctor" class="form-label">Doctor</label>
+                <select class="form-select" id="bookingDoctor" required>
+                  <option value="">Select a Doctor</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="bookingAppointmentType" class="form-label"
+                  >Appointment Type</label
+                >
+                <select
+                  class="form-select"
+                  id="bookingAppointmentType"
+                  required
+                >
+                  <option value="">Select Appointment Type</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="bookingPlanOfAction" class="form-label"
+                  >Plan of Action</label
+                >
+                <div id="bookingPlanOfActionContainer">
+                  <!-- Autocomplete Input -->
+                  <div
+                    id="bookingProcedureInputContainer"
+                    class="position-relative"
+                  >
+                    <input
+                      type="text"
+                      id="bookingProcedureInput"
+                      class="form-control"
+                      placeholder="Type to search…"
+                    />
+                    <div
+                      id="bookingSuggestionsDropdown"
+                      class="list-group position-absolute w-100"
+                    ></div>
+                  </div>
+
+                  <!-- Eye Selection (hidden until needed) -->
+                  <div id="bookingEyeSelectionContainer" class="mt-2 d-none">
+                    <span class="form-label">Select Eye:</span>
+                    <div class="btn-group ms-2">
+                      <input
+                        type="radio"
+                        name="bookingEyeSelection"
+                        id="bookingRE"
+                        value="RE"
+                        class="btn-check"
+                      />
+                      <label
+                        for="bookingRE"
+                        class="btn btn-outline-secondary btn-sm"
+                        >RE</label
+                      >
+
+                      <input
+                        type="radio"
+                        name="bookingEyeSelection"
+                        id="bookingLE"
+                        value="LE"
+                        class="btn-check"
+                      />
+                      <label
+                        for="bookingLE"
+                        class="btn btn-outline-secondary btn-sm"
+                        >LE</label
+                      >
+
+                      <input
+                        type="radio"
+                        name="bookingEyeSelection"
+                        id="bookingBE"
+                        value="BE"
+                        class="btn-check"
+                      />
+                      <label
+                        for="bookingBE"
+                        class="btn btn-outline-secondary btn-sm"
+                        >BE</label
+                      >
+                    </div>
+                  </div>
+
+                  <!-- Selected Items List -->
+                  <div id="bookingSelectedProceduresList" class="mt-2"></div>
+
+                  <!-- Hidden JSON Field -->
+                  <input
+                    type="hidden"
+                    id="bookingPlanOfAction"
+                    name="bookingPlanOfAction"
+                  />
+                </div>
+              </div>
+              <div class="mb-3" id="bookingTimeSlotSection">
+                <label for="bookingTimeSlot" class="form-label"
+                  >Time Slot</label
+                >
+                <select class="form-select" id="bookingTimeSlot" required>
+                  <option value="">Select a Time Slot</option>
+                </select>
+              </div>
+              <!-- RAA Info (shown for waiting list) -->
+              <div class="mb-3" id="bookingRAAInfo" style="display: none">
+                <div class="alert alert-info">
+                  <i class="fas fa-info-circle me-2"></i>
+                  <span id="raaInfoText"
+                    >Waiting list appointment - no time slot required</span
+                  >
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="bookingAdditionalComments" class="form-label"
+                  >Additional Comments</label
+                >
+                <textarea
+                  class="form-control"
+                  id="bookingAdditionalComments"
+                  rows="3"
+                  placeholder="Enter additional comments (will be added to remarks)"
+                ></textarea>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              id="submitBookingBtn"
+              onclick="submitBooking()"
+            >
+              <span class="normal-text">Book Appointment</span>
+              <span class="loading-text" style="display: none">
+                <span
+                  class="spinner-border spinner-border-sm"
+                  role="status"
+                  aria-hidden="true"
+                ></span>
+                Booking...
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comments History Modal -->
+    <div
+      class="modal fade"
+      id="commentsHistoryModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Comments History</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body" id="commentsHistoryBody">
+            <!-- Comments will be displayed here -->
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom Confirmation Modal -->
+    <div
+      class="modal fade custom-confirm-modal"
+      id="confirmActionModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div class="modal-icon" id="confirmModalIcon"></div>
+            <h5 class="modal-title" id="confirmModalTitle">Confirm Action</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="confirm-icon" id="confirmActionIcon"></div>
+            <div class="confirm-message" id="confirmModalMessage">
+              Are you sure you want to proceed?
+            </div>
+            <div class="confirm-details" id="confirmModalDetails">
+              This action will move the data from the Follow-up sheet to the
+              target sheet.
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <button type="button" class="btn" id="confirmActionBtn">
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Duplicate MRD Warning Modal -->
+    <div
+      class="modal fade"
+      id="duplicateWarningModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div
+            class="modal-header"
+            style="
+              background: linear-gradient(135deg, #ed8936, #dd6b20);
+              color: white;
+            "
+          >
+            <div
+              style="
+                width: 48px;
+                height: 48px;
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.5rem;
+              "
+            >
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h5 class="modal-title ms-3">Duplicate MRD Warning</h5>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div style="text-align: center; margin-bottom: 1.5rem">
+              <div
+                style="
+                  width: 80px;
+                  height: 80px;
+                  margin: 0 auto 1rem;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #fef3c7, #fde68a);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 2.5rem;
+                  color: #d97706;
+                "
+              >
+                <i class="fas fa-exclamation-triangle"></i>
+              </div>
+              <p
+                style="
+                  font-size: 1.1rem;
+                  font-weight: 500;
+                  color: #2d3748;
+                  margin-bottom: 0.5rem;
+                "
+              >
+                This patient already has existing appointment(s)
+              </p>
+            </div>
+
+            <!-- Duplicate Appointments List -->
+            <div
+              id="duplicateAppointmentsList"
+              style="max-height: 200px; overflow-y: auto; margin-bottom: 1rem"
+            >
+              <!-- Duplicate appointments will be populated here -->
+            </div>
+
+            <!-- Guidance Text -->
+            <div
+              style="
+                background: #fffbeb;
+                border: 1px solid #fcd34d;
+                border-radius: 8px;
+                padding: 1rem;
+                margin-top: 1rem;
+              "
+            >
+              <p style="margin: 0; font-size: 0.9rem; color: #92400e">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Recommendation:</strong> Consider using the existing
+                AppointmentID for this patient, or remove the existing
+                appointment before creating a new one to avoid duplicate
+                records.
+              </p>
+            </div>
+          </div>
+          <div class="modal-footer" style="justify-content: center; gap: 1rem">
+            <button
+              type="button"
+              class="btn btn-primary"
+              data-bs-dismiss="modal"
+              style="min-width: 120px"
+              autofocus
+            >
+              <i class="fas fa-times me-1"></i> Cancel
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-warning"
+              onclick="proceedWithBookingDespiteDuplicate()"
+              style="min-width: 150px; color: #ed8936; border-color: #ed8936"
+            >
+              <i class="fas fa-exclamation-triangle me-1"></i> Proceed Anyway
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Booking Success Confirmation Modal -->
+    <div
+      class="modal fade"
+      id="bookingSuccessModal"
+      tabindex="-1"
+      aria-hidden="true"
+      data-bs-backdrop="static"
+      data-bs-keyboard="false"
+    >
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div
+            class="modal-header"
+            style="
+              background: linear-gradient(135deg, #48bb78, #38a169);
+              color: white;
+              border: none;
+            "
+          >
+            <div
+              style="
+                width: 48px;
+                height: 48px;
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.5rem;
+              "
+            >
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <h5 class="modal-title ms-3">Appointment Booked Successfully!</h5>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body" style="padding: 2rem">
+            <div style="text-align: center; margin-bottom: 1.5rem">
+              <div
+                style="
+                  width: 80px;
+                  height: 80px;
+                  margin: 0 auto 1rem;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #d4edda, #c3e6cb);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 2.5rem;
+                  color: #48bb78;
+                  animation: scaleIn 0.3s ease-out;
+                "
+              >
+                <i class="fas fa-calendar-check"></i>
+              </div>
+              <p
+                style="
+                  font-size: 1.2rem;
+                  font-weight: 600;
+                  color: #2d3748;
+                  margin-bottom: 0.5rem;
+                "
+              >
+                Appointment Confirmed
+              </p>
+              <p style="font-size: 0.95rem; color: #4a5568">
+                The appointment has been successfully created and saved.
+              </p>
+            </div>
+
+            <!-- Appointment Details -->
+            <div
+              style="
+                background: #f7fafc;
+                border-radius: 12px;
+                padding: 1.5rem;
+                margin-bottom: 1rem;
+              "
+            >
+              <h6
+                style="
+                  color: #2d3748;
+                  font-weight: 600;
+                  margin-bottom: 1rem;
+                  padding-bottom: 0.5rem;
+                  border-bottom: 2px solid #e2e8f0;
+                "
+              >
+                <i class="fas fa-info-circle me-2"></i>Appointment Details
+              </h6>
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                  gap: 1rem;
+                "
+              >
+                <div>
+                  <div
+                    style="
+                      font-size: 0.875rem;
+                      color: #718096;
+                      margin-bottom: 0.25rem;
+                    "
+                  >
+                    Patient Name
+                  </div>
+                  <div
+                    style="font-weight: 600; color: #2d3748"
+                    id="confirmPatientName"
+                  >
+                    -
+                  </div>
+                </div>
+                <div>
+                  <div
+                    style="
+                      font-size: 0.875rem;
+                      color: #718096;
+                      margin-bottom: 0.25rem;
+                    "
+                  >
+                    Appointment Type
+                  </div>
+                  <div
+                    style="font-weight: 600; color: #2d3748"
+                    id="confirmAppointmentType"
+                  >
+                    -
+                  </div>
+                </div>
+                <div>
+                  <div
+                    style="
+                      font-size: 0.875rem;
+                      color: #718096;
+                      margin-bottom: 0.25rem;
+                    "
+                  >
+                    Date
+                  </div>
+                  <div
+                    style="font-weight: 600; color: #2d3748"
+                    id="confirmDate"
+                  >
+                    -
+                  </div>
+                </div>
+                <div id="confirmTimeSlotContainer">
+                  <div
+                    style="
+                      font-size: 0.875rem;
+                      color: #718096;
+                      margin-bottom: 0.25rem;
+                    "
+                  >
+                    Time Slot
+                  </div>
+                  <div
+                    style="font-weight: 600; color: #2d3748"
+                    id="confirmTimeSlot"
+                  >
+                    -
+                  </div>
+                </div>
+                <div>
+                  <div
+                    style="
+                      font-size: 0.875rem;
+                      color: #718096;
+                      margin-bottom: 0.25rem;
+                    "
+                  >
+                    Doctor
+                  </div>
+                  <div
+                    style="font-weight: 600; color: #2d3748"
+                    id="confirmDoctor"
+                  >
+                    -
+                  </div>
+                </div>
+              </div>
+
+              <!-- Plan of Action -->
+              <div
+                style="
+                  margin-top: 1rem;
+                  padding-top: 1rem;
+                  border-top: 1px solid #e2e8f0;
+                "
+              >
+                <div
+                  style="
+                    font-size: 0.875rem;
+                    color: #718096;
+                    margin-bottom: 0.5rem;
+                  "
+                >
+                  Plan of Action
+                </div>
+                <div
+                  id="confirmPlanOfAction"
+                  style="
+                    background: white;
+                    padding: 0.75rem;
+                    border-radius: 8px;
+                    color: #2d3748;
+                  "
+                >
+                  -
+                </div>
+              </div>
+            </div>
+
+            <!-- Success Message -->
+            <div
+              style="
+                background: linear-gradient(135deg, #e8f0fe, #d4edda);
+                border-radius: 8px;
+                padding: 1rem;
+                text-align: center;
+              "
+            >
+              <i
+                class="fas fa-check-circle"
+                style="color: #48bb78; font-size: 1.2rem; margin-right: 0.5rem"
+              ></i>
+              <span style="color: #2d3748; font-weight: 500"
+                >The patient has been notified and the appointment is now
+                active.</span
+              >
+            </div>
+          </div>
+          <div
+            class="modal-footer"
+            style="border: none; padding: 1.5rem 2rem; justify-content: center"
+          >
+            <button
+              type="button"
+              class="btn btn-primary"
+              data-bs-dismiss="modal"
+              style="
+                min-width: 150px;
+                padding: 0.75rem 1.5rem;
+                font-weight: 500;
+              "
+            >
+              <i class="fas fa-check me-2"></i>Done
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      var baseUrl = "<?= webAppUrl ?>";
+      var sessionToken = "<?= sessionToken ?>";
+
+      // Plan of Action autocomplete variables
+      let bookingPlanOptions = [],
+        bookingSelectedProcedures = [],
+        bookingCurrentProcedure = null;
+
+      // Current booking MRD for duplicate checking
+      let currentBookingMRD = "";
+
+      // Current booking patient name
+      let currentBookingPatientName = "";
+
+      // ============================================
+      // Date/Time Formatting Utilities
+      // ============================================
+
+      /**
+       * Formats a date value to YYYY-MM-DD format
+       * @param {string|Date} dateValue - The date to format
+       * @return {string} Date in YYYY-MM-DD format
+       */
+      function formatAppointmentDate(dateValue) {
+        if (!dateValue) return "";
+
+        let date;
+        if (dateValue instanceof Date) {
+          date = dateValue;
+        } else if (typeof dateValue === "string") {
+          // Handle various string formats
+          date = new Date(dateValue);
+        } else {
+          return "";
+        }
+
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+          return "";
+        }
+
+        // Format as YYYY-MM-DD
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+
+        return `${year}-${month}-${day}`;
+      }
+
+      /**
+       * Formats a time value to HH:MM format (24-hour)
+       * @param {string} timeValue - The time to format
+       * @return {string} Time in HH:MM format
+       */
+      function formatTimeSlot(timeValue) {
+        if (!timeValue) return "";
+
+        // If already in HH:MM format, return as is
+        if (/^\d{2}:\d{2}$/.test(timeValue)) {
+          return timeValue;
+        }
+
+        // If in HH:MM:SS format, strip seconds
+        if (/^\d{2}:\d{2}:\d{2}$/.test(timeValue)) {
+          return timeValue.substring(0, 5);
+        }
+
+        // Handle datetime strings - extract time portion
+        if (timeValue.includes("T") || timeValue.includes(" ")) {
+          const date = new Date(timeValue);
+          if (!isNaN(date.getTime())) {
+            const hours = String(date.getHours()).padStart(2, "0");
+            const minutes = String(date.getMinutes()).padStart(2, "0");
+            return `${hours}:${minutes}`;
+          }
+        }
+
+        // Return as is if we can't parse it
+        return timeValue;
+      }
+
+      /**
+       * Validates date format before submission
+       * @param {string} dateStr - Date string to validate
+       * @return {boolean} True if valid YYYY-MM-DD format
+       */
+      function isValidDateFormat(dateStr) {
+        if (!dateStr) return false;
+
+        // Check format: YYYY-MM-DD
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(dateStr)) {
+          return false;
+        }
+
+        // Check if it's a valid date
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) {
+          return false;
+        }
+
+        // Verify the date components match (handles invalid dates like 2024-02-30)
+        const [year, month, day] = dateStr.split("-").map(Number);
+        return (
+          date.getFullYear() === year &&
+          date.getMonth() === month - 1 &&
+          date.getDate() === day
+        );
+      }
+
+      /**
+       * Validates time format before submission
+       * @param {string} timeStr - Time string to validate
+       * @return {boolean} True if valid HH:MM format
+       */
+      function isValidTimeFormat(timeStr) {
+        if (!timeStr) return false;
+
+        // Check format: HH:MM
+        const timeRegex = /^\d{2}:\d{2}$/;
+        if (!timeRegex.test(timeStr)) {
+          return false;
+        }
+
+        // Validate hour and minute ranges
+        const [hours, minutes] = timeStr.split(":").map(Number);
+        return hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59;
+      }
+
+      // ============================================
+      // End Date/Time Formatting Utilities
+      // ============================================
+
+      document.addEventListener("DOMContentLoaded", function () {
+        setupEventListeners();
+        loadTagsForFilter("followup");
+        loadSpecializationCategoryFilters();
+      });
+
+      /**
+       * Load specialization and category options for the filter dropdowns
+       */
+      function loadSpecializationCategoryFilters() {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (!response || !response.success) return;
+            fillFilterOptions(
+              "specializationFilter",
+              "All Specializations",
+              response.specializations,
+            );
+            fillFilterOptions("categoryFilter", "All Categories", response.categories);
+          })
+          .withFailureHandler(function (error) {})
+          .getFollowupFilterOptions();
+      }
+
+      function fillFilterOptions(selectId, allLabel, values) {
+        const select = document.getElementById(selectId);
+        select.innerHTML = "";
+        const allOption = document.createElement("option");
+        allOption.value = "";
+        allOption.textContent = allLabel;
+        select.appendChild(allOption);
+        (values || []).forEach(function (value) {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = value;
+          select.appendChild(option);
+        });
+      }
+
+      function escapeText(text) {
+        const div = document.createElement("div");
+        div.textContent = text == null ? "" : String(text);
+        return div.innerHTML;
+      }
+
+      function setupEventListeners() {
+        document
+          .getElementById("searchForm")
+          .addEventListener("submit", function (e) {
+            e.preventDefault();
+            isShowingDuplicates = false;
+            performSearch();
+          });
+      }
+
+      /**
+       * Load all tags from the sheet for the filter dropdown
+       * @param {string} sheetName - The sheet name to get tags from
+       */
+      function loadTagsForFilter(sheetName) {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response.success && response.tags && response.tags.length > 0) {
+              const tagFilter = document.getElementById("tagFilter");
+              tagFilter.innerHTML = '<option value="">All Tags</option>';
+
+              response.tags.forEach(function (tag) {
+                const option = document.createElement("option");
+                option.value = tag;
+                option.textContent = tag;
+                tagFilter.appendChild(option);
+              });
+            }
+          })
+          .withFailureHandler(function (error) {})
+          .getAllTagsFromSheet(sheetName);
+      }
+
+      function showDuplicateFollowups() {
+        showLoading();
+        isShowingDuplicates = true;
+        clearPastFollowups();
+        currentPage = 1; // Reset to first page
+        google.script.run
+          .withSuccessHandler(function (response) {
+            hideLoading();
+            if (response && response.success) {
+              duplicateFollowups = response.followups || [];
+              duplicateTotal = response.total || 0;
+              allFollowups = duplicateFollowups;
+              totalFollowups = duplicateTotal;
+              displayFollowupsWithPagination();
+            } else {
+              showAlert(
+                response
+                  ? response.message || "No duplicates found"
+                  : "No duplicates found",
+                "info",
+              );
+              document.getElementById("resultsContainer").innerHTML = `
+              <div class="no-results">
+                <i class="fas fa-calendar-times"></i>
+                <p>No duplicate MRD numbers found</p>
+              </div>
+            `;
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            showAlert("Error fetching duplicates: " + error, "error");
+          })
+          .getDuplicateFollowups();
+      }
+
+      // ============================================
+      // Past follow-ups (read-only, from the followupArchive sheet)
+      // ============================================
+
+      let lastSearchParams = null;
+
+      const ARCHIVE_REASON_LABELS = {
+        PAST_DATE: "Date passed",
+        DUPLICATE_SAME_DAY: "Same-day duplicate",
+        NOT_IN_MASTER: "No longer in hospital record",
+        DUPLICATE_LOST: "Duplicate (earlier sync)",
+      };
+
+      /**
+       * Button offered after a normal search (not in the duplicates view)
+       */
+      function pastFollowupsButtonHtml() {
+        if (isShowingDuplicates || !lastSearchParams) return "";
+        return `<button type="button" class="btn btn-outline-secondary btn-sm" onclick="showPastFollowups()" title="Show past follow-ups for this search from the archive"><i class="fas fa-history"></i> Show past follow-ups</button>`;
+      }
+
+      function clearPastFollowups() {
+        document.getElementById("pastFollowupsContainer").innerHTML = "";
+      }
+
+      /**
+       * Run the current search against followupArchive and show the results below the list
+       */
+      function showPastFollowups() {
+        if (
+          !lastSearchParams ||
+          !(lastSearchParams.mrdNo || lastSearchParams.patientName || lastSearchParams.phone)
+        ) {
+          showAlert(
+            "Search by MRD number, patient name or phone number to see past follow-ups.",
+            "info",
+          );
+          return;
+        }
+
+        showLoading();
+        google.script.run
+          .withSuccessHandler(function (response) {
+            hideLoading();
+            if (response && response.success) {
+              renderPastFollowups(response);
+            } else {
+              showAlert(
+                response
+                  ? response.message || "Error loading past follow-ups"
+                  : "Error: No response",
+                "error",
+              );
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            showAlert("Error loading past follow-ups: " + error, "error");
+          })
+          .searchFollowupArchiveJS(lastSearchParams);
+      }
+
+      function renderPastFollowups(response) {
+        const container = document.getElementById("pastFollowupsContainer");
+        const followups = response.followups || [];
+        const countText =
+          response.total > response.shown
+            ? `Showing the latest <span class="count-number">${response.shown}</span> of <span class="count-number">${response.total}</span> past follow-ups`
+            : `<span class="count-number">${response.total}</span> past follow-up${response.total === 1 ? "" : "s"}`;
+
+        let html = `
+          <div class="results-header">
+            <div class="results-count"><i class="fas fa-history"></i> ${countText}</div>
+            <div>
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearPastFollowups()">
+                <i class="fas fa-times"></i> Hide
+              </button>
+            </div>
+          </div>
+          <div class="past-followups-note">
+            From the archive: follow-ups whose date passed or that were merged as duplicates.
+            Booked, cancelled and manually archived follow-ups are on their own pages. Read-only.
+          </div>`;
+
+        if (followups.length === 0) {
+          html += `
+            <div class="no-results">
+              <i class="fas fa-box-open"></i>
+              <p>No past follow-ups found for this search</p>
+            </div>`;
+        }
+
+        followups.forEach(function (f) {
+          const reason =
+            ARCHIVE_REASON_LABELS[f.ArchiveReason] || "Archived by earlier sync";
+          const tags =
+            f.Tag && f.Tag.length > 0
+              ? f.Tag.map(
+                  (tag) =>
+                    `<span class="tag-badge"><span class="tag-text">${escapeText(tag)}</span></span>`,
+                ).join("")
+              : '<span class="no-tags-message">No tags</span>';
+          html += `
+            <div class="followup-card past-followup-card">
+              <div class="followup-header">
+                <div class="followup-mrd">
+                  ${escapeText(f.MRDNo) || "N/A"}
+                  ${f.Source ? `<span class="source-badge ${f.Source === "FM2" ? "source-fm2" : ""}">${escapeText(f.Source)}</span>` : ""}
+                  <span class="archive-reason-badge ms-2">${escapeText(reason)}</span>
+                </div>
+                <div class="followup-date">
+                  <i class="fas fa-calendar-alt"></i> ${formatDisplayDate(f.FollowupDate) || "N/A"}
+                </div>
+              </div>
+              <div class="followup-details">
+                <div class="detail-group">
+                  <div class="detail-label">Patient Name</div>
+                  <div class="detail-value">${escapeText(f.PatientName) || "N/A"}</div>
+                </div>
+                <div class="detail-group">
+                  <div class="detail-label">Age</div>
+                  <div class="detail-value">${escapeText(f.Age) || "N/A"}</div>
+                </div>
+                <div class="detail-group">
+                  <div class="detail-label">Gender</div>
+                  <div class="detail-value">${escapeText(f.Gender) || "N/A"}</div>
+                </div>
+                <div class="detail-group">
+                  <div class="detail-label">Phone</div>
+                  <div class="detail-value">${escapeText(f.Phone) || "N/A"}</div>
+                </div>
+                <div class="detail-group">
+                  <div class="detail-label">Specialization</div>
+                  <div class="detail-value">${escapeText(f.SpecializationName) || "N/A"}</div>
+                </div>
+                <div class="detail-group">
+                  <div class="detail-label">Category</div>
+                  <div class="detail-value">${escapeText(f.CategoryName) || "N/A"}</div>
+                </div>
+                <div class="detail-group">
+                  <div class="detail-label">Archived On</div>
+                  <div class="detail-value">${formatDisplayDateTime(f.ArchivedOn) || "N/A"}</div>
+                </div>
+                <div class="detail-group tag-group">
+                  <div class="detail-label">Tags</div>
+                  <div class="detail-value"><div class="tags-container">${tags}</div></div>
+                </div>
+              </div>
+              <div class="comments-section">
+                <div class="comments-label">
+                  ${f.Comments ? "Latest Comment" : "Comments"}
+                  <button class="btn btn-sm btn-outline-info ms-2" onclick="viewCommentsHistory('${escapeText(f.aFollowID).replace(/'/g, "\\'")}')">
+                    <i class="fas fa-history"></i> View All
+                  </button>
+                </div>
+                <div class="comments-value ${f.Comments ? "" : "text-muted"}">${f.Comments ? escapeText(f.Comments) : "<em>No comments</em>"}</div>
+              </div>
+            </div>`;
+        });
+
+        container.innerHTML = html;
+        container.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      /**
+       * Show all followups of one patient (used by the "Duplicate" badge)
+       */
+      function showPatientFollowups(mrdNo) {
+        document.getElementById("searchForm").reset();
+        document.getElementById("mrdNo").value = mrdNo;
+        performSearch();
+      }
+
+      function navigateToDashboard() {
+        goToPage("Dashboard");
+      }
+
+      function goToPage(pageName) {
+        var newUrl =
+          baseUrl +
+          "?page=" +
+          pageName +
+          "&sessionToken=" +
+          encodeURIComponent(sessionToken);
+        window.top.location.href = newUrl;
+      }
+
+      // Track whether we're viewing duplicates
+      let isShowingDuplicates = false;
+      let duplicateFollowups = [];
+      let duplicateTotal = 0;
+
+      // Pagination state
+      let currentPage = 1;
+      let itemsPerPage = 10;
+      let allFollowups = [];
+      let totalFollowups = 0;
+
+      function performSearch() {
+        const mrdNo = document.getElementById("mrdNo").value.trim();
+        const patientName = document.getElementById("patientName").value.trim();
+        const phone = document.getElementById("phone").value.trim();
+        const remarks = document.getElementById("remarks").value.trim();
+        const tag = document.getElementById("tagFilter").value.trim();
+        const specialization = document
+          .getElementById("specializationFilter")
+          .value.trim();
+        const category = document.getElementById("categoryFilter").value.trim();
+        const fromDate = document.getElementById("fromDate").value.trim();
+        const toDate = document.getElementById("toDate").value.trim();
+
+        showLoading();
+        isShowingDuplicates = false;
+        currentPage = 1; // Reset to first page on new search
+
+        const searchParams = {
+          mrdNo: mrdNo,
+          patientName: patientName,
+          phone: phone,
+          remarks: remarks,
+          tag: tag,
+          specialization: specialization,
+          category: category,
+          fromDate: fromDate,
+          toDate: toDate,
+        };
+        lastSearchParams = searchParams;
+        clearPastFollowups();
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            hideLoading();
+            if (response && response.success) {
+              allFollowups = response.followups || [];
+              totalFollowups = allFollowups.length;
+              displayFollowupsWithPagination();
+            } else {
+              showAlert(
+                response
+                  ? response.message || "Error searching followups"
+                  : "Error: No response",
+                "error",
+              );
+              document.getElementById("resultsContainer").innerHTML = `
+              <div class="no-results">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Error loading followups. Please try again.</p>
+              </div>
+            `;
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            showAlert("Error: " + error, "error");
+            document.getElementById("resultsContainer").innerHTML = `
+            <div class="no-results">
+              <i class="fas fa-exclamation-triangle"></i>
+              <p>Error: ${error}</p>
+            </div>
+          `;
+          })
+          .searchFollowupJS(searchParams);
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML.replace(/'/g, "\\'").replace(/"/g, '\\"');
+      }
+
+      /**
+       * Display followups with pagination
+       */
+      function displayFollowupsWithPagination() {
+        const container = document.getElementById("resultsContainer");
+        container.innerHTML = "";
+
+        if (!allFollowups || allFollowups.length === 0) {
+          container.innerHTML = `
+          <div class="no-results">
+            <i class="fas fa-calendar-times"></i>
+            <p>No follow-up appointments found matching your search criteria</p>
+            ${pastFollowupsButtonHtml()}
+          </div>
+        `;
+          return;
+        }
+
+        // Calculate pagination
+        const totalPages = Math.ceil(totalFollowups / itemsPerPage);
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = Math.min(startIndex + itemsPerPage, totalFollowups);
+        const currentFollowups = allFollowups.slice(startIndex, endIndex);
+
+        // Add results header
+        const headerDiv = document.createElement("div");
+        headerDiv.className = "results-header";
+        headerDiv.innerHTML = `
+        <div class="results-count">
+          Showing <span class="count-number">${startIndex + 1}-${endIndex}</span> of <span class="count-number">${totalFollowups}</span> follow-up appointments
+        </div>
+        <div>
+          ${pastFollowupsButtonHtml()}
+          <i class="fas fa-calendar-check ms-2" style="color: var(--primary-color);"></i>
+        </div>
+      `;
+        container.appendChild(headerDiv);
+
+        // Display current page followups
+        displayFollowups(currentFollowups, container);
+
+        // Add pagination controls
+        if (totalPages > 1) {
+          renderPaginationControls(totalPages, container);
+        }
+
+        // Scroll to top of results
+        container.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      /**
+       * Display followup cards
+       */
+      function displayFollowups(followups, container) {
+        if (!container) {
+          container = document.getElementById("resultsContainer");
+        }
+
+        if (!followups || followups.length === 0) {
+          return;
+        }
+
+        followups.forEach(function (followup) {
+          const card = document.createElement("div");
+          card.className = "followup-card";
+          card.innerHTML = `
+          <div class="followup-header">
+            <div class="followup-mrd">
+              ${followup.MRDNo || "N/A"}
+              ${
+                followup.Source
+                  ? `<span class="source-badge ${followup.Source === "FM2" ? "source-fm2" : ""}" title="Source of this followup">${escapeText(followup.Source)}</span>`
+                  : ""
+              }
+              ${
+                followup.DuplicateCount > 1
+                  ? `<button type="button" class="duplicate-badge" title="This patient has ${followup.DuplicateCount} followups - click to see them all" onclick="showPatientFollowups('${(followup.MRDNo || "").replace(/'/g, "\\'")}')"><i class="fas fa-clone"></i> Duplicate ×${followup.DuplicateCount}</button>`
+                  : ""
+              }
+            </div>
+            <div class="followup-date">
+              <i class="fas fa-calendar-alt"></i> ${formatDisplayDate(followup.FollowupDate) || "N/A"}
+            </div>
+          </div>
+          <div class="followup-details">
+            <div class="detail-group">
+              <div class="detail-label">Patient Name</div>
+              <div class="detail-value">${followup.PatientName || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Age</div>
+              <div class="detail-value">${followup.Age || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Gender</div>
+              <div class="detail-value">${followup.Gender || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Phone</div>
+              <div class="detail-value">${followup.Phone || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Home No</div>
+              <div class="detail-value">${followup.HomeNo || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Work No</div>
+              <div class="detail-value">${followup.WorkNo || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Type</div>
+              <div class="detail-value">${followup.Type || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Registered On</div>
+              <div class="detail-value">${formatDisplayDateTime(followup.RegisteredOn) || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Specialization</div>
+              <div class="detail-value">${followup.SpecializationName ? escapeText(followup.SpecializationName) : "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Category</div>
+              <div class="detail-value">${followup.CategoryName ? escapeText(followup.CategoryName) : "N/A"}</div>
+            </div>
+            <div class="detail-group tag-group">
+              <div class="detail-label">Tags</div>
+              <div class="detail-value">
+                <div class="tags-container" id="tags_container_${followup.aFollowID}">
+                  ${
+                    followup.Tag && followup.Tag.length > 0
+                      ? followup.Tag.map(
+                          (tag) => `
+                    <span class="tag-badge">
+                      <span class="tag-text">${tag}</span>
+                      <button class="tag-remove" onclick="removeTag('${followup.aFollowID}', 'followup', '${tag}')" title="Remove tag">×</button>
+                    </span>
+                  `,
+                        ).join("")
+                      : '<span class="no-tags-message">No tags</span>'
+                  }
+                </div>
+                <div class="tag-input-container">
+                  <input type="text" 
+                         class="tag-input" 
+                         id="tag_input_${followup.aFollowID}" 
+                         placeholder="Type new tag or select existing..."
+                         onfocus="loadExistingTags('${followup.aFollowID}', 'followup')"
+                         oninput="filterTagDropdown('${followup.aFollowID}')"
+                         onkeypress="handleTagInputKeypress(event, '${followup.aFollowID}', 'followup')">
+                  <select class="tag-select" 
+                          id="tag_select_${followup.aFollowID}"
+                          onchange="handleTagDropdownSelection('${followup.aFollowID}', 'followup')">
+                    <option value="">Select existing tag...</option>
+                  </select>
+                  <button class="btn-add-tag" 
+                          onclick="addTagFromInput('${followup.aFollowID}', 'followup')">
+                    Add Tag
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          ${
+            followup.Comments
+              ? `
+            <div class="comments-section">
+              <div class="comments-label">
+                Latest Comment
+                <button class="btn btn-sm btn-outline-info ms-2" onclick="viewCommentsHistory('${followup.aFollowID}')">
+                  <i class="fas fa-history"></i> View All
+                </button>
+              </div>
+              <div class="comments-value">${followup.Comments}</div>
+            </div>
+          `
+              : `
+            <div class="comments-section">
+              <div class="comments-label">
+                Comments
+                <button class="btn btn-sm btn-outline-info ms-2" onclick="viewCommentsHistory('${followup.aFollowID}')">
+                  <i class="fas fa-history"></i> View All
+                </button>
+              </div>
+              <div class="comments-value text-muted" style="font-style: italic;">No comments yet</div>
+            </div>
+          `
+          }
+          <div class="add-comment-section">
+            <div class="comments-label">Add Comment</div>
+            <div class="comment-input-group">
+              <input type="text" class="form-control form-control-sm" id="new_comment_${followup.aFollowID}" placeholder="Enter new comment...">
+              <button class="btn btn-sm btn-primary" onclick="addNewComment('${followup.aFollowID}')">
+                <i class="fas fa-plus"></i> Add
+              </button>
+            </div>
+          </div>
+          <div class="followup-actions">
+            <button class="btn btn-success" onclick="openBookingModal('${followup.aFollowID}', '${followup.FollowupDate || ""}', '${(followup.MRDNo || "").replace(/'/g, "\\'")}', '${escapeHtml(followup.PatientName || "")}')">
+              <i class="fas fa-calendar-check"></i> Appointment
+            </button>
+            <button class="btn btn-danger" onclick="confirmCancelFollowup('${followup.aFollowID}')">
+              <i class="fas fa-times-circle"></i> Cancel
+            </button>
+            <button class="btn btn-secondary" onclick="confirmArchiveFollowup('${followup.aFollowID}')">
+              <i class="fas fa-archive"></i> Archive
+            </button>
+          </div>
+        `;
+          container.appendChild(card);
+        });
+      }
+
+      /**
+       * Render pagination controls
+       */
+      function renderPaginationControls(totalPages, container) {
+        const paginationDiv = document.createElement("div");
+        paginationDiv.className = "pagination-container";
+
+        // Pagination info
+        const infoDiv = document.createElement("div");
+        infoDiv.className = "pagination-info";
+        infoDiv.innerHTML = `Page ${currentPage} of ${totalPages}`;
+
+        // Pagination controls
+        const controlsDiv = document.createElement("div");
+        controlsDiv.className = "pagination-controls";
+
+        // First page button
+        const firstBtn = createPaginationButton("«", 1, currentPage === 1);
+        controlsDiv.appendChild(firstBtn);
+
+        // Previous page button
+        const prevBtn = createPaginationButton(
+          "‹",
+          currentPage - 1,
+          currentPage === 1,
+        );
+        controlsDiv.appendChild(prevBtn);
+
+        // Page number buttons with smart ellipsis
+        const pageButtons = generatePageButtons(currentPage, totalPages);
+        pageButtons.forEach((item) => {
+          if (item === "...") {
+            const ellipsis = document.createElement("span");
+            ellipsis.className = "pagination-ellipsis";
+            ellipsis.textContent = "...";
+            controlsDiv.appendChild(ellipsis);
+          } else {
+            const pageBtn = createPaginationButton(
+              item,
+              item,
+              false,
+              item === currentPage,
+            );
+            controlsDiv.appendChild(pageBtn);
+          }
+        });
+
+        // Next page button
+        const nextBtn = createPaginationButton(
+          "›",
+          currentPage + 1,
+          currentPage === totalPages,
+        );
+        controlsDiv.appendChild(nextBtn);
+
+        // Last page button
+        const lastBtn = createPaginationButton(
+          "»",
+          totalPages,
+          currentPage === totalPages,
+        );
+        controlsDiv.appendChild(lastBtn);
+
+        paginationDiv.appendChild(infoDiv);
+        paginationDiv.appendChild(controlsDiv);
+        container.appendChild(paginationDiv);
+      }
+
+      /**
+       * Create a pagination button
+       */
+      function createPaginationButton(
+        label,
+        pageNumber,
+        disabled,
+        active = false,
+      ) {
+        const button = document.createElement("button");
+        button.className = "pagination-btn";
+        button.textContent = label;
+        button.disabled = disabled;
+
+        if (active) {
+          button.classList.add("active");
+        }
+
+        if (!disabled) {
+          button.onclick = function () {
+            navigateToPaginationPage(pageNumber);
+          };
+        }
+
+        return button;
+      }
+
+      /**
+       * Generate page number buttons with smart ellipsis
+       */
+      function generatePageButtons(current, total) {
+        const pages = [];
+        const delta = 2; // Number of pages to show on each side of current page
+
+        // Always show first page
+        pages.push(1);
+
+        // Calculate range around current page
+        const rangeStart = Math.max(2, current - delta);
+        const rangeEnd = Math.min(total - 1, current + delta);
+
+        // Add ellipsis after first page if needed
+        if (rangeStart > 2) {
+          pages.push("...");
+        }
+
+        // Add pages around current page
+        for (let i = rangeStart; i <= rangeEnd; i++) {
+          pages.push(i);
+        }
+
+        // Add ellipsis before last page if needed
+        if (rangeEnd < total - 1) {
+          pages.push("...");
+        }
+
+        // Always show last page (if more than 1 page)
+        if (total > 1) {
+          pages.push(total);
+        }
+
+        return pages;
+      }
+
+      function navigateToPaginationPage(pageNumber) {
+        currentPage = pageNumber;
+        displayFollowupsWithPagination();
+      }
+
+      function showLoading() {
+        const overlay = document.createElement("div");
+        overlay.className = "loading-overlay";
+        overlay.id = "loadingOverlay";
+        overlay.innerHTML = '<div class="spinner"></div>';
+        document.body.appendChild(overlay);
+      }
+
+      function hideLoading() {
+        const overlay = document.getElementById("loadingOverlay");
+        if (overlay) {
+          overlay.remove();
+        }
+      }
+
+      function showAlert(message, type) {
+        const alertContainer = document.getElementById("alertContainer");
+        const alert = document.createElement("div");
+        alert.className = `custom-alert ${type}`;
+
+        const iconMap = {
+          success: "fa-check-circle",
+          error: "fa-exclamation-circle",
+          warning: "fa-exclamation-triangle",
+          info: "fa-info-circle",
+        };
+
+        alert.innerHTML = `
+        <i class="fas ${iconMap[type] || "fa-info-circle"}"></i>
+        <span>${message}</span>
+      `;
+
+        alertContainer.appendChild(alert);
+
+        setTimeout(function () {
+          alert.style.opacity = "0";
+          alert.style.transition = "opacity 0.3s";
+          setTimeout(function () {
+            alert.remove();
+          }, 300);
+        }, 3000);
+      }
+
+      function addNewComment(aFollowID) {
+        const commentInput = document.getElementById(
+          "new_comment_" + aFollowID,
+        );
+        if (!commentInput) {
+          showAlert("Error: Input field not found", "error");
+          return;
+        }
+
+        const commentText = commentInput.value.trim();
+        if (!commentText) {
+          showAlert("Please enter a comment", "warning");
+          return;
+        }
+
+        // Validate that comment is not only a date
+        if (isOnlyDate(commentText)) {
+          showAlert(
+            'Comments cannot be only a date. Please include text with the date (e.g., "check again on 27/9/25")',
+            "warning",
+          );
+          return;
+        }
+
+        const addButton = commentInput.nextElementSibling;
+        const originalButtonHTML = addButton.innerHTML;
+
+        commentInput.disabled = true;
+        addButton.disabled = true;
+        addButton.innerHTML =
+          '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            commentInput.disabled = false;
+            addButton.disabled = false;
+            addButton.innerHTML = originalButtonHTML;
+
+            if (response && response.success) {
+              showAlert("Comment added successfully", "success");
+              commentInput.value = "";
+              // Reload followups to show updated comment
+              performSearch();
+            } else {
+              showAlert(
+                "Error adding comment: " +
+                  (response ? response.message : "Unknown error"),
+                "error",
+              );
+            }
+          })
+          .withFailureHandler(function (error) {
+            commentInput.disabled = false;
+            addButton.disabled = false;
+            addButton.innerHTML = originalButtonHTML;
+            showAlert("Error adding comment: " + error, "error");
+          })
+          .addFollowupComment(aFollowID, commentText, sessionToken);
+      }
+
+      /**
+       * Check if the text is only a date (no other text)
+       * @param {string} text - The text to check
+       * @return {boolean} True if text is only a date pattern
+       */
+      function isOnlyDate(text) {
+        if (!text || text.trim() === "") {
+          return false;
+        }
+
+        const trimmedText = text.trim();
+
+        // Common date patterns to match:
+        // - DD/MM/YY or DD/MM/YYYY (e.g., "27/9/25", "27/09/2025")
+        // - DD-MM-YY or DD-MM-YYYY (e.g., "27-9-25", "27-09-2025")
+        // - DD.MM.YY or DD.MM.YYYY (e.g., "27.9.25", "27.09.2025")
+        // - YYYY-MM-DD (e.g., "2025-09-27")
+        // - DD MMM YYYY (e.g., "27 Sep 2025")
+        // - MMM DD, YYYY (e.g., "Sep 27, 2025")
+
+        const datePatterns = [
+          /^\d{1,2}\/\d{1,2}\/\d{2,4}$/, // DD/MM/YY or DD/MM/YYYY
+          /^\d{1,2}-\d{1,2}-\d{2,4}$/, // DD-MM-YY or DD-MM-YYYY
+          /^\d{1,2}\.\d{1,2}\.\d{2,4}$/, // DD.MM.YY or DD.MM.YYYY
+          /^\d{4}-\d{2}-\d{2}$/, // YYYY-MM-DD
+          /^\d{1,2}\s+[A-Za-z]{3,}\s+\d{4}$/, // DD MMM YYYY
+          /^[A-Za-z]{3,}\s+\d{1,2},?\s+\d{4}$/, // MMM DD, YYYY or MMM DD YYYY
+        ];
+
+        // Check if the entire text matches any date pattern
+        for (let pattern of datePatterns) {
+          if (pattern.test(trimmedText)) {
+            return true;
+          }
+        }
+
+        // If text doesn't match any date pattern, it's not only a date
+        return false;
+      }
+
+      function viewCommentsHistory(aFollowID) {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response && response.success) {
+              showCommentsModal(aFollowID, response.comments);
+            } else {
+              showAlert(
+                "Error loading comments: " +
+                  (response ? response.message : "Unknown error"),
+                "error",
+              );
+            }
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error loading comments: " + error, "error");
+          })
+          .getFollowupCommentsHistory(aFollowID);
+      }
+
+      function showCommentsModal(aFollowID, comments) {
+        const body = document.getElementById("commentsHistoryBody");
+        let modalHTML = "";
+
+        if (!comments || comments.length === 0) {
+          modalHTML =
+            '<p class="text-muted">No comments found for this followup.</p>';
+        } else {
+          modalHTML = '<div class="list-group">';
+          comments.forEach((comment, index) => {
+            const isLatest = index === comments.length - 1;
+            modalHTML += `
+            <div class="list-group-item ${isLatest ? "active" : ""}">
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">${isLatest ? "🔵 Latest: " : ""}Comment #${comment.sequenceNumber}</h6>
+                <small>${formatDisplayDateTime(comment.addedAt)}</small>
+              </div>
+              <p class="mb-1">${comment.text}</p>
+              <small>Added by: ${comment.addedBy}</small>
+            </div>
+          `;
+          });
+          modalHTML += "</div>";
+        }
+
+        body.innerHTML = modalHTML;
+        const modal = new bootstrap.Modal(
+          document.getElementById("commentsHistoryModal"),
+        );
+        modal.show();
+      }
+
+      function openBookingModal(aFollowID, followupDate, mrdNo, patientName) {
+        document.getElementById("bookingAFollowID").value = aFollowID;
+
+        // Pre-populate date field with followupDate (now visible field)
+        const dateField = document.getElementById("bookingAppointmentDate");
+        dateField.value = formatAppointmentDate(followupDate);
+
+        // Store MRD and patient name for duplicate checking and confirmation
+        currentBookingMRD = mrdNo || "";
+        currentBookingPatientName = patientName
+          ? patientName.replace(/\\'/g, "'").replace(/\\"/g, '"')
+          : "Patient";
+
+        // Reset Plan of Action
+        bookingSelectedProcedures = [];
+        bookingCurrentProcedure = null;
+        const procedureInput = document.getElementById("bookingProcedureInput");
+        if (procedureInput) {
+          procedureInput.value = "";
+          procedureInput._hasListeners = false; // Allow re-initialization
+        }
+        document.getElementById("bookingSelectedProceduresList").innerHTML = "";
+        document.getElementById("bookingPlanOfAction").value = "";
+        document
+          .getElementById("bookingEyeSelectionContainer")
+          .classList.add("d-none");
+
+        // Load doctors
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response && response.success) {
+              const doctorSelect = document.getElementById("bookingDoctor");
+              doctorSelect.innerHTML =
+                '<option value="">Select a Doctor</option>';
+              response.doctors.forEach(function (doc) {
+                const option = document.createElement("option");
+                option.value = doc;
+                option.textContent = doc;
+                doctorSelect.appendChild(option);
+              });
+            }
+          })
+          .getDoctors();
+
+        // Load appointment types
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response && response.success) {
+              const typeSelect = document.getElementById(
+                "bookingAppointmentType",
+              );
+              typeSelect.innerHTML =
+                '<option value="">Select Appointment Type</option>';
+              response.appointmentTypes.forEach(function (type) {
+                const option = document.createElement("option");
+                option.value = type;
+                option.textContent = type;
+                typeSelect.appendChild(option);
+              });
+
+              // Add event listener for appointment type change
+              typeSelect.onchange = handleAppointmentTypeChange;
+            }
+          })
+          .getAppointmentTypes();
+
+        // Load Plan of Action options
+        loadBookingPlanOfActionOptions();
+
+        // Load available time slots for the initial date
+        loadAvailableSlots(formatAppointmentDate(followupDate));
+
+        // Check early booking restrictions for the pre-populated date (Requirement 3.5)
+        checkEarlyBookingRestrictions(formatAppointmentDate(followupDate));
+
+        // Add date change event listener
+        const dateInputField = document.getElementById(
+          "bookingAppointmentDate",
+        );
+        // Remove any existing event listeners by cloning the element
+        const newDateInputField = dateInputField.cloneNode(true);
+        dateInputField.parentNode.replaceChild(
+          newDateInputField,
+          dateInputField,
+        );
+
+        // Add new event listener
+        newDateInputField.addEventListener("change", function () {
+          const selectedDate = this.value;
+          const appointmentType = document.getElementById(
+            "bookingAppointmentType",
+          ).value;
+
+          // When date changes, reload time slots
+          if (selectedDate) {
+            loadAvailableSlots(selectedDate);
+
+            // Check early booking restrictions for the selected date
+            checkEarlyBookingRestrictions(selectedDate);
+
+            // If appointment type is WAITING LIST, check waiting list availability
+            if (appointmentType === "WAITING LIST") {
+              checkWaitingListAvailability(selectedDate);
+            }
+          }
+        });
+
+        // Reset time slot section visibility
+        document.getElementById("bookingTimeSlotSection").style.display =
+          "block";
+        document.getElementById("bookingRAAInfo").style.display = "none";
+        document.getElementById("bookingTimeSlot").required = true;
+
+        const modalElement = document.getElementById("bookingModal");
+        const modal = new bootstrap.Modal(modalElement, {
+          backdrop: true,
+          keyboard: true,
+          focus: true,
+        });
+
+        // Fix aria-hidden issue by ensuring modal is properly shown
+        modalElement.addEventListener("shown.bs.modal", function () {
+          // Focus on first input field after modal is shown
+          const firstInput = modalElement.querySelector(
+            "input, select, textarea",
+          );
+          if (firstInput) {
+            setTimeout(() => firstInput.focus(), 100);
+          }
+        });
+
+        modal.show();
+      }
+
+      function loadBookingPlanOfActionOptions() {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response && response.success) {
+              bookingPlanOptions = response.options;
+              initBookingProcedureInput();
+            }
+          })
+          .getPlanOfActionOptions();
+      }
+
+      function initBookingProcedureInput() {
+        const procedureInputContainer = document.getElementById(
+          "bookingProcedureInputContainer",
+        );
+        const procedureInput = document.getElementById("bookingProcedureInput");
+        const suggestionsDropdown = document.getElementById(
+          "bookingSuggestionsDropdown",
+        );
+        const eyeSelectionContainer = document.getElementById(
+          "bookingEyeSelectionContainer",
+        );
+
+        // Remove any existing event listeners by using a flag or namespace
+        if (procedureInput._hasListeners) {
+          return; // Already initialized
+        }
+        procedureInput._hasListeners = true;
+
+        // 1. Autocomplete as you type
+        procedureInput.addEventListener("input", function () {
+          const term = this.value.toLowerCase();
+          suggestionsDropdown.innerHTML = "";
+          if (term.length < 1) {
+            suggestionsDropdown.style.display = "none";
+            return;
+          }
+          bookingPlanOptions
+            .filter((opt) => opt.name.toLowerCase().startsWith(term))
+            .forEach((opt) => {
+              const item = document.createElement("div");
+              item.className =
+                "suggestion-item list-group-item list-group-item-action";
+              item.textContent = opt.name;
+              item.addEventListener("click", () => {
+                procedureInput.value = opt.name;
+                suggestionsDropdown.style.display = "none";
+                bookingCurrentProcedure = opt;
+                if (opt.requiresEyeSelection) {
+                  eyeSelectionContainer.classList.remove("d-none");
+                } else {
+                  addBookingProcedureToSelection(opt.name);
+                  procedureInput.value = "";
+                }
+              });
+              suggestionsDropdown.appendChild(item);
+            });
+          suggestionsDropdown.style.display =
+            suggestionsDropdown.childElementCount ? "block" : "none";
+        });
+
+        // 2. Hide suggestions if clicking outside
+        const clickHandler = function (e) {
+          if (!procedureInputContainer.contains(e.target)) {
+            suggestionsDropdown.style.display = "none";
+          }
+        };
+        document.addEventListener("click", clickHandler);
+        procedureInput._clickHandler = clickHandler;
+
+        // 3. Handle eye selection
+        document
+          .querySelectorAll('input[name="bookingEyeSelection"]')
+          .forEach((radio) => {
+            radio.addEventListener("change", () => {
+              const selectedEye = document.querySelector(
+                'input[name="bookingEyeSelection"]:checked',
+              );
+              if (selectedEye && bookingCurrentProcedure) {
+                addBookingProcedureToSelection(
+                  `${bookingCurrentProcedure.name} (${selectedEye.value})`,
+                );
+                bookingCurrentProcedure = null;
+                eyeSelectionContainer.classList.add("d-none");
+                procedureInput.value = "";
+                selectedEye.checked = false;
+              }
+            });
+          });
+      }
+
+      function addBookingProcedureToSelection(text) {
+        bookingSelectedProcedures.push(text);
+        updateBookingDisplay();
+        updateBookingHiddenField();
+      }
+
+      function updateBookingDisplay() {
+        const c = document.getElementById("bookingSelectedProceduresList");
+        c.innerHTML = "";
+        bookingSelectedProcedures.forEach((p, i) => {
+          const div = document.createElement("div");
+          div.style.cssText =
+            "display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; margin-bottom: 0.25rem;";
+          div.innerHTML = `<span>${p}</span><span class="remove-procedure" data-i="${i}" style="cursor: pointer; color: #dc3545;">❌</span>`;
+          c.appendChild(div);
+        });
+        document
+          .querySelectorAll("#bookingSelectedProceduresList .remove-procedure")
+          .forEach((btn) => {
+            btn.onclick = () => {
+              bookingSelectedProcedures.splice(parseInt(btn.dataset.i), 1);
+              updateBookingDisplay();
+              updateBookingHiddenField();
+            };
+          });
+      }
+
+      function updateBookingHiddenField() {
+        document.getElementById("bookingPlanOfAction").value = JSON.stringify(
+          bookingSelectedProcedures,
+        );
+      }
+
+      let isLoadingSlots = false; // Flag to prevent multiple simultaneous calls
+
+      function loadAvailableSlots(selectedDate) {
+        if (!selectedDate) {
+          document.getElementById("bookingTimeSlot").innerHTML =
+            '<option value="">Select a Time Slot</option>';
+          return;
+        }
+
+        // Prevent multiple simultaneous calls
+        if (isLoadingSlots) {
+          return;
+        }
+
+        isLoadingSlots = true;
+        const timeSlotSelect = document.getElementById("bookingTimeSlot");
+        timeSlotSelect.innerHTML = '<option value="">Loading slots...</option>';
+        timeSlotSelect.disabled = true;
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            isLoadingSlots = false;
+            timeSlotSelect.disabled = false;
+            timeSlotSelect.innerHTML =
+              '<option value="">Select a Time Slot</option>';
+
+            if (
+              response &&
+              response.success &&
+              response.slots &&
+              response.slots.length > 0
+            ) {
+              response.slots.forEach(function (slot) {
+                const option = document.createElement("option");
+                option.value = slot;
+                option.textContent = slot;
+                timeSlotSelect.appendChild(option);
+              });
+            } else {
+              // Only show alert if there's actually an issue, not just empty slots
+              if (response && response.message) {
+                showAlert(
+                  "No available time slots for the selected date. " +
+                    response.message,
+                  "warning",
+                );
+              } else if (
+                response &&
+                response.slots &&
+                response.slots.length === 0
+              ) {
+                showAlert(
+                  "No available time slots for the selected date. All slots may be booked.",
+                  "warning",
+                );
+              }
+            }
+          })
+          .withFailureHandler(function (error) {
+            isLoadingSlots = false;
+            timeSlotSelect.disabled = false;
+            timeSlotSelect.innerHTML =
+              '<option value="">Error loading slots</option>';
+            showAlert("Error loading time slots: " + error, "error");
+          })
+          .getAvailableSlotsFromPlanningA(selectedDate);
+      }
+
+      // Handle appointment type change in booking modal
+      function handleAppointmentTypeChange() {
+        const appointmentType = document.getElementById(
+          "bookingAppointmentType",
+        ).value;
+        const timeSlotSection = document.getElementById(
+          "bookingTimeSlotSection",
+        );
+        const raaInfoSection = document.getElementById("bookingRAAInfo");
+        const timeSlotSelect = document.getElementById("bookingTimeSlot");
+
+        if (appointmentType === "WAITING LIST") {
+          // Hide time slot section for waiting list
+          timeSlotSection.style.display = "none";
+          raaInfoSection.style.display = "block";
+          timeSlotSelect.required = false;
+          timeSlotSelect.value = "";
+
+          // Check waiting list limit for the selected date
+          const appointmentDate = document.getElementById(
+            "bookingAppointmentDate",
+          ).value;
+          if (appointmentDate) {
+            checkWaitingListAvailability(appointmentDate);
+          }
+        } else {
+          // Show time slot section for regular appointments
+          timeSlotSection.style.display = "block";
+          raaInfoSection.style.display = "none";
+          timeSlotSelect.required = true;
+        }
+      }
+
+      // Check waiting list availability for the selected date
+      function checkWaitingListAvailability(dateStr) {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            const raaInfoText = document.getElementById("raaInfoText");
+            if (response && response.success) {
+              if (response.allowed) {
+                raaInfoText.innerHTML =
+                  '<i class="fas fa-check-circle text-success me-1"></i> ' +
+                  response.message;
+                document.getElementById("submitBookingBtn").disabled = false;
+              } else {
+                raaInfoText.innerHTML =
+                  '<i class="fas fa-exclamation-circle text-danger me-1"></i> ' +
+                  response.message;
+                document.getElementById("submitBookingBtn").disabled = true;
+              }
+            } else {
+              raaInfoText.innerHTML =
+                '<i class="fas fa-exclamation-triangle text-warning me-1"></i> Unable to check waiting list availability';
+            }
+          })
+          .withFailureHandler(function (error) {
+            document.getElementById("raaInfoText").innerHTML =
+              '<i class="fas fa-exclamation-triangle text-warning me-1"></i> Error checking waiting list: ' +
+              error;
+          })
+          .checkWaitingListLimit(dateStr);
+      }
+
+      function submitBooking() {
+        const aFollowID = document.getElementById("bookingAFollowID").value;
+        const appointmentDateRaw = document.getElementById(
+          "bookingAppointmentDate",
+        ).value;
+        const doctor = document.getElementById("bookingDoctor").value;
+        const appointmentType = document.getElementById(
+          "bookingAppointmentType",
+        ).value;
+        const planOfActionValue = document.getElementById(
+          "bookingPlanOfAction",
+        ).value;
+        const timeSlotRaw = document.getElementById("bookingTimeSlot").value;
+        const additionalComments = document
+          .getElementById("bookingAdditionalComments")
+          .value.trim();
+
+        // Format date and time
+        const appointmentDate = formatAppointmentDate(appointmentDateRaw);
+        const timeSlot = formatTimeSlot(timeSlotRaw);
+
+        // Validate date format
+        if (appointmentDateRaw && !isValidDateFormat(appointmentDate)) {
+          showAlert(
+            "Invalid date format. Please enter date in YYYY-MM-DD format.",
+            "error",
+          );
+          return;
+        }
+
+        // Validate plan of action
+        let planOfAction = "";
+        if (planOfActionValue) {
+          try {
+            const planArray = JSON.parse(planOfActionValue);
+            if (Array.isArray(planArray) && planArray.length > 0) {
+              planOfAction = planOfActionValue;
+            } else {
+              showAlert("Please add at least one plan of action", "warning");
+              return;
+            }
+          } catch (e) {
+            // If not JSON, treat as plain text
+            if (planOfActionValue.trim()) {
+              planOfAction = planOfActionValue;
+            } else {
+              showAlert("Please add at least one plan of action", "warning");
+              return;
+            }
+          }
+        } else {
+          showAlert("Please add at least one plan of action", "warning");
+          return;
+        }
+
+        // Validate required fields (time slot not required for WAITING LIST)
+        const isWaitingList = appointmentType === "WAITING LIST";
+        if (!doctor || !appointmentType) {
+          showAlert("Please fill in all required fields", "warning");
+          return;
+        }
+
+        if (!isWaitingList && !timeSlotRaw) {
+          showAlert("Please select a time slot", "warning");
+          return;
+        }
+
+        // Validate time format (only for non-waiting list appointments)
+        if (!isWaitingList && timeSlotRaw && !isValidTimeFormat(timeSlot)) {
+          showAlert(
+            "Invalid time format. Please select a valid time slot in HH:MM format.",
+            "error",
+          );
+          return;
+        }
+
+        const submitBtn = document.getElementById("submitBookingBtn");
+        const normalText = submitBtn.querySelector(".normal-text");
+        const loadingText = submitBtn.querySelector(".loading-text");
+
+        submitBtn.disabled = true;
+        normalText.style.display = "none";
+        loadingText.style.display = "inline-block";
+
+        const appointmentData = {
+          aFollowID: aFollowID,
+          appointmentDate: appointmentDate,
+          timeSlot: isWaitingList ? "" : timeSlot, // No time slot for waiting list
+          doctor: doctor,
+          appointmentType: appointmentType,
+          planOfAction: planOfAction,
+          additionalComments: additionalComments,
+        };
+
+        // Store appointment data for use in proceedWithBookingDespiteDuplicate
+        window.pendingAppointmentData = appointmentData;
+        window.pendingIsWaitingList = isWaitingList;
+
+        // Check for duplicate MRD before proceeding
+        // Skip check if MRD is empty or whitespace
+        if (currentBookingMRD && currentBookingMRD.trim()) {
+          google.script.run
+            .withSuccessHandler(function (response) {
+              if (response && response.success && response.hasDuplicates) {
+                // Duplicates found - show warning modal
+                submitBtn.disabled = false;
+                normalText.style.display = "inline-block";
+                loadingText.style.display = "none";
+                showDuplicateWarningModal(response.duplicates);
+              } else {
+                // No duplicates - proceed with slot check and booking
+                proceedWithSlotCheckAndBooking(
+                  appointmentData,
+                  isWaitingList,
+                  submitBtn,
+                  normalText,
+                  loadingText,
+                );
+              }
+            })
+            .withFailureHandler(function (error) {
+              // On error, proceed with booking (don't block)
+              proceedWithSlotCheckAndBooking(
+                appointmentData,
+                isWaitingList,
+                submitBtn,
+                normalText,
+                loadingText,
+              );
+            })
+            .checkDuplicateMRDInAppointments(currentBookingMRD);
+        } else {
+          // No MRD - proceed with slot check and booking
+          proceedWithSlotCheckAndBooking(
+            appointmentData,
+            isWaitingList,
+            submitBtn,
+            normalText,
+            loadingText,
+          );
+        }
+      }
+
+      // Proceed with slot availability check and booking
+      function proceedWithSlotCheckAndBooking(
+        appointmentData,
+        isWaitingList,
+        submitBtn,
+        normalText,
+        loadingText,
+      ) {
+        const appointmentDate = appointmentData.appointmentDate;
+
+        // Check slot availability and early booking restrictions before booking
+        if (isWaitingList) {
+          // WAITING LIST - only check waiting list limit, skip early booking restrictions
+          // Waiting list has its own separate limit system and is not connected to TAA
+          google.script.run
+            .withSuccessHandler(function (limitResponse) {
+              if (limitResponse && limitResponse.allowed) {
+                // Waiting list has space, proceed with booking
+                executeFollowupBooking(
+                  appointmentData,
+                  submitBtn,
+                  normalText,
+                  loadingText,
+                );
+              } else {
+                // Waiting list is full
+                submitBtn.disabled = false;
+                normalText.style.display = "inline-block";
+                loadingText.style.display = "none";
+                const errorMsg = limitResponse
+                  ? limitResponse.message
+                  : "Waiting list is full for the selected date";
+                showAlert(errorMsg, "error");
+              }
+            })
+            .withFailureHandler(function (error) {
+              submitBtn.disabled = false;
+              normalText.style.display = "inline-block";
+              loadingText.style.display = "none";
+              showAlert("Error checking waiting list: " + error, "error");
+            })
+            .checkWaitingListLimit(appointmentDate);
+        } else {
+          // Regular appointment - check slot availability and early booking restrictions
+          google.script.run
+            .withSuccessHandler(function (availResult) {
+              // Check for early booking restriction first
+              if (availResult.restricted) {
+                // Early booking restriction applies - show warning modal and stop
+                submitBtn.disabled = false;
+                normalText.style.display = "inline-block";
+                loadingText.style.display = "none";
+                displayRestrictionWarning(availResult);
+                return;
+              }
+
+              if (!availResult.available) {
+                // Slots not available - show warning and stop
+                submitBtn.disabled = false;
+                normalText.style.display = "inline-block";
+                loadingText.style.display = "none";
+                showAlert(availResult.message, "warning");
+                return;
+              }
+
+              // Slots available and no restrictions, proceed with booking
+              executeFollowupBooking(
+                appointmentData,
+                submitBtn,
+                normalText,
+                loadingText,
+              );
+            })
+            .withFailureHandler(function (error) {
+              // On error, still proceed with booking (don't block)
+              executeFollowupBooking(
+                appointmentData,
+                submitBtn,
+                normalText,
+                loadingText,
+              );
+            })
+            .checkSlotAvailability(appointmentDate);
+        }
+      }
+
+      // Execute the actual booking
+      function executeFollowupBooking(
+        appointmentData,
+        submitBtn,
+        normalText,
+        loadingText,
+      ) {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            submitBtn.disabled = false;
+            normalText.style.display = "inline-block";
+            loadingText.style.display = "none";
+
+            if (response && response.success) {
+              // Close the booking modal
+              const bookingModal = bootstrap.Modal.getInstance(
+                document.getElementById("bookingModal"),
+              );
+              bookingModal.hide();
+
+              // Show success confirmation modal with appointment details
+              showBookingSuccessModal(appointmentData, response);
+
+              // Reset form
+              document.getElementById("bookingForm").reset();
+
+              // Remove booked followup from current data and update display
+              allFollowups = allFollowups.filter(
+                (f) => f.aFollowID !== appointmentData.aFollowID,
+              );
+              totalFollowups = allFollowups.length;
+
+              if (isShowingDuplicates) {
+                duplicateFollowups = allFollowups;
+                duplicateTotal = totalFollowups;
+              }
+
+              // Adjust current page if needed
+              const totalPages = Math.ceil(totalFollowups / itemsPerPage);
+              if (currentPage > totalPages && totalPages > 0) {
+                currentPage = totalPages;
+              }
+
+              displayFollowupsWithPagination();
+            } else {
+              // Parse and display backend validation errors
+              let errorMessage = "Error booking appointment";
+              if (response && response.message) {
+                errorMessage = response.message;
+                // Log detailed error to console for debugging
+              } else {
+                errorMessage = "Unknown error occurred";
+              }
+              showAlert(errorMessage, "error");
+            }
+          })
+          .withFailureHandler(function (error) {
+            submitBtn.disabled = false;
+            normalText.style.display = "inline-block";
+            loadingText.style.display = "none";
+
+            // Log error to console for debugging
+            showAlert("Error booking appointment: " + error, "error");
+          })
+          .createAppointmentFromFollowup(appointmentData, sessionToken);
+      }
+
+      /**
+       * Show booking success confirmation modal with appointment details
+       * @param {Object} appointmentData - The appointment data that was submitted
+       * @param {Object} response - The response from the backend
+       */
+      function showBookingSuccessModal(appointmentData, response) {
+        // Get patient name from stored variable or response
+        const patientName =
+          currentBookingPatientName || response.patientName || "Patient";
+
+        // Populate modal fields
+        document.getElementById("confirmPatientName").textContent = patientName;
+        document.getElementById("confirmAppointmentType").textContent =
+          appointmentData.appointmentType || "-";
+        document.getElementById("confirmDate").textContent =
+          formatDateForDisplay(appointmentData.appointmentDate) || "-";
+        document.getElementById("confirmDoctor").textContent =
+          appointmentData.doctor || "-";
+
+        // Handle time slot (hide for waiting list)
+        const isWaitingList =
+          appointmentData.appointmentType === "WAITING LIST";
+        const timeSlotContainer = document.getElementById(
+          "confirmTimeSlotContainer",
+        );
+        if (isWaitingList) {
+          timeSlotContainer.style.display = "none";
+        } else {
+          timeSlotContainer.style.display = "block";
+          document.getElementById("confirmTimeSlot").textContent =
+            appointmentData.timeSlot || "-";
+        }
+
+        // Format and display plan of action
+        let planOfActionText = "-";
+        if (appointmentData.planOfAction) {
+          try {
+            const planArray = JSON.parse(appointmentData.planOfAction);
+            if (Array.isArray(planArray) && planArray.length > 0) {
+              planOfActionText = planArray.join(", ");
+            }
+          } catch (e) {
+            planOfActionText = appointmentData.planOfAction;
+          }
+        }
+        document.getElementById("confirmPlanOfAction").textContent =
+          planOfActionText;
+
+        // Show the modal
+        const successModal = new bootstrap.Modal(
+          document.getElementById("bookingSuccessModal"),
+        );
+        successModal.show();
+      }
+
+      /**
+       * Format date for display (convert YYYY-MM-DD to more readable format)
+       * @param {string} dateStr - Date in YYYY-MM-DD format
+       * @return {string} Formatted date string
+       */
+      function formatDateForDisplay(dateStr) {
+        if (!dateStr) return "";
+
+        return formatDisplayDate(dateStr);
+      }
+
+      // Initialize on page load
+      document.addEventListener("DOMContentLoaded", function () {
+        // Load Plan of Action options on page load
+        loadBookingPlanOfActionOptions();
+      });
+
+      // Show custom confirmation modal
+      function showConfirmModal(actionType, aFollowID) {
+        const modal = document.getElementById("confirmActionModal");
+        const modalTitle = document.getElementById("confirmModalTitle");
+        const modalIcon = document.getElementById("confirmModalIcon");
+        const actionIcon = document.getElementById("confirmActionIcon");
+        const modalMessage = document.getElementById("confirmModalMessage");
+        const modalDetails = document.getElementById("confirmModalDetails");
+        const confirmBtn = document.getElementById("confirmActionBtn");
+
+        // Remove previous event listeners by cloning and replacing
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+        if (actionType === "cancel") {
+          modalTitle.textContent = "Cancel Follow-up Appointment";
+          modalIcon.innerHTML = '<i class="fas fa-times-circle"></i>';
+          actionIcon.className = "confirm-icon cancel";
+          actionIcon.innerHTML = '<i class="fas fa-times-circle"></i>';
+          modalMessage.textContent =
+            "Are you sure you want to cancel this follow-up appointment?";
+          modalDetails.innerHTML =
+            "<strong>✓ Data will be moved</strong><br>This follow-up appointment will be moved from the <strong>Follow-up sheet</strong> to the <strong>Cancel sheet</strong>.";
+          newConfirmBtn.className = "btn btn-cancel-action";
+          newConfirmBtn.innerHTML =
+            '<i class="fas fa-times-circle"></i> Cancel Appointment';
+
+          newConfirmBtn.onclick = function () {
+            const bootstrapModal = bootstrap.Modal.getInstance(modal);
+            bootstrapModal.hide();
+            executeCancelFollowup(aFollowID);
+          };
+        } else if (actionType === "archive") {
+          modalTitle.textContent = "Archive Follow-up Appointment";
+          modalIcon.innerHTML = '<i class="fas fa-archive"></i>';
+          actionIcon.className = "confirm-icon archive";
+          actionIcon.innerHTML = '<i class="fas fa-archive"></i>';
+          modalMessage.textContent =
+            "Are you sure you want to archive this follow-up appointment?";
+          modalDetails.innerHTML =
+            "<strong>✓ Data will be moved</strong><br>This follow-up appointment will be moved from the <strong>Follow-up sheet</strong> to the <strong>Archive sheet</strong>.";
+          newConfirmBtn.className = "btn btn-archive-action";
+          newConfirmBtn.innerHTML =
+            '<i class="fas fa-archive"></i> Archive Appointment';
+
+          newConfirmBtn.onclick = function () {
+            const bootstrapModal = bootstrap.Modal.getInstance(modal);
+            bootstrapModal.hide();
+            executeArchiveFollowup(aFollowID);
+          };
+        }
+
+        const bootstrapModal = new bootstrap.Modal(modal, {
+          backdrop: true,
+          keyboard: true,
+          focus: true,
+        });
+        bootstrapModal.show();
+      }
+
+      // Execute cancel followup action
+      function executeCancelFollowup(aFollowID) {
+        showLoading();
+        google.script.run
+          .withSuccessHandler(function (response) {
+            hideLoading();
+            if (response && response.success) {
+              showAlert(
+                "Follow-up cancelled successfully! Data has been moved to Cancel sheet.",
+                "success",
+              );
+              // Remove from current data and update display
+              allFollowups = allFollowups.filter(
+                (f) => f.aFollowID !== aFollowID,
+              );
+              totalFollowups = allFollowups.length;
+
+              if (isShowingDuplicates) {
+                duplicateFollowups = allFollowups;
+                duplicateTotal = totalFollowups;
+              }
+
+              // Adjust current page if needed
+              const totalPages = Math.ceil(totalFollowups / itemsPerPage);
+              if (currentPage > totalPages && totalPages > 0) {
+                currentPage = totalPages;
+              }
+
+              displayFollowupsWithPagination();
+            } else {
+              showAlert(
+                "Error cancelling follow-up: " +
+                  (response ? response.message : "Unknown error"),
+                "error",
+              );
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            showAlert("Error cancelling follow-up: " + error, "error");
+          })
+          .cancelFollowup(aFollowID, sessionToken);
+      }
+
+      // Execute archive followup action
+      function executeArchiveFollowup(aFollowID) {
+        showLoading();
+        google.script.run
+          .withSuccessHandler(function (response) {
+            hideLoading();
+            if (response && response.success) {
+              showAlert(
+                "Follow-up archived successfully! Data has been moved to Archive sheet.",
+                "success",
+              );
+              // Remove from current data and update display
+              allFollowups = allFollowups.filter(
+                (f) => f.aFollowID !== aFollowID,
+              );
+              totalFollowups = allFollowups.length;
+
+              if (isShowingDuplicates) {
+                duplicateFollowups = allFollowups;
+                duplicateTotal = totalFollowups;
+              }
+
+              // Adjust current page if needed
+              const totalPages = Math.ceil(totalFollowups / itemsPerPage);
+              if (currentPage > totalPages && totalPages > 0) {
+                currentPage = totalPages;
+              }
+
+              displayFollowupsWithPagination();
+            } else {
+              showAlert(
+                "Error archiving follow-up: " +
+                  (response ? response.message : "Unknown error"),
+                "error",
+              );
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            showAlert("Error archiving follow-up: " + error, "error");
+          })
+          .archiveFollowup(aFollowID, sessionToken);
+      }
+
+      // Cancel followup confirmation and action
+      function confirmCancelFollowup(aFollowID) {
+        showConfirmModal("cancel", aFollowID);
+      }
+
+      // Archive followup confirmation and action
+      function confirmArchiveFollowup(aFollowID) {
+        showConfirmModal("archive", aFollowID);
+      }
+
+      // Show duplicate warning modal with appointment details
+      function showDuplicateWarningModal(duplicates) {
+        const listContainer = document.getElementById(
+          "duplicateAppointmentsList",
+        );
+        listContainer.innerHTML = "";
+
+        if (!duplicates || duplicates.length === 0) {
+          return;
+        }
+
+        // Create list of duplicate appointments
+        duplicates.forEach(function (dup, index) {
+          const item = document.createElement("div");
+          item.style.cssText =
+            "background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 0.5rem;";
+          item.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <span style="font-weight: 600; color: #4a90e2;">${dup.appointmentID || "N/A"}</span>
+              <span style="color: #718096; margin-left: 0.5rem;">-</span>
+              <span style="color: #2d3748; margin-left: 0.5rem;">${dup.patientName || "N/A"}</span>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 0.875rem; color: #4a5568;">
+                <i class="fas fa-calendar-alt me-1"></i>${formatDisplayDate(dup.appointmentDate) || "N/A"}
+              </div>
+              ${dup.timeSlot ? `<div style="font-size: 0.8rem; color: #718096;"><i class="fas fa-clock me-1"></i>${dup.timeSlot}</div>` : ""}
+            </div>
+          </div>
+        `;
+          listContainer.appendChild(item);
+        });
+
+        // Show the modal
+        const modal = new bootstrap.Modal(
+          document.getElementById("duplicateWarningModal"),
+        );
+        modal.show();
+      }
+
+      // Proceed with booking despite duplicate warning
+      function proceedWithBookingDespiteDuplicate() {
+        // Hide the duplicate warning modal
+        const warningModal = bootstrap.Modal.getInstance(
+          document.getElementById("duplicateWarningModal"),
+        );
+        if (warningModal) {
+          warningModal.hide();
+        }
+
+        // Get the stored appointment data
+        const appointmentData = window.pendingAppointmentData;
+        const isWaitingList = window.pendingIsWaitingList;
+
+        if (!appointmentData) {
+          showAlert("Error: No pending appointment data found", "error");
+          return;
+        }
+
+        // Get button references
+        const submitBtn = document.getElementById("submitBookingBtn");
+        const normalText = submitBtn.querySelector(".normal-text");
+        const loadingText = submitBtn.querySelector(".loading-text");
+
+        submitBtn.disabled = true;
+        normalText.style.display = "none";
+        loadingText.style.display = "inline-block";
+
+        // Proceed with slot check and booking
+        proceedWithSlotCheckAndBooking(
+          appointmentData,
+          isWaitingList,
+          submitBtn,
+          normalText,
+          loadingText,
+        );
+      }
+
+      // ========== TAG MANAGEMENT FUNCTIONS ==========
+
+      // Store all available tags for each followup for filtering
+      const availableTagsCache = {};
+
+      /**
+       * Add a tag to a followup appointment
+       * @param {string} aFollowID - The followup ID
+       * @param {string} sheetName - The sheet name (followup)
+       * @param {string} tag - The tag to add
+       */
+      function addTag(aFollowID, sheetName, tag) {
+        // Validate tag input
+        if (!tag || tag.trim() === "") {
+          showAlert("Please enter a tag name", "warning");
+          return;
+        }
+
+        const trimmedTag = tag.trim();
+
+        // Get current tags to check for duplicates
+        const tagsContainer = document.getElementById(
+          "tags_container_" + aFollowID,
+        );
+        const existingTags = Array.from(
+          tagsContainer.querySelectorAll(".tag-text"),
+        ).map((el) => el.textContent);
+
+        if (existingTags.includes(trimmedTag)) {
+          showAlert("Tag already exists", "warning");
+          return;
+        }
+
+        // Disable buttons during operation
+        const addButton = document.querySelector(
+          `button[onclick*="addTagFromInput('${aFollowID}'"]`,
+        );
+        const inputField = document.getElementById("tag_input_" + aFollowID);
+        const dropdown = document.getElementById("tag_select_" + aFollowID);
+
+        if (addButton) addButton.disabled = true;
+        if (inputField) inputField.disabled = true;
+        if (dropdown) dropdown.disabled = true;
+
+        // Show loading indicator
+        showLoading();
+
+        // Call backend function
+        google.script.run
+          .withSuccessHandler(function (response) {
+            hideLoading();
+
+            // Re-enable buttons
+            if (addButton) addButton.disabled = false;
+            if (inputField) inputField.disabled = false;
+            if (dropdown) dropdown.disabled = false;
+
+            if (response.success) {
+              showAlert("Tag added successfully", "success");
+              // Update UI with new tag
+              refreshTagDisplay(aFollowID, response.tags, sheetName);
+              // Clear input field
+              if (inputField) inputField.value = "";
+              // Reload existing tags to update dropdown
+              loadExistingTags(aFollowID, sheetName);
+            } else {
+              // Handle specific error cases
+              const errorMessage = response.message || "Unknown error";
+
+              if (errorMessage.includes("already exists")) {
+                showAlert("Tag already exists on this followup", "warning");
+                if (response.tags && response.tags.length > 0) {
+                  refreshTagDisplay(aFollowID, response.tags, sheetName);
+                }
+              } else if (errorMessage.includes("not found")) {
+                showAlert(
+                  "Followup not found. The page may need to be refreshed.",
+                  "error",
+                );
+              } else {
+                showAlert("Error adding tag: " + errorMessage, "error");
+              }
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+
+            // Re-enable buttons
+            if (addButton) addButton.disabled = false;
+            if (inputField) inputField.disabled = false;
+            if (dropdown) dropdown.disabled = false;
+
+            showAlert("Error adding tag: " + error, "error");
+          })
+          .addTagToAppointment(aFollowID, sheetName, trimmedTag, sessionToken);
+      }
+
+      /**
+       * Remove a tag from a followup appointment
+       * @param {string} aFollowID - The followup ID
+       * @param {string} sheetName - The sheet name (followup)
+       * @param {string} tag - The tag to remove
+       */
+      function removeTag(aFollowID, sheetName, tag) {
+        // Disable all tag remove buttons during operation
+        const tagsContainer = document.getElementById(
+          "tags_container_" + aFollowID,
+        );
+        const removeButtons = tagsContainer
+          ? tagsContainer.querySelectorAll(".tag-remove")
+          : [];
+        removeButtons.forEach((btn) => (btn.disabled = true));
+
+        // Disable add button and inputs
+        const addButton = document.querySelector(
+          `button[onclick*="addTagFromInput('${aFollowID}'"]`,
+        );
+        const inputField = document.getElementById("tag_input_" + aFollowID);
+        const dropdown = document.getElementById("tag_select_" + aFollowID);
+
+        if (addButton) addButton.disabled = true;
+        if (inputField) inputField.disabled = true;
+        if (dropdown) dropdown.disabled = true;
+
+        // Show loading indicator
+        showLoading();
+
+        // Call backend function
+        google.script.run
+          .withSuccessHandler(function (response) {
+            hideLoading();
+
+            // Re-enable buttons
+            if (addButton) addButton.disabled = false;
+            if (inputField) inputField.disabled = false;
+            if (dropdown) dropdown.disabled = false;
+
+            if (response.success) {
+              showAlert("Tag removed successfully", "success");
+              // Update UI
+              refreshTagDisplay(aFollowID, response.tags, sheetName);
+              // Reload existing tags to update dropdown
+              loadExistingTags(aFollowID, sheetName);
+            } else {
+              // Handle specific error cases
+              const errorMessage = response.message || "Unknown error";
+
+              if (errorMessage.includes("not found")) {
+                showAlert(
+                  "Tag or followup not found. The page may need to be refreshed.",
+                  "error",
+                );
+              } else {
+                showAlert("Error removing tag: " + errorMessage, "error");
+              }
+
+              // Re-enable remove buttons on error
+              removeButtons.forEach((btn) => (btn.disabled = false));
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+
+            // Re-enable buttons
+            if (addButton) addButton.disabled = false;
+            if (inputField) inputField.disabled = false;
+            if (dropdown) dropdown.disabled = false;
+            removeButtons.forEach((btn) => (btn.disabled = false));
+
+            showAlert("Error removing tag: " + error, "error");
+          })
+          .removeTagFromAppointment(aFollowID, sheetName, tag, sessionToken);
+      }
+
+      /**
+       * Load existing tags for dropdown
+       * @param {string} aFollowID - The followup ID
+       * @param {string} sheetName - The sheet name (followup)
+       */
+      function loadExistingTags(aFollowID, sheetName) {
+        // Get current tags for this followup
+        const tagsContainer = document.getElementById(
+          "tags_container_" + aFollowID,
+        );
+        const currentTags = Array.from(
+          tagsContainer.querySelectorAll(".tag-text"),
+        ).map((el) => el.textContent);
+
+        // Show loading state in dropdown
+        const dropdown = document.getElementById("tag_select_" + aFollowID);
+        if (dropdown) {
+          dropdown.innerHTML = '<option value="">Loading tags...</option>';
+          dropdown.disabled = true;
+        }
+
+        // Call backend to get all tags
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response.success) {
+              // Filter out tags already on current followup
+              const availableTags = response.tags.filter(
+                (tag) => !currentTags.includes(tag),
+              );
+
+              // Sort tags alphabetically
+              availableTags.sort();
+
+              // Store in cache for filtering
+              availableTagsCache[aFollowID] = availableTags;
+
+              // Populate dropdown
+              if (dropdown) {
+                dropdown.innerHTML =
+                  '<option value="">Select existing tag...</option>';
+
+                if (availableTags.length === 0) {
+                  dropdown.innerHTML =
+                    '<option value="">No existing tags available</option>';
+                  dropdown.disabled = true;
+                } else {
+                  availableTags.forEach((tag) => {
+                    const option = document.createElement("option");
+                    option.value = tag;
+                    option.textContent = tag;
+                    dropdown.appendChild(option);
+                  });
+                  dropdown.disabled = false;
+                }
+              }
+            } else {
+              // Handle error case
+              if (dropdown) {
+                dropdown.innerHTML =
+                  '<option value="">Error loading tags</option>';
+                dropdown.disabled = true;
+              }
+            }
+          })
+          .withFailureHandler(function (error) {
+            // Show error state in dropdown
+            if (dropdown) {
+              dropdown.innerHTML =
+                '<option value="">Error loading tags</option>';
+              dropdown.disabled = true;
+            }
+            showAlert("Error loading existing tags", "error");
+          })
+          .getAllTags();
+      }
+
+      /**
+       * Refresh tag display after modification
+       * @param {string} aFollowID - The followup ID
+       * @param {string[]} tags - Updated tags array
+       * @param {string} sheetName - The sheet name (followup)
+       */
+      function refreshTagDisplay(aFollowID, tags, sheetName) {
+        const tagsContainer = document.getElementById(
+          "tags_container_" + aFollowID,
+        );
+
+        if (!tagsContainer) {
+          return;
+        }
+
+        // Clear current display
+        tagsContainer.innerHTML = "";
+
+        // Show empty state if no tags
+        if (!tags || tags.length === 0) {
+          tagsContainer.innerHTML =
+            '<span class="no-tags-message">No tags</span>';
+          return;
+        }
+
+        // Render each tag as badge with remove button
+        tags.forEach((tag) => {
+          const tagBadge = document.createElement("span");
+          tagBadge.className = "tag-badge";
+
+          const tagText = document.createElement("span");
+          tagText.className = "tag-text";
+          tagText.textContent = tag;
+
+          const removeButton = document.createElement("button");
+          removeButton.className = "tag-remove";
+          removeButton.textContent = "×";
+          removeButton.title = "Remove tag";
+          removeButton.onclick = function () {
+            removeTag(aFollowID, sheetName, tag);
+          };
+
+          tagBadge.appendChild(tagText);
+          tagBadge.appendChild(removeButton);
+          tagsContainer.appendChild(tagBadge);
+        });
+      }
+
+      /**
+       * Add tag from input field
+       * @param {string} aFollowID - The followup ID
+       * @param {string} sheetName - The sheet name (followup)
+       */
+      function addTagFromInput(aFollowID, sheetName) {
+        const inputField = document.getElementById("tag_input_" + aFollowID);
+        const tag = inputField.value.trim();
+
+        if (tag) {
+          addTag(aFollowID, sheetName, tag);
+        } else {
+          showAlert("Please enter a tag name", "warning");
+        }
+      }
+
+      /**
+       * Handle Enter key press in tag input field
+       * @param {Event} event - The keypress event
+       * @param {string} aFollowID - The followup ID
+       * @param {string} sheetName - The sheet name (followup)
+       */
+      function handleTagInputKeypress(event, aFollowID, sheetName) {
+        if (event.key === "Enter" || event.keyCode === 13) {
+          event.preventDefault();
+          addTagFromInput(aFollowID, sheetName);
+        }
+      }
+
+      /**
+       * Handle dropdown selection
+       * @param {string} aFollowID - The followup ID
+       * @param {string} sheetName - The sheet name (followup)
+       */
+      function handleTagDropdownSelection(aFollowID, sheetName) {
+        const dropdown = document.getElementById("tag_select_" + aFollowID);
+        const selectedTag = dropdown.value;
+
+        if (selectedTag) {
+          addTag(aFollowID, sheetName, selectedTag);
+          // Reset dropdown after selection
+          dropdown.value = "";
+        }
+      }
+
+      /**
+       * Filter tag dropdown based on input text
+       * @param {string} aFollowID - The followup ID
+       */
+      function filterTagDropdown(aFollowID) {
+        const inputField = document.getElementById("tag_input_" + aFollowID);
+        const dropdown = document.getElementById("tag_select_" + aFollowID);
+
+        if (!inputField || !dropdown) return;
+
+        const filterText = inputField.value.toLowerCase().trim();
+        const availableTags = availableTagsCache[aFollowID] || [];
+
+        // Filter tags based on input
+        const filteredTags = availableTags.filter((tag) =>
+          tag.toLowerCase().includes(filterText),
+        );
+
+        // Update dropdown with filtered tags
+        dropdown.innerHTML = '<option value="">Select existing tag...</option>';
+
+        if (filteredTags.length === 0) {
+          if (filterText) {
+            dropdown.innerHTML =
+              '<option value="">No matching tags found</option>';
+          } else {
+            dropdown.innerHTML =
+              '<option value="">No existing tags available</option>';
+          }
+          dropdown.disabled = true;
+        } else {
+          filteredTags.forEach((tag) => {
+            const option = document.createElement("option");
+            option.value = tag;
+            option.textContent = tag;
+            dropdown.appendChild(option);
+          });
+          dropdown.disabled = false;
+        }
+      }
+
+      /**
+       * Check early booking restrictions for a selected date
+       * Updates UI to show restriction status
+       * @param {string} dateStr - Date in YYYY-MM-DD format
+       */
+      function checkEarlyBookingRestrictions(dateStr) {
+        if (!dateStr) return;
+
+        google.script.run
+          .withSuccessHandler(function (availResult) {
+            // Update UI based on restriction status
+            updateRestrictionStatusUI(availResult);
+          })
+          .withFailureHandler(function (error) {
+            // Clear any restriction warning on error
+            clearRestrictionStatusUI();
+          })
+          .checkSlotAvailability(dateStr);
+      }
+
+      /**
+       * Update UI to show restriction status
+       * @param {Object} availResult - Result from checkSlotAvailability
+       */
+      function updateRestrictionStatusUI(availResult) {
+        // Remove any existing restriction status
+        clearRestrictionStatusUI();
+
+        if (availResult.restricted) {
+          // Show restriction warning in the modal
+          const dateField = document.getElementById("bookingAppointmentDate");
+          if (dateField) {
+            const warningDiv = document.createElement("div");
+            warningDiv.id = "earlyBookingRestrictionWarning";
+            warningDiv.className = "alert alert-warning mt-2";
+            warningDiv.style.cssText =
+              "background: #fff3cd; border-left: 4px solid #ffc107; color: #856404; font-weight: 500; padding: 12px;";
+
+            const currentTAA = availResult.currentTAA || 0;
+            const maxSlots = availResult.maxSlots || 0;
+            const percentageUsed = availResult.percentageUsed || 0;
+
+            const triggeredThreshold = availResult.triggeredThreshold || {
+              days: 10,
+              percentage: 51,
+            };
+            const allThresholds = availResult.allThresholds || [
+              { days: 10, percentage: 51 },
+              { days: 5,  percentage: 79 },
+              { days: 4,  percentage: 85 },
+              { days: 1,  percentage: 95 },
+              { days: 0,  percentage: 100 },
+            ];
+
+            const rawDate = document.getElementById("bookingAppointmentDate").value;
+            const appointmentDate = rawDate ? new Date(rawDate + "T00:00:00") : null;
+
+            function unlockDateStr(daysAhead) {
+              if (!appointmentDate) return "";
+              const unlock = new Date(appointmentDate);
+              unlock.setDate(unlock.getDate() - daysAhead);
+              if (unlock.getDay() === 0) { unlock.setDate(unlock.getDate() - 1); }
+              return unlock.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+            }
+
+            const upcomingThresholds = allThresholds
+              .filter((t) => t.days < triggeredThreshold.days)
+              .sort((a, b) => b.days - a.days);
+
+            let tableHtml = "";
+            if (upcomingThresholds.length > 0) {
+              const rows = upcomingThresholds.map((t) => {
+                const dateStr = unlockDateStr(t.days);
+                const label = t.days === 0 ? "Same day" : t.days === 1 ? "1 day before" : `${t.days} days before`;
+                const extraSlots = maxSlots > 0 ? Math.floor((t.percentage / 100) * maxSlots) - currentTAA : "?";
+                const extraLabel = typeof extraSlots === "number" && extraSlots > 0 ? `+${extraSlots} slots` : (extraSlots <= 0 ? "Already unlocked" : "?");
+                return `<tr><td style="padding:3px 6px;">${label}</td><td style="padding:3px 6px;">${dateStr}</td><td style="padding:3px 6px;">${t.percentage}%</td><td style="padding:3px 6px;">${extraLabel}</td></tr>`;
+              }).join("");
+              tableHtml = `
+                <div style="margin-top:8px;">
+                  <strong style="font-size:0.85em;">Upcoming unlock dates:</strong>
+                  <table style="width:100%;font-size:0.8em;margin-top:4px;border-collapse:collapse;">
+                    <thead><tr style="background:#ffeeba;">
+                      <th style="padding:3px 6px;text-align:left;">When</th>
+                      <th style="padding:3px 6px;text-align:left;">From date</th>
+                      <th style="padding:3px 6px;text-align:left;">Capacity</th>
+                      <th style="padding:3px 6px;text-align:left;">Slots unlocked</th>
+                    </tr></thead>
+                    <tbody>${rows}</tbody>
+                  </table>
+                </div>`;
+            }
+
+            warningDiv.innerHTML = `
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              <strong>Early Booking Restriction Active</strong><br>
+              <small>
+                This date is restricted (${percentageUsed}% used, limit: ${triggeredThreshold.percentage}%).
+                Current: ${currentTAA}/${maxSlots} slots used.
+              </small>
+              ${tableHtml}
+            `;
+
+            dateField.parentNode.appendChild(warningDiv);
+
+            // Disable submit button when restricted
+            const submitBtn = document.getElementById("submitBookingBtn");
+            if (submitBtn) {
+              submitBtn.disabled = true;
+            }
+          }
+        } else {
+          // Enable submit button when not restricted
+          const submitBtn = document.getElementById("submitBookingBtn");
+          if (submitBtn) {
+            submitBtn.disabled = false;
+          }
+        }
+      }
+
+      /**
+       * Clear restriction status UI elements
+       */
+      function clearRestrictionStatusUI() {
+        const existingWarning = document.getElementById(
+          "earlyBookingRestrictionWarning",
+        );
+        if (existingWarning) {
+          existingWarning.remove();
+        }
+
+        // Re-enable submit button
+        const submitBtn = document.getElementById("submitBookingBtn");
+        if (submitBtn) {
+          submitBtn.disabled = false;
+        }
+      }
+
+      /**
+       * Display early booking restriction warning modal
+       * Shows details about why booking is restricted and suggests booking closer to the date
+       * @param {Object} restrictionData - Data from checkSlotAvailability response
+       */
+      function displayRestrictionWarning(restrictionData) {
+        // Remove any existing restriction modal
+        const existing = document.getElementById("restrictionWarningModal");
+        if (existing) existing.remove();
+
+        const currentTAA = restrictionData.currentTAA || 0;
+        const maxSlots = restrictionData.maxSlots || 0;
+        const percentageUsed = restrictionData.percentageUsed || 0;
+        const daysUntilAppointment = restrictionData.daysUntilAppointment || 0;
+
+        // Multi-threshold support
+        const triggeredThreshold = restrictionData.triggeredThreshold || {
+          days: 10,
+          percentage: 50,
+        };
+        const allThresholds = restrictionData.allThresholds || [
+          { days: 10, percentage: 51 },
+          { days: 5,  percentage: 79 },
+          { days: 4,  percentage: 85 },
+          { days: 1,  percentage: 95 },
+          { days: 0,  percentage: 100 },
+        ];
+
+        // Format threshold label
+        function formatThresholdLabel(days) {
+          if (days === 0) return "Same day";
+          if (days === 1) return "1 day";
+          if (days === 2) return "2 days";
+          return `${days}+ days`;
+        }
+
+        const thresholdLabel = formatThresholdLabel(triggeredThreshold.days);
+
+        const _fuApptDateRaw = document.getElementById("bookingAppointmentDate")
+          ? document.getElementById("bookingAppointmentDate").value
+          : "";
+        const appointmentDate = _fuApptDateRaw ? new Date(_fuApptDateRaw + "T00:00:00") : null;
+
+        function unlockDateStr(daysAhead) {
+          if (!appointmentDate) return "";
+          const unlock = new Date(appointmentDate);
+          unlock.setDate(unlock.getDate() - daysAhead);
+          if (unlock.getDay() === 0) {
+            unlock.setDate(unlock.getDate() - 1);
+          }
+          return unlock.toLocaleDateString("en-GB", {
+            day: "numeric", month: "short", year: "numeric",
+          });
+        }
+
+        const upcomingThresholds = allThresholds
+          .filter((t) => t.days < triggeredThreshold.days)
+          .sort((a, b) => b.days - a.days);
+
+        // Create modal overlay
+        const modalOverlay = document.createElement("div");
+        modalOverlay.id = "restrictionWarningModal";
+        modalOverlay.style.cssText =
+          "position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(4px);";
+
+        modalOverlay.innerHTML = `
+        <div style="background: var(--bg-white, #ffffff); border-radius: 16px; padding: 24px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); animation: modalSlideIn 0.3s ease-out;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--primary-light, #e8f0fe);">
+            <h5 style="font-size: 1.5rem; font-weight: 600; color: var(--text-primary, #2d3748); margin: 0;">
+              <span style="color: var(--warning-color, #ed8936); margin-right: 8px;">⚠</span>
+              Early Booking Restriction
+            </h5>
+            <button onclick="document.getElementById('restrictionWarningModal').remove()" style="background: none; border: none; font-size: 1.5rem; color: var(--text-secondary, #4a5568); cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.2s;">×</button>
+          </div>
+          <div style="margin-bottom: 20px;">
+            <p style="color: var(--text-secondary, #4a5568); margin-bottom: 16px; line-height: 1.6;">
+              This appointment date is currently restricted for early booking. The system preserves slots for patients who need to book closer to the appointment date.
+            </p>
+            <div style="background: rgba(237, 137, 54, 0.1); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+              <h6 style="margin-bottom: 12px; color: var(--text-primary, #2d3748); font-weight: 600;">Current Status:</h6>
+              <ul style="list-style: none; padding: 0; margin: 0;">
+                <li style="margin-bottom: 8px;">
+                  <strong>Days until appointment:</strong> ${daysUntilAppointment} ${daysUntilAppointment === 1 ? "day" : "days"}
+                </li>
+                <li style="margin-bottom: 8px;">
+                  <strong>Triggered threshold:</strong> ${thresholdLabel}: ${triggeredThreshold.percentage}% limit
+                </li>
+                <li style="margin-bottom: 8px;">
+                  <strong>Current TAA:</strong> ${currentTAA} appointments
+                </li>
+                <li style="margin-bottom: 8px;">
+                  <strong>Max Slots:</strong> ${maxSlots} slots
+                </li>
+                <li style="margin-bottom: 8px;">
+                  <strong>Percentage Used:</strong> ${percentageUsed}%
+                </li>
+              </ul>
+            </div>
+            <div style="background: rgba(74, 144, 226, 0.1); border-radius: 8px; padding: 16px;">
+              <h6 style="margin-bottom: 10px; color: var(--primary-color, #4a90e2); font-weight: 600;">💡 When can you book more slots?</h6>
+              ${upcomingThresholds.length > 0 ? `
+              <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                <thead>
+                  <tr>
+                    <th style="text-align: left; padding: 6px 8px; color: var(--text-secondary, #4a5568); font-weight: 600; border-bottom: 1px solid rgba(74,144,226,0.2);">Days before appt.</th>
+                    <th style="text-align: left; padding: 6px 8px; color: var(--text-secondary, #4a5568); font-weight: 600; border-bottom: 1px solid rgba(74,144,226,0.2);">From date</th>
+                    <th style="text-align: left; padding: 6px 8px; color: var(--text-secondary, #4a5568); font-weight: 600; border-bottom: 1px solid rgba(74,144,226,0.2);">Capacity allowed</th>
+                    <th style="text-align: left; padding: 6px 8px; color: var(--text-secondary, #4a5568); font-weight: 600; border-bottom: 1px solid rgba(74,144,226,0.2);">Slots unlocked</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${upcomingThresholds.map((t, i) => {
+                    const slotsAllowed = Math.floor(maxSlots * t.percentage / 100);
+                    const prevPerc = i === 0 ? triggeredThreshold.percentage : upcomingThresholds[i - 1].percentage;
+                    const slotsGained = Math.floor(maxSlots * t.percentage / 100) - Math.floor(maxSlots * prevPerc / 100);
+                    const daysLabel = t.days === 0 ? "Same day" : t.days === 1 ? "1 day before" : t.days + " days before";
+                    const dateLabel = t.days === 0 ? "On appointment day" : unlockDateStr(t.days);
+                    return '<tr style="border-bottom: 1px solid rgba(74,144,226,0.1);"><td style="padding: 7px 8px; color: var(--text-primary, #2d3748); font-weight: 500;">' + daysLabel + '</td><td style="padding: 7px 8px; color: var(--text-secondary, #4a5568);">' + dateLabel + '</td><td style="padding: 7px 8px;"><span style="background: rgba(72,187,120,0.15); color: #276749; border-radius: 4px; padding: 2px 7px; font-weight: 600;">' + t.percentage + '%</span></td><td style="padding: 7px 8px; color: var(--text-primary, #2d3748);">' + slotsAllowed + ' / ' + maxSlots + (slotsGained > 0 ? ' <span style="color: #48bb78; font-size: 0.82rem;">(+' + slotsGained + ' new)</span>' : '') + '</td></tr>';
+                  }).join("")}
+                </tbody>
+              </table>` : `<p style="margin: 0; color: var(--text-secondary, #4a5568);">No further unlocks available. Please select a different date.</p>`}
+            </div>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--primary-light, #e8f0fe);">
+            <button onclick="document.getElementById('restrictionWarningModal').remove()" style="padding: 10px 20px; border: none; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: var(--primary-color, #4a90e2); color: white;">
+              Understood
+            </button>
+          </div>
+        </div>
+      `;
+
+        document.body.appendChild(modalOverlay);
+
+        // Close modal when clicking outside
+        modalOverlay.addEventListener("click", function (e) {
+          if (e.target === modalOverlay) {
+            modalOverlay.remove();
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

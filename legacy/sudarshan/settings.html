@@ -1,0 +1,2928 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary-color: #4a90e2;
+        --primary-light: #e8f0fe;
+        --primary-dark: #2c5282;
+        --success-color: #48bb78;
+        --warning-color: #ed8936;
+        --danger-color: #e53e3e;
+        --text-primary: #2d3748;
+        --text-secondary: #4a5568;
+        --bg-light: #f7fafc;
+        --bg-white: #ffffff;
+      }
+
+      body {
+        background: var(--bg-light);
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--text-primary);
+      }
+
+      .main-container {
+        padding: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+
+      .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 25px rgba(0, 0, 0, 0.12);
+      }
+
+      .card-header {
+        background: linear-gradient(
+          135deg,
+          var(--primary-light),
+          var(--bg-white)
+        );
+        border-bottom: 1px solid #e2e8f0;
+        border-radius: 12px 12px 0 0 !important;
+        padding: 1.5rem;
+      }
+
+      .btn-primary {
+        background: var(--primary-color);
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+      }
+
+      .btn-primary:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+      }
+
+      .alert {
+        border: none;
+        border-radius: 8px;
+        padding: 1rem 1.5rem;
+      }
+
+      .settings-section {
+        margin-bottom: 2rem;
+      }
+
+      .settings-section h4 {
+        color: var(--primary-dark);
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--primary-light);
+      }
+
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+
+      .form-label {
+        color: var(--text-primary);
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+      }
+
+      .form-control {
+        border: 2px solid var(--primary-light);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+      }
+
+      .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.25);
+      }
+
+      .settings-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+      }
+
+      .info-card {
+        background: linear-gradient(
+          135deg,
+          var(--primary-light),
+          var(--bg-white)
+        );
+        border-radius: 12px;
+        padding: 1.5rem;
+        border-left: 4px solid var(--primary-color);
+      }
+
+      .info-card h5 {
+        color: var(--primary-dark);
+        margin-bottom: 0.5rem;
+      }
+
+      .info-card p {
+        color: var(--text-secondary);
+        margin: 0;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="settingsSavingOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.35);z-index:1060;align-items:center;justify-content:center;">
+      <div style="background:white;border-radius:12px;padding:2rem 3rem;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.25);">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <div id="settingsSavingText" style="font-weight:600;font-size:1.05rem;"></div>
+      </div>
+    </div>
+    <script>
+      window.sessionToken = "<?= sessionToken ?>";
+      window.baseUrl = "<?= webAppUrl ?>";
+    </script>
+    <?!= include('sharedLayout') ?>
+
+    <div class="main-container">
+      <div class="alert-container" id="alertContainer"></div>
+
+      <!-- Access Control Info -->
+      <div class="info-card mb-4">
+        <h5><i class="fas fa-shield-alt me-2"></i>Access Control</h5>
+        <p>
+          This settings page is accessible only to Level 1 users
+          (Director/Admin). All changes made here will affect the entire system.
+        </p>
+      </div>
+
+      <!-- System Settings -->
+      <div class="card">
+        <div class="card-header">
+          <h4 class="mb-0">
+            <i class="fas fa-cogs me-2"></i>
+            System Configuration
+          </h4>
+          <p class="mb-0 text-muted">
+            Configure core system settings and parameters
+          </p>
+        </div>
+        <div class="card-body">
+          <div class="settings-grid">
+            <!-- General Settings -->
+            <div class="settings-section">
+              <h5><i class="fas fa-sliders-h me-2"></i>General Settings</h5>
+              <div class="form-group">
+                <label for="appointmentInterval" class="form-label"
+                  >Default Appointment Interval (minutes)</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="appointmentInterval"
+                  value="10"
+                  min="5"
+                  max="60"
+                />
+              </div>
+              <div class="form-group">
+                <label for="maxAppointmentsPerDay" class="form-label"
+                  >Maximum Appointments Per Day</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="maxAppointmentsPerDay"
+                  value="50"
+                  min="1"
+                  max="200"
+                />
+              </div>
+              <div class="form-group">
+                <label for="sessionTimeout" class="form-label"
+                  >Session Timeout (hours)</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="sessionTimeout"
+                  value="24"
+                  min="1"
+                  max="168"
+                />
+              </div>
+            </div>
+
+            <!-- Notification Settings -->
+            <div class="settings-section">
+              <h5><i class="fas fa-bell me-2"></i>Notification Settings</h5>
+              <div class="form-group">
+                <label for="emailNotifications" class="form-label"
+                  >Email Notifications</label
+                >
+                <select class="form-control" id="emailNotifications">
+                  <option value="enabled">Enabled</option>
+                  <option value="disabled">Disabled</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="confirmationReminders" class="form-label"
+                  >Confirmation Reminders</label
+                >
+                <select class="form-control" id="confirmationReminders">
+                  <option value="enabled">Enabled</option>
+                  <option value="disabled">Disabled</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="reminderDays" class="form-label"
+                  >Reminder Days Before Appointment</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="reminderDays"
+                  value="4"
+                  min="1"
+                  max="7"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- API Configuration -->
+          <div class="settings-section mt-4">
+            <h5><i class="fas fa-plug me-2"></i>API Configuration</h5>
+
+            <div id="apiConfigLoading" class="loading-spinner py-3">
+              <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div> Loading API configuration…
+            </div>
+
+            <div id="apiConfigContent" style="display:none">
+
+              <ul class="nav nav-tabs mb-3" id="apiTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabActive" type="button">Active Config</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabProviders" type="button">Providers</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabModels" type="button">Models &amp; Campaigns</button>
+                </li>
+              </ul>
+
+              <div class="tab-content">
+
+                <!-- Tab 1: Active Config -->
+                <div class="tab-pane fade show active" id="tabActive" role="tabpanel">
+                  <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                      <label class="form-label">Active AI Model</label>
+                      <div class="input-group">
+                        <select class="form-control form-control-sm" id="activeLlmModel"></select>
+                        <button class="btn btn-sm btn-primary" onclick="saveApiActiveLlmConfig()">Save</button>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">LLM Provider</label>
+                      <div id="activeLlmProviderDisplay" class="form-control-plaintext">—</div>
+                    </div>
+                  </div>
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <label class="form-label">Active WhatsApp Campaign</label>
+                      <div class="input-group">
+                        <select class="form-control form-control-sm" id="activeWaCampaign"></select>
+                        <button class="btn btn-sm btn-primary" onclick="saveApiActiveWaConfig()">Save</button>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">WhatsApp Provider</label>
+                      <div id="activeWaProviderDisplay" class="form-control-plaintext">—</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tab 2: Providers -->
+                <div class="tab-pane fade" id="tabProviders" role="tabpanel">
+                  <button class="btn btn-sm btn-outline-primary mb-2" onclick="openProviderModal(null)"><i class="fas fa-plus me-1"></i> Add Provider</button>
+                  <div class="table-responsive">
+                    <table class="table table-sm table-bordered mb-0">
+                      <thead><tr><th>Name</th><th>Type</th><th>API Key</th><th>Status</th><th>Actions</th></tr></thead>
+                      <tbody id="providerCrudTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Tab 3: Models & Campaigns -->
+                <div class="tab-pane fade" id="tabModels" role="tabpanel">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <button class="btn btn-sm btn-outline-primary mb-2" onclick="openModelModal(null)"><i class="fas fa-plus me-1"></i> Add Model</button>
+                      <div class="table-responsive">
+                        <table class="table table-sm table-bordered mb-0">
+                          <thead><tr><th>Name</th><th>Provider</th><th>Status</th><th>Actions</th></tr></thead>
+                          <tbody id="modelCrudTableBody"></tbody>
+                        </table>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <button class="btn btn-sm btn-outline-primary mb-2" onclick="openCampaignModal(null)"><i class="fas fa-plus me-1"></i> Add Campaign</button>
+                      <div class="table-responsive">
+                        <table class="table table-sm table-bordered mb-0">
+                          <thead><tr><th>Name</th><th>Provider</th><th>Status</th><th>Actions</th></tr></thead>
+                          <tbody id="campaignCrudTableBody"></tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div><!-- tab-content -->
+            </div><!-- apiConfigContent -->
+          </div>
+
+          <div class="text-end mt-4">
+            <button class="btn btn-primary" onclick="saveGeneralSettings()">
+              <i class="fas fa-save me-2"></i>Save General Settings
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Multi-Threshold Early Booking Restrictions -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h4 class="mb-0">
+            <i class="fas fa-calendar-times me-2"></i>
+            Multi-Threshold Early Booking Restrictions
+          </h4>
+          <p class="mb-0 text-muted">
+            Configure automatic booking restrictions with multiple thresholds
+            based on days until appointment
+          </p>
+        </div>
+        <div class="card-body">
+          <div class="info-card mb-4">
+            <h5><i class="fas fa-info-circle me-2"></i>How It Works</h5>
+            <p>
+              The system uses multiple capacity thresholds based on how many
+              days away the appointment is. As the appointment date approaches,
+              progressively more capacity becomes available. This preserves
+              slots for patients who need to book closer to the appointment date
+              while allowing early bookings at lower capacity levels.
+            </p>
+          </div>
+          <div class="settings-grid">
+            <!-- 10+ Days Threshold -->
+            <div class="settings-section">
+              <h5>
+                <i class="fas fa-calendar-day me-2"></i>10+ days before
+              </h5>
+              <div class="form-group">
+                <label for="threshold10Plus" class="form-label"
+                  >Maximum Capacity (%)</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="threshold10Plus"
+                  value="51"
+                  min="10"
+                  max="100"
+                />
+                <small class="text-muted"
+                  >Capacity limit when appointment is 10+ days away
+                  (default: 51%)</small
+                >
+              </div>
+            </div>
+
+            <!-- 5 Days Threshold -->
+            <div class="settings-section">
+              <h5>
+                <i class="fas fa-calendar-day me-2"></i>5–9 days before
+              </h5>
+              <div class="form-group">
+                <label for="threshold5Days" class="form-label"
+                  >Maximum Capacity (%)</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="threshold5Days"
+                  value="79"
+                  min="10"
+                  max="100"
+                />
+                <small class="text-muted"
+                  >Capacity limit when appointment is 5–9 days away
+                  (default: 79%)</small
+                >
+              </div>
+            </div>
+
+            <!-- 4 Days Threshold -->
+            <div class="settings-section">
+              <h5>
+                <i class="fas fa-calendar-day me-2"></i>4 days before
+              </h5>
+              <div class="form-group">
+                <label for="threshold4Days" class="form-label"
+                  >Maximum Capacity (%)</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="threshold4Days"
+                  value="85"
+                  min="10"
+                  max="100"
+                />
+                <small class="text-muted"
+                  >Capacity limit when appointment is 4 days away
+                  (default: 85%)</small
+                >
+              </div>
+            </div>
+
+            <!-- 1–2 Days Threshold -->
+            <div class="settings-section">
+              <h5>
+                <i class="fas fa-calendar-day me-2"></i>1–2 days before
+              </h5>
+              <div class="form-group">
+                <label for="threshold1Day" class="form-label"
+                  >Maximum Capacity (%)</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="threshold1Day"
+                  value="95"
+                  min="10"
+                  max="100"
+                />
+                <small class="text-muted"
+                  >Capacity limit when appointment is 1–2 days away
+                  (default: 95%)</small
+                >
+              </div>
+            </div>
+
+            <!-- Same Day Threshold -->
+            <div class="settings-section">
+              <h5><i class="fas fa-calendar-day me-2"></i>Same day (0 days)</h5>
+              <div class="form-group">
+                <label for="threshold0Days" class="form-label"
+                  >Maximum Capacity (%)</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="threshold0Days"
+                  value="100"
+                  min="10"
+                  max="100"
+                />
+                <small class="text-muted"
+                  >Capacity limit for same-day appointments (default:
+                  100%)</small
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="alert alert-info mt-3">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <strong>Important:</strong> Percentages must increase as days
+            decrease (e.g., 51% ≤ 79% ≤ 85% ≤ 95% ≤ 100%). Each value must be between
+            10% and 100%.
+          </div>
+
+          <div class="text-end mt-4">
+            <button
+              class="btn btn-primary"
+              onclick="saveEarlyBookingSettings()"
+            >
+              <i class="fas fa-save me-2"></i>Save Multi-Threshold Settings
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Check Rules Configuration -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h4 class="mb-0">
+            <i class="fas fa-clipboard-check me-2"></i>
+            Check Rules Configuration
+          </h4>
+          <p class="mb-0 text-muted">
+            Configure parameters and toggles for the day-scheduling rule checks
+          </p>
+        </div>
+        <div class="card-body">
+          <div class="settings-grid">
+
+            <!-- ⏰ New Patient Rules -->
+            <div class="settings-section">
+              <h5><i class="fas fa-clock me-2"></i>New Patient Rules</h5>
+              <div class="form-group">
+                <label class="form-label">New Patient Timing</label>
+                <select class="form-control" id="cr_RULE_NEW_TIMING">
+                  <option value="ON">Enabled</option>
+                  <option value="OFF">Disabled</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Morning Start (HH:MM)</label>
+                <input type="text" class="form-control" id="cr_NEW_MORNING_START" placeholder="10:00" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Evening Cutoff (HH:MM)</label>
+                <input type="text" class="form-control" id="cr_NEW_EVENING_CUTOFF" placeholder="16:00" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Consecutive New</label>
+                <select class="form-control" id="cr_RULE_NEW_CONSECUTIVE">
+                  <option value="ON">Enabled</option>
+                  <option value="OFF">Disabled</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Max Gap (min)</label>
+                <input type="number" class="form-control" id="cr_NEW_CONSECUTIVE_GAP" value="30" min="5" max="120" />
+              </div>
+            </div>
+
+            <!-- 👨‍👩‍👧 Family Rules -->
+            <div class="settings-section">
+              <h5><i class="fas fa-users me-2"></i>Family Rules</h5>
+              <div class="form-group">
+                <label class="form-label">Before-Cutoff Check</label>
+                <select class="form-control" id="cr_RULE_FAMILY_TIMING">
+                  <option value="ON">Enabled</option>
+                  <option value="OFF">Disabled</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Morning Cutoff (HH:MM)</label>
+                <input type="text" class="form-control" id="cr_FAMILY_MORNING_CUTOFF" placeholder="11:30" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Morning Size Check</label>
+                <select class="form-control" id="cr_RULE_FAMILY_MORNING">
+                  <option value="ON">Enabled</option>
+                  <option value="OFF">Disabled</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Max Morning Members</label>
+                <input type="number" class="form-control" id="cr_FAMILY_MORNING_MAX" value="3" min="1" max="20" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Continuous Check</label>
+                <select class="form-control" id="cr_RULE_FAMILY_CONTINUOUS">
+                  <option value="ON">Enabled</option>
+                  <option value="OFF">Disabled</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 🏥 Consultation Windows -->
+            <div class="settings-section">
+              <h5><i class="fas fa-building me-2"></i>Consultation Windows</h5>
+              <div class="form-group">
+                <label class="form-label">Window Check</label>
+                <select class="form-control" id="cr_RULE_CONSULT_WINDOW">
+                  <option value="ON">Enabled</option>
+                  <option value="OFF">Disabled</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Morning Start (HH:MM)</label>
+                <input type="text" class="form-control" id="cr_CONSULT_WINDOW_START" placeholder="10:30" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Lunch Start (HH:MM)</label>
+                <input type="text" class="form-control" id="cr_CONSULT_WINDOW_LUNCH_START" placeholder="13:30" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Lunch End (HH:MM)</label>
+                <input type="text" class="form-control" id="cr_CONSULT_WINDOW_LUNCH_END" placeholder="14:30" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Evening End (HH:MM)</label>
+                <input type="text" class="form-control" id="cr_CONSULT_WINDOW_END" placeholder="17:30" />
+              </div>
+            </div>
+
+            <!-- 🔬 AT/Gonio Rules -->
+            <div class="settings-section">
+              <h5><i class="fas fa-microscope me-2"></i>AT / GONIO Rules</h5>
+              <div class="form-group">
+                <label class="form-label">Consecutive Check</label>
+                <select class="form-control" id="cr_RULE_GONIO_AT_CONSECUTIVE">
+                  <option value="ON">Enabled</option>
+                  <option value="OFF">Disabled</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Daily Cap Check</label>
+                <select class="form-control" id="cr_RULE_GONIO_AT_CAP">
+                  <option value="ON">Enabled</option>
+                  <option value="OFF">Disabled</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Max Per Day</label>
+                <input type="number" class="form-control" id="cr_GONIO_AT_MAX_PER_DAY" value="3" min="1" max="50" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">GONIO Timing Check</label>
+                <select class="form-control" id="cr_RULE_GONIO_TIMING">
+                  <option value="ON">Enabled</option>
+                  <option value="OFF">Disabled</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">GONIO Best After (HH:MM)</label>
+                <input type="text" class="form-control" id="cr_GONIO_EVENING_START" placeholder="14:30" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">AT Timing Check</label>
+                <select class="form-control" id="cr_RULE_AT_TIMING">
+                  <option value="ON">Enabled</option>
+                  <option value="OFF">Disabled</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">AT Best After (HH:MM)</label>
+                <input type="text" class="form-control" id="cr_AT_EVENING_START" placeholder="14:30" />
+              </div>
+            </div>
+
+            <!-- 🔍 Procedure-Specific Rules -->
+            <div class="settings-section">
+              <h5><i class="fas fa-stethoscope me-2"></i>Procedure Rules</h5>
+              <div class="form-group">
+                <label class="form-label">HFA Slot Check</label>
+                <select class="form-control" id="cr_RULE_HFA_SLOT">
+                  <option value="ON">Enabled</option>
+                  <option value="OFF">Disabled</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">HFA Slot 1 (HH:MM)</label>
+                <input type="text" class="form-control" id="cr_HFA_SLOT_1" placeholder="09:20" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">HFA Slot 2 (HH:MM)</label>
+                <input type="text" class="form-control" id="cr_HFA_SLOT_2" placeholder="09:40" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">ROP Day Check</label>
+                <select class="form-control" id="cr_RULE_ROP_DAY">
+                  <option value="ON">Enabled</option>
+                  <option value="OFF">Disabled</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">ROP Day</label>
+                <select class="form-control" id="cr_ROP_DAY">
+                  <option value="MON">Monday</option>
+                  <option value="TUE">Tuesday</option>
+                  <option value="WED" selected>Wednesday</option>
+                  <option value="THU">Thursday</option>
+                  <option value="FRI">Friday</option>
+                  <option value="SAT">Saturday</option>
+                  <option value="SUN">Sunday</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Laser Day Check</label>
+                <select class="form-control" id="cr_RULE_LASER_DAY">
+                  <option value="ON">Enabled</option>
+                  <option value="OFF">Disabled</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Laser Days (comma-sep)</label>
+                <input type="text" class="form-control" id="cr_LASER_DAYS" placeholder="TUE,FRI" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Laser Duration Check</label>
+                <select class="form-control" id="cr_RULE_LASER_DURATION">
+                  <option value="ON">Enabled</option>
+                  <option value="OFF">Disabled</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Laser Min Gap (min)</label>
+                <input type="number" class="form-control" id="cr_LASER_DURATION" value="20" min="5" max="60" />
+              </div>
+            </div>
+
+            <!-- ♿ Wheelchair Rules -->
+            <div class="settings-section">
+              <h5><i class="fas fa-wheelchair me-2"></i>Wheelchair Rules</h5>
+              <div class="form-group">
+                <label class="form-label">Timing Check</label>
+                <select class="form-control" id="cr_RULE_WHEELCHAIR">
+                  <option value="ON">Enabled</option>
+                  <option value="OFF">Disabled</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Morning End (HH:MM)</label>
+                <input type="text" class="form-control" id="cr_WHEELCHAIR_MORNING_END" placeholder="10:00" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Evening Start (HH:MM)</label>
+                <input type="text" class="form-control" id="cr_WHEELCHAIR_EVENING_START" placeholder="16:00" />
+              </div>
+            </div>
+
+          </div>
+
+          <div class="text-end mt-4">
+            <button class="btn btn-primary" onclick="saveCheckRulesSettings()">
+              <i class="fas fa-save me-2"></i>Save Check Rules
+            </button>
+            <button class="btn btn-outline-secondary ms-2" onclick="resetCheckRulesSettings()">
+              <i class="fas fa-undo me-2"></i>Reset to Defaults
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- User Management -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h4 class="mb-0">
+            <i class="fas fa-users me-2"></i>
+            User Management
+          </h4>
+          <p class="mb-0 text-muted">Manage user accounts and permissions</p>
+        </div>
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5><i class="fas fa-user-list me-2"></i>System Users</h5>
+            <button class="btn btn-primary" onclick="showAddUserModal()">
+              <i class="fas fa-user-plus me-2"></i>Add New User
+            </button>
+          </div>
+
+          <!-- Users Table -->
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Full Name</th>
+                  <th>Role</th>
+                  <th>Access Level</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
+                <tr>
+                  <td colspan="5" class="text-center">
+                    <i class="fas fa-spinner fa-spin me-2"></i>Loading users...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <hr class="my-4" />
+
+          <div class="settings-grid">
+            <!-- User Settings -->
+            <div class="settings-section">
+              <h5><i class="fas fa-user-cog me-2"></i>User Settings</h5>
+              <div class="form-group">
+                <label for="defaultUserRole" class="form-label"
+                  >Default User Role</label
+                >
+                <select class="form-control" id="defaultUserRole">
+                  <option value="user">General User</option>
+                  <option value="staff">Staff</option>
+                  <option value="receptionist">Receptionist</option>
+                  <option value="nurse">Nurse</option>
+                  <option value="manager">Manager</option>
+                  <option value="doctor">Doctor</option>
+                  <option value="admin">Administrator</option>
+                  <option value="director">Director</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="passwordPolicy" class="form-label"
+                  >Password Policy</label
+                >
+                <select class="form-control" id="passwordPolicy">
+                  <option value="standard">Standard (8+ characters)</option>
+                  <option value="strong">
+                    Strong (12+ characters, special chars)
+                  </option>
+                  <option value="very-strong">
+                    Very Strong (16+ characters, complex)
+                  </option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="maxLoginAttempts" class="form-label"
+                  >Maximum Login Attempts</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="maxLoginAttempts"
+                  value="5"
+                  min="3"
+                  max="10"
+                />
+              </div>
+            </div>
+
+            <!-- Security Settings -->
+            <div class="settings-section">
+              <h5><i class="fas fa-lock me-2"></i>Security Settings</h5>
+              <div class="form-group">
+                <label for="twoFactorAuth" class="form-label"
+                  >Two-Factor Authentication</label
+                >
+                <select class="form-control" id="twoFactorAuth">
+                  <option value="disabled">Disabled</option>
+                  <option value="optional">Optional</option>
+                  <option value="required">Required for Admins</option>
+                  <option value="required-all">Required for All Users</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="auditLogging" class="form-label"
+                  >Audit Logging</label
+                >
+                <select class="form-control" id="auditLogging">
+                  <option value="enabled">Enabled</option>
+                  <option value="disabled">Disabled</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="sessionSecurity" class="form-label"
+                  >Session Security</label
+                >
+                <select class="form-control" id="sessionSecurity">
+                  <option value="standard">Standard</option>
+                  <option value="enhanced">Enhanced (IP validation)</option>
+                  <option value="strict">Strict (Device fingerprinting)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="text-end mt-4">
+            <button class="btn btn-primary" onclick="saveUserSettings()">
+              <i class="fas fa-save me-2"></i>Save User Settings
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add/Edit User Modal -->
+      <div
+        class="modal fade"
+        id="userModal"
+        tabindex="-1"
+        aria-labelledby="userModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="userModalLabel">Add New User</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <form id="userForm">
+                <input type="hidden" id="editMode" value="false" />
+                <div class="mb-3">
+                  <label for="userUsername" class="form-label"
+                    >Username <span class="text-danger">*</span></label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="userUsername"
+                    required
+                  />
+                </div>
+                <div class="mb-3" id="passwordField">
+                  <label for="userPassword" class="form-label"
+                    >Password <span class="text-danger">*</span></label
+                  >
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="userPassword"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="userFullName" class="form-label">Full Name</label>
+                  <input type="text" class="form-control" id="userFullName" />
+                </div>
+                <div class="mb-3">
+                  <label for="userRole" class="form-label"
+                    >Role <span class="text-danger">*</span></label
+                  >
+                  <select class="form-control" id="userRole" required>
+                    <option value="user">General User (Level 4)</option>
+                    <option value="staff">Staff (Level 4)</option>
+                    <option value="receptionist">Receptionist (Level 4)</option>
+                    <option value="nurse">Nurse (Level 4)</option>
+                    <option value="manager">Manager (Level 3)</option>
+                    <option value="doctor">Doctor (Level 2)</option>
+                    <option value="admin">Administrator (Level 1)</option>
+                    <option value="director">Director (Level 1)</option>
+                  </select>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                class="btn btn-primary"
+                onclick="saveUser()"
+              >
+                <i class="fas fa-save me-2"></i>Save User
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Change Password Modal -->
+      <div
+        class="modal fade"
+        id="passwordModal"
+        tabindex="-1"
+        aria-labelledby="passwordModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="passwordModalLabel">
+                Change Password
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <form id="passwordForm">
+                <input type="hidden" id="passwordUsername" value="" />
+                <p>
+                  Changing password for:
+                  <strong id="passwordUsernameDisplay"></strong>
+                </p>
+                <div class="mb-3">
+                  <label for="newPassword" class="form-label"
+                    >New Password <span class="text-danger">*</span></label
+                  >
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="newPassword"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="confirmPassword" class="form-label"
+                    >Confirm Password <span class="text-danger">*</span></label
+                  >
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="confirmPassword"
+                    required
+                  />
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                class="btn btn-primary"
+                onclick="changePassword()"
+              >
+                <i class="fas fa-key me-2"></i>Change Password
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delete User Confirmation Modal -->
+      <div
+        class="modal fade"
+        id="deleteUserModal"
+        tabindex="-1"
+        aria-labelledby="deleteUserModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+              <h5 class="modal-title" id="deleteUserModalLabel">
+                <i class="fas fa-exclamation-triangle me-2"></i>Confirm Delete
+                User
+              </h5>
+              <button
+                type="button"
+                class="btn-close btn-close-white"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <input type="hidden" id="deleteUsername" value="" />
+              <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <strong>Warning:</strong> This action cannot be undone!
+              </div>
+              <p class="mb-0">
+                Are you sure you want to delete user:
+                <strong id="deleteUsernameDisplay"></strong>?
+              </p>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                class="btn btn-danger"
+                onclick="deleteUserAccount()"
+              >
+                <i class="fas fa-trash me-2"></i>Delete User
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Maintenance -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h4 class="mb-0">
+            <i class="fas fa-tools me-2"></i>
+            System Maintenance
+          </h4>
+          <p class="mb-0 text-muted">System maintenance and data management</p>
+        </div>
+        <div class="card-body">
+          <div class="settings-grid">
+            <!-- Data Management -->
+            <div class="settings-section">
+              <h5><i class="fas fa-database me-2"></i>Data Management</h5>
+              <div class="form-group">
+                <label for="autoBackup" class="form-label"
+                  >Automatic Backup</label
+                >
+                <select class="form-control" id="autoBackup">
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="disabled">Disabled</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="dataRetention" class="form-label"
+                  >Data Retention Period (months)</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="dataRetention"
+                  value="24"
+                  min="6"
+                  max="120"
+                />
+              </div>
+              <div class="form-group">
+                <label for="archiveOldData" class="form-label"
+                  >Archive Old Data</label
+                >
+                <select class="form-control" id="archiveOldData">
+                  <option value="enabled">Enabled</option>
+                  <option value="disabled">Disabled</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- System Health -->
+            <div class="settings-section">
+              <h5><i class="fas fa-heartbeat me-2"></i>System Health</h5>
+              <div class="form-group">
+                <label for="systemMonitoring" class="form-label"
+                  >System Monitoring</label
+                >
+                <select class="form-control" id="systemMonitoring">
+                  <option value="enabled">Enabled</option>
+                  <option value="disabled">Disabled</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="performanceOptimization" class="form-label"
+                  >Performance Optimization</label
+                >
+                <select class="form-control" id="performanceOptimization">
+                  <option value="enabled">Enabled</option>
+                  <option value="disabled">Disabled</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="errorReporting" class="form-label"
+                  >Error Reporting</label
+                >
+                <select class="form-control" id="errorReporting">
+                  <option value="enabled">Enabled</option>
+                  <option value="disabled">Disabled</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="text-end mt-4">
+            <button class="btn btn-primary" onclick="saveMaintenanceSettings()">
+              <i class="fas fa-save me-2"></i>Save Maintenance Settings
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Default Weekly MaxSlots Configuration -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h4 class="mb-0">
+            <i class="fas fa-calendar-week me-2"></i>
+            Default Weekly MaxSlots Configuration
+          </h4>
+          <p class="mb-0 text-muted">
+            Configure default maxSlots values for each day of the week
+          </p>
+        </div>
+        <div class="card-body">
+          <div class="info-card mb-4">
+            <h5><i class="fas fa-info-circle me-2"></i>How It Works</h5>
+            <p>
+              The system automatically populates maxSlots values in the
+              planningB sheet for future dates (up to 90 days) based on these
+              default values. Dates with manually set maxSlots (> 0) will not be
+              overwritten. This runs daily at 2 AM.
+            </p>
+          </div>
+
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Note:</strong> Setting a day's default to 0 means no
+            automatic slots will be created for that day (useful for weekly
+            holidays). You can still manually set maxSlots for specific dates in
+            the planningB sheet.
+          </div>
+
+          <div class="settings-grid">
+            <!-- Sunday -->
+            <div class="settings-section">
+              <h5><i class="fas fa-calendar-day me-2"></i>Sunday</h5>
+              <div class="form-group">
+                <label for="maxSlotsSunday" class="form-label"
+                  >Default MaxSlots</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="maxSlotsSunday"
+                  value="0"
+                  min="0"
+                  max="200"
+                />
+                <small class="text-muted">Default: 0 (no slots)</small>
+              </div>
+            </div>
+
+            <!-- Monday -->
+            <div class="settings-section">
+              <h5><i class="fas fa-calendar-day me-2"></i>Monday</h5>
+              <div class="form-group">
+                <label for="maxSlotsMonday" class="form-label"
+                  >Default MaxSlots</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="maxSlotsMonday"
+                  value="38"
+                  min="0"
+                  max="200"
+                />
+                <small class="text-muted">Default: 38</small>
+              </div>
+            </div>
+
+            <!-- Tuesday -->
+            <div class="settings-section">
+              <h5><i class="fas fa-calendar-day me-2"></i>Tuesday</h5>
+              <div class="form-group">
+                <label for="maxSlotsTuesday" class="form-label"
+                  >Default MaxSlots</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="maxSlotsTuesday"
+                  value="0"
+                  min="0"
+                  max="200"
+                />
+                <small class="text-muted">Default: 0 (no slots)</small>
+              </div>
+            </div>
+
+            <!-- Wednesday -->
+            <div class="settings-section">
+              <h5><i class="fas fa-calendar-day me-2"></i>Wednesday</h5>
+              <div class="form-group">
+                <label for="maxSlotsWednesday" class="form-label"
+                  >Default MaxSlots</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="maxSlotsWednesday"
+                  value="38"
+                  min="0"
+                  max="200"
+                />
+                <small class="text-muted">Default: 38</small>
+              </div>
+            </div>
+
+            <!-- Thursday -->
+            <div class="settings-section">
+              <h5><i class="fas fa-calendar-day me-2"></i>Thursday</h5>
+              <div class="form-group">
+                <label for="maxSlotsThursday" class="form-label"
+                  >Default MaxSlots</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="maxSlotsThursday"
+                  value="38"
+                  min="0"
+                  max="200"
+                />
+                <small class="text-muted">Default: 38</small>
+              </div>
+            </div>
+
+            <!-- Friday -->
+            <div class="settings-section">
+              <h5><i class="fas fa-calendar-day me-2"></i>Friday</h5>
+              <div class="form-group">
+                <label for="maxSlotsFriday" class="form-label"
+                  >Default MaxSlots</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="maxSlotsFriday"
+                  value="15"
+                  min="0"
+                  max="200"
+                />
+                <small class="text-muted">Default: 15</small>
+              </div>
+            </div>
+
+            <!-- Saturday -->
+            <div class="settings-section">
+              <h5><i class="fas fa-calendar-day me-2"></i>Saturday</h5>
+              <div class="form-group">
+                <label for="maxSlotsSaturday" class="form-label"
+                  >Default MaxSlots</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="maxSlotsSaturday"
+                  value="38"
+                  min="0"
+                  max="200"
+                />
+                <small class="text-muted">Default: 38</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="alert alert-info mt-3">
+            <i class="fas fa-clock me-2"></i>
+            <strong>Automation Schedule:</strong> The auto-update process runs
+            daily at 2:00 AM and processes dates from today to 90 days in the
+            future.
+          </div>
+
+          <div class="text-end mt-4">
+            <button
+              class="btn btn-primary"
+              onclick="saveWeeklyMaxSlotsSettings()"
+            >
+              <i class="fas fa-save me-2"></i>Save Weekly MaxSlots Settings
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Waiting List Configuration -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h4 class="mb-0">
+            <i class="fas fa-list-alt me-2"></i>
+            Waiting List Configuration
+          </h4>
+          <p class="mb-0 text-muted">
+            Configure the percentage of MaxSlots allocated for waiting list
+            appointments
+          </p>
+        </div>
+        <div class="card-body">
+          <div class="info-card mb-4">
+            <h5><i class="fas fa-info-circle me-2"></i>How It Works</h5>
+            <p>
+              The waiting list allows patients to book appointments without a
+              specific time slot. The system limits the number of waiting list
+              appointments per day based on a percentage of the MaxSlots value
+              for that date. This ensures that waiting list appointments don't
+              exceed a reasonable portion of the total capacity.
+            </p>
+          </div>
+
+          <div class="settings-grid">
+            <div class="settings-section">
+              <h5>
+                <i class="fas fa-percentage me-2"></i>Waiting List Percentage
+              </h5>
+              <div class="form-group">
+                <label for="waitingListPercentage" class="form-label"
+                  >Percentage of MaxSlots</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="waitingListPercentage"
+                  value="15"
+                  min="1"
+                  max="50"
+                />
+                <small class="text-muted"
+                  >Percentage of MaxSlots allocated for waiting list
+                  appointments (default: 15%)</small
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="alert alert-info mt-3">
+            <i class="fas fa-calculator me-2"></i>
+            <strong>Example:</strong> If MaxSlots is 38 and the percentage is
+            15%, the waiting list limit will be 6 appointments (38 × 15% = 5.7,
+            rounded up to 6).
+          </div>
+
+          <div class="text-end mt-4">
+            <button class="btn btn-primary" onclick="saveWaitingListSettings()">
+              <i class="fas fa-save me-2"></i>Save Waiting List Settings
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="card mt-4 border-danger">
+        <div class="card-header bg-danger text-white">
+          <h4 class="mb-0">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Danger Zone
+          </h4>
+          <p class="mb-0">Irreversible actions - use with extreme caution</p>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h5><i class="fas fa-trash me-2"></i>Data Management</h5>
+              <p class="text-muted">
+                Permanently delete data and reset system settings
+              </p>
+              <button class="btn btn-outline-danger" onclick="clearAllData()">
+                <i class="fas fa-trash me-2"></i>Clear All Data
+              </button>
+            </div>
+            <div class="col-md-6">
+              <h5><i class="fas fa-redo me-2"></i>System Reset</h5>
+              <p class="text-muted">Reset the system to factory defaults</p>
+              <button class="btn btn-outline-danger" onclick="resetSystem()">
+                <i class="fas fa-redo me-2"></i>Reset System
+              </button>
+            </div>
+          </div>
+      </div>
+    </div>
+
+    <!-- Provider Add/Edit Modal -->
+    <div class="modal fade" id="providerModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header"><h6 class="mb-0" id="providerModalTitle">Add Provider</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+          <div class="modal-body">
+            <input type="hidden" id="pvMode" value="add">
+            <input type="hidden" id="pvOrgKey" value="">
+            <div class="mb-2"><label class="form-label">Provider Name</label><input class="form-control" id="pvName" placeholder="e.g. OpenAI"></div>
+            <div class="mb-2"><label class="form-label">Type</label><select class="form-control" id="pvType"><option value="llm">LLM (AI)</option><option value="whatsapp">WhatsApp</option></select></div>
+            <div class="mb-2"><label class="form-label">API Key</label><input type="password" class="form-control" id="pvApiKey" placeholder="Enter API key"></div>
+            <div class="mb-2"><label class="form-label">API URL</label><input class="form-control" id="pvApiUrl" placeholder="https://..."></div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button class="btn btn-sm btn-primary" onclick="saveProviderFromModal()">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Model Add/Edit Modal -->
+    <div class="modal fade" id="modelModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header"><h6 class="mb-0" id="modelModalTitle">Add Model</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+          <div class="modal-body">
+            <input type="hidden" id="mdMode" value="add">
+            <input type="hidden" id="mdOrgKey" value="">
+            <div class="mb-2"><label class="form-label">Display Name</label><input class="form-control" id="mdName" placeholder="e.g. Gemini 2.5 Flash"></div>
+            <div class="mb-2"><label class="form-label">Provider</label><select class="form-control" id="mdProvider"></select></div>
+            <div class="mb-2"><label class="form-label">Model ID</label><input class="form-control" id="mdModelId" placeholder="e.g. gemini-2.5-flash"></div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button class="btn btn-sm btn-primary" onclick="saveModelFromModal()">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Campaign Add/Edit Modal -->
+    <div class="modal fade" id="campaignModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header"><h6 class="mb-0" id="campaignModalTitle">Add Campaign</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+          <div class="modal-body">
+            <input type="hidden" id="cpMode" value="add">
+            <input type="hidden" id="cpOrgKey" value="">
+            <div class="mb-2"><label class="form-label">Display Name</label><input class="form-control" id="cpName" placeholder="e.g. Appointment Reminders"></div>
+            <div class="mb-2"><label class="form-label">Provider</label><select class="form-control" id="cpProvider"></select></div>
+            <div class="mb-2"><label class="form-label">Campaign ID</label><input class="form-control" id="cpCampaignId" placeholder="e.g. sudarsdhan_appointment"></div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button class="btn btn-sm btn-primary" onclick="saveCampaignFromModal()">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirm Modal -->
+    <div class="modal fade" id="apiDeleteModal" tabindex="-1">
+      <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+          <div class="modal-header"><h6 class="mb-0">Confirm Delete</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+          <div class="modal-body">
+            <p id="apiDeleteMsg">Are you sure you want to delete this entry?</p>
+            <input type="hidden" id="apiDeleteCategory">
+            <input type="hidden" id="apiDeleteKey">
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button class="btn btn-sm btn-danger" onclick="confirmApiDelete()">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle (includes Popper) - Load before our custom scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      var baseUrl = "<?= webAppUrl ?>";
+      var sessionToken = "<?= sessionToken ?>";
+
+      function showSettingsLoader(msg) {
+        var el = document.getElementById("settingsSavingOverlay");
+        if (el) {
+          document.getElementById("settingsSavingText").textContent = msg || "Saving...";
+          el.style.display = "flex";
+        }
+      }
+
+      function hideSettingsLoader(msg, isError) {
+        var el = document.getElementById("settingsSavingOverlay");
+        if (el) el.style.display = "none";
+        if (msg) {
+          showAlert(msg, isError ? "danger" : "success");
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        checkAdminAccess();
+        loadSettings();
+      });
+
+      function checkAdminAccess() {
+        google.script.run
+          .withSuccessHandler(function (hasAccess) {
+            if (!hasAccess) {
+              showAlert("Access denied. Admin privileges required.", "error");
+              setTimeout(function () {
+                goToPage("Dashboard");
+              }, 2000);
+            }
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error checking access: " + error, "error");
+            goToPage("Dashboard");
+          })
+          .canAccessSettings(sessionToken);
+      }
+
+      function loadSettings() {
+        // Load current settings from server
+        loadGeneralSettings();
+        loadUserSettings();
+        loadMaintenanceSettings();
+        loadEarlyBookingSettings();
+        loadWeeklyMaxSlotsSettings();
+        loadWaitingListSettings();
+        loadUsers(); // Load users for user management table
+        loadCheckRulesSettings();
+        loadApiSettings();
+      }
+
+      function loadEarlyBookingSettings() {
+        google.script.run
+          .withSuccessHandler(function (result) {
+            if (result && result.success && result.thresholds) {
+              const thresholds = result.thresholds;
+
+              const threshold10Plus = thresholds.find((t) => t.days === 10) || { percentage: 51 };
+              const threshold5Days  = thresholds.find((t) => t.days === 5)  || { percentage: 79 };
+              const threshold4Days  = thresholds.find((t) => t.days === 4)  || { percentage: 85 };
+              const threshold1Day   = thresholds.find((t) => t.days === 1)  || { percentage: 95 };
+              const threshold0Days  = thresholds.find((t) => t.days === 0)  || { percentage: 100 };
+
+              document.getElementById("threshold10Plus").value = threshold10Plus.percentage;
+              document.getElementById("threshold5Days").value  = threshold5Days.percentage;
+              document.getElementById("threshold4Days").value  = threshold4Days.percentage;
+              document.getElementById("threshold1Day").value   = threshold1Day.percentage;
+              document.getElementById("threshold0Days").value  = threshold0Days.percentage;
+            } else {
+              document.getElementById("threshold10Plus").value = 51;
+              document.getElementById("threshold5Days").value  = 79;
+              document.getElementById("threshold4Days").value  = 85;
+              document.getElementById("threshold1Day").value   = 95;
+              document.getElementById("threshold0Days").value  = 100;
+            }
+          })
+          .withFailureHandler(function (error) {
+            document.getElementById("threshold10Plus").value = 51;
+            document.getElementById("threshold5Days").value  = 79;
+            document.getElementById("threshold4Days").value  = 85;
+            document.getElementById("threshold1Day").value   = 95;
+            document.getElementById("threshold0Days").value  = 100;
+          })
+          .getEarlyBookingSettings();
+      }
+
+      function saveEarlyBookingSettings() {
+        const threshold10Plus = parseInt(document.getElementById("threshold10Plus").value, 10);
+        const threshold5Days  = parseInt(document.getElementById("threshold5Days").value,  10);
+        const threshold4Days  = parseInt(document.getElementById("threshold4Days").value,  10);
+        const threshold1Day   = parseInt(document.getElementById("threshold1Day").value,   10);
+        const threshold0Days  = parseInt(document.getElementById("threshold0Days").value,  10);
+
+        // Validate each is between 10–100
+        const fields = [
+          [threshold10Plus, "10+ days"],
+          [threshold5Days,  "5–9 days"],
+          [threshold4Days,  "4 days"],
+          [threshold1Day,   "1–2 days"],
+          [threshold0Days,  "Same day"],
+        ];
+        for (var i = 0; i < fields.length; i++) {
+          var val = fields[i][0], label = fields[i][1];
+          if (isNaN(val) || val < 10 || val > 100) {
+            showAlert(label + " threshold must be between 10% and 100%.", "danger");
+            return;
+          }
+        }
+
+        // Validate percentages increase as days decrease
+        var ordered = [
+          [threshold10Plus, "10+ days", threshold5Days,  "5–9 days"],
+          [threshold5Days,  "5–9 days", threshold4Days,  "4 days"],
+          [threshold4Days,  "4 days",   threshold1Day,   "1–2 days"],
+          [threshold1Day,   "1–2 days", threshold0Days,  "Same day"],
+        ];
+        for (var j = 0; j < ordered.length; j++) {
+          if (ordered[j][0] > ordered[j][2]) {
+            showAlert(
+              "Validation error: " + ordered[j][1] + " threshold (" + ordered[j][0] +
+              "%) must be ≤ " + ordered[j][3] + " threshold (" + ordered[j][2] + "%).",
+              "danger"
+            );
+            return;
+          }
+        }
+
+        const settings = {
+          thresholds: [
+            { days: 10, percentage: threshold10Plus },
+            { days: 5,  percentage: threshold5Days  },
+            { days: 4,  percentage: threshold4Days  },
+            { days: 1,  percentage: threshold1Day   },
+            { days: 0,  percentage: threshold0Days  },
+          ],
+        };
+
+        showSettingsLoader("Saving booking restrictions...");
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideSettingsLoader(
+              result && result.success ? "Booking restrictions saved!" : (result.message || "Failed to save."),
+              !(result && result.success)
+            );
+          })
+          .withFailureHandler(function (error) {
+            hideSettingsLoader("Error: " + error, true);
+          })
+          .saveEarlyBookingSettings(settings, sessionToken);
+      }
+
+      // Load default weekly maxSlots settings
+      function loadWeeklyMaxSlotsSettings() {
+        google.script.run
+          .withSuccessHandler(function (result) {
+            if (result && result.success && result.weeklyMaxSlots) {
+              const weeklyMaxSlots = result.weeklyMaxSlots;
+
+              // Populate input fields for each day
+              document.getElementById("maxSlotsSunday").value =
+                weeklyMaxSlots["0"] || 0;
+              document.getElementById("maxSlotsMonday").value =
+                weeklyMaxSlots["1"] || 38;
+              document.getElementById("maxSlotsTuesday").value =
+                weeklyMaxSlots["2"] || 0;
+              document.getElementById("maxSlotsWednesday").value =
+                weeklyMaxSlots["3"] || 38;
+              document.getElementById("maxSlotsThursday").value =
+                weeklyMaxSlots["4"] || 38;
+              document.getElementById("maxSlotsFriday").value =
+                weeklyMaxSlots["5"] || 15;
+              document.getElementById("maxSlotsSaturday").value =
+                weeklyMaxSlots["6"] || 38;
+            } else {
+              // Use defaults if loading fails
+              setDefaultWeeklyMaxSlotsValues();
+            }
+          })
+          .withFailureHandler(function (error) {
+            // Use defaults on error
+            setDefaultWeeklyMaxSlotsValues();
+            showAlert(
+              "Error loading weekly maxSlots settings. Using defaults.",
+              "warning",
+            );
+          })
+          .getDefaultWeeklyMaxSlots();
+      }
+
+      // Helper function to set default values
+      function setDefaultWeeklyMaxSlotsValues() {
+        document.getElementById("maxSlotsSunday").value = 0;
+        document.getElementById("maxSlotsMonday").value = 38;
+        document.getElementById("maxSlotsTuesday").value = 0;
+        document.getElementById("maxSlotsWednesday").value = 38;
+        document.getElementById("maxSlotsThursday").value = 38;
+        document.getElementById("maxSlotsFriday").value = 15;
+        document.getElementById("maxSlotsSaturday").value = 38;
+      }
+
+      // Save weekly maxSlots settings
+      function saveWeeklyMaxSlotsSettings() {
+        // Get values from input fields
+        const sunday = parseInt(
+          document.getElementById("maxSlotsSunday").value,
+          10,
+        );
+        const monday = parseInt(
+          document.getElementById("maxSlotsMonday").value,
+          10,
+        );
+        const tuesday = parseInt(
+          document.getElementById("maxSlotsTuesday").value,
+          10,
+        );
+        const wednesday = parseInt(
+          document.getElementById("maxSlotsWednesday").value,
+          10,
+        );
+        const thursday = parseInt(
+          document.getElementById("maxSlotsThursday").value,
+          10,
+        );
+        const friday = parseInt(
+          document.getElementById("maxSlotsFriday").value,
+          10,
+        );
+        const saturday = parseInt(
+          document.getElementById("maxSlotsSaturday").value,
+          10,
+        );
+
+        // Validate all values are non-negative integers
+        const days = [
+          { name: "Sunday", value: sunday },
+          { name: "Monday", value: monday },
+          { name: "Tuesday", value: tuesday },
+          { name: "Wednesday", value: wednesday },
+          { name: "Thursday", value: thursday },
+          { name: "Friday", value: friday },
+          { name: "Saturday", value: saturday },
+        ];
+
+        for (let i = 0; i < days.length; i++) {
+          const day = days[i];
+          if (isNaN(day.value) || day.value < 0) {
+            showAlert(
+              day.name +
+                " maxSlots must be a non-negative integer (0 or greater).",
+              "danger",
+            );
+            return;
+          }
+        }
+
+        // Build settings object
+        const settings = {
+          weeklyMaxSlots: {
+            0: sunday,
+            1: monday,
+            2: tuesday,
+            3: wednesday,
+            4: thursday,
+            5: friday,
+            6: saturday,
+          },
+        };
+
+        showSettingsLoader("Saving weekly max slots...");
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideSettingsLoader(
+              result && result.success ? "Weekly max slots saved!" : (result.message || "Failed to save."),
+              !(result && result.success)
+            );
+          })
+          .withFailureHandler(function (error) {
+            hideSettingsLoader("Error: " + error, true);
+          })
+          .saveDefaultWeeklyMaxSlots(settings, sessionToken);
+      }
+
+      // Load waiting list percentage settings
+      function loadWaitingListSettings() {
+        google.script.run
+          .withSuccessHandler(function (result) {
+            if (
+              result &&
+              result.success &&
+              typeof result.percentage !== "undefined"
+            ) {
+              document.getElementById("waitingListPercentage").value =
+                result.percentage;
+            } else {
+              // Use default if loading fails
+              document.getElementById("waitingListPercentage").value = 15;
+            }
+          })
+          .withFailureHandler(function (error) {
+            // Use default on error
+            document.getElementById("waitingListPercentage").value = 15;
+            showAlert(
+              "Error loading waiting list settings. Using defaults.",
+              "warning",
+            );
+          })
+          .getWaitingListPercentage();
+      }
+
+      // Save waiting list percentage settings
+      function saveWaitingListSettings() {
+        // Get value from input field
+        const percentage = parseInt(
+          document.getElementById("waitingListPercentage").value,
+          10,
+        );
+
+        // Validate percentage is between 1-50
+        if (isNaN(percentage) || percentage < 1 || percentage > 50) {
+          showAlert(
+            "Waiting list percentage must be between 1 and 50.",
+            "danger",
+          );
+          return;
+        }
+
+        // Build settings object
+        const settings = {
+          percentage: percentage,
+        };
+
+        showSettingsLoader("Saving waiting list config...");
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideSettingsLoader(
+              result && result.success ? "Waiting list config saved!" : (result.message || "Failed to save."),
+              !(result && result.success)
+            );
+          })
+          .withFailureHandler(function (error) {
+            hideSettingsLoader("Error: " + error, true);
+          })
+          .saveWaitingListPercentage(settings, sessionToken);
+      }
+
+      // Load general settings from backend
+      function loadGeneralSettings() {
+        google.script.run
+          .withSuccessHandler(function (result) {
+            if (result && result.success && result.settings) {
+              const settings = result.settings;
+              document.getElementById("appointmentInterval").value =
+                settings.appointmentInterval || 10;
+              document.getElementById("maxAppointmentsPerDay").value =
+                settings.maxAppointmentsPerDay || 50;
+              document.getElementById("sessionTimeout").value =
+                settings.sessionTimeout || 24;
+              document.getElementById("emailNotifications").value =
+                settings.emailNotifications || "enabled";
+              document.getElementById("confirmationReminders").value =
+                settings.confirmationReminders || "enabled";
+              document.getElementById("reminderDays").value =
+                settings.reminderDays || 4;
+            }
+          })
+          .withFailureHandler(function (error) {
+            console.log("Error loading general settings: " + error);
+          })
+          .loadGeneralSettings();
+      }
+
+      function saveGeneralSettings() {
+        const settings = {
+          appointmentInterval: parseInt(
+            document.getElementById("appointmentInterval").value,
+            10,
+          ),
+          maxAppointmentsPerDay: parseInt(
+            document.getElementById("maxAppointmentsPerDay").value,
+            10,
+          ),
+          sessionTimeout: parseInt(
+            document.getElementById("sessionTimeout").value,
+            10,
+          ),
+          emailNotifications:
+            document.getElementById("emailNotifications").value,
+          confirmationReminders: document.getElementById(
+            "confirmationReminders",
+          ).value,
+          reminderDays: parseInt(
+            document.getElementById("reminderDays").value,
+            10,
+          ),
+        };
+
+        showSettingsLoader("Saving general settings...");
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideSettingsLoader(
+              result && result.success ? "General settings saved!" : (result.message || "Failed to save."),
+              !(result && result.success)
+            );
+          })
+          .withFailureHandler(function (error) {
+            hideSettingsLoader("Error: " + error, true);
+          })
+          .saveGeneralSettings(settings, sessionToken);
+      }
+
+      // Load user settings from backend
+      function loadUserSettings() {
+        google.script.run
+          .withSuccessHandler(function (result) {
+            if (result && result.success && result.settings) {
+              const settings = result.settings;
+              document.getElementById("defaultUserRole").value =
+                settings.defaultUserRole || "user";
+              document.getElementById("passwordPolicy").value =
+                settings.passwordPolicy || "standard";
+              document.getElementById("maxLoginAttempts").value =
+                settings.maxLoginAttempts || 5;
+              document.getElementById("twoFactorAuth").value =
+                settings.twoFactorAuth || "disabled";
+              document.getElementById("auditLogging").value =
+                settings.auditLogging || "enabled";
+              document.getElementById("sessionSecurity").value =
+                settings.sessionSecurity || "standard";
+            }
+          })
+          .withFailureHandler(function (error) {
+            console.log("Error loading user settings: " + error);
+          })
+          .loadUserSettings();
+      }
+
+      function saveUserSettings() {
+        const settings = {
+          defaultUserRole: document.getElementById("defaultUserRole").value,
+          passwordPolicy: document.getElementById("passwordPolicy").value,
+          maxLoginAttempts: parseInt(
+            document.getElementById("maxLoginAttempts").value,
+            10,
+          ),
+          twoFactorAuth: document.getElementById("twoFactorAuth").value,
+          auditLogging: document.getElementById("auditLogging").value,
+          sessionSecurity: document.getElementById("sessionSecurity").value,
+        };
+
+        showSettingsLoader("Saving user settings...");
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideSettingsLoader(
+              result && result.success ? "User settings saved!" : (result.message || "Failed to save."),
+              !(result && result.success)
+            );
+          })
+          .withFailureHandler(function (error) {
+            hideSettingsLoader("Error: " + error, true);
+          })
+          .saveUserSettings(settings, sessionToken);
+      }
+
+      // ============================================================
+      // CHECK RULES SETTINGS
+      // ============================================================
+
+      // All setting keys in the order they appear in the form
+      var checkRulesKeys_ = [
+        "RULE_NEW_TIMING","NEW_MORNING_START","NEW_EVENING_CUTOFF",
+        "RULE_NEW_CONSECUTIVE","NEW_CONSECUTIVE_GAP",
+        "RULE_FAMILY_TIMING","FAMILY_MORNING_CUTOFF",
+        "RULE_FAMILY_MORNING","FAMILY_MORNING_MAX",
+        "RULE_FAMILY_CONTINUOUS",
+        "RULE_CONSULT_WINDOW","CONSULT_WINDOW_START",
+        "CONSULT_WINDOW_LUNCH_START","CONSULT_WINDOW_LUNCH_END",
+        "CONSULT_WINDOW_END",
+        "RULE_GONIO_AT_CONSECUTIVE","RULE_GONIO_AT_CAP",
+        "GONIO_AT_MAX_PER_DAY","RULE_GONIO_TIMING",
+        "GONIO_EVENING_START","RULE_AT_TIMING","AT_EVENING_START",
+        "RULE_HFA_SLOT","HFA_SLOT_1","HFA_SLOT_2",
+        "RULE_ROP_DAY","ROP_DAY",
+        "RULE_LASER_DAY","LASER_DAYS",
+        "RULE_LASER_DURATION","LASER_DURATION",
+        "RULE_WHEELCHAIR","WHEELCHAIR_MORNING_END",
+        "WHEELCHAIR_EVENING_START"
+      ];
+
+      function loadCheckRulesSettings() {
+        google.script.run
+          .withSuccessHandler(function (result) {
+            if (result && result.success && result.settings) {
+              var s = result.settings;
+              for (var i = 0; i < checkRulesKeys_.length; i++) {
+                var key = checkRulesKeys_[i];
+                var el = document.getElementById("cr_" + key);
+                if (el && s[key] !== undefined) {
+                  if (el.tagName === "SELECT") {
+                    el.value = s[key];
+                  } else {
+                    el.value = s[key];
+                  }
+                }
+              }
+            } else if (result && !result.success) {
+              showAlert("Could not load rule settings: " + (result.error || "Access denied"), "warning");
+            }
+          })
+          .withFailureHandler(function (err) {
+            showAlert("Error loading rule settings: " + err, "error");
+          })
+          .loadRuleSettings(sessionToken);
+      }
+
+      function saveCheckRulesSettings() {
+        var data = {};
+        for (var i = 0; i < checkRulesKeys_.length; i++) {
+          var key = checkRulesKeys_[i];
+          var el = document.getElementById("cr_" + key);
+          if (el) {
+            data[key] = el.value;
+          }
+        }
+
+        // Basic validation: time fields should match HH:MM format
+        var timeFields = ["NEW_MORNING_START","NEW_EVENING_CUTOFF",
+          "FAMILY_MORNING_CUTOFF","CONSULT_WINDOW_START",
+          "CONSULT_WINDOW_LUNCH_START","CONSULT_WINDOW_LUNCH_END",
+          "CONSULT_WINDOW_END","HFA_SLOT_1","HFA_SLOT_2",
+          "GONIO_EVENING_START","AT_EVENING_START",
+          "WHEELCHAIR_MORNING_END","WHEELCHAIR_EVENING_START"];
+
+        var timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+        for (var t = 0; t < timeFields.length; t++) {
+          var tf = timeFields[t];
+          var tv = data[tf] || "";
+          if (tv !== "" && !timeRegex.test(tv)) {
+            showAlert("Invalid time format for " + tf + ": '" + tv + "'. Use HH:MM (e.g. 10:00).", "danger");
+            return;
+          }
+        }
+
+        // Validate numeric fields
+        var numFields = { NEW_CONSECUTIVE_GAP: "Consecutive Gap", FAMILY_MORNING_MAX: "Family Max", GONIO_AT_MAX_PER_DAY: "AT/Gonio Cap", LASER_DURATION: "Laser Duration" };
+        for (var nKey in numFields) {
+          var nv = parseInt(data[nKey], 10);
+          if (isNaN(nv) || nv < 1) {
+            showAlert(numFields[nKey] + " must be a positive number.", "danger");
+            return;
+          }
+          data[nKey] = String(nv);
+        }
+
+        // Validate LASER_DAYS format
+        var ld = (data["LASER_DAYS"] || "").toUpperCase();
+        var dayCodes = ["MON","TUE","WED","THU","FRI","SAT","SUN"];
+        var ldParts = ld.split(",").map(function(d) { return d.trim(); });
+        for (var dp = 0; dp < ldParts.length; dp++) {
+          if (dayCodes.indexOf(ldParts[dp]) === -1) {
+            showAlert("Invalid Laser day: '" + ldParts[dp] + "'. Use SUN-SAT (e.g., TUE,FRI).", "danger");
+            return;
+          }
+        }
+
+        showSettingsLoader("Saving check rules...");
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideSettingsLoader(
+              result && result.success ? "Check rules saved!" : ((result && result.error) || "Failed to save."),
+              !(result && result.success)
+            );
+          })
+          .withFailureHandler(function (err) {
+            hideSettingsLoader("Error: " + err, true);
+          })
+          .saveRuleSettings(data, sessionToken);
+      }
+
+      function resetCheckRulesSettings() {
+        if (!confirm("Reset all check rules to default values?")) return;
+        var defaults = {
+          RULE_NEW_TIMING: "ON", NEW_MORNING_START: "10:00", NEW_EVENING_CUTOFF: "16:00",
+          RULE_NEW_CONSECUTIVE: "ON", NEW_CONSECUTIVE_GAP: "30",
+          RULE_FAMILY_TIMING: "ON", FAMILY_MORNING_CUTOFF: "11:30",
+          RULE_FAMILY_MORNING: "ON", FAMILY_MORNING_MAX: "3",
+          RULE_FAMILY_CONTINUOUS: "ON",
+          RULE_CONSULT_WINDOW: "ON", CONSULT_WINDOW_START: "10:30",
+          CONSULT_WINDOW_LUNCH_START: "13:30", CONSULT_WINDOW_LUNCH_END: "14:30",
+          CONSULT_WINDOW_END: "17:30",
+          RULE_GONIO_AT_CONSECUTIVE: "ON", RULE_GONIO_AT_CAP: "ON",
+          GONIO_AT_MAX_PER_DAY: "3", RULE_GONIO_TIMING: "ON",
+          GONIO_EVENING_START: "14:30", RULE_AT_TIMING: "ON", AT_EVENING_START: "14:30",
+          RULE_HFA_SLOT: "ON", HFA_SLOT_1: "09:20", HFA_SLOT_2: "09:40",
+          RULE_ROP_DAY: "ON", ROP_DAY: "WED",
+          RULE_LASER_DAY: "ON", LASER_DAYS: "TUE,FRI",
+          RULE_LASER_DURATION: "ON", LASER_DURATION: "20",
+          RULE_WHEELCHAIR: "ON", WHEELCHAIR_MORNING_END: "10:00",
+          WHEELCHAIR_EVENING_START: "16:00"
+        };
+        for (var key in defaults) {
+          var el = document.getElementById("cr_" + key);
+          if (el) el.value = defaults[key];
+        }
+        showAlert("Form reset to defaults. Click Save to persist.", "info");
+      }
+
+      // ── API Configuration ─────────────────────────────────────────────────
+      var _apiData_ = null;
+
+      function loadApiSettings() {
+        google.script.run
+          .withSuccessHandler(function (result) {
+            document.getElementById("apiConfigLoading").style.display = "none";
+            if (!result || !result.success) {
+              document.getElementById("apiConfigContent").innerHTML =
+                '<span class="text-muted">Failed: ' + (result ? result.error : "Unknown") + "</span>";
+              document.getElementById("apiConfigContent").style.display = "";
+              return;
+            }
+            _apiData_ = result;
+            document.getElementById("apiConfigContent").style.display = "";
+            buildActiveConfigTab();
+            buildProvidersTab();
+            buildModelsCampaignsTab();
+          })
+          .withFailureHandler(function (err) {
+            document.getElementById("apiConfigLoading").style.display = "none";
+            document.getElementById("apiConfigContent").innerHTML =
+              '<span class="text-danger">Error: ' + err + "</span>";
+            document.getElementById("apiConfigContent").style.display = "";
+          })
+          .loadApiSettings(sessionToken);
+      }
+
+      function buildActiveConfigTab() {
+        var result = _apiData_;
+        if (!result) return;
+        var activeLlmModel = result.active.llm_model || "gemini-2.5-flash";
+        var activeWaCampaign = result.active.wa_campaign || "main_wa";
+        var activeLlmProvider = result.active.llm_provider || "gemini";
+        var activeWaProvider = result.active.wa_provider || "aisensy";
+
+        var modelSelect = document.getElementById("activeLlmModel");
+        modelSelect.innerHTML = "";
+        result.models.forEach(function (m) {
+          var opt = document.createElement("option");
+          opt.value = m.key;
+          opt.textContent = (m.value.displayName || m.value.modelId || m.key) + " [" + (m.value.provider || "") + "]";
+          if (!m.active) opt.textContent += " (inactive)";
+          if (m.key === activeLlmModel) opt.selected = true;
+          modelSelect.appendChild(opt);
+        });
+
+        var campSelect = document.getElementById("activeWaCampaign");
+        campSelect.innerHTML = "";
+        result.campaigns.forEach(function (c) {
+          var opt = document.createElement("option");
+          opt.value = c.key;
+          opt.textContent = c.value.displayName || c.value.campaignId || c.key;
+          if (!c.active) opt.textContent += " (inactive)";
+          if (c.key === activeWaCampaign) opt.selected = true;
+          campSelect.appendChild(opt);
+        });
+
+        var llmP = findProvider_(activeLlmProvider);
+        var waP = findProvider_(activeWaProvider);
+        document.getElementById("activeLlmProviderDisplay").textContent =
+          (llmP ? (llmP.value.name || llmP.key) : activeLlmProvider) + " (model: " + activeLlmModel + ")";
+        document.getElementById("activeWaProviderDisplay").textContent =
+          (waP ? (waP.value.name || waP.key) : activeWaProvider) + " (campaign: " + activeWaCampaign + ")";
+      }
+
+      function buildProvidersTab() {
+        var result = _apiData_;
+        if (!result) return;
+        var tbody = document.getElementById("providerCrudTableBody");
+        tbody.innerHTML = "";
+        result.providers.forEach(function (p) {
+          var hasKey = p.value.apiKey && p.value.apiKey.length > 5;
+          var masked = hasKey ? p.value.apiKey.substring(0, 8) + "…" : "—";
+          var statusBadge = p.active
+            ? '<span class="badge bg-success">Active</span>'
+            : '<span class="badge bg-secondary">Inactive</span>';
+          var typeLabel = p.value.type === "whatsapp" ? "WhatsApp" : "AI/LLM";
+          var row = "<tr>" +
+            "<td>" + (p.value.name || p.key) + "</td>" +
+            "<td>" + typeLabel + "</td>" +
+            "<td style='max-width:120px;overflow:hidden;text-overflow:ellipsis'>" + masked + "</td>" +
+            "<td>" + statusBadge + "</td>" +
+            "<td style='white-space:nowrap'>" +
+            '<button class="btn btn-sm btn-outline-secondary me-1" onclick="openProviderModal(' + "'" + p.key + "'" + ')"><i class="fas fa-edit"></i></button>' +
+            '<button class="btn btn-sm btn-outline-warning me-1" onclick="toggleApiEntry(' + "'provider','" + p.key + "'," + !p.active + ')">' + (p.active ? "Disable" : "Enable") + "</button>" +
+            '<button class="btn btn-sm btn-outline-danger" onclick="confirmDeleteApi(' + "'provider','" + p.key + "','" + (p.value.name || p.key) + "'" + ')"><i class="fas fa-trash"></i></button>' +
+            "</td></tr>";
+          tbody.innerHTML += row;
+        });
+      }
+
+      function buildModelsCampaignsTab() {
+        var result = _apiData_;
+        if (!result) return;
+        var mt = document.getElementById("modelCrudTableBody");
+        mt.innerHTML = "";
+        result.models.forEach(function (m) {
+          var statusBadge = m.active
+            ? '<span class="badge bg-success">Active</span>'
+            : '<span class="badge bg-secondary">Inactive</span>';
+          var row = "<tr><td>" + (m.value.displayName || m.value.modelId || m.key) + "</td>" +
+            "<td>" + (m.value.provider || "") + "</td>" +
+            "<td>" + statusBadge + "</td>" +
+            "<td style='white-space:nowrap'>" +
+            '<button class="btn btn-sm btn-outline-secondary me-1" onclick="openModelModal(' + "'" + m.key + "'" + ')"><i class="fas fa-edit"></i></button>' +
+            '<button class="btn btn-sm btn-outline-warning me-1" onclick="toggleApiEntry(' + "'model','" + m.key + "'," + !m.active + ')">' + (m.active ? "Disable" : "Enable") + "</button>" +
+            '<button class="btn btn-sm btn-outline-danger" onclick="confirmDeleteApi(' + "'model','" + m.key + "','" + (m.value.displayName || m.key) + "'" + ')"><i class="fas fa-trash"></i></button>' +
+            "</td></tr>";
+          mt.innerHTML += row;
+        });
+
+        var ct = document.getElementById("campaignCrudTableBody");
+        ct.innerHTML = "";
+        result.campaigns.forEach(function (c) {
+          var statusBadge = c.active
+            ? '<span class="badge bg-success">Active</span>'
+            : '<span class="badge bg-secondary">Inactive</span>';
+          var row = "<tr><td>" + (c.value.displayName || c.value.campaignId || c.key) + "</td>" +
+            "<td>" + (c.value.provider || "") + "</td>" +
+            "<td>" + statusBadge + "</td>" +
+            "<td style='white-space:nowrap'>" +
+            '<button class="btn btn-sm btn-outline-secondary me-1" onclick="openCampaignModal(' + "'" + c.key + "'" + ')"><i class="fas fa-edit"></i></button>' +
+            '<button class="btn btn-sm btn-outline-warning me-1" onclick="toggleApiEntry(' + "'campaign','" + c.key + "'," + !c.active + ')">' + (c.active ? "Disable" : "Enable") + "</button>" +
+            '<button class="btn btn-sm btn-outline-danger" onclick="confirmDeleteApi(' + "'campaign','" + c.key + "','" + (c.value.displayName || c.key) + "'" + ')"><i class="fas fa-trash"></i></button>' +
+            "</td></tr>";
+          ct.innerHTML += row;
+        });
+      }
+
+      function findProvider_(key) {
+        var result = _apiData_;
+        if (!result) return null;
+        for (var i = 0; i < result.providers.length; i++) {
+          if (result.providers[i].key === key) return result.providers[i];
+        }
+        return null;
+      }
+
+      function populateProviderDropdowns() {
+        var result = _apiData_;
+        if (!result) return;
+        var opts = "";
+        result.providers.forEach(function (p) {
+          opts += '<option value="' + p.key + '">' + (p.value.name || p.key) + "</option>";
+        });
+        document.getElementById("mdProvider").innerHTML = opts;
+        document.getElementById("cpProvider").innerHTML = opts;
+      }
+
+      // ── Provider Modal ──
+      function openProviderModal(editKey) {
+        var result = _apiData_;
+        var p = editKey ? findProvider_(editKey) : null;
+        document.getElementById("pvOrgKey").value = editKey || "";
+        document.getElementById("pvMode").value = editKey ? "edit" : "add";
+        document.getElementById("providerModalTitle").textContent = editKey ? "Edit Provider" : "Add Provider";
+        document.getElementById("pvName").value = p ? (p.value.name || "") : "";
+        document.getElementById("pvType").value = p ? (p.value.type || "llm") : "llm";
+        document.getElementById("pvApiKey").value = p ? (p.value.apiKey || "") : "";
+        document.getElementById("pvApiUrl").value = p ? (p.value.apiUrl || "") : "";
+        new bootstrap.Modal(document.getElementById("providerModal")).show();
+      }
+
+      function saveProviderFromModal() {
+        var mode = document.getElementById("pvMode").value;
+        var orgKey = document.getElementById("pvOrgKey").value;
+        var name = document.getElementById("pvName").value.trim();
+        var type = document.getElementById("pvType").value;
+        var apiKey = document.getElementById("pvApiKey").value;
+        var apiUrl = document.getElementById("pvApiUrl").value;
+        if (!name) { showAlert("Provider name is required.", "warning"); return; }
+        var key = mode === "edit" ? orgKey : name.toLowerCase().replace(/[^a-z0-9]/g, "_");
+        var data = { name: name, type: type, apiKey: apiKey, apiUrl: apiUrl };
+        var backendFn = mode === "edit" ? "saveProviderCredential" : "addApiProvider";
+        showSettingsLoader("Saving provider...");
+        google.script.run
+          .withSuccessHandler(function (result) {
+            if (result && result.success) {
+              bootstrap.Modal.getInstance(document.getElementById("providerModal")).hide();
+              hideSettingsLoader("Provider saved.", false);
+              loadApiSettings();
+            } else {
+              hideSettingsLoader(result.error || "Failed.", true);
+            }
+          })
+          .withFailureHandler(function (err) { hideSettingsLoader("Error: " + err, true); })
+          [backendFn](key, data, sessionToken);
+      }
+
+      // ── Model Modal ──
+      function openModelModal(editKey) {
+        populateProviderDropdowns();
+        var result = _apiData_;
+        var m = null;
+        if (editKey) {
+          for (var i = 0; i < result.models.length; i++) {
+            if (result.models[i].key === editKey) { m = result.models[i]; break; }
+          }
+        }
+        document.getElementById("mdOrgKey").value = editKey || "";
+        document.getElementById("mdMode").value = editKey ? "edit" : "add";
+        document.getElementById("modelModalTitle").textContent = editKey ? "Edit Model" : "Add Model";
+        document.getElementById("mdName").value = m ? (m.value.displayName || "") : "";
+        document.getElementById("mdProvider").value = m ? (m.value.provider || "") : "";
+        document.getElementById("mdModelId").value = m ? (m.value.modelId || "") : "";
+        new bootstrap.Modal(document.getElementById("modelModal")).show();
+      }
+
+      function saveModelFromModal() {
+        var mode = document.getElementById("mdMode").value;
+        var orgKey = document.getElementById("mdOrgKey").value;
+        var name = document.getElementById("mdName").value.trim();
+        var provider = document.getElementById("mdProvider").value;
+        var modelId = document.getElementById("mdModelId").value.trim();
+        if (!name || !modelId) { showAlert("Display name and Model ID are required.", "warning"); return; }
+        var key = mode === "edit" ? orgKey : modelId;
+        var data = { provider: provider, modelId: modelId, displayName: name };
+        showSettingsLoader("Saving model...");
+        google.script.run
+          .withSuccessHandler(function (result) {
+            if (result && result.success) {
+              bootstrap.Modal.getInstance(document.getElementById("modelModal")).hide();
+              hideSettingsLoader("Model saved.", false);
+              loadApiSettings();
+            } else {
+              hideSettingsLoader(result.error || "Failed.", true);
+            }
+          })
+          .withFailureHandler(function (err) { hideSettingsLoader("Error: " + err, true); })
+          .saveApiModel(key, data, sessionToken);
+      }
+
+      // ── Campaign Modal ──
+      function openCampaignModal(editKey) {
+        populateProviderDropdowns();
+        var result = _apiData_;
+        var c = null;
+        if (editKey) {
+          for (var i = 0; i < result.campaigns.length; i++) {
+            if (result.campaigns[i].key === editKey) { c = result.campaigns[i]; break; }
+          }
+        }
+        document.getElementById("cpOrgKey").value = editKey || "";
+        document.getElementById("cpMode").value = editKey ? "edit" : "add";
+        document.getElementById("campaignModalTitle").textContent = editKey ? "Edit Campaign" : "Add Campaign";
+        document.getElementById("cpName").value = c ? (c.value.displayName || "") : "";
+        document.getElementById("cpProvider").value = c ? (c.value.provider || "") : "";
+        document.getElementById("cpCampaignId").value = c ? (c.value.campaignId || "") : "";
+        new bootstrap.Modal(document.getElementById("campaignModal")).show();
+      }
+
+      function saveCampaignFromModal() {
+        var mode = document.getElementById("cpMode").value;
+        var orgKey = document.getElementById("cpOrgKey").value;
+        var name = document.getElementById("cpName").value.trim();
+        var provider = document.getElementById("cpProvider").value;
+        var campaignId = document.getElementById("cpCampaignId").value.trim();
+        if (!name || !campaignId) { showAlert("Display name and Campaign ID are required.", "warning"); return; }
+        var key = mode === "edit" ? orgKey : campaignId;
+        var data = { provider: provider, campaignId: campaignId, displayName: name };
+        showSettingsLoader("Saving campaign...");
+        google.script.run
+          .withSuccessHandler(function (result) {
+            if (result && result.success) {
+              bootstrap.Modal.getInstance(document.getElementById("campaignModal")).hide();
+              hideSettingsLoader("Campaign saved.", false);
+              loadApiSettings();
+            } else {
+              hideSettingsLoader(result.error || "Failed.", true);
+            }
+          })
+          .withFailureHandler(function (err) { hideSettingsLoader("Error: " + err, true); })
+          .saveApiCampaign(key, data, sessionToken);
+      }
+
+      // ── Active Config Saves ──
+      function saveApiActiveLlmConfig() {
+        var model = document.getElementById("activeLlmModel").value;
+        if (!model) { showAlert("Please select a model.", "warning"); return; }
+        showSettingsLoader("Saving AI model config...");
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideSettingsLoader(result && result.success ? "Active LLM model saved." : (result.error || "Failed."), !(result && result.success));
+            if (result && result.success) loadApiSettings();
+          })
+          .withFailureHandler(function (err) { hideSettingsLoader("Error: " + err, true); })
+          .saveApiActiveConfig({ llmModel: model }, sessionToken);
+      }
+
+      function saveApiActiveWaConfig() {
+        var campaign = document.getElementById("activeWaCampaign").value;
+        if (!campaign) { showAlert("Please select a campaign.", "warning"); return; }
+        showSettingsLoader("Saving WhatsApp config...");
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideSettingsLoader(result && result.success ? "Active WhatsApp campaign saved." : (result.error || "Failed."), !(result && result.success));
+            if (result && result.success) loadApiSettings();
+          })
+          .withFailureHandler(function (err) { hideSettingsLoader("Error: " + err, true); })
+          .saveApiActiveConfig({ waCampaign: campaign }, sessionToken);
+      }
+
+      // ── Toggle & Delete ──
+      function toggleApiEntry(category, key, active) {
+        showSettingsLoader("Updating...");
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideSettingsLoader(result && result.success ? "Status updated." : (result.error || "Failed."), !(result && result.success));
+            if (result && result.success) loadApiSettings();
+          })
+          .withFailureHandler(function (err) { hideSettingsLoader("Error: " + err, true); })
+          .toggleApiEntryActive(category, key, active, sessionToken);
+      }
+
+      function confirmDeleteApi(category, key, displayName) {
+        document.getElementById("apiDeleteMsg").textContent = "Delete \"" + displayName + "\"? This cannot be undone.";
+        document.getElementById("apiDeleteCategory").value = category;
+        document.getElementById("apiDeleteKey").value = key;
+        new bootstrap.Modal(document.getElementById("apiDeleteModal")).show();
+      }
+
+      function confirmApiDelete() {
+        var category = document.getElementById("apiDeleteCategory").value;
+        var key = document.getElementById("apiDeleteKey").value;
+        showSettingsLoader("Deleting...");
+        google.script.run
+          .withSuccessHandler(function (result) {
+            bootstrap.Modal.getInstance(document.getElementById("apiDeleteModal")).hide();
+            hideSettingsLoader(result && result.success ? "Entry deleted." : (result.error || "Failed."), !(result && result.success));
+            if (result && result.success) loadApiSettings();
+          })
+          .withFailureHandler(function (err) { hideSettingsLoader("Error: " + err, true); })
+          .deleteApiEntry(category, key, sessionToken);
+      }
+
+      // Load maintenance settings from backend
+      function loadMaintenanceSettings() {
+        google.script.run
+          .withSuccessHandler(function (result) {
+            if (result && result.success && result.settings) {
+              const settings = result.settings;
+              document.getElementById("autoBackup").value =
+                settings.autoBackup || "disabled";
+              document.getElementById("dataRetention").value =
+                settings.dataRetention || 24;
+              document.getElementById("archiveOldData").value =
+                settings.archiveOldData || "disabled";
+              document.getElementById("systemMonitoring").value =
+                settings.systemMonitoring || "disabled";
+              document.getElementById("performanceOptimization").value =
+                settings.performanceOptimization || "disabled";
+              document.getElementById("errorReporting").value =
+                settings.errorReporting || "enabled";
+            }
+          })
+          .withFailureHandler(function (error) {
+            console.log("Error loading maintenance settings: " + error);
+          })
+          .loadMaintenanceSettings();
+      }
+
+      function saveMaintenanceSettings() {
+        const settings = {
+          autoBackup: document.getElementById("autoBackup").value,
+          dataRetention: parseInt(
+            document.getElementById("dataRetention").value,
+            10,
+          ),
+          archiveOldData: document.getElementById("archiveOldData").value,
+          systemMonitoring: document.getElementById("systemMonitoring").value,
+          performanceOptimization: document.getElementById(
+            "performanceOptimization",
+          ).value,
+          errorReporting: document.getElementById("errorReporting").value,
+        };
+
+        showSettingsLoader("Saving maintenance settings...");
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideSettingsLoader(
+              result && result.success ? "Maintenance settings saved!" : (result.message || "Failed to save."),
+              !(result && result.success)
+            );
+          })
+          .withFailureHandler(function (error) {
+            hideSettingsLoader("Error: " + error, true);
+          })
+          .saveMaintenanceSettings(settings, sessionToken);
+      }
+
+      function clearAllData() {
+        if (
+          confirm(
+            "Are you sure you want to clear all data? This action cannot be undone!",
+          )
+        ) {
+          if (
+            confirm(
+              "This will permanently delete ALL appointments, patients, and system data. Are you absolutely sure?",
+            )
+          ) {
+            showAlert(
+              "Data clearing initiated. This may take several minutes.",
+              "warning",
+            );
+            // Implement data clearing logic
+          }
+        }
+      }
+
+      function resetSystem() {
+        if (
+          confirm(
+            "Are you sure you want to reset the system to factory defaults? This action cannot be undone!",
+          )
+        ) {
+          if (
+            confirm(
+              "This will reset ALL settings and configurations. Are you absolutely sure?",
+            )
+          ) {
+            showAlert(
+              "System reset initiated. The system will restart in maintenance mode.",
+              "warning",
+            );
+            // Implement system reset logic
+          }
+        }
+      }
+
+      function showAlert(message, type = "info", options = {}) {
+        const alertContainer = document.getElementById("alertContainer");
+        const alertDiv = document.createElement("div");
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+
+        alertContainer.appendChild(alertDiv);
+
+        setTimeout(() => {
+          if (alertDiv.parentNode) {
+            alertDiv.remove();
+          }
+        }, 5000);
+      }
+
+      // User Management Functions
+
+      // Load all users from the backend
+      function loadUsers() {
+        google.script.run
+          .withSuccessHandler(function (result) {
+            if (result && result.success) {
+              displayUsers(result.users);
+            } else {
+              document.getElementById("usersTableBody").innerHTML = `
+              <tr>
+                <td colspan="5" class="text-center text-danger">
+                  ${result.message || "Error loading users"}
+                </td>
+              </tr>
+            `;
+            }
+          })
+          .withFailureHandler(function (error) {
+            document.getElementById("usersTableBody").innerHTML = `
+            <tr>
+              <td colspan="5" class="text-center text-danger">
+                Error loading users: ${error}
+              </td>
+            </tr>
+          `;
+          })
+          .getAllUsers(sessionToken);
+      }
+
+      // Display users in the table
+      function displayUsers(users) {
+        const tbody = document.getElementById("usersTableBody");
+
+        if (!users || users.length === 0) {
+          tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="text-center">No users found</td>
+          </tr>
+        `;
+          return;
+        }
+
+        tbody.innerHTML = "";
+
+        users.forEach((user) => {
+          const accessLevel = getAccessLevel(user.role);
+          const row = document.createElement("tr");
+          row.innerHTML = `
+          <td>${user.username}</td>
+          <td>${user.fullName || "-"}</td>
+          <td>${capitalizeFirst(user.role)}</td>
+          <td>
+            <span class="badge bg-${getLevelBadgeColor(accessLevel)}">
+              Level ${accessLevel}
+            </span>
+          </td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary me-1" onclick="showEditUserModal('${user.username}', '${user.fullName}', '${user.role}')" title="Edit User">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-warning me-1" onclick="showChangePasswordModal('${user.username}')" title="Change Password">
+              <i class="fas fa-key"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger" onclick="confirmDeleteUser('${user.username}')" title="Delete User">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        `;
+          tbody.appendChild(row);
+        });
+      }
+
+      // Get access level from role
+      function getAccessLevel(role) {
+        const roleLevels = {
+          director: 1,
+          admin: 1,
+          doctor: 2,
+          manager: 3,
+          user: 4,
+          staff: 4,
+          receptionist: 4,
+          nurse: 4,
+        };
+        return roleLevels[role.toLowerCase()] || 4;
+      }
+
+      // Get badge color for access level
+      function getLevelBadgeColor(level) {
+        switch (level) {
+          case 1:
+            return "danger";
+          case 2:
+            return "warning";
+          case 3:
+            return "info";
+          case 4:
+            return "secondary";
+          default:
+            return "secondary";
+        }
+      }
+
+      // Capitalize first letter
+      function capitalizeFirst(str) {
+        if (!str) return "";
+        return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+      }
+
+      // Show add user modal
+      function showAddUserModal() {
+        document.getElementById("editMode").value = "false";
+        document.getElementById("userModalLabel").textContent = "Add New User";
+        document.getElementById("userUsername").value = "";
+        document.getElementById("userUsername").disabled = false;
+        document.getElementById("userPassword").value = "";
+        document.getElementById("userPassword").required = true;
+        document.getElementById("passwordField").style.display = "block";
+        document.getElementById("userFullName").value = "";
+        document.getElementById("userRole").value = "user";
+
+        const modal = new bootstrap.Modal(document.getElementById("userModal"));
+        modal.show();
+      }
+
+      // Show edit user modal
+      function showEditUserModal(username, fullName, role) {
+        document.getElementById("editMode").value = "true";
+        document.getElementById("userModalLabel").textContent = "Edit User";
+        document.getElementById("userUsername").value = username;
+        document.getElementById("userUsername").disabled = true;
+        document.getElementById("userPassword").value = "";
+        document.getElementById("userPassword").required = false;
+        document.getElementById("passwordField").style.display = "none";
+        document.getElementById("userFullName").value = fullName || "";
+        document.getElementById("userRole").value = role || "user";
+
+        const modal = new bootstrap.Modal(document.getElementById("userModal"));
+        modal.show();
+      }
+
+      // Save user (add or update)
+      function saveUser() {
+        const editMode = document.getElementById("editMode").value === "true";
+        const username = document.getElementById("userUsername").value.trim();
+        const password = document.getElementById("userPassword").value;
+        const fullName = document.getElementById("userFullName").value.trim();
+        const role = document.getElementById("userRole").value;
+
+        // Validation
+        if (!username) {
+          showAlert("Username is required", "danger");
+          return;
+        }
+
+        if (!editMode && !password) {
+          showAlert("Password is required for new users", "danger");
+          return;
+        }
+
+        const userData = {
+          username: username,
+          role: role,
+          fullName: fullName,
+        };
+
+        if (editMode) {
+          showSettingsLoader("Updating user...");
+          google.script.run
+            .withSuccessHandler(function (result) {
+              hideSettingsLoader(
+                result && result.success ? (result.message || "User updated!") : (result.message || "Failed."),
+                !(result && result.success)
+              );
+              if (result && result.success) {
+                bootstrap.Modal.getInstance(document.getElementById("userModal")).hide();
+                loadUsers();
+              }
+            })
+            .withFailureHandler(function (error) {
+              hideSettingsLoader("Error: " + error, true);
+            })
+            .updateUser(userData, sessionToken);
+        } else {
+          userData.password = password;
+          showSettingsLoader("Adding new user...");
+          google.script.run
+            .withSuccessHandler(function (result) {
+              hideSettingsLoader(
+                result && result.success ? (result.message || "User added!") : (result.message || "Failed."),
+                !(result && result.success)
+              );
+              if (result && result.success) {
+                bootstrap.Modal.getInstance(document.getElementById("userModal")).hide();
+                loadUsers();
+              }
+            })
+            .withFailureHandler(function (error) {
+              hideSettingsLoader("Error: " + error, true);
+            })
+            .addUser(userData, sessionToken);
+        }
+      }
+
+      // Show change password modal
+      function showChangePasswordModal(username) {
+        document.getElementById("passwordUsername").value = username;
+        document.getElementById("passwordUsernameDisplay").textContent =
+          username;
+        document.getElementById("newPassword").value = "";
+        document.getElementById("confirmPassword").value = "";
+
+        const modal = new bootstrap.Modal(
+          document.getElementById("passwordModal"),
+        );
+        modal.show();
+      }
+
+      // Change password
+      function changePassword() {
+        const username = document.getElementById("passwordUsername").value;
+        const newPassword = document.getElementById("newPassword").value;
+        const confirmPassword =
+          document.getElementById("confirmPassword").value;
+
+        // Validation
+        if (!newPassword) {
+          showAlert("New password is required", "danger");
+          return;
+        }
+
+        if (newPassword !== confirmPassword) {
+          showAlert("Passwords do not match", "danger");
+          return;
+        }
+
+        google.script.run
+          .withSuccessHandler(function (result) {
+            if (result && result.success) {
+              showAlert(
+                result.message || "Password changed successfully!",
+                "success",
+              );
+              bootstrap.Modal.getInstance(
+                document.getElementById("passwordModal"),
+              ).hide();
+            } else {
+              showAlert(
+                result.message || "Failed to change password",
+                "danger",
+              );
+            }
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error changing password: " + error, "danger");
+          })
+          .changeUserPassword(username, newPassword, sessionToken);
+      }
+
+      // Confirm delete user - show custom modal
+      function confirmDeleteUser(username) {
+        document.getElementById("deleteUsername").value = username;
+        document.getElementById("deleteUsernameDisplay").textContent = username;
+
+        const modal = new bootstrap.Modal(
+          document.getElementById("deleteUserModal"),
+        );
+        modal.show();
+      }
+
+      // Delete user - called from modal
+      function deleteUserAccount() {
+        const username = document.getElementById("deleteUsername").value;
+
+        // Hide the modal first
+        const modalElement = document.getElementById("deleteUserModal");
+        const modal = bootstrap.Modal.getInstance(modalElement);
+        if (modal) {
+          modal.hide();
+        }
+
+        // Perform the delete operation
+        google.script.run
+          .withSuccessHandler(function (result) {
+            if (result && result.success) {
+              showAlert(
+                result.message || "User deleted successfully!",
+                "success",
+              );
+              loadUsers();
+            } else {
+              showAlert(result.message || "Failed to delete user", "danger");
+            }
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error deleting user: " + error, "danger");
+          })
+          .deleteUser(username, sessionToken);
+      }
+    </script>
+  </body>
+</html>

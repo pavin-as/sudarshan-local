@@ -1,0 +1,3987 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --primary-color: #4a90e2;
+        --primary-light: #e8f0fe;
+        --primary-dark: #2c5282;
+        --success-color: #48bb78;
+        --warning-color: #ed8936;
+        --danger-color: #e53e3e;
+        --text-primary: #2d3748;
+        --text-secondary: #4a5568;
+        --bg-light: #f7fafc;
+        --bg-white: #ffffff;
+      }
+
+      body {
+        background-color: var(--bg-light);
+        color: var(--text-primary);
+        min-height: 100vh;
+        padding: 2rem;
+      }
+
+      .container {
+        max-width: 1400px;
+      }
+
+      .page-header {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .page-header h1 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin: 0;
+        position: relative;
+        padding-left: 1rem;
+      }
+
+      .page-header h1::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 4px;
+        height: 70%;
+        background: linear-gradient(
+          to bottom,
+          var(--primary-color),
+          var(--success-color)
+        );
+        border-radius: 2px;
+      }
+
+      .section-card {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      }
+
+      .nav-tabs {
+        border-bottom: 2px solid var(--primary-light);
+        margin-bottom: 1.5rem;
+      }
+
+      .nav-tabs .nav-link {
+        border: none;
+        color: var(--text-secondary);
+        font-weight: 500;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px 8px 0 0;
+        transition: all 0.3s ease;
+      }
+
+      .nav-tabs .nav-link:hover {
+        color: var(--primary-color);
+        background: var(--primary-light);
+      }
+
+      .nav-tabs .nav-link.active {
+        color: var(--primary-color);
+        background: var(--primary-light);
+        border-bottom: 3px solid var(--primary-color);
+      }
+
+      .form-group {
+        margin-bottom: 1rem;
+      }
+
+      .form-control,
+      .form-select {
+        border: 2px solid var(--primary-light);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+      }
+
+      .form-control:focus,
+      .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+      }
+
+      .patient-info-card {
+        background: var(--primary-light);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+        display: none;
+      }
+
+      .patient-info-card.show {
+        display: block;
+      }
+
+      .patient-info-card .info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+      }
+
+      .patient-info-card .info-label {
+        font-weight: 500;
+        color: var(--text-secondary);
+      }
+
+      .patient-info-card .info-value {
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .directcall-card {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+      }
+
+      .directcall-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+      }
+
+      .directcall-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--primary-light);
+      }
+
+      .directcall-id {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 1.1rem;
+      }
+
+      .directcall-date {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+      }
+
+      .directcall-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+
+      .detail-group {
+        margin-bottom: 0.5rem;
+      }
+
+      .detail-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.25rem;
+      }
+
+      .detail-value {
+        font-weight: 500;
+      }
+
+      .remarks-section {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 2px solid var(--primary-light);
+      }
+
+      .remarks-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+      }
+
+      .remarks-value {
+        background: var(--bg-light);
+        padding: 0.75rem;
+        border-radius: 8px;
+        color: var(--text-primary);
+      }
+
+      .directcall-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 2px solid var(--primary-light);
+      }
+
+      .badge-urgency {
+        padding: 0.35rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+      }
+
+      .badge-urgency.non-urgent {
+        background: #d4edda;
+        color: #155724;
+      }
+
+      .badge-urgency.urgent {
+        background: #fff3cd;
+        color: #856404;
+      }
+
+      .badge-urgency.emergency {
+        background: #f8d7da;
+        color: #721c24;
+      }
+
+      .badge-calltype {
+        padding: 0.35rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+      }
+
+      .badge-calltype.appointment {
+        background: var(--primary-light);
+        color: var(--primary-dark);
+      }
+
+      .badge-calltype.enquiry {
+        background: #e2e8f0;
+        color: var(--text-secondary);
+      }
+
+      .alert-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+      }
+
+      .custom-alert {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .custom-alert.warning {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        color: #856404;
+        font-weight: 500;
+      }
+
+      .custom-alert.error {
+        background: #f8d7da;
+        border-left: 4px solid #dc3545;
+        color: #721c24;
+        font-weight: 500;
+      }
+
+      .custom-alert.success {
+        background: #d4edda;
+        border-left: 4px solid #28a745;
+        color: #155724;
+        font-weight: 500;
+      }
+
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+      }
+
+      .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid var(--primary-light);
+        border-top-color: var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .no-results {
+        text-align: center;
+        padding: 3rem;
+        color: var(--text-secondary);
+      }
+
+      .no-results i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: var(--text-secondary);
+      }
+
+      /* Custom Confirmation Modal Styles */
+      .custom-confirm-modal .modal-content {
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+      }
+
+      .custom-confirm-modal .modal-header {
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--primary-dark)
+        );
+        color: white;
+        border: none;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .custom-confirm-modal .modal-header .modal-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-weight: 600;
+        font-size: 1.25rem;
+        margin: 0;
+      }
+
+      .custom-confirm-modal .modal-header .modal-icon {
+        width: 48px;
+        height: 48px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+      }
+
+      .custom-confirm-modal .modal-header .btn-close {
+        filter: invert(1);
+        opacity: 0.9;
+        margin-left: auto;
+      }
+
+      .custom-confirm-modal .modal-body {
+        padding: 2rem;
+        text-align: center;
+      }
+
+      .custom-confirm-modal .modal-body .confirm-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 1.5rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        animation: scaleIn 0.3s ease-out;
+      }
+
+      .custom-confirm-modal .modal-body .confirm-icon.cancel {
+        background: linear-gradient(135deg, #fee2e2, #fecaca);
+        color: var(--danger-color);
+      }
+
+      .custom-confirm-modal .modal-body .confirm-icon.archive {
+        background: linear-gradient(135deg, #e5e7eb, #d1d5db);
+        color: var(--text-secondary);
+      }
+
+      .custom-confirm-modal .modal-body .confirm-message {
+        font-size: 1.1rem;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+      }
+
+      .custom-confirm-modal .modal-body .confirm-details {
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+        margin-top: 1rem;
+        padding: 1rem;
+        background: var(--bg-light);
+        border-radius: 8px;
+        border-left: 4px solid var(--primary-color);
+      }
+
+      .custom-confirm-modal .modal-footer {
+        border: none;
+        padding: 1.5rem 2rem;
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+      }
+
+      .custom-confirm-modal .modal-footer .btn {
+        min-width: 120px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+      }
+
+      .custom-confirm-modal .modal-footer .btn-cancel-action {
+        background: var(--danger-color);
+        border-color: var(--danger-color);
+        color: white;
+      }
+
+      .custom-confirm-modal .modal-footer .btn-cancel-action:hover {
+        background: #c53030;
+        border-color: #c53030;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(229, 62, 62, 0.3);
+      }
+
+      .custom-confirm-modal .modal-footer .btn-archive-action {
+        background: var(--text-secondary);
+        border-color: var(--text-secondary);
+        color: white;
+      }
+
+      .custom-confirm-modal .modal-footer .btn-archive-action:hover {
+        background: #2d3748;
+        border-color: #2d3748;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(45, 55, 72, 0.3);
+      }
+
+      .custom-confirm-modal .modal-footer .btn-secondary {
+        background: white;
+        border: 2px solid var(--primary-light);
+        color: var(--text-primary);
+      }
+
+      .custom-confirm-modal .modal-footer .btn-secondary:hover {
+        background: var(--bg-light);
+        border-color: var(--primary-color);
+        transform: translateY(-2px);
+      }
+
+      @keyframes scaleIn {
+        from {
+          transform: scale(0);
+          opacity: 0;
+        }
+
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      /* Plan of Action autocomplete styles */
+      #bookingSuggestionsDropdown {
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1055;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        margin-top: 4px;
+        display: none;
+      }
+
+      #bookingProcedureInputContainer {
+        position: relative;
+      }
+
+      .suggestion-item {
+        cursor: pointer;
+        padding: 0.75rem 1rem;
+      }
+
+      .suggestion-item:hover {
+        background-color: var(--primary-light);
+      }
+
+      .remove-procedure {
+        cursor: pointer;
+        margin-left: 0.5rem;
+        color: var(--danger-color);
+      }
+
+      .remove-procedure:hover {
+        color: var(--primary-dark);
+      }
+
+      .search-section {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      }
+
+      .search-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+
+      .patient-selection-card {
+        border: 2px solid var(--primary-light);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .patient-selection-card:hover {
+        border-color: var(--primary-color);
+        background: var(--primary-light);
+        transform: translateX(4px);
+      }
+
+      .patient-selection-card.selected {
+        border-color: var(--primary-color);
+        background: var(--primary-light);
+      }
+
+      .patient-selection-card .patient-name {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .patient-selection-card .patient-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+      }
+
+      .patient-selection-card .patient-detail-item {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      /* Results Header Styles */
+      .results-header {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .results-count {
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .results-count .count-number {
+        color: var(--primary-color);
+        font-size: 1.2rem;
+      }
+
+      .patient-selection-card .patient-detail-label {
+        font-weight: 500;
+      }
+    </style>
+  </head>
+
+  <body>
+    <script>
+      window.sessionToken = "<?= sessionToken ?>";
+      window.baseUrl = "<?= webAppUrl ?>";
+    </script>
+    <?!= include('sharedLayout') ?>
+    <div class="alert-container" id="alertContainer"></div>
+
+    <div class="container">
+      <div class="page-header">
+        <h1>Direct Call</h1>
+        <button class="btn btn-outline-primary btn-sm" onclick="openDirectCallReport()" title="Daily report + overdue pending">
+          <i class="fas fa-print me-1"></i>Report
+        </button>
+        <button class="btn btn-primary" onclick="navigateToDashboard()">
+          <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </button>
+      </div>
+
+      <!-- Create New Direct Call Section -->
+      <div class="section-card">
+        <h5 class="mb-3"><i class="fas fa-phone-alt me-2"></i>Log New Call</h5>
+
+        <!-- Patient Type Tabs -->
+        <ul class="nav nav-tabs" id="patientTypeTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link active"
+              id="old-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#old-patient"
+              type="button"
+              role="tab"
+              aria-controls="old-patient"
+              aria-selected="true"
+            >
+              <i class="fas fa-user-check me-1"></i> OLD Patient
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="new-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#new-patient"
+              type="button"
+              role="tab"
+              aria-controls="new-patient"
+              aria-selected="false"
+            >
+              <i class="fas fa-user-plus me-1"></i> NEW Patient
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content" id="patientTypeContent">
+          <!-- OLD Patient Tab -->
+          <div
+            class="tab-pane fade show active"
+            id="old-patient"
+            role="tabpanel"
+            aria-labelledby="old-tab"
+          >
+            <form id="oldPatientForm">
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label for="mrdNoInput" class="form-label"
+                      >MRD Number or Phone Number</label
+                    >
+                    <div class="input-group">
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="mrdNoInput"
+                        placeholder="Enter MRD No or Phone Number"
+                      />
+                      <button
+                        type="button"
+                        class="btn btn-outline-primary"
+                        onclick="lookupPatient()"
+                      >
+                        <i class="fas fa-search"></i> Lookup
+                      </button>
+                    </div>
+                    <small class="text-muted"
+                      >Enter MRD No (e.g., 12345 or SPD12345) or Phone
+                      Number</small
+                    >
+                  </div>
+                </div>
+              </div>
+
+              <!-- Patient Info Display -->
+              <div class="patient-info-card" id="patientInfoCard">
+                <h6 class="mb-3">
+                  <i class="fas fa-user me-2"></i>Patient Information
+                </h6>
+                <div class="row">
+                  <div class="col-md-3">
+                    <div class="info-row">
+                      <span class="info-label">Name:</span>
+                      <span class="info-value" id="patientName">-</span>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="info-row">
+                      <span class="info-label">Phone:</span>
+                      <span class="info-value" id="patientPhone">-</span>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="info-row">
+                      <span class="info-label">Age:</span>
+                      <span class="info-value" id="patientAge">-</span>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="info-row">
+                      <span class="info-label">Gender:</span>
+                      <span class="info-value" id="patientGender">-</span>
+                    </div>
+                  </div>
+                </div>
+                <input type="hidden" id="oldPatientMRD" />
+                <input type="hidden" id="oldPatientName" />
+                <input type="hidden" id="oldPatientPhone" />
+                <input type="hidden" id="oldPatientAge" />
+                <input type="hidden" id="oldPatientGender" />
+              </div>
+
+              <!-- Common Fields for OLD patient -->
+              <div
+                class="row mt-3"
+                id="oldPatientCommonFields"
+                style="display: none"
+              >
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label for="oldCallType" class="form-label"
+                      >Call Type <span class="text-danger">*</span></label
+                    >
+                    <select class="form-select" id="oldCallType" required>
+                      <option value="">Select Call Type</option>
+                      <option value="Appointment">Appointment</option>
+                      <option value="Enquiry">Enquiry</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label for="oldCaseType" class="form-label"
+                      >Case Type <span class="text-danger">*</span></label
+                    >
+                    <select class="form-select" id="oldCaseType" required>
+                      <option value="">Select Case Type</option>
+                      <option value="Referral">Referral</option>
+                      <option value="Non referral">Non referral</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label for="oldUrgency" class="form-label"
+                      >Urgency <span class="text-danger">*</span></label
+                    >
+                    <select class="form-select" id="oldUrgency" required>
+                      <option value="">Select Urgency</option>
+                      <option value="Non-urgent">Non-urgent</option>
+                      <option value="Urgent">Urgent</option>
+                      <option value="Emergency">Emergency</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-12 mt-2">
+                  <div class="form-group">
+                    <label for="oldRemarks" class="form-label">Remarks</label>
+                    <textarea
+                      class="form-control"
+                      id="oldRemarks"
+                      rows="2"
+                      placeholder="Enter any remarks..."
+                    ></textarea>
+                  </div>
+                </div>
+                <div class="col-md-12 mt-3">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i> Save Direct Call
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-secondary ms-2"
+                    onclick="resetOldPatientForm()"
+                  >
+                    <i class="fas fa-redo me-1"></i> Reset
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- NEW Patient Tab -->
+          <div
+            class="tab-pane fade"
+            id="new-patient"
+            role="tabpanel"
+            aria-labelledby="new-tab"
+          >
+            <form id="newPatientForm">
+              <div class="row">
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label for="newPatientName" class="form-label"
+                      >Patient Name <span class="text-danger">*</span></label
+                    >
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="newPatientName"
+                      placeholder="Enter patient name"
+                      required
+                    />
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label for="newPatientPhone" class="form-label"
+                      >Mobile Number <span class="text-danger">*</span></label
+                    >
+                    <input
+                      type="tel"
+                      class="form-control"
+                      id="newPatientPhone"
+                      placeholder="Enter mobile number"
+                      required
+                    />
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <div class="form-group">
+                    <label for="newPatientAgeType" class="form-label"
+                      >Age Type <span class="text-danger">*</span></label
+                    >
+                    <select
+                      class="form-select"
+                      id="newPatientAgeType"
+                      required
+                      onchange="toggleAgeInputs()"
+                    >
+                      <option value="years">Years</option>
+                      <option value="months">Months</option>
+                      <option value="days">Days</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <div class="form-group">
+                    <label for="newPatientAge" class="form-label"
+                      >Age <span class="text-danger">*</span></label
+                    >
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="newPatientAge"
+                      placeholder="e.g., 35"
+                      required
+                      min="0"
+                    />
+                    <small class="text-muted" id="ageHint"
+                      >Enter age in years</small
+                    >
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <div class="form-group">
+                    <label for="newPatientGender" class="form-label"
+                      >Gender <span class="text-danger">*</span></label
+                    >
+                    <select class="form-select" id="newPatientGender" required>
+                      <option value="">Select</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Common Fields for NEW patient -->
+              <div class="row mt-3">
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label for="newCallType" class="form-label"
+                      >Call Type <span class="text-danger">*</span></label
+                    >
+                    <select class="form-select" id="newCallType" required>
+                      <option value="">Select Call Type</option>
+                      <option value="Appointment">Appointment</option>
+                      <option value="Enquiry">Enquiry</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label for="newCaseType" class="form-label"
+                      >Case Type <span class="text-danger">*</span></label
+                    >
+                    <select class="form-select" id="newCaseType" required>
+                      <option value="">Select Case Type</option>
+                      <option value="Referral">Referral</option>
+                      <option value="Non referral">Non referral</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label for="newUrgency" class="form-label"
+                      >Urgency <span class="text-danger">*</span></label
+                    >
+                    <select class="form-select" id="newUrgency" required>
+                      <option value="">Select Urgency</option>
+                      <option value="Non-urgent">Non-urgent</option>
+                      <option value="Urgent">Urgent</option>
+                      <option value="Emergency">Emergency</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-12 mt-2">
+                  <div class="form-group">
+                    <label for="newRemarks" class="form-label">Remarks</label>
+                    <textarea
+                      class="form-control"
+                      id="newRemarks"
+                      rows="2"
+                      placeholder="Enter any remarks..."
+                    ></textarea>
+                  </div>
+                </div>
+                <div class="col-md-12 mt-3">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i> Save Direct Call
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-secondary ms-2"
+                    onclick="resetNewPatientForm()"
+                  >
+                    <i class="fas fa-redo me-1"></i> Reset
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search Section -->
+      <div class="search-section">
+        <h5 class="mb-3">
+          <i class="fas fa-search me-2"></i>Search Direct Calls
+        </h5>
+        <form id="searchForm" class="search-form">
+          <div class="form-group">
+            <label for="searchMrdNo">MRD Number</label>
+            <input
+              type="text"
+              class="form-control"
+              id="searchMrdNo"
+              placeholder="Enter MRD No"
+            />
+          </div>
+          <div class="form-group">
+            <label for="searchPatientName">Patient Name</label>
+            <input
+              type="text"
+              class="form-control"
+              id="searchPatientName"
+              placeholder="Enter patient name"
+            />
+          </div>
+          <div class="form-group">
+            <label for="searchPhone">Phone Number</label>
+            <input
+              type="text"
+              class="form-control"
+              id="searchPhone"
+              placeholder="Enter phone number"
+            />
+          </div>
+          <div class="form-group">
+            <label for="searchDate">Date</label>
+            <input type="date" class="form-control" id="searchDate" />
+          </div>
+          <div class="form-group d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="fas fa-search"></i> Search
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Results Container -->
+      <div id="resultsContainer">
+        <!-- Results will be displayed here after search -->
+      </div>
+    </div>
+
+    <!-- Booking Modal -->
+    <div class="modal fade" id="bookingModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Book Appointment from Direct Call</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <form id="bookingForm">
+              <input type="hidden" id="bookingDirectCallID" />
+              <div class="mb-3">
+                <label for="bookingAppointmentDate" class="form-label"
+                  >Appointment Date</label
+                >
+                <input
+                  type="date"
+                  class="form-control"
+                  id="bookingAppointmentDate"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label for="bookingDoctor" class="form-label">Doctor</label>
+                <select class="form-select" id="bookingDoctor" required>
+                  <option value="">Select a Doctor</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="bookingAppointmentType" class="form-label"
+                  >Appointment Type</label
+                >
+                <select
+                  class="form-select"
+                  id="bookingAppointmentType"
+                  required
+                >
+                  <option value="">Select Appointment Type</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="bookingPlanOfAction" class="form-label"
+                  >Plan of Action</label
+                >
+                <div id="bookingPlanOfActionContainer">
+                  <!-- Autocomplete Input -->
+                  <div
+                    id="bookingProcedureInputContainer"
+                    class="position-relative"
+                  >
+                    <input
+                      type="text"
+                      id="bookingProcedureInput"
+                      class="form-control"
+                      placeholder="Type to search..."
+                    />
+                    <div
+                      id="bookingSuggestionsDropdown"
+                      class="list-group position-absolute w-100"
+                    ></div>
+                  </div>
+
+                  <!-- Eye Selection (hidden until needed) -->
+                  <div id="bookingEyeSelectionContainer" class="mt-2 d-none">
+                    <span class="form-label">Select Eye:</span>
+                    <div class="btn-group ms-2">
+                      <input
+                        type="radio"
+                        name="bookingEyeSelection"
+                        id="bookingRE"
+                        value="RE"
+                        class="btn-check"
+                      />
+                      <label
+                        for="bookingRE"
+                        class="btn btn-outline-secondary btn-sm"
+                        >RE</label
+                      >
+
+                      <input
+                        type="radio"
+                        name="bookingEyeSelection"
+                        id="bookingLE"
+                        value="LE"
+                        class="btn-check"
+                      />
+                      <label
+                        for="bookingLE"
+                        class="btn btn-outline-secondary btn-sm"
+                        >LE</label
+                      >
+
+                      <input
+                        type="radio"
+                        name="bookingEyeSelection"
+                        id="bookingBE"
+                        value="BE"
+                        class="btn-check"
+                      />
+                      <label
+                        for="bookingBE"
+                        class="btn btn-outline-secondary btn-sm"
+                        >BE</label
+                      >
+                    </div>
+                  </div>
+
+                  <!-- Selected Items List -->
+                  <div id="bookingSelectedProceduresList" class="mt-2"></div>
+
+                  <!-- Hidden JSON Field -->
+                  <input
+                    type="hidden"
+                    id="bookingPlanOfAction"
+                    name="bookingPlanOfAction"
+                  />
+                </div>
+              </div>
+              <div class="mb-3" id="bookingTimeSlotSection">
+                <label for="bookingTimeSlot" class="form-label"
+                  >Time Slot</label
+                >
+                <select class="form-select" id="bookingTimeSlot" required>
+                  <option value="">Select a Time Slot</option>
+                </select>
+              </div>
+              <!-- RAA Info (shown for waiting list) -->
+              <div class="mb-3" id="bookingRAAInfo" style="display: none">
+                <div class="alert alert-info">
+                  <i class="fas fa-info-circle me-2"></i>
+                  <span id="raaInfoText"
+                    >Waiting list appointment - no time slot required</span
+                  >
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="bookingAdditionalComments" class="form-label"
+                  >Additional Comments</label
+                >
+                <textarea
+                  class="form-control"
+                  id="bookingAdditionalComments"
+                  rows="3"
+                  placeholder="Enter additional comments (will be added to remarks)"
+                ></textarea>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              id="submitBookingBtn"
+              onclick="submitBooking()"
+            >
+              <span class="normal-text">Book Appointment</span>
+              <span class="loading-text" style="display: none">
+                <span
+                  class="spinner-border spinner-border-sm"
+                  role="status"
+                  aria-hidden="true"
+                ></span>
+                Booking...
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Update Remarks Modal -->
+    <div
+      class="modal fade"
+      id="updateRemarksModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Update Remarks</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="updateDirectCallID" />
+            <div class="mb-3">
+              <label for="updateRemarks" class="form-label">Remarks</label>
+              <textarea
+                class="form-control"
+                id="updateRemarks"
+                rows="4"
+                placeholder="Enter remarks..."
+              ></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              onclick="saveUpdatedRemarks()"
+            >
+              <i class="fas fa-save me-1"></i> Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Patient Selection Modal -->
+    <div
+      class="modal fade"
+      id="patientSelectionModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="fas fa-users me-2"></i>Multiple Patients Found
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <p class="mb-3">
+              Multiple patients found with the same phone number. Please select
+              the patient you want to use:
+            </p>
+            <div id="patientSelectionList" class="list-group">
+              <!-- Patient cards will be inserted here -->
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom Confirmation Modal -->
+    <div
+      class="modal fade custom-confirm-modal"
+      id="confirmActionModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div class="modal-icon" id="confirmModalIcon"></div>
+            <h5 class="modal-title" id="confirmModalTitle">Confirm Action</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="confirm-icon" id="confirmActionIcon"></div>
+            <div class="confirm-message" id="confirmModalMessage">
+              Are you sure you want to proceed?
+            </div>
+            <div class="confirm-details" id="confirmModalDetails">
+              This action will move the data from the Direct Call sheet to the
+              target sheet.
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <button type="button" class="btn" id="confirmActionBtn">
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Duplicate MRD Warning Modal -->
+    <div
+      class="modal fade"
+      id="duplicateWarningModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div
+            class="modal-header"
+            style="
+              background: linear-gradient(135deg, #ed8936, #dd6b20);
+              color: white;
+            "
+          >
+            <div
+              style="
+                width: 48px;
+                height: 48px;
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.5rem;
+              "
+            >
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h5 class="modal-title ms-3">Duplicate MRD Warning</h5>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div style="text-align: center; margin-bottom: 1.5rem">
+              <div
+                style="
+                  width: 80px;
+                  height: 80px;
+                  margin: 0 auto 1rem;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #fef3c7, #fde68a);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 2.5rem;
+                  color: #d97706;
+                "
+              >
+                <i class="fas fa-exclamation-triangle"></i>
+              </div>
+              <p
+                style="
+                  font-size: 1.1rem;
+                  font-weight: 500;
+                  color: #2d3748;
+                  margin-bottom: 0.5rem;
+                "
+              >
+                This patient already has existing appointment(s)
+              </p>
+            </div>
+
+            <!-- Duplicate Appointments List -->
+            <div
+              id="duplicateAppointmentsList"
+              style="max-height: 200px; overflow-y: auto; margin-bottom: 1rem"
+            >
+              <!-- Duplicate appointments will be populated here -->
+            </div>
+
+            <!-- Guidance Text -->
+            <div
+              style="
+                background: #fffbeb;
+                border: 1px solid #fcd34d;
+                border-radius: 8px;
+                padding: 1rem;
+                margin-top: 1rem;
+              "
+            >
+              <p style="margin: 0; font-size: 0.9rem; color: #92400e">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Recommendation:</strong> Consider using the existing
+                AppointmentID for this patient, or remove the existing
+                appointment before creating a new one to avoid duplicate
+                records.
+              </p>
+            </div>
+          </div>
+          <div class="modal-footer" style="justify-content: center; gap: 1rem">
+            <button
+              type="button"
+              class="btn btn-primary"
+              data-bs-dismiss="modal"
+              style="min-width: 120px"
+              autofocus
+            >
+              <i class="fas fa-times me-1"></i> Cancel
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-warning"
+              onclick="proceedWithBookingDespiteDuplicate()"
+              style="min-width: 150px; color: #ed8936; border-color: #ed8936"
+            >
+              <i class="fas fa-exclamation-triangle me-1"></i> Proceed Anyway
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Booking Success Confirmation Modal -->
+    <div
+      class="modal fade"
+      id="bookingSuccessModal"
+      tabindex="-1"
+      aria-hidden="true"
+      data-bs-backdrop="static"
+      data-bs-keyboard="false"
+    >
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div
+            class="modal-header"
+            style="
+              background: linear-gradient(135deg, #48bb78, #38a169);
+              color: white;
+              border: none;
+            "
+          >
+            <div
+              style="
+                width: 48px;
+                height: 48px;
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.5rem;
+              "
+            >
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <h5 class="modal-title ms-3">Appointment Booked Successfully!</h5>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body" style="padding: 2rem">
+            <div style="text-align: center; margin-bottom: 1.5rem">
+              <div
+                style="
+                  width: 80px;
+                  height: 80px;
+                  margin: 0 auto 1rem;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #d4edda, #c3e6cb);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 2.5rem;
+                  color: #48bb78;
+                  animation: scaleIn 0.3s ease-out;
+                "
+              >
+                <i class="fas fa-calendar-check"></i>
+              </div>
+              <p
+                style="
+                  font-size: 1.2rem;
+                  font-weight: 600;
+                  color: #2d3748;
+                  margin-bottom: 0.5rem;
+                "
+              >
+                Appointment Confirmed
+              </p>
+              <p style="font-size: 0.95rem; color: #4a5568">
+                The appointment has been successfully created and saved.
+              </p>
+            </div>
+
+            <!-- Appointment Details -->
+            <div
+              style="
+                background: #f7fafc;
+                border-radius: 12px;
+                padding: 1.5rem;
+                margin-bottom: 1rem;
+              "
+            >
+              <h6
+                style="
+                  color: #2d3748;
+                  font-weight: 600;
+                  margin-bottom: 1rem;
+                  padding-bottom: 0.5rem;
+                  border-bottom: 2px solid #e2e8f0;
+                "
+              >
+                <i class="fas fa-info-circle me-2"></i>Appointment Details
+              </h6>
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                  gap: 1rem;
+                "
+              >
+                <div>
+                  <div
+                    style="
+                      font-size: 0.875rem;
+                      color: #718096;
+                      margin-bottom: 0.25rem;
+                    "
+                  >
+                    Patient Name
+                  </div>
+                  <div
+                    style="font-weight: 600; color: #2d3748"
+                    id="confirmPatientName"
+                  >
+                    -
+                  </div>
+                </div>
+                <div>
+                  <div
+                    style="
+                      font-size: 0.875rem;
+                      color: #718096;
+                      margin-bottom: 0.25rem;
+                    "
+                  >
+                    Appointment Type
+                  </div>
+                  <div
+                    style="font-weight: 600; color: #2d3748"
+                    id="confirmAppointmentType"
+                  >
+                    -
+                  </div>
+                </div>
+                <div>
+                  <div
+                    style="
+                      font-size: 0.875rem;
+                      color: #718096;
+                      margin-bottom: 0.25rem;
+                    "
+                  >
+                    Date
+                  </div>
+                  <div
+                    style="font-weight: 600; color: #2d3748"
+                    id="confirmDate"
+                  >
+                    -
+                  </div>
+                </div>
+                <div id="confirmTimeSlotContainer">
+                  <div
+                    style="
+                      font-size: 0.875rem;
+                      color: #718096;
+                      margin-bottom: 0.25rem;
+                    "
+                  >
+                    Time Slot
+                  </div>
+                  <div
+                    style="font-weight: 600; color: #2d3748"
+                    id="confirmTimeSlot"
+                  >
+                    -
+                  </div>
+                </div>
+                <div>
+                  <div
+                    style="
+                      font-size: 0.875rem;
+                      color: #718096;
+                      margin-bottom: 0.25rem;
+                    "
+                  >
+                    Doctor
+                  </div>
+                  <div
+                    style="font-weight: 600; color: #2d3748"
+                    id="confirmDoctor"
+                  >
+                    -
+                  </div>
+                </div>
+              </div>
+
+              <!-- Plan of Action -->
+              <div
+                style="
+                  margin-top: 1rem;
+                  padding-top: 1rem;
+                  border-top: 1px solid #e2e8f0;
+                "
+              >
+                <div
+                  style="
+                    font-size: 0.875rem;
+                    color: #718096;
+                    margin-bottom: 0.5rem;
+                  "
+                >
+                  Plan of Action
+                </div>
+                <div
+                  id="confirmPlanOfAction"
+                  style="
+                    background: white;
+                    padding: 0.75rem;
+                    border-radius: 8px;
+                    color: #2d3748;
+                  "
+                >
+                  -
+                </div>
+              </div>
+            </div>
+
+            <!-- Success Message -->
+            <div
+              style="
+                background: linear-gradient(135deg, #e8f0fe, #d4edda);
+                border-radius: 8px;
+                padding: 1rem;
+                text-align: center;
+              "
+            >
+              <i
+                class="fas fa-check-circle"
+                style="color: #48bb78; font-size: 1.2rem; margin-right: 0.5rem"
+              ></i>
+              <span style="color: #2d3748; font-weight: 500"
+                >The patient has been notified and the appointment is now
+                active.</span
+              >
+            </div>
+          </div>
+          <div
+            class="modal-footer"
+            style="border: none; padding: 1.5rem 2rem; justify-content: center"
+          >
+            <button
+              type="button"
+              class="btn btn-primary"
+              data-bs-dismiss="modal"
+              style="
+                min-width: 150px;
+                padding: 0.75rem 1.5rem;
+                font-weight: 500;
+              "
+            >
+              <i class="fas fa-check me-2"></i>Done
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      var baseUrl = "<?= webAppUrl ?>";
+      var sessionToken = "<?= sessionToken ?>";
+      var allDirectCalls = [];
+      let currentUserLevel = null;
+
+      // Plan of Action autocomplete variables
+      let bookingPlanOptions = [],
+        bookingSelectedProcedures = [],
+        bookingCurrentProcedure = null;
+
+      // Current booking MRD for duplicate checking
+      let currentBookingMRD = "";
+
+      // Current booking patient name
+      let currentBookingPatientName = "";
+
+      // ============================================
+      // Date/Time Formatting Utilities
+      // ============================================
+
+      /**
+       * Formats a date value to YYYY-MM-DD format
+       * @param {string|Date} dateValue - The date to format
+       * @return {string} Date in YYYY-MM-DD format
+       */
+      function formatAppointmentDate(dateValue) {
+        if (!dateValue) return "";
+
+        let date;
+        if (dateValue instanceof Date) {
+          date = dateValue;
+        } else if (typeof dateValue === "string") {
+          // Handle various string formats
+          date = new Date(dateValue);
+        } else {
+          return "";
+        }
+
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+          return "";
+        }
+
+        // Format as YYYY-MM-DD
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+
+        return `${year}-${month}-${day}`;
+      }
+
+      /**
+       * Formats a time value to HH:MM format (24-hour)
+       * @param {string} timeValue - The time to format
+       * @return {string} Time in HH:MM format
+       */
+      function formatTimeSlot(timeValue) {
+        if (!timeValue) return "";
+
+        // If already in HH:MM format, return as is
+        if (/^\d{2}:\d{2}$/.test(timeValue)) {
+          return timeValue;
+        }
+
+        // If in HH:MM:SS format, strip seconds
+        if (/^\d{2}:\d{2}:\d{2}$/.test(timeValue)) {
+          return timeValue.substring(0, 5);
+        }
+
+        // Handle datetime strings - extract time portion
+        if (timeValue.includes("T") || timeValue.includes(" ")) {
+          const date = new Date(timeValue);
+          if (!isNaN(date.getTime())) {
+            const hours = String(date.getHours()).padStart(2, "0");
+            const minutes = String(date.getMinutes()).padStart(2, "0");
+            return `${hours}:${minutes}`;
+          }
+        }
+
+        // Return as is if we can't parse it
+        return timeValue;
+      }
+
+      /**
+       * Validates date format before submission
+       * @param {string} dateStr - Date string to validate
+       * @return {boolean} True if valid YYYY-MM-DD format
+       */
+      function isValidDateFormat(dateStr) {
+        if (!dateStr) return false;
+
+        // Check format: YYYY-MM-DD
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(dateStr)) {
+          return false;
+        }
+
+        // Check if it's a valid date
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) {
+          return false;
+        }
+
+        // Verify the date components match (handles invalid dates like 2024-02-30)
+        const [year, month, day] = dateStr.split("-").map(Number);
+        return (
+          date.getFullYear() === year &&
+          date.getMonth() === month - 1 &&
+          date.getDate() === day
+        );
+      }
+
+      /**
+       * Validates time format before submission
+       * @param {string} timeStr - Time string to validate
+       * @return {boolean} True if valid HH:MM format
+       */
+      function isValidTimeFormat(timeStr) {
+        if (!timeStr) return false;
+
+        // Check format: HH:MM
+        const timeRegex = /^\d{2}:\d{2}$/;
+        if (!timeRegex.test(timeStr)) {
+          return false;
+        }
+
+        // Validate hour and minute ranges
+        const [hours, minutes] = timeStr.split(":").map(Number);
+        return hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59;
+      }
+
+      // ============================================
+      // End Date/Time Formatting Utilities
+      // ============================================
+
+      document.addEventListener("DOMContentLoaded", function () {
+        setupEventListeners();
+        // Load initial data
+        performSearch();
+        // Check user access level
+        loadUserLevel();
+      });
+
+      function loadUserLevel() {
+        if (typeof google !== "undefined" && google.script && sessionToken) {
+          google.script.run
+            .withSuccessHandler(function (response) {
+              if (response.success) {
+                currentUserLevel = response.level;
+                if (currentUserLevel === 4) {
+                  // Hide OLD Patient tab
+                  const oldTab = document.getElementById("old-tab");
+                  if (oldTab) {
+                    const oldTabLi = oldTab.parentElement;
+                    if (oldTabLi) {
+                      oldTabLi.style.display = "none";
+                    }
+                  }
+                  
+                  // Make NEW Patient tab active by default
+                  const newTab = document.getElementById("new-tab");
+                  const newPane = document.getElementById("new-patient");
+                  const oldPane = document.getElementById("old-patient");
+                  
+                  if (newTab && oldTab && newPane && oldPane) {
+                    // Remove active from old tab/pane
+                    oldTab.classList.remove("active");
+                    oldTab.setAttribute("aria-selected", "false");
+                    oldPane.classList.remove("show", "active");
+                    
+                    // Add active to new tab/pane
+                    newTab.classList.add("active");
+                    newTab.setAttribute("aria-selected", "true");
+                    newPane.classList.add("show", "active");
+                  }
+                }
+              }
+            })
+            .getCurrentUserAccessLevel(sessionToken);
+        }
+      }
+
+      function setupEventListeners() {
+        // Old patient form submission
+        document
+          .getElementById("oldPatientForm")
+          .addEventListener("submit", function (e) {
+            e.preventDefault();
+            submitOldPatientCall();
+          });
+
+        // New patient form submission
+        document
+          .getElementById("newPatientForm")
+          .addEventListener("submit", function (e) {
+            e.preventDefault();
+            submitNewPatientCall();
+          });
+
+        // Search form submission
+        document
+          .getElementById("searchForm")
+          .addEventListener("submit", function (e) {
+            e.preventDefault();
+            performSearch();
+          });
+
+        // MRD input enter key
+        document
+          .getElementById("mrdNoInput")
+          .addEventListener("keypress", function (e) {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              lookupPatient();
+            }
+          });
+
+        // Date change for booking modal
+        document
+          .getElementById("bookingAppointmentDate")
+          .addEventListener("change", function () {
+            const selectedDate = this.value;
+            const appointmentType = document.getElementById(
+              "bookingAppointmentType",
+            ).value;
+
+            if (selectedDate) {
+              // Only check early booking restrictions for regular appointments, not WAITING LIST
+              if (appointmentType !== "WAITING LIST") {
+                checkEarlyBookingRestrictions(selectedDate);
+              } else {
+                // Clear any existing restriction warnings for waiting list
+                clearRestrictionStatusUI();
+              }
+
+              if (appointmentType === "WAITING LIST") {
+                checkWaitingListAvailability(selectedDate);
+              } else {
+                loadAvailableSlots(selectedDate);
+              }
+            }
+          });
+      }
+
+      // Toggle age input hints based on age type selection
+      function toggleAgeInputs() {
+        const ageType = document.getElementById("newPatientAgeType").value;
+        const ageInput = document.getElementById("newPatientAge");
+        const ageHint = document.getElementById("ageHint");
+
+        switch (ageType) {
+          case "years":
+            ageInput.placeholder = "e.g., 35";
+            ageHint.textContent = "Enter age in years";
+            break;
+          case "months":
+            ageInput.placeholder = "e.g., 6";
+            ageHint.textContent = "Enter age in months (for babies)";
+            break;
+          case "days":
+            ageInput.placeholder = "e.g., 15";
+            ageHint.textContent = "Enter age in days (for newborns)";
+            break;
+        }
+      }
+
+      // Format age for display and storage
+      function formatAge(ageValue, ageType) {
+        if (!ageValue) return "";
+
+        switch (ageType) {
+          case "years":
+            return `${ageValue} years`;
+          case "months":
+            return `${ageValue} months`;
+          case "days":
+            return `${ageValue} days`;
+          default:
+            return `${ageValue} years`;
+        }
+      }
+
+      function navigateToDashboard() {
+        goToPage("Dashboard");
+      }
+
+      function goToPage(pageName) {
+        var newUrl =
+          baseUrl +
+          "?page=" +
+          pageName +
+          "&sessionToken=" +
+          encodeURIComponent(sessionToken);
+        window.top.location.href = newUrl;
+      }
+
+      // Check if input is likely a phone number (contains digits and possibly +, -, spaces, etc.)
+      function isPhoneNumber(input) {
+        // Remove common phone formatting characters
+        const cleaned = input.replace(/[\s\-\(\)\+]/g, "");
+        // If it's all digits and length is 7-15, likely a phone number
+        // But exclude if it matches MRD pattern (SPD followed by digits or just digits that could be MRD)
+        if (/^\d{7,15}$/.test(cleaned)) {
+          // If it's just digits and could be MRD (short numbers), prioritize MRD
+          if (/^\d{1,6}$/.test(cleaned)) {
+            return false; // Likely MRD, not phone
+          }
+          return true;
+        }
+        // If it contains non-digit characters that are common in phone numbers
+        if (
+          /[\+\-\(\)\s]/.test(input) &&
+          /^\d/.test(cleaned) &&
+          cleaned.length >= 7
+        ) {
+          return true;
+        }
+        return false;
+      }
+
+      // Check if input is likely an MRD number
+      function isMRDNumber(input) {
+        const cleaned = input.trim().toUpperCase();
+        // MRD pattern: SPD followed by digits, or just digits (typically shorter)
+        return /^SPD\d+$/i.test(cleaned) || /^\d{1,6}$/.test(cleaned);
+      }
+
+      // Lookup patient by MRD or Phone
+      function lookupPatient() {
+        const input = document.getElementById("mrdNoInput").value.trim();
+        if (!input) {
+          showAlert("Please enter an MRD number or phone number", "warning");
+          return;
+        }
+
+        showLoading();
+
+        // Determine if input is phone number or MRD
+        const isPhone = isPhoneNumber(input);
+        const isMRD = isMRDNumber(input);
+
+        // If it clearly looks like a phone number (not MRD), search by phone
+        if (isPhone && !isMRD) {
+          searchByPhone(input);
+        } else if (isMRD) {
+          // If it looks like MRD, search by MRD first
+          searchByMRD(input);
+        } else {
+          // Ambiguous case: try MRD first, then phone if MRD fails
+          searchByMRD(input, function () {
+            // If MRD search failed, try phone search
+            searchByPhone(input);
+          });
+        }
+      }
+
+      // Search by MRD number
+      function searchByMRD(mrdNo, onFailure) {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response && response.success && response.patient) {
+              hideLoading();
+              const patient = response.patient;
+              selectPatient(patient);
+            } else {
+              // MRD search failed
+              if (onFailure) {
+                // Don't hide loading here, let the phone search handle it
+                onFailure();
+              } else {
+                hideLoading();
+                document
+                  .getElementById("patientInfoCard")
+                  .classList.remove("show");
+                document.getElementById(
+                  "oldPatientCommonFields",
+                ).style.display = "none";
+                showAlert(
+                  response ? response.message : "Patient not found",
+                  "warning",
+                );
+              }
+            }
+          })
+          .withFailureHandler(function (error) {
+            if (onFailure) {
+              // Don't hide loading here, let the phone search handle it
+              onFailure();
+            } else {
+              hideLoading();
+              showAlert("Error looking up patient: " + error, "error");
+            }
+          })
+          .getPatientDetailsByMRD(mrdNo);
+      }
+
+      // Search by phone number
+      function searchByPhone(phoneNumber) {
+        // Show loading if not already shown (for fallback case)
+        if (!document.getElementById("loadingOverlay")) {
+          showLoading();
+        }
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            hideLoading();
+            if (response && response.success && response.patients) {
+              const patients = response.patients;
+
+              // If multiple patients found, show selection modal
+              if (patients.length > 1) {
+                showPatientSelectionModal(patients);
+              } else if (patients.length === 1) {
+                // Single patient found, use it directly
+                selectPatient(patients[0]);
+              } else {
+                document
+                  .getElementById("patientInfoCard")
+                  .classList.remove("show");
+                document.getElementById(
+                  "oldPatientCommonFields",
+                ).style.display = "none";
+                showAlert("No patient found with this phone number", "warning");
+              }
+            } else {
+              document
+                .getElementById("patientInfoCard")
+                .classList.remove("show");
+              document.getElementById("oldPatientCommonFields").style.display =
+                "none";
+              showAlert(
+                response ? response.message : "No patient found",
+                "warning",
+              );
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            showAlert("Error looking up patient: " + error, "error");
+          })
+          .getPatientsByPhone(phoneNumber);
+      }
+
+      // Show patient selection modal when multiple patients found
+      function showPatientSelectionModal(patients) {
+        const modal = document.getElementById("patientSelectionModal");
+        const listContainer = document.getElementById("patientSelectionList");
+        listContainer.innerHTML = "";
+
+        patients.forEach(function (patient, index) {
+          const card = document.createElement("div");
+          card.className = "patient-selection-card";
+          card.onclick = function () {
+            // Remove selected class from all cards
+            document
+              .querySelectorAll(".patient-selection-card")
+              .forEach((c) => c.classList.remove("selected"));
+            // Add selected class to clicked card
+            card.classList.add("selected");
+            // Select patient after a brief delay for visual feedback
+            setTimeout(function () {
+              const bootstrapModal = bootstrap.Modal.getInstance(modal);
+              bootstrapModal.hide();
+              selectPatient(patient);
+            }, 200);
+          };
+
+          card.innerHTML = `
+          <div class="patient-name">
+            <i class="fas fa-user me-2"></i>${patient.Name || "N/A"}
+          </div>
+          <div class="patient-details">
+            <div class="patient-detail-item">
+              <span class="patient-detail-label">MRD:</span>
+              <span>${patient.MRDNo || "N/A"}</span>
+            </div>
+            <div class="patient-detail-item">
+              <span class="patient-detail-label">Phone:</span>
+              <span>${patient.Phone || "-"}</span>
+            </div>
+            <div class="patient-detail-item">
+              <span class="patient-detail-label">Age:</span>
+              <span>${patient.Age || "-"}</span>
+            </div>
+            <div class="patient-detail-item">
+              <span class="patient-detail-label">Gender:</span>
+              <span>${patient.Gender || "-"}</span>
+            </div>
+            ${
+              patient.HomeNo
+                ? `
+            <div class="patient-detail-item">
+              <span class="patient-detail-label">Home:</span>
+              <span>${patient.HomeNo}</span>
+            </div>
+            `
+                : ""
+            }
+            ${
+              patient.WorkNo
+                ? `
+            <div class="patient-detail-item">
+              <span class="patient-detail-label">Work:</span>
+              <span>${patient.WorkNo}</span>
+            </div>
+            `
+                : ""
+            }
+          </div>
+        `;
+          listContainer.appendChild(card);
+        });
+
+        const bootstrapModal = new bootstrap.Modal(modal);
+        bootstrapModal.show();
+      }
+
+      // Select a patient and populate the form
+      function selectPatient(patient) {
+        document.getElementById("patientName").textContent =
+          patient.Name || "-";
+        document.getElementById("patientPhone").textContent =
+          patient.Phone || "-";
+        document.getElementById("patientAge").textContent = patient.Age || "-";
+        document.getElementById("patientGender").textContent =
+          patient.Gender || "-";
+
+        // Store in hidden fields
+        document.getElementById("oldPatientMRD").value = patient.MRDNo || "";
+        document.getElementById("oldPatientName").value = patient.Name || "";
+        document.getElementById("oldPatientPhone").value = patient.Phone || "";
+        document.getElementById("oldPatientAge").value = patient.Age || "";
+        document.getElementById("oldPatientGender").value =
+          patient.Gender || "";
+
+        document.getElementById("patientInfoCard").classList.add("show");
+        document.getElementById("oldPatientCommonFields").style.display =
+          "flex";
+        showAlert("Patient selected!", "success");
+      }
+
+      // Submit OLD patient direct call
+      function submitOldPatientCall() {
+        if (currentUserLevel === 4) {
+          showAlert(
+            "Level 4 login access is not permitted to book Old Patients. Only New Patients can be booked.",
+            "error",
+          );
+          return;
+        }
+
+        const mrdNo = document.getElementById("oldPatientMRD").value;
+        if (!mrdNo) {
+          showAlert("Please lookup a patient first", "warning");
+          return;
+        }
+
+        const callType = document.getElementById("oldCallType").value;
+        const caseType = document.getElementById("oldCaseType").value;
+        const urgency = document.getElementById("oldUrgency").value;
+
+        if (!callType || !caseType || !urgency) {
+          showAlert("Please fill all required fields", "warning");
+          return;
+        }
+
+        const data = {
+          patientType: "Old",
+          mrdNo: mrdNo,
+          patientName: document.getElementById("oldPatientName").value,
+          phone: document.getElementById("oldPatientPhone").value,
+          age: document.getElementById("oldPatientAge").value,
+          gender: document.getElementById("oldPatientGender").value,
+          callType: callType,
+          caseType: caseType,
+          urgency: urgency,
+          remarks: document.getElementById("oldRemarks").value.trim(),
+        };
+
+        saveDirectCall(data);
+      }
+
+      // Submit NEW patient direct call
+      function submitNewPatientCall() {
+        const patientName = document
+          .getElementById("newPatientName")
+          .value.trim();
+        const phone = document.getElementById("newPatientPhone").value.trim();
+        const ageValue = document.getElementById("newPatientAge").value.trim();
+        const ageType = document.getElementById("newPatientAgeType").value;
+        const gender = document.getElementById("newPatientGender").value;
+        const callType = document.getElementById("newCallType").value;
+        const caseType = document.getElementById("newCaseType").value;
+        const urgency = document.getElementById("newUrgency").value;
+
+        if (
+          !patientName ||
+          !phone ||
+          !ageValue ||
+          !gender ||
+          !callType ||
+          !caseType ||
+          !urgency
+        ) {
+          showAlert("Please fill all required fields", "warning");
+          return;
+        }
+
+        // Format age with type (e.g., "6 months", "15 days", "35 years")
+        const formattedAge = formatAge(ageValue, ageType);
+
+        const data = {
+          patientType: "New",
+          mrdNo: "",
+          patientName: patientName,
+          phone: phone,
+          age: formattedAge,
+          gender: gender,
+          callType: callType,
+          caseType: caseType,
+          urgency: urgency,
+          remarks: document.getElementById("newRemarks").value.trim(),
+        };
+
+        saveDirectCall(data);
+      }
+
+      // Save direct call to backend
+      function saveDirectCall(data) {
+        showLoading();
+        google.script.run
+          .withSuccessHandler(function (response) {
+            hideLoading();
+            if (response && response.success) {
+              showAlert("Direct call saved successfully!", "success");
+              resetOldPatientForm();
+              resetNewPatientForm();
+              performSearch();
+            } else {
+              showAlert(
+                "Error saving direct call: " +
+                  (response ? response.message : "Unknown error"),
+                "error",
+              );
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            showAlert("Error saving direct call: " + error, "error");
+          })
+          .createDirectCall(data, sessionToken);
+      }
+
+      // Reset forms
+      function resetOldPatientForm() {
+        document.getElementById("mrdNoInput").value = "";
+        document.getElementById("patientInfoCard").classList.remove("show");
+        document.getElementById("oldPatientCommonFields").style.display =
+          "none";
+        document.getElementById("oldCallType").value = "";
+        document.getElementById("oldCaseType").value = "";
+        document.getElementById("oldUrgency").value = "";
+        document.getElementById("oldRemarks").value = "";
+        document.getElementById("oldPatientMRD").value = "";
+        document.getElementById("oldPatientName").value = "";
+        document.getElementById("oldPatientPhone").value = "";
+        document.getElementById("oldPatientAge").value = "";
+        document.getElementById("oldPatientGender").value = "";
+      }
+
+      function resetNewPatientForm() {
+        document.getElementById("newPatientName").value = "";
+        document.getElementById("newPatientPhone").value = "";
+        document.getElementById("newPatientAge").value = "";
+        document.getElementById("newPatientAgeType").value = "years";
+        document.getElementById("newPatientGender").value = "";
+        document.getElementById("newCallType").value = "";
+        document.getElementById("newCaseType").value = "";
+        document.getElementById("newUrgency").value = "";
+        document.getElementById("newRemarks").value = "";
+        toggleAgeInputs(); // Reset age hint
+      }
+
+      // Search direct calls
+      function performSearch() {
+        const searchParams = {
+          mrdNo: document.getElementById("searchMrdNo").value.trim(),
+          patientName: document
+            .getElementById("searchPatientName")
+            .value.trim(),
+          phone: document.getElementById("searchPhone").value.trim(),
+          date: document.getElementById("searchDate").value,
+        };
+
+        showLoading();
+        google.script.run
+          .withSuccessHandler(function (response) {
+            hideLoading();
+            if (response && response.success) {
+              allDirectCalls = response.directCalls || [];
+              displayDirectCalls(allDirectCalls);
+            } else {
+              showAlert(
+                response
+                  ? response.message || "Error searching direct calls"
+                  : "Error: No response",
+                "error",
+              );
+              document.getElementById("resultsContainer").innerHTML = `
+              <div class="no-results">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Error loading direct calls. Please try again.</p>
+              </div>
+            `;
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            showAlert("Error: " + error, "error");
+            document.getElementById("resultsContainer").innerHTML = `
+            <div class="no-results">
+              <i class="fas fa-exclamation-triangle"></i>
+              <p>Error: ${error}</p>
+            </div>
+          `;
+          })
+          .searchDirectCalls(searchParams);
+      }
+
+      // Display direct calls
+      function displayDirectCalls(directCalls) {
+        const container = document.getElementById("resultsContainer");
+        container.innerHTML = "";
+
+        if (!directCalls || directCalls.length === 0) {
+          container.innerHTML = `
+          <div class="no-results">
+            <i class="fas fa-phone-slash"></i>
+            <p>No direct calls found matching your search criteria</p>
+          </div>
+        `;
+          return;
+        }
+
+        // Add results header
+        const totalCalls = directCalls.length;
+        const headerDiv = document.createElement("div");
+        headerDiv.className = "results-header";
+        headerDiv.innerHTML = `
+        <div class="results-count">
+          Showing <span class="count-number">${totalCalls}</span> direct call appointment${totalCalls !== 1 ? "s" : ""}
+        </div>
+        <div>
+          <i class="fas fa-phone" style="color: var(--primary-color);"></i>
+        </div>
+      `;
+        container.appendChild(headerDiv);
+
+        directCalls.forEach(function (call) {
+          const urgencyClass = call.Urgency
+            ? call.Urgency.toLowerCase().replace("-", "")
+            : "nonurgent";
+          const callTypeClass = call.CallType
+            ? call.CallType.toLowerCase()
+            : "enquiry";
+
+          const card = document.createElement("div");
+          card.className = "directcall-card";
+          card.innerHTML = `
+          <div class="directcall-header">
+            <div>
+              <span class="directcall-id">${call.DirectCallID || "N/A"}</span>
+              <span class="badge badge-urgency ${urgencyClass} ms-2">${call.Urgency || "N/A"}</span>
+              <span class="badge badge-calltype ${callTypeClass} ms-2">${call.CallType || "N/A"}</span>
+            </div>
+            <div class="directcall-date">
+              <i class="fas fa-calendar-alt"></i> ${formatDisplayDateTime(call.CreatedOn) || "N/A"}
+            </div>
+          </div>
+          <div class="directcall-details">
+            <div class="detail-group">
+              <div class="detail-label">Patient Name</div>
+              <div class="detail-value">${call.PatientName || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">MRD No</div>
+              <div class="detail-value">${call.MRDNo || "New Patient"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Phone</div>
+              <div class="detail-value">${call.Phone || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Age / Gender</div>
+              <div class="detail-value">${call.Age || "N/A"} / ${call.Gender || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Patient Type</div>
+              <div class="detail-value">${call.PatientType || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Case Type</div>
+              <div class="detail-value">${call.CaseType || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Created By</div>
+              <div class="detail-value">${call.CreatedBy || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Status</div>
+              <div class="detail-value">${call.Status || "Active"}</div>
+            </div>
+          </div>
+          ${
+            call.Remarks
+              ? `
+            <div class="remarks-section">
+              <div class="remarks-label">
+                Remarks
+                <button class="btn btn-sm btn-outline-primary ms-2" onclick="openUpdateRemarksModal('${call.DirectCallID}', '${escapeHtml(call.Remarks || "")}')">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+              </div>
+              <div class="remarks-value">${call.Remarks}</div>
+            </div>
+          `
+              : `
+            <div class="remarks-section">
+              <div class="remarks-label">
+                Remarks
+                <button class="btn btn-sm btn-outline-primary ms-2" onclick="openUpdateRemarksModal('${call.DirectCallID}', '')">
+                  <i class="fas fa-plus"></i> Add
+                </button>
+              </div>
+              <div class="remarks-value text-muted" style="font-style: italic;">No remarks</div>
+            </div>
+          `
+          }
+          <div class="directcall-actions">
+            <button class="btn btn-success" onclick="openBookingModal('${call.DirectCallID}', '${call.MRDNo || ""}', '${escapeHtml(call.PatientName || "")}')">
+              <i class="fas fa-calendar-check"></i> Appointment
+            </button>
+            <button class="btn btn-danger" onclick="confirmCancelDirectCall('${call.DirectCallID}')">
+              <i class="fas fa-times-circle"></i> Cancel
+            </button>
+            <button class="btn btn-secondary" onclick="confirmArchiveDirectCall('${call.DirectCallID}')">
+              <i class="fas fa-archive"></i> Archive
+            </button>
+          </div>
+        `;
+          container.appendChild(card);
+        });
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML.replace(/'/g, "\\'").replace(/"/g, '\\"');
+      }
+
+      // Update Remarks Modal
+      function openUpdateRemarksModal(directCallID, currentRemarks) {
+        document.getElementById("updateDirectCallID").value = directCallID;
+        document.getElementById("updateRemarks").value = currentRemarks
+          .replace(/\\'/g, "'")
+          .replace(/\\"/g, '"');
+        const modal = new bootstrap.Modal(
+          document.getElementById("updateRemarksModal"),
+        );
+        modal.show();
+      }
+
+      function saveUpdatedRemarks() {
+        const directCallID =
+          document.getElementById("updateDirectCallID").value;
+        const remarks = document.getElementById("updateRemarks").value.trim();
+
+        showLoading();
+        google.script.run
+          .withSuccessHandler(function (response) {
+            hideLoading();
+            if (response && response.success) {
+              showAlert("Remarks updated successfully!", "success");
+              const modal = bootstrap.Modal.getInstance(
+                document.getElementById("updateRemarksModal"),
+              );
+              modal.hide();
+              performSearch();
+            } else {
+              showAlert(
+                "Error updating remarks: " +
+                  (response ? response.message : "Unknown error"),
+                "error",
+              );
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            showAlert("Error updating remarks: " + error, "error");
+          })
+          .updateDirectCall(directCallID, { remarks: remarks }, sessionToken);
+      }
+
+      // Booking Modal
+      function openBookingModal(directCallID, mrdNo, patientName) {
+        document.getElementById("bookingDirectCallID").value = directCallID;
+        currentBookingMRD = mrdNo || "";
+        currentBookingPatientName = patientName
+          ? patientName.replace(/\\'/g, "'").replace(/\\"/g, '"')
+          : "Patient";
+
+        // Reset Plan of Action
+        bookingSelectedProcedures = [];
+        bookingCurrentProcedure = null;
+        const procedureInput = document.getElementById("bookingProcedureInput");
+        if (procedureInput) {
+          procedureInput.value = "";
+          procedureInput._hasListeners = false;
+        }
+        document.getElementById("bookingSelectedProceduresList").innerHTML = "";
+        document.getElementById("bookingPlanOfAction").value = "";
+        document
+          .getElementById("bookingEyeSelectionContainer")
+          .classList.add("d-none");
+        document.getElementById("bookingAppointmentDate").value = "";
+        document.getElementById("bookingTimeSlot").innerHTML =
+          '<option value="">Select a Time Slot</option>';
+        document.getElementById("bookingAdditionalComments").value = "";
+
+        // Load doctors
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response && response.success) {
+              const doctorSelect = document.getElementById("bookingDoctor");
+              doctorSelect.innerHTML =
+                '<option value="">Select a Doctor</option>';
+              response.doctors.forEach(function (doc) {
+                const option = document.createElement("option");
+                option.value = doc;
+                option.textContent = doc;
+                doctorSelect.appendChild(option);
+              });
+            }
+          })
+          .getDoctors();
+
+        // Load appointment types
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response && response.success) {
+              const typeSelect = document.getElementById(
+                "bookingAppointmentType",
+              );
+              typeSelect.innerHTML =
+                '<option value="">Select Appointment Type</option>';
+              response.appointmentTypes.forEach(function (type) {
+                const option = document.createElement("option");
+                option.value = type;
+                option.textContent = type;
+                typeSelect.appendChild(option);
+              });
+
+              // Add event listener for appointment type change
+              typeSelect.onchange = handleAppointmentTypeChange;
+            }
+          })
+          .getAppointmentTypes();
+
+        // Load Plan of Action options
+        loadBookingPlanOfActionOptions();
+
+        // Reset time slot section visibility
+        document.getElementById("bookingTimeSlotSection").style.display =
+          "block";
+        document.getElementById("bookingRAAInfo").style.display = "none";
+        document.getElementById("bookingTimeSlot").required = true;
+
+        const modalElement = document.getElementById("bookingModal");
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+      }
+
+      // Handle appointment type change in booking modal
+      function handleAppointmentTypeChange() {
+        const appointmentType = document.getElementById(
+          "bookingAppointmentType",
+        ).value;
+        const timeSlotSection = document.getElementById(
+          "bookingTimeSlotSection",
+        );
+        const raaInfoSection = document.getElementById("bookingRAAInfo");
+        const timeSlotSelect = document.getElementById("bookingTimeSlot");
+        const appointmentDate = document.getElementById(
+          "bookingAppointmentDate",
+        ).value;
+
+        if (appointmentType === "WAITING LIST") {
+          // Hide time slot section for waiting list
+          timeSlotSection.style.display = "none";
+          raaInfoSection.style.display = "block";
+          timeSlotSelect.required = false;
+          timeSlotSelect.value = "";
+
+          // Clear early booking restriction warnings (not applicable to waiting list)
+          clearRestrictionStatusUI();
+
+          // Check waiting list limit for the selected date
+          if (appointmentDate) {
+            checkWaitingListAvailability(appointmentDate);
+          }
+        } else {
+          // Show time slot section for regular appointments
+          timeSlotSection.style.display = "block";
+          raaInfoSection.style.display = "none";
+          timeSlotSelect.required = true;
+
+          // Check early booking restrictions for regular appointments
+          if (appointmentDate) {
+            checkEarlyBookingRestrictions(appointmentDate);
+          }
+        }
+      }
+
+      // Check waiting list availability for the selected date
+      function checkWaitingListAvailability(dateStr) {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            const raaInfoText = document.getElementById("raaInfoText");
+            if (response && response.success) {
+              if (response.allowed) {
+                raaInfoText.innerHTML =
+                  '<i class="fas fa-check-circle text-success me-1"></i> ' +
+                  response.message;
+                document.getElementById("submitBookingBtn").disabled = false;
+              } else {
+                raaInfoText.innerHTML =
+                  '<i class="fas fa-exclamation-circle text-danger me-1"></i> ' +
+                  response.message;
+                document.getElementById("submitBookingBtn").disabled = true;
+              }
+            } else {
+              raaInfoText.innerHTML =
+                '<i class="fas fa-exclamation-triangle text-warning me-1"></i> Unable to check waiting list availability';
+            }
+          })
+          .withFailureHandler(function (error) {
+            document.getElementById("raaInfoText").innerHTML =
+              '<i class="fas fa-exclamation-triangle text-warning me-1"></i> Error checking waiting list: ' +
+              error;
+          })
+          .checkWaitingListLimit(dateStr);
+      }
+
+      function loadBookingPlanOfActionOptions() {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response && response.success) {
+              bookingPlanOptions = response.options;
+              initBookingProcedureInput();
+            }
+          })
+          .getPlanOfActionOptions();
+      }
+
+      function initBookingProcedureInput() {
+        const procedureInputContainer = document.getElementById(
+          "bookingProcedureInputContainer",
+        );
+        const procedureInput = document.getElementById("bookingProcedureInput");
+        const suggestionsDropdown = document.getElementById(
+          "bookingSuggestionsDropdown",
+        );
+        const eyeSelectionContainer = document.getElementById(
+          "bookingEyeSelectionContainer",
+        );
+
+        if (procedureInput._hasListeners) {
+          return;
+        }
+        procedureInput._hasListeners = true;
+
+        procedureInput.addEventListener("input", function () {
+          const term = this.value.toLowerCase();
+          suggestionsDropdown.innerHTML = "";
+          if (term.length < 1) {
+            suggestionsDropdown.style.display = "none";
+            return;
+          }
+          bookingPlanOptions
+            .filter((opt) => opt.name.toLowerCase().startsWith(term))
+            .forEach((opt) => {
+              const item = document.createElement("div");
+              item.className =
+                "suggestion-item list-group-item list-group-item-action";
+              item.textContent = opt.name;
+              item.addEventListener("click", () => {
+                procedureInput.value = opt.name;
+                suggestionsDropdown.style.display = "none";
+                bookingCurrentProcedure = opt;
+                if (opt.requiresEyeSelection) {
+                  eyeSelectionContainer.classList.remove("d-none");
+                } else {
+                  addBookingProcedureToSelection(opt.name);
+                  procedureInput.value = "";
+                }
+              });
+              suggestionsDropdown.appendChild(item);
+            });
+          suggestionsDropdown.style.display =
+            suggestionsDropdown.childElementCount ? "block" : "none";
+        });
+
+        const clickHandler = function (e) {
+          if (!procedureInputContainer.contains(e.target)) {
+            suggestionsDropdown.style.display = "none";
+          }
+        };
+        document.addEventListener("click", clickHandler);
+        procedureInput._clickHandler = clickHandler;
+
+        document
+          .querySelectorAll('input[name="bookingEyeSelection"]')
+          .forEach((radio) => {
+            radio.addEventListener("change", () => {
+              const selectedEye = document.querySelector(
+                'input[name="bookingEyeSelection"]:checked',
+              );
+              if (selectedEye && bookingCurrentProcedure) {
+                addBookingProcedureToSelection(
+                  `${bookingCurrentProcedure.name} (${selectedEye.value})`,
+                );
+                bookingCurrentProcedure = null;
+                eyeSelectionContainer.classList.add("d-none");
+                procedureInput.value = "";
+                selectedEye.checked = false;
+              }
+            });
+          });
+      }
+
+      function addBookingProcedureToSelection(text) {
+        bookingSelectedProcedures.push(text);
+        updateBookingDisplay();
+        updateBookingHiddenField();
+      }
+
+      function updateBookingDisplay() {
+        const c = document.getElementById("bookingSelectedProceduresList");
+        c.innerHTML = "";
+        bookingSelectedProcedures.forEach((p, i) => {
+          const div = document.createElement("div");
+          div.style.cssText =
+            "display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; margin-bottom: 0.25rem;";
+          div.innerHTML = `<span>${p}</span><span class="remove-procedure" data-i="${i}" style="cursor: pointer; color: #dc3545;">X</span>`;
+          c.appendChild(div);
+        });
+        document
+          .querySelectorAll("#bookingSelectedProceduresList .remove-procedure")
+          .forEach((btn) => {
+            btn.onclick = () => {
+              bookingSelectedProcedures.splice(parseInt(btn.dataset.i), 1);
+              updateBookingDisplay();
+              updateBookingHiddenField();
+            };
+          });
+      }
+
+      function updateBookingHiddenField() {
+        document.getElementById("bookingPlanOfAction").value = JSON.stringify(
+          bookingSelectedProcedures,
+        );
+      }
+
+      let isLoadingSlots = false;
+
+      function loadAvailableSlots(selectedDate) {
+        if (!selectedDate) {
+          document.getElementById("bookingTimeSlot").innerHTML =
+            '<option value="">Select a Time Slot</option>';
+          return;
+        }
+
+        if (isLoadingSlots) {
+          return;
+        }
+
+        isLoadingSlots = true;
+        const timeSlotSelect = document.getElementById("bookingTimeSlot");
+        timeSlotSelect.innerHTML = '<option value="">Loading slots...</option>';
+        timeSlotSelect.disabled = true;
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            isLoadingSlots = false;
+            timeSlotSelect.disabled = false;
+            timeSlotSelect.innerHTML =
+              '<option value="">Select a Time Slot</option>';
+
+            if (
+              response &&
+              response.success &&
+              response.slots &&
+              response.slots.length > 0
+            ) {
+              response.slots.forEach(function (slot) {
+                const option = document.createElement("option");
+                option.value = slot;
+                option.textContent = slot;
+                timeSlotSelect.appendChild(option);
+              });
+            } else {
+              if (response && response.message) {
+                showAlert(
+                  "No available time slots for the selected date. " +
+                    response.message,
+                  "warning",
+                );
+              }
+            }
+          })
+          .withFailureHandler(function (error) {
+            isLoadingSlots = false;
+            timeSlotSelect.disabled = false;
+            timeSlotSelect.innerHTML =
+              '<option value="">Error loading slots</option>';
+            showAlert("Error loading time slots: " + error, "error");
+          })
+          .getAvailableSlotsFromPlanningA(selectedDate);
+      }
+
+      function submitBooking() {
+        const directCallID = document.getElementById(
+          "bookingDirectCallID",
+        ).value;
+        const rawAppointmentDate = document.getElementById(
+          "bookingAppointmentDate",
+        ).value;
+        const doctor = document.getElementById("bookingDoctor").value;
+        const appointmentType = document.getElementById(
+          "bookingAppointmentType",
+        ).value;
+        const planOfActionValue = document.getElementById(
+          "bookingPlanOfAction",
+        ).value;
+        const rawTimeSlot = document.getElementById("bookingTimeSlot").value;
+        const additionalComments = document
+          .getElementById("bookingAdditionalComments")
+          .value.trim();
+
+        // Format date and time before validation
+        const appointmentDate = formatAppointmentDate(rawAppointmentDate);
+        const timeSlot = formatTimeSlot(rawTimeSlot);
+
+        // Validate date format
+        if (!appointmentDate || !isValidDateFormat(appointmentDate)) {
+          showAlert(
+            "Please enter a valid date in YYYY-MM-DD format",
+            "warning",
+          );
+          return;
+        }
+
+        // Validate plan of action
+        let planOfAction = "";
+        if (planOfActionValue) {
+          try {
+            const planArray = JSON.parse(planOfActionValue);
+            if (Array.isArray(planArray) && planArray.length > 0) {
+              planOfAction = planOfActionValue;
+            } else {
+              showAlert("Please add at least one plan of action", "warning");
+              return;
+            }
+          } catch (e) {
+            if (planOfActionValue.trim()) {
+              planOfAction = planOfActionValue;
+            } else {
+              showAlert("Please add at least one plan of action", "warning");
+              return;
+            }
+          }
+        } else {
+          showAlert("Please add at least one plan of action", "warning");
+          return;
+        }
+
+        // Validate required fields (time slot not required for WAITING LIST)
+        const isWaitingList = appointmentType === "WAITING LIST";
+        if (!appointmentDate || !doctor || !appointmentType) {
+          showAlert("Please fill in all required fields", "warning");
+          return;
+        }
+
+        if (!isWaitingList && !timeSlot) {
+          showAlert("Please select a time slot", "warning");
+          return;
+        }
+
+        // Validate time format (only if not waiting list)
+        if (!isWaitingList && !isValidTimeFormat(timeSlot)) {
+          showAlert(
+            "Please select a valid time slot in HH:MM format",
+            "warning",
+          );
+          return;
+        }
+
+        const submitBtn = document.getElementById("submitBookingBtn");
+        const normalText = submitBtn.querySelector(".normal-text");
+        const loadingText = submitBtn.querySelector(".loading-text");
+
+        submitBtn.disabled = true;
+        normalText.style.display = "none";
+        loadingText.style.display = "inline-block";
+
+        const appointmentData = {
+          directCallID: directCallID,
+          appointmentDate: appointmentDate,
+          timeSlot: isWaitingList ? "" : timeSlot, // No time slot for waiting list
+          doctor: doctor,
+          appointmentType: appointmentType,
+          planOfAction: planOfAction,
+          additionalComments: additionalComments,
+        };
+
+        // Store appointment data for use in proceedWithBookingDespiteDuplicate
+        window.pendingAppointmentData = appointmentData;
+        window.pendingIsWaitingList = isWaitingList;
+
+        // Check for duplicate MRD before proceeding
+        // Skip check if MRD is empty or whitespace
+        if (currentBookingMRD && currentBookingMRD.trim()) {
+          google.script.run
+            .withSuccessHandler(function (response) {
+              if (response && response.success && response.hasDuplicates) {
+                // Duplicates found - show warning modal
+                submitBtn.disabled = false;
+                normalText.style.display = "inline-block";
+                loadingText.style.display = "none";
+                showDuplicateWarningModal(response.duplicates);
+              } else {
+                // No duplicates - proceed with booking
+                proceedWithSlotCheckAndBooking(
+                  appointmentData,
+                  isWaitingList,
+                  submitBtn,
+                  normalText,
+                  loadingText,
+                );
+              }
+            })
+            .withFailureHandler(function (error) {
+              // On error, proceed with booking (don't block)
+              proceedWithSlotCheckAndBooking(
+                appointmentData,
+                isWaitingList,
+                submitBtn,
+                normalText,
+                loadingText,
+              );
+            })
+            .checkDuplicateMRDInAppointments(currentBookingMRD);
+        } else {
+          // No MRD - proceed with booking
+          proceedWithSlotCheckAndBooking(
+            appointmentData,
+            isWaitingList,
+            submitBtn,
+            normalText,
+            loadingText,
+          );
+        }
+      }
+
+      // Proceed with slot availability check and booking
+      function proceedWithSlotCheckAndBooking(
+        appointmentData,
+        isWaitingList,
+        submitBtn,
+        normalText,
+        loadingText,
+      ) {
+        const appointmentDate = appointmentData.appointmentDate;
+
+        // Check slot availability and early booking restrictions before booking
+        if (isWaitingList) {
+          // WAITING LIST - only check waiting list limit, skip early booking restrictions
+          // Waiting list has its own separate limit system and is not connected to TAA
+          google.script.run
+            .withSuccessHandler(function (limitResponse) {
+              if (limitResponse && limitResponse.allowed) {
+                // Waiting list has space, proceed with booking
+                executeDirectCallBooking(
+                  appointmentData,
+                  submitBtn,
+                  normalText,
+                  loadingText,
+                );
+              } else {
+                // Waiting list is full
+                submitBtn.disabled = false;
+                normalText.style.display = "inline-block";
+                loadingText.style.display = "none";
+                const errorMsg = limitResponse
+                  ? limitResponse.message
+                  : "Waiting list is full for the selected date";
+                showAlert(errorMsg, "error");
+              }
+            })
+            .withFailureHandler(function (error) {
+              submitBtn.disabled = false;
+              normalText.style.display = "inline-block";
+              loadingText.style.display = "none";
+              showAlert("Error checking waiting list: " + error, "error");
+            })
+            .checkWaitingListLimit(appointmentDate);
+        } else {
+          // Regular appointment - check slot availability and early booking restrictions
+          google.script.run
+            .withSuccessHandler(function (availResult) {
+              // Check for early booking restriction first
+              if (availResult.restricted) {
+                // Early booking restriction applies - show warning modal and stop
+                submitBtn.disabled = false;
+                normalText.style.display = "inline-block";
+                loadingText.style.display = "none";
+                displayRestrictionWarning(availResult);
+                return;
+              }
+
+              if (!availResult.available) {
+                // Slots not available - show warning and stop
+                submitBtn.disabled = false;
+                normalText.style.display = "inline-block";
+                loadingText.style.display = "none";
+                showAlert(availResult.message, "warning");
+                return;
+              }
+
+              // Slots available and no restrictions, proceed with booking
+              executeDirectCallBooking(
+                appointmentData,
+                submitBtn,
+                normalText,
+                loadingText,
+              );
+            })
+            .withFailureHandler(function (error) {
+              // On error, still proceed with booking (don't block)
+              executeDirectCallBooking(
+                appointmentData,
+                submitBtn,
+                normalText,
+                loadingText,
+              );
+            })
+            .checkSlotAvailability(appointmentDate);
+        }
+      }
+
+      // Execute the actual booking
+      function executeDirectCallBooking(
+        appointmentData,
+        submitBtn,
+        normalText,
+        loadingText,
+      ) {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            submitBtn.disabled = false;
+            normalText.style.display = "inline-block";
+            loadingText.style.display = "none";
+
+            if (response && response.success) {
+              // Close the booking modal
+              const bookingModal = bootstrap.Modal.getInstance(
+                document.getElementById("bookingModal"),
+              );
+              bookingModal.hide();
+
+              // Show success confirmation modal with appointment details
+              showBookingSuccessModal(appointmentData, response);
+
+              // Refresh the direct calls list
+              performSearch();
+            } else {
+              // Parse and display backend validation errors
+              let errorMessage = "Error booking appointment";
+              if (response && response.message) {
+                errorMessage = response.message;
+                // Log detailed error to console for debugging
+              } else {
+                errorMessage = "Unknown error occurred";
+              }
+              showAlert(errorMessage, "error");
+            }
+          })
+          .withFailureHandler(function (error) {
+            submitBtn.disabled = false;
+            normalText.style.display = "inline-block";
+            loadingText.style.display = "none";
+
+            // Log error to console for debugging
+            showAlert("Error booking appointment: " + error, "error");
+          })
+          .createAppointmentFromDirectCall(appointmentData, sessionToken);
+      }
+
+      /**
+       * Show booking success confirmation modal with appointment details
+       * @param {Object} appointmentData - The appointment data that was submitted
+       * @param {Object} response - The response from the backend
+       */
+      function showBookingSuccessModal(appointmentData, response) {
+        // Get patient name from stored variable or response
+        const patientName =
+          currentBookingPatientName || response.patientName || "Patient";
+
+        // Populate modal fields
+        document.getElementById("confirmPatientName").textContent = patientName;
+        document.getElementById("confirmAppointmentType").textContent =
+          appointmentData.appointmentType || "-";
+        document.getElementById("confirmDate").textContent =
+          formatDateForDisplay(appointmentData.appointmentDate) || "-";
+        document.getElementById("confirmDoctor").textContent =
+          appointmentData.doctor || "-";
+
+        // Handle time slot (hide for waiting list)
+        const isWaitingList =
+          appointmentData.appointmentType === "WAITING LIST";
+        const timeSlotContainer = document.getElementById(
+          "confirmTimeSlotContainer",
+        );
+        if (isWaitingList) {
+          timeSlotContainer.style.display = "none";
+        } else {
+          timeSlotContainer.style.display = "block";
+          document.getElementById("confirmTimeSlot").textContent =
+            appointmentData.timeSlot || "-";
+        }
+
+        // Format and display plan of action
+        let planOfActionText = "-";
+        if (appointmentData.planOfAction) {
+          try {
+            const planArray = JSON.parse(appointmentData.planOfAction);
+            if (Array.isArray(planArray) && planArray.length > 0) {
+              planOfActionText = planArray.join(", ");
+            }
+          } catch (e) {
+            planOfActionText = appointmentData.planOfAction;
+          }
+        }
+        document.getElementById("confirmPlanOfAction").textContent =
+          planOfActionText;
+
+        // Show the modal
+        const successModal = new bootstrap.Modal(
+          document.getElementById("bookingSuccessModal"),
+        );
+        successModal.show();
+      }
+
+      /**
+       * Format date for display (convert YYYY-MM-DD to more readable format)
+       * @param {string} dateStr - Date in YYYY-MM-DD format
+       * @return {string} Formatted date string
+       */
+      function formatDateForDisplay(dateStr) {
+        if (!dateStr) return "";
+
+        return formatDisplayDate(dateStr);
+      }
+
+      /**
+       * Display early booking restriction warning modal
+       * Shows details about why booking is restricted and suggests booking closer to the date
+       * @param {Object} restrictionData - Data from checkSlotAvailability response
+       */
+      function displayRestrictionWarning(restrictionData) {
+        // Remove any existing restriction modal
+        const existing = document.getElementById("restrictionWarningModal");
+        if (existing) existing.remove();
+
+        const currentTAA = restrictionData.currentTAA || 0;
+        const maxSlots = restrictionData.maxSlots || 0;
+        const percentageUsed = restrictionData.percentageUsed || 0;
+        const daysUntilAppointment = restrictionData.daysUntilAppointment || 0;
+
+        // Multi-threshold support
+        const triggeredThreshold = restrictionData.triggeredThreshold || {
+          days: 10,
+          percentage: 50,
+        };
+        const allThresholds = restrictionData.allThresholds || [
+          { days: 10, percentage: 51 },
+          { days: 5,  percentage: 79 },
+          { days: 4,  percentage: 85 },
+          { days: 1,  percentage: 95 },
+          { days: 0,  percentage: 100 },
+        ];
+
+        // Format threshold label
+        function formatThresholdLabel(days) {
+          if (days === 0) return "Same day";
+          if (days === 1) return "1 day";
+          if (days === 2) return "2 days";
+          return `${days}+ days`;
+        }
+
+        const thresholdLabel = formatThresholdLabel(triggeredThreshold.days);
+
+        const _dcApptDateRaw = document.getElementById("bookingAppointmentDate")
+          ? document.getElementById("bookingAppointmentDate").value
+          : "";
+        const appointmentDate = _dcApptDateRaw ? new Date(_dcApptDateRaw + "T00:00:00") : null;
+
+        function unlockDateStr(daysAhead) {
+          if (!appointmentDate) return "";
+          const unlock = new Date(appointmentDate);
+          unlock.setDate(unlock.getDate() - daysAhead);
+          if (unlock.getDay() === 0) {
+            unlock.setDate(unlock.getDate() - 1);
+          }
+          return unlock.toLocaleDateString("en-GB", {
+            day: "numeric", month: "short", year: "numeric",
+          });
+        }
+
+        const upcomingThresholds = allThresholds
+          .filter((t) => t.days < triggeredThreshold.days)
+          .sort((a, b) => b.days - a.days);
+
+        // Create modal overlay
+        const modalOverlay = document.createElement("div");
+        modalOverlay.id = "restrictionWarningModal";
+        modalOverlay.style.cssText =
+          "position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(4px);";
+
+        modalOverlay.innerHTML = `
+        <div style="background: var(--bg-white, #ffffff); border-radius: 16px; padding: 24px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); animation: modalSlideIn 0.3s ease-out;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--primary-light, #e8f0fe);">
+            <h5 style="font-size: 1.5rem; font-weight: 600; color: var(--text-primary, #2d3748); margin: 0;">
+              <span style="color: var(--warning-color, #ed8936); margin-right: 8px;">⚠</span>
+              Early Booking Restriction
+            </h5>
+            <button onclick="document.getElementById('restrictionWarningModal').remove()" style="background: none; border: none; font-size: 1.5rem; color: var(--text-secondary, #4a5568); cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.2s;">×</button>
+          </div>
+          <div style="margin-bottom: 20px;">
+            <p style="color: var(--text-secondary, #4a5568); margin-bottom: 16px; line-height: 1.6;">
+              This appointment date is currently restricted for early booking. The system preserves slots for patients who need to book closer to the appointment date.
+            </p>
+            <div style="background: rgba(237, 137, 54, 0.1); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+              <h6 style="margin-bottom: 12px; color: var(--text-primary, #2d3748); font-weight: 600;">Current Status:</h6>
+              <ul style="list-style: none; padding: 0; margin: 0;">
+                <li style="margin-bottom: 8px;">
+                  <strong>Days until appointment:</strong> ${daysUntilAppointment} ${daysUntilAppointment === 1 ? "day" : "days"}
+                </li>
+                <li style="margin-bottom: 8px;">
+                  <strong>Triggered threshold:</strong> ${thresholdLabel}: ${triggeredThreshold.percentage}% limit
+                </li>
+                <li style="margin-bottom: 8px;">
+                  <strong>Current TAA:</strong> ${currentTAA} appointments
+                </li>
+                <li style="margin-bottom: 8px;">
+                  <strong>Max Slots:</strong> ${maxSlots} slots
+                </li>
+                <li style="margin-bottom: 8px;">
+                  <strong>Percentage Used:</strong> ${percentageUsed}%
+                </li>
+              </ul>
+            </div>
+            <div style="background: rgba(74, 144, 226, 0.1); border-radius: 8px; padding: 16px;">
+              <h6 style="margin-bottom: 10px; color: var(--primary-color, #4a90e2); font-weight: 600;">💡 When can you book more slots?</h6>
+              ${upcomingThresholds.length > 0 ? `
+              <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                <thead>
+                  <tr>
+                    <th style="text-align: left; padding: 6px 8px; color: var(--text-secondary, #4a5568); font-weight: 600; border-bottom: 1px solid rgba(74,144,226,0.2);">Days before appt.</th>
+                    <th style="text-align: left; padding: 6px 8px; color: var(--text-secondary, #4a5568); font-weight: 600; border-bottom: 1px solid rgba(74,144,226,0.2);">From date</th>
+                    <th style="text-align: left; padding: 6px 8px; color: var(--text-secondary, #4a5568); font-weight: 600; border-bottom: 1px solid rgba(74,144,226,0.2);">Capacity allowed</th>
+                    <th style="text-align: left; padding: 6px 8px; color: var(--text-secondary, #4a5568); font-weight: 600; border-bottom: 1px solid rgba(74,144,226,0.2);">Slots unlocked</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${upcomingThresholds.map((t, i) => {
+                    const slotsAllowed = Math.floor(maxSlots * t.percentage / 100);
+                    const prevPerc = i === 0 ? triggeredThreshold.percentage : upcomingThresholds[i - 1].percentage;
+                    const slotsGained = Math.floor(maxSlots * t.percentage / 100) - Math.floor(maxSlots * prevPerc / 100);
+                    const daysLabel = t.days === 0 ? "Same day" : t.days === 1 ? "1 day before" : t.days + " days before";
+                    const dateLabel = t.days === 0 ? "On appointment day" : unlockDateStr(t.days);
+                    return '<tr style="border-bottom: 1px solid rgba(74,144,226,0.1);"><td style="padding: 7px 8px; color: var(--text-primary, #2d3748); font-weight: 500;">' + daysLabel + '</td><td style="padding: 7px 8px; color: var(--text-secondary, #4a5568);">' + dateLabel + '</td><td style="padding: 7px 8px;"><span style="background: rgba(72,187,120,0.15); color: #276749; border-radius: 4px; padding: 2px 7px; font-weight: 600;">' + t.percentage + '%</span></td><td style="padding: 7px 8px; color: var(--text-primary, #2d3748);">' + slotsAllowed + ' / ' + maxSlots + (slotsGained > 0 ? ' <span style="color: #48bb78; font-size: 0.82rem;">(+' + slotsGained + ' new)</span>' : '') + '</td></tr>';
+                  }).join("")}
+                </tbody>
+              </table>` : `<p style="margin: 0; color: var(--text-secondary, #4a5568);">No further unlocks available. Please select a different date.</p>`}
+            </div>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--primary-light, #e8f0fe);">
+            <button onclick="document.getElementById('restrictionWarningModal').remove()" style="padding: 10px 20px; border: none; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: var(--primary-color, #4a90e2); color: white;">
+              Understood
+            </button>
+          </div>
+        </div>
+      `;
+
+        document.body.appendChild(modalOverlay);
+
+        // Close modal when clicking outside
+        modalOverlay.addEventListener("click", function (e) {
+          if (e.target === modalOverlay) {
+            modalOverlay.remove();
+          }
+        });
+      }
+
+      /**
+       * Check early booking restrictions for a selected date
+       * Updates UI to show restriction status
+       * @param {string} dateStr - Date in YYYY-MM-DD format
+       */
+      function checkEarlyBookingRestrictions(dateStr) {
+        if (!dateStr) return;
+
+        google.script.run
+          .withSuccessHandler(function (availResult) {
+            // Update UI based on restriction status
+            updateRestrictionStatusUI(availResult);
+          })
+          .withFailureHandler(function (error) {
+            // Clear any restriction warning on error
+            clearRestrictionStatusUI();
+          })
+          .checkSlotAvailability(dateStr);
+      }
+
+      /**
+       * Update UI to show restriction status
+       * @param {Object} availResult - Result from checkSlotAvailability
+       */
+      function updateRestrictionStatusUI(availResult) {
+        // Remove any existing restriction status
+        clearRestrictionStatusUI();
+
+        if (availResult.restricted) {
+          // Show restriction warning in the modal
+          const dateField = document.getElementById("bookingAppointmentDate");
+          if (dateField) {
+            const warningDiv = document.createElement("div");
+            warningDiv.id = "earlyBookingRestrictionWarning";
+            warningDiv.className = "alert alert-warning mt-2";
+            warningDiv.style.cssText =
+              "background: #fff3cd; border-left: 4px solid #ffc107; color: #856404; font-weight: 500; padding: 12px;";
+
+            const currentTAA = availResult.currentTAA || 0;
+            const maxSlots = availResult.maxSlots || 0;
+            const percentageUsed = availResult.percentageUsed || 0;
+
+            const triggeredThreshold = availResult.triggeredThreshold || {
+              days: 10,
+              percentage: 51,
+            };
+            const allThresholds = availResult.allThresholds || [
+              { days: 10, percentage: 51 },
+              { days: 5,  percentage: 79 },
+              { days: 4,  percentage: 85 },
+              { days: 1,  percentage: 95 },
+              { days: 0,  percentage: 100 },
+            ];
+
+            const rawDate = document.getElementById("bookingAppointmentDate").value;
+            const appointmentDate = rawDate ? new Date(rawDate + "T00:00:00") : null;
+
+            function unlockDateStr(daysAhead) {
+              if (!appointmentDate) return "";
+              const unlock = new Date(appointmentDate);
+              unlock.setDate(unlock.getDate() - daysAhead);
+              if (unlock.getDay() === 0) { unlock.setDate(unlock.getDate() - 1); }
+              return unlock.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+            }
+
+            const upcomingThresholds = allThresholds
+              .filter((t) => t.days < triggeredThreshold.days)
+              .sort((a, b) => b.days - a.days);
+
+            let tableHtml = "";
+            if (upcomingThresholds.length > 0) {
+              const rows = upcomingThresholds.map((t) => {
+                const dateStr = unlockDateStr(t.days);
+                const label = t.days === 0 ? "Same day" : t.days === 1 ? "1 day before" : `${t.days} days before`;
+                const extraSlots = maxSlots > 0 ? Math.floor((t.percentage / 100) * maxSlots) - currentTAA : "?";
+                const extraLabel = typeof extraSlots === "number" && extraSlots > 0 ? `+${extraSlots} slots` : (extraSlots <= 0 ? "Already unlocked" : "?");
+                return `<tr><td style="padding:3px 6px;">${label}</td><td style="padding:3px 6px;">${dateStr}</td><td style="padding:3px 6px;">${t.percentage}%</td><td style="padding:3px 6px;">${extraLabel}</td></tr>`;
+              }).join("");
+              tableHtml = `
+                <div style="margin-top:8px;">
+                  <strong style="font-size:0.85em;">Upcoming unlock dates:</strong>
+                  <table style="width:100%;font-size:0.8em;margin-top:4px;border-collapse:collapse;">
+                    <thead><tr style="background:#ffeeba;">
+                      <th style="padding:3px 6px;text-align:left;">When</th>
+                      <th style="padding:3px 6px;text-align:left;">From date</th>
+                      <th style="padding:3px 6px;text-align:left;">Capacity</th>
+                      <th style="padding:3px 6px;text-align:left;">Slots unlocked</th>
+                    </tr></thead>
+                    <tbody>${rows}</tbody>
+                  </table>
+                </div>`;
+            }
+
+            warningDiv.innerHTML = `
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              <strong>Early Booking Restriction Active</strong><br>
+              <small>
+                This date is restricted (${percentageUsed}% used, limit: ${triggeredThreshold.percentage}%).
+                Current: ${currentTAA}/${maxSlots} slots used.
+              </small>
+              ${tableHtml}
+            `;
+
+            dateField.parentNode.appendChild(warningDiv);
+
+            // Disable submit button when restricted
+            const submitBtn = document.getElementById("submitBookingBtn");
+            if (submitBtn) {
+              submitBtn.disabled = true;
+            }
+          }
+        } else {
+          // Enable submit button when not restricted
+          const submitBtn = document.getElementById("submitBookingBtn");
+          if (submitBtn) {
+            submitBtn.disabled = false;
+          }
+        }
+      }
+
+      /**
+       * Clear restriction status UI elements
+       */
+      function clearRestrictionStatusUI() {
+        const existingWarning = document.getElementById(
+          "earlyBookingRestrictionWarning",
+        );
+        if (existingWarning) {
+          existingWarning.remove();
+        }
+
+        // Re-enable submit button
+        const submitBtn = document.getElementById("submitBookingBtn");
+        if (submitBtn) {
+          submitBtn.disabled = false;
+        }
+      }
+
+      // Show duplicate warning modal with appointment details
+      function showDuplicateWarningModal(duplicates) {
+        const listContainer = document.getElementById(
+          "duplicateAppointmentsList",
+        );
+        listContainer.innerHTML = "";
+
+        if (!duplicates || duplicates.length === 0) {
+          return;
+        }
+
+        // Create list of duplicate appointments
+        duplicates.forEach(function (dup, index) {
+          const item = document.createElement("div");
+          item.style.cssText =
+            "background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 0.5rem;";
+          item.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <span style="font-weight: 600; color: #4a90e2;">${dup.appointmentID || "N/A"}</span>
+              <span style="color: #718096; margin-left: 0.5rem;">-</span>
+              <span style="color: #2d3748; margin-left: 0.5rem;">${dup.patientName || "N/A"}</span>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 0.875rem; color: #4a5568;">
+                <i class="fas fa-calendar-alt me-1"></i>${formatDisplayDate(dup.appointmentDate) || "N/A"}
+              </div>
+              ${dup.timeSlot ? `<div style="font-size: 0.8rem; color: #718096;"><i class="fas fa-clock me-1"></i>${dup.timeSlot}</div>` : ""}
+            </div>
+          </div>
+        `;
+          listContainer.appendChild(item);
+        });
+
+        // Show the modal
+        const modal = new bootstrap.Modal(
+          document.getElementById("duplicateWarningModal"),
+        );
+        modal.show();
+      }
+
+      // Proceed with booking despite duplicate warning
+      function proceedWithBookingDespiteDuplicate() {
+        // Hide the duplicate warning modal
+        const warningModal = bootstrap.Modal.getInstance(
+          document.getElementById("duplicateWarningModal"),
+        );
+        if (warningModal) {
+          warningModal.hide();
+        }
+
+        // Get the stored appointment data
+        const appointmentData = window.pendingAppointmentData;
+        const isWaitingList = window.pendingIsWaitingList;
+
+        if (!appointmentData) {
+          showAlert("Error: No pending appointment data found", "error");
+          return;
+        }
+
+        // Get button references
+        const submitBtn = document.getElementById("submitBookingBtn");
+        const normalText = submitBtn.querySelector(".normal-text");
+        const loadingText = submitBtn.querySelector(".loading-text");
+
+        submitBtn.disabled = true;
+        normalText.style.display = "none";
+        loadingText.style.display = "inline-block";
+
+        // Proceed with slot check and booking
+        proceedWithSlotCheckAndBooking(
+          appointmentData,
+          isWaitingList,
+          submitBtn,
+          normalText,
+          loadingText,
+        );
+      }
+
+      // Confirmation Modal
+      function showConfirmModal(actionType, directCallID) {
+        const modal = document.getElementById("confirmActionModal");
+        const modalTitle = document.getElementById("confirmModalTitle");
+        const modalIcon = document.getElementById("confirmModalIcon");
+        const actionIcon = document.getElementById("confirmActionIcon");
+        const modalMessage = document.getElementById("confirmModalMessage");
+        const modalDetails = document.getElementById("confirmModalDetails");
+        const confirmBtn = document.getElementById("confirmActionBtn");
+
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+        if (actionType === "cancel") {
+          modalTitle.textContent = "Cancel Direct Call";
+          modalIcon.innerHTML = '<i class="fas fa-times-circle"></i>';
+          actionIcon.className = "confirm-icon cancel";
+          actionIcon.innerHTML = '<i class="fas fa-times-circle"></i>';
+          modalMessage.textContent =
+            "Are you sure you want to cancel this direct call?";
+          modalDetails.innerHTML =
+            "<strong>Data will be moved</strong><br>This direct call will be moved from the <strong>Direct Call sheet</strong> to the <strong>Cancel sheet</strong>.";
+          newConfirmBtn.className = "btn btn-cancel-action";
+          newConfirmBtn.innerHTML =
+            '<i class="fas fa-times-circle"></i> Cancel Entry';
+
+          newConfirmBtn.onclick = function () {
+            const bootstrapModal = bootstrap.Modal.getInstance(modal);
+            bootstrapModal.hide();
+            executeCancelDirectCall(directCallID);
+          };
+        } else if (actionType === "archive") {
+          modalTitle.textContent = "Archive Direct Call";
+          modalIcon.innerHTML = '<i class="fas fa-archive"></i>';
+          actionIcon.className = "confirm-icon archive";
+          actionIcon.innerHTML = '<i class="fas fa-archive"></i>';
+          modalMessage.textContent =
+            "Are you sure you want to archive this direct call?";
+          modalDetails.innerHTML =
+            "<strong>Data will be moved</strong><br>This direct call will be moved from the <strong>Direct Call sheet</strong> to the <strong>Archive sheet</strong>.";
+          newConfirmBtn.className = "btn btn-archive-action";
+          newConfirmBtn.innerHTML =
+            '<i class="fas fa-archive"></i> Archive Entry';
+
+          newConfirmBtn.onclick = function () {
+            const bootstrapModal = bootstrap.Modal.getInstance(modal);
+            bootstrapModal.hide();
+            executeArchiveDirectCall(directCallID);
+          };
+        }
+
+        const bootstrapModal = new bootstrap.Modal(modal);
+        bootstrapModal.show();
+      }
+
+      function confirmCancelDirectCall(directCallID) {
+        showConfirmModal("cancel", directCallID);
+      }
+
+      function confirmArchiveDirectCall(directCallID) {
+        showConfirmModal("archive", directCallID);
+      }
+
+      function executeCancelDirectCall(directCallID) {
+        showLoading();
+        google.script.run
+          .withSuccessHandler(function (response) {
+            hideLoading();
+            if (response && response.success) {
+              showAlert(
+                "Direct call cancelled successfully! Data has been moved to Cancel sheet.",
+                "success",
+              );
+              performSearch();
+            } else {
+              showAlert(
+                "Error cancelling direct call: " +
+                  (response ? response.message : "Unknown error"),
+                "error",
+              );
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            showAlert("Error cancelling direct call: " + error, "error");
+          })
+          .cancelDirectCall(directCallID, sessionToken);
+      }
+
+      function executeArchiveDirectCall(directCallID) {
+        showLoading();
+        google.script.run
+          .withSuccessHandler(function (response) {
+            hideLoading();
+            if (response && response.success) {
+              showAlert(
+                "Direct call archived successfully! Data has been moved to Archive sheet.",
+                "success",
+              );
+              performSearch();
+            } else {
+              showAlert(
+                "Error archiving direct call: " +
+                  (response ? response.message : "Unknown error"),
+                "error",
+              );
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            showAlert("Error archiving direct call: " + error, "error");
+          })
+          .archiveDirectCall(directCallID, sessionToken);
+      }
+
+      // Utility functions
+      function showLoading() {
+        const overlay = document.createElement("div");
+        overlay.className = "loading-overlay";
+        overlay.id = "loadingOverlay";
+        overlay.innerHTML = '<div class="spinner"></div>';
+        document.body.appendChild(overlay);
+      }
+
+      function hideLoading() {
+        const overlay = document.getElementById("loadingOverlay");
+        if (overlay) {
+          overlay.remove();
+        }
+      }
+
+      function showAlert(message, type) {
+        const alertContainer = document.getElementById("alertContainer");
+        const alert = document.createElement("div");
+        alert.className = `custom-alert ${type}`;
+
+        const iconMap = {
+          success: "fa-check-circle",
+          error: "fa-exclamation-circle",
+          warning: "fa-exclamation-triangle",
+          info: "fa-info-circle",
+        };
+
+        alert.innerHTML = `
+        <i class="fas ${iconMap[type] || "fa-info-circle"}"></i>
+        <span>${message}</span>
+      `;
+
+        alertContainer.appendChild(alert);
+
+        setTimeout(function () {
+          alert.style.opacity = "0";
+          alert.style.transition = "opacity 0.3s";
+          setTimeout(function () {
+            alert.remove();
+          }, 300);
+        }, 3000);
+      }
+
+      function openDirectCallReport() {
+        if (!allDirectCalls.length) {
+          showAlert("No data loaded. Please search for calls first.", "warning");
+          return;
+        }
+
+        var today = new Date();
+        today.setHours(0, 0, 0, 0);
+        var todayStr = today.getFullYear() + "-" +
+          String(today.getMonth() + 1).padStart(2, "0") + "-" +
+          String(today.getDate()).padStart(2, "0");
+
+        var todayRecords = allDirectCalls.filter(function (r) {
+          return String(r.CreatedOn || "").substring(0, 10) === todayStr;
+        });
+
+        var overduePending = allDirectCalls.filter(function (r) {
+          var d = String(r.CreatedOn || "").substring(0, 10);
+          return d < todayStr && r.Status === "Active";
+        });
+
+        function reportSort(a, b) {
+          var urgOrder = { "Urgent": 0, "Non-Urgent": 1 };
+          var au = urgOrder[a.Urgency] !== undefined ? urgOrder[a.Urgency] : 2;
+          var bu = urgOrder[b.Urgency] !== undefined ? urgOrder[b.Urgency] : 2;
+          if (au !== bu) return au - bu;
+          return String(a.CreatedOn || "").localeCompare(String(b.CreatedOn || ""));
+        }
+        todayRecords   = todayRecords.sort(reportSort);
+        overduePending = overduePending.sort(reportSort);
+
+        var generatedAt = new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+
+        function escHtml(s) {
+          return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        function urgStyle(u) {
+          if (u === "Urgent")     return "background:#fef3c7;color:#92400e;";
+          if (u === "Non-Urgent") return "background:#d1fae5;color:#065f46;";
+          return "";
+        }
+
+        function statusStyle(s) {
+          return s === "Active"
+            ? "background:#fff7ed;color:#c2410c;"
+            : "background:#ecfdf5;color:#047857;";
+        }
+
+        function rowBorder(u) {
+          if (u === "Urgent")     return "border-left:4px solid #f59e0b;";
+          if (u === "Non-Urgent") return "border-left:4px solid #10b981;";
+          return "border-left:4px solid #cbd5e0;";
+        }
+
+        function badge(text, style) {
+          return '<span style="' + style + 'padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;">' + escHtml(text) + '</span>';
+        }
+
+        var thStyle = 'background:#4a90e2;color:white;padding:8px 10px;text-align:left;font-weight:600;white-space:nowrap;';
+        var tdStyle = 'padding:7px 10px;border-bottom:1px solid #e2e8f0;vertical-align:middle;';
+
+        var thead = '<thead><tr>' +
+          '<th style="' + thStyle + 'width:30px;">#</th>' +
+          '<th style="' + thStyle + '">Date / Time</th>' +
+          '<th style="' + thStyle + '">Patient</th>' +
+          '<th style="' + thStyle + '">MRD / Phone</th>' +
+          '<th style="' + thStyle + '">Age / Gender</th>' +
+          '<th style="' + thStyle + '">Patient Type</th>' +
+          '<th style="' + thStyle + '">Case Type</th>' +
+          '<th style="' + thStyle + 'text-align:center;">Urgency</th>' +
+          '<th style="' + thStyle + '">Call Type</th>' +
+          '<th style="' + thStyle + '">Status</th>' +
+          '<th style="' + thStyle + '">Created By</th>' +
+          '<th style="' + thStyle + '">Remarks</th>' +
+        '</tr></thead>';
+
+        function buildRows(rows) {
+          if (!rows.length) return '<tr><td colspan="12" style="text-align:center;color:#718096;padding:1.5rem;">No records in this section.</td></tr>';
+          return rows.map(function (r, idx) {
+            var createdOn = String(r.CreatedOn || "");
+            var datePart = createdOn.substring(0, 10);
+            var timePart = createdOn.length > 10 ? createdOn.substring(11, 16) : "";
+            var mrdPhone = [r.MRDNo, r.Phone].filter(Boolean).join(" / ") || "—";
+            var ageGender = [r.Age, r.Gender].filter(Boolean).join(" / ") || "—";
+            return '<tr style="' + rowBorder(r.Urgency) + '">' +
+              '<td style="text-align:center;color:#718096;">' + (idx + 1) + '</td>' +
+              '<td>' + escHtml(formatDisplayDate(datePart)) + (timePart ? '<br><small style="color:#718096;">' + escHtml(timePart) + '</small>' : '') + '</td>' +
+              '<td><strong>' + escHtml(r.PatientName || "—") + '</strong></td>' +
+              '<td>' + escHtml(mrdPhone) + '</td>' +
+              '<td>' + escHtml(ageGender) + '</td>' +
+              '<td>' + escHtml(r.PatientType || "—") + '</td>' +
+              '<td>' + escHtml(r.CaseType || "—") + '</td>' +
+              '<td style="text-align:center;">' + badge(r.Urgency || "—", urgStyle(r.Urgency)) + '</td>' +
+              '<td>' + escHtml(r.CallType || "—") + '</td>' +
+              '<td>' + badge(r.Status || "—", statusStyle(r.Status)) + '</td>' +
+              '<td style="font-size:11px;color:#718096;">' + escHtml(r.CreatedBy || "—") + '</td>' +
+              '<td style="font-size:11px;max-width:160px;">' + escHtml(r.Remarks || "—") + '</td>' +
+            '</tr>';
+          }).join("");
+        }
+
+        var summaryToday   = todayRecords.length + " record" + (todayRecords.length !== 1 ? "s" : "");
+        var summaryOverdue = overduePending.length + " overdue active record" + (overduePending.length !== 1 ? "s" : "");
+
+        var html = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">' +
+          '<title>Direct Call Daily Report – ' + todayStr + '</title>' +
+          '<style>' +
+            'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0;padding:24px;color:#2d3748;background:#fff;}' +
+            'h2{margin:0 0 2px;font-size:18px;color:#2c5282;}' +
+            '.report-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #4a90e2;}' +
+            '.clinic-name{font-size:13px;color:#4a5568;}' +
+            '.report-meta{text-align:right;font-size:12px;color:#718096;}' +
+            '.section-title{font-size:13px;font-weight:700;color:#2c5282;margin:20px 0 8px;padding:6px 12px;background:#e8f0fe;border-left:4px solid #4a90e2;border-radius:0 4px 4px 0;}' +
+            '.section-title .count{font-weight:400;color:#4a5568;margin-left:8px;}' +
+            'table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:0;}' +
+            'th{' + thStyle + '}' +
+            'td{' + tdStyle + '}' +
+            'tr:last-child td{border-bottom:none;}' +
+            '.footer{margin-top:24px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:11px;color:#a0aec0;text-align:center;}' +
+            '@media print{' +
+              'body{padding:10px;}' +
+              '.no-print{display:none!important;}' +
+              'table{page-break-inside:auto;}' +
+              'tr{page-break-inside:avoid;}' +
+              'thead{display:table-header-group;}' +
+            '}' +
+          '</style></head><body>' +
+
+          '<div class="report-header">' +
+            '<div><h2>Direct Call Daily Report</h2><div class="clinic-name">Sampada VR Eye Care</div></div>' +
+            '<div class="report-meta">' +
+              '<div>' + generatedAt + '</div>' +
+              '<div style="margin-top:4px;">Generated: ' + new Date().toLocaleTimeString("en-IN") + '</div>' +
+              '<button class="no-print" onclick="window.print()" style="margin-top:8px;padding:5px 14px;background:#4a90e2;color:white;border:none;border-radius:6px;cursor:pointer;font-size:12px;">' +
+                '<span style="margin-right:4px;">🖨</span>Print / Save as PDF' +
+              '</button>' +
+            '</div>' +
+          '</div>' +
+
+          '<div class="section-title">Today\'s Entries<span class="count">(' + summaryToday + ')</span></div>' +
+          '<table>' + thead + '<tbody>' + buildRows(todayRecords) + '</tbody></table>' +
+
+          (overduePending.length > 0
+            ? '<div class="section-title" style="background:#fff7ed;border-left-color:#f59e0b;color:#92400e;">Overdue Active from Previous Days<span class="count" style="color:#92400e;">(' + summaryOverdue + ')</span></div>' +
+              '<table>' + thead + '<tbody>' + buildRows(overduePending) + '</tbody></table>'
+            : '<div class="section-title" style="background:#ecfdf5;border-left-color:#10b981;color:#047857;">No Overdue Active Records from Previous Days</div>'
+          ) +
+
+          '<div class="footer">Sampada VR Eye Care · Direct Call Report · ' + todayStr + '</div>' +
+          '</body></html>';
+
+        var win = window.open("", "_blank", "width=1200,height=800");
+        if (!win) {
+          showAlert("Please allow popups for this site to open the report.", "warning");
+          return;
+        }
+        win.document.write(html);
+        win.document.close();
+      }
+    </script>
+  </body>
+</html>

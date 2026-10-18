@@ -1,0 +1,2230 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      /* CSS Variables - needed for page styling */
+      :root {
+        --primary-color: #4a90e2;
+        --primary-light: #e8f0fe;
+        --primary-dark: #2c5282;
+        --success-color: #48bb78;
+        --warning-color: #ed8936;
+        --danger-color: #e53e3e;
+        --text-primary: #2d3748;
+        --text-secondary: #4a5568;
+        --bg-light: #f7fafc;
+        --bg-white: #ffffff;
+        --header-height: 64px;
+      }
+
+      body {
+        background-color: var(--bg-light);
+        color: var(--text-primary);
+        min-height: 100vh;
+        transition:
+          background 0.3s,
+          color 0.3s;
+      }
+
+      .dark-mode {
+        --primary-color: #90cdf4;
+        --primary-light: #2d3748;
+        --primary-dark: #1a202c;
+        --success-color: #68d391;
+        --warning-color: #f6ad55;
+        --danger-color: #fc8181;
+        --text-primary: #e2e8f0;
+        --text-secondary: #a0aec0;
+        --bg-light: #1a202c;
+        --bg-white: #2d3748;
+        background-color: var(--bg-light);
+        color: var(--text-primary);
+      }
+
+      /* Add margin to main content to avoid overlap with sticky header */
+      .main-container {
+        margin-top: calc(var(--header-height) + 24px);
+        max-width: 1200px;
+        padding: 2rem;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .container {
+        max-width: 1200px;
+        padding: 2rem;
+      }
+
+      /* Calendar Header */
+      #calendarHeader {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+      }
+
+      #monthYear {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        min-width: 200px;
+        text-align: center;
+      }
+
+      /* Calendar Grid */
+      #calendarGrid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+
+      .dayCell {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1rem;
+        min-height: 120px;
+        position: relative;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        cursor: pointer;
+      }
+
+      .dayCell:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+        border-color: var(--primary-light);
+      }
+
+      .dayCell::before {
+        content: attr(data-day);
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .today {
+        background: linear-gradient(
+          135deg,
+          var(--primary-light),
+          var(--bg-white)
+        );
+        border: 2px solid var(--primary-color);
+      }
+
+      /* Appointment Count Styling - Similar to Slot Statistics */
+      .appointment-counts {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2px;
+        margin-bottom: 6px;
+        font-size: 0.6rem;
+      }
+
+      .appointment-count {
+        padding: 2px 4px;
+        border-radius: 4px;
+        text-align: center;
+        font-weight: 500;
+      }
+
+      /* Specific colors for appointment types - matching slot stats style */
+      .appointment-count.stat-new {
+        background: #c6f6d5;
+        color: #276749;
+      }
+
+      .appointment-count.stat-old {
+        background: #bee3f8;
+        color: #2b6cb0;
+      }
+
+      .appointment-count.stat-general {
+        background: #fefcbf;
+        color: #975a16;
+      }
+
+      .appointment-count.stat-waiting-list {
+        background: #e9d8fd;
+        color: #553c9a;
+      }
+
+      .appointment-count.stat-other {
+        background: #fed7d7;
+        color: #c53030;
+      }
+
+      /* Fallback colors for other appointment types */
+      .appointment-count.color-1 {
+        background: #c6f6d5;
+        color: #276749;
+      }
+
+      .appointment-count.color-2 {
+        background: #bee3f8;
+        color: #2b6cb0;
+      }
+
+      .appointment-count.color-3 {
+        background: #fefcbf;
+        color: #975a16;
+      }
+
+      .appointment-count.color-4 {
+        background: #e9d8fd;
+        color: #553c9a;
+      }
+
+      .appointment-count.color-5 {
+        background: #fed7d7;
+        color: #c53030;
+      }
+
+      .appointment-count.color-6 {
+        background: #c6f6d5;
+        color: #276749;
+      }
+
+      .appointment-count.color-7 {
+        background: #bee3f8;
+        color: #2b6cb0;
+      }
+
+      .appointment-count.color-8 {
+        background: #fefcbf;
+        color: #975a16;
+      }
+
+      .appointment-count.color-9 {
+        background: #e9d8fd;
+        color: #553c9a;
+      }
+
+      .appointment-count.color-10 {
+        background: #fed7d7;
+        color: #c53030;
+      }
+
+      /* Tooltip styles - removed to prevent overlap issues */
+
+      /* Action Buttons */
+      .action-buttons {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        text-align: center;
+      }
+
+      .btn {
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        margin: 0 0.5rem;
+      }
+
+      .btn-primary {
+        background: var(--primary-color);
+        border: none;
+      }
+
+      .btn-primary:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(74, 144, 226, 0.2);
+      }
+
+      .btn-secondary {
+        background: var(--text-secondary);
+        border: none;
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        background: var(--text-primary);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(45, 55, 72, 0.2);
+      }
+
+      .btn-danger {
+        background: var(--danger-color);
+        border: none;
+      }
+
+      .btn-danger:hover {
+        background: #c53030;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(229, 62, 62, 0.2);
+      }
+
+      /* Loading Overlay */
+      #loadingOverlay {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(4px);
+      }
+
+      .spinner-border {
+        width: 3rem;
+        height: 3rem;
+        border-width: 0.25em;
+      }
+
+      /* Alert Container */
+      .alert-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-width: 400px;
+      }
+
+      .custom-alert {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 16px 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transform: translateX(120%);
+        animation: slideIn 0.3s forwards;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .custom-alert::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+      }
+
+      .custom-alert.success::before {
+        background: var(--success-color);
+      }
+
+      .custom-alert.error::before {
+        background: var(--danger-color);
+      }
+
+      .custom-alert.warning::before {
+        background: var(--warning-color);
+      }
+
+      .custom-alert.info::before {
+        background: var(--primary-color);
+      }
+
+      @keyframes slideIn {
+        to {
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes slideOut {
+        to {
+          transform: translateX(120%);
+        }
+      }
+
+      .custom-alert.closing {
+        animation: slideOut 0.3s forwards;
+      }
+
+      /* Add Modal Styles */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+
+      .modal-content {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 2rem;
+        width: 90%;
+        max-width: 800px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--primary-light);
+      }
+
+      .modal-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--text-secondary);
+      }
+
+      .appointment-list {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .appointment-item {
+        background: var(--bg-light);
+        border-radius: 8px;
+        padding: 1rem;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 1rem;
+        align-items: center;
+      }
+
+      .appointment-time {
+        font-weight: 600;
+        color: var(--text-primary);
+        min-width: 100px;
+      }
+
+      .appointment-details {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .appointment-patient {
+        font-weight: 500;
+        color: var(--text-primary);
+      }
+
+      .appointment-type {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+
+      .appointment-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+      }
+
+      /* Add clickable style to day cells */
+      .dayCell.has-appointments {
+        border: 2px solid var(--primary-color);
+      }
+
+      /* Add loading spinner for modal */
+      .modal-loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 200px;
+      }
+
+      /* Empty slot styling */
+      .empty-slot {
+        background: var(--success-color);
+        border-radius: 8px;
+        padding: 1rem;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 1rem;
+        align-items: center;
+        opacity: 0.7;
+        transition: opacity 0.3s ease;
+      }
+
+      .empty-slot:hover {
+        opacity: 1;
+      }
+
+      .empty-slot .appointment-time {
+        font-weight: 600;
+        color: white;
+        min-width: 100px;
+      }
+
+      .empty-slot .slot-label {
+        color: white;
+        font-style: italic;
+        font-size: 0.9rem;
+      }
+
+      /* Blocked slot styling */
+      .blocked-slot {
+        background: var(--text-secondary);
+        border-radius: 8px;
+        padding: 1rem;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 1rem;
+        align-items: center;
+        opacity: 0.6;
+        transition: opacity 0.3s ease;
+      }
+
+      .blocked-slot:hover {
+        opacity: 0.8;
+      }
+
+      .blocked-slot .appointment-time {
+        font-weight: 600;
+        color: white;
+        min-width: 100px;
+      }
+
+      .blocked-slot .slot-label {
+        color: white;
+        font-style: italic;
+        font-size: 0.9rem;
+      }
+
+      /* Progress bar styling */
+      .capacity-bar {
+        height: 6px;
+        width: 100%;
+        background-color: #e9ecef;
+        border-radius: 3px;
+        margin-top: 5px;
+        overflow: hidden;
+      }
+
+      .capacity-bar-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.3s ease;
+      }
+
+      /* Different colors based on capacity */
+      .capacity-low {
+        background-color: #28a745;
+        /* Green */
+      }
+
+      .capacity-medium {
+        background-color: #ffc107;
+        /* Yellow */
+      }
+
+      .capacity-high {
+        background-color: #dc3545;
+        /* Red */
+      }
+
+      /* Tool tip for capacity info */
+      .capacity-info {
+        font-size: 0.7rem;
+        color: #6c757d;
+        text-align: right;
+        margin-top: 2px;
+      }
+
+      /* Weekday labels row */
+      #weekdayHeader {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        background: var(--bg-white);
+        padding: 0.75rem 0;
+        border-radius: 12px 12px 0 0;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        margin-bottom: 1rem;
+      }
+
+      #weekdayHeader div {
+        text-align: center;
+        font-weight: 600;
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+      }
+
+      /* Load indicator styling */
+      .load-indicator {
+        height: 6px;
+        width: 100%;
+        background-color: #e9ecef;
+        border-radius: 3px;
+        margin-top: 5px;
+        overflow: hidden;
+      }
+
+      .load-indicator-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.3s ease;
+      }
+
+      /* Different colors based on load percentage */
+      .load-low {
+        background-color: #28a745;
+        /* Green */
+      }
+
+      .load-medium {
+        background-color: #ffc107;
+        /* Yellow */
+      }
+
+      .load-high {
+        background-color: #ff69b4;
+        /* Pink */
+      }
+
+      .load-overload {
+        background-color: #dc3545;
+        /* Red */
+      }
+
+      /* Tool tip for load info */
+      .load-info {
+        font-size: 0.7rem;
+        color: #6c757d;
+        text-align: right;
+        margin-top: 2px;
+      }
+
+      /* MaxSlots input styling */
+      .maxslots-container {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 8px;
+        padding: 4px 6px;
+        background: var(--primary-light);
+        border-radius: 6px;
+      }
+
+      .maxslots-label {
+        font-size: 0.65rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+
+      .maxslots-input {
+        width: 45px;
+        padding: 2px 4px;
+        border: 1px solid var(--primary-color);
+        border-radius: 4px;
+        font-size: 0.75rem;
+        text-align: center;
+        background: var(--bg-white);
+        color: var(--text-primary);
+      }
+
+      .maxslots-input:focus {
+        outline: none;
+        border-color: var(--primary-dark);
+        box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+      }
+
+      .maxslots-save {
+        padding: 2px 6px;
+        font-size: 0.65rem;
+        background: var(--success-color);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .maxslots-save:hover {
+        background: #38a169;
+      }
+
+      /* Slot stats styling */
+      .slot-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2px;
+        margin-top: 6px;
+        font-size: 0.6rem;
+      }
+
+      .slot-stat {
+        padding: 2px 4px;
+        border-radius: 4px;
+        text-align: center;
+        font-weight: 500;
+      }
+
+      .stat-naa {
+        background: #c6f6d5;
+        color: #276749;
+      }
+
+      .stat-oaa {
+        background: #bee3f8;
+        color: #2b6cb0;
+      }
+
+      .stat-taa {
+        background: #fefcbf;
+        color: #975a16;
+      }
+
+      .stat-raa {
+        background: #fed7d7;
+        color: #c53030;
+      }
+
+      .stat-raa.available {
+        background: #c6f6d5;
+        color: #276749;
+      }
+
+      .stat-maxslots {
+        background: #e9d8fd;
+        color: #553c9a;
+        grid-column: span 2;
+      }
+
+      /* Past day styling - only show date */
+      .dayCell.past-day {
+        background: var(--bg-light);
+        opacity: 0.6;
+        cursor: default;
+      }
+
+      .dayCell.past-day:hover {
+        transform: none;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border-color: transparent;
+      }
+
+      /* Early booking restriction indicator styles */
+      .early-booking-restricted {
+        border: 2px solid var(--warning-color) !important;
+        position: relative;
+      }
+
+      .early-booking-restricted::after {
+        content: "⚠";
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        font-size: 0.9rem;
+        color: var(--warning-color);
+        z-index: 10;
+      }
+
+      .restriction-indicator {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 4px;
+        padding: 3px 6px;
+        background: #fff3cd;
+        border-radius: 4px;
+        font-size: 0.6rem;
+        color: #856404;
+      }
+
+      .dark-mode .restriction-indicator {
+        background: #5a4a1a;
+        color: #ffc107;
+      }
+
+      .restriction-indicator i {
+        font-size: 0.7rem;
+      }
+
+      /* Restriction tooltip styling */
+      .restriction-tooltip {
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #fff3cd;
+        color: #856404;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        z-index: 1001;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        border: 1px solid #ffc107;
+        margin-bottom: 4px;
+        display: none;
+      }
+
+      .dark-mode .restriction-tooltip {
+        background: #5a4a1a;
+        color: #ffc107;
+        border-color: #ffc107;
+      }
+
+      .early-booking-restricted:hover .restriction-tooltip {
+        display: block;
+      }
+
+      .restriction-tooltip::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 6px solid transparent;
+        border-top-color: #ffc107;
+      }
+    </style>
+  </head>
+
+  <body>
+    <script>
+      window.sessionToken = "<?= sessionToken ?>";
+      window.baseUrl = "<?= webAppUrl ?>";
+    </script>
+    <?!= include('sharedLayout') ?>
+    <!-- Add alert container -->
+    <div class="alert-container" id="alertContainer"></div>
+
+    <!-- Add modal container -->
+    <div id="dayModal" class="modal-overlay" style="display: none">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" id="modalTitle">
+            Appointments for <span id="modalDate"></span>
+          </h3>
+          <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div id="modalLoading" class="modal-loading">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+        <div id="modalContent" class="appointment-list"></div>
+        <div class="modal-footer mt-3">
+          <button class="btn btn-primary" onclick="previewDayExcel()">
+            <i class="fas fa-file-excel"></i> Preview Excel
+          </button>
+          <button class="btn btn-primary" onclick="sendDayEmail()">
+            <i class="fas fa-envelope"></i> Send Email
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <main class="main-container">
+      <div
+        class="page-title-section"
+        style="
+          background: var(--bg-white);
+          border-radius: 12px;
+          padding: 1rem 1.5rem;
+          margin-bottom: 1.5rem;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        "
+      >
+        <h1
+          style="
+            margin: 0;
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            position: relative;
+            padding-left: 1rem;
+          "
+        >
+          <span
+            style="
+              position: absolute;
+              left: 0;
+              top: 50%;
+              transform: translateY(-50%);
+              width: 4px;
+              height: 70%;
+              background: linear-gradient(
+                to bottom,
+                var(--primary-color),
+                var(--success-color)
+              );
+              border-radius: 2px;
+            "
+          ></span>
+          Month Overview Calendar
+        </h1>
+      </div>
+      <div id="calendarHeader">
+        <button onclick="Calendar.prevMonth()" class="btn btn-secondary">
+          &lt;
+        </button>
+        <select
+          id="doctorSelect"
+          class="form-select w-25 me-3"
+          onchange="
+            Calendar.loadCalendar(Calendar.currentYear, Calendar.currentMonth)
+          "
+        >
+          <!-- Doctors will be populated by JavaScript -->
+        </select>
+        <span id="monthYear"></span>
+        <button onclick="Calendar.nextMonth()" class="btn btn-secondary">
+          &gt;
+        </button>
+      </div>
+      <div id="weekdayHeader">
+        <div>Sunday</div>
+        <div>Monday</div>
+        <div>Tuesday</div>
+        <div>Wednesday</div>
+        <div>Thursday</div>
+        <div>Friday</div>
+        <div>Saturday</div>
+      </div>
+      <div id="calendarGrid"></div>
+      <div class="action-buttons">
+        <button onclick="downloadExcel()" class="btn btn-secondary">
+          <i class="fas fa-file-excel"></i> Download Excel
+        </button>
+        <button onclick="downloadPDF()" class="btn btn-secondary">
+          <i class="fas fa-file-pdf"></i> Download PDF
+        </button>
+        <button onclick="goToDashboard()" class="btn btn-primary">
+          Back to Dashboard
+        </button>
+        <button onclick="logout()" class="btn btn-danger">Logout</button>
+      </div>
+    </main>
+
+    <script>
+      const Calendar = {
+        currentYear: null,
+        currentMonth: null,
+        sessionToken: "<?= sessionToken ?>",
+        baseUrl: "<?= webAppUrl ?>",
+        appointmentsData: null,
+        exceptionMap: null,
+        planningBData: {},
+
+        init: function () {
+          const today = new Date();
+          this.currentYear = today.getFullYear();
+          this.currentMonth = today.getMonth();
+          google.script.run
+            .withSuccessHandler(Calendar.populateDoctorList)
+            .getDoctors();
+        },
+
+        populateDoctorList: function (response) {
+          const sel = document.getElementById("doctorSelect");
+
+          if (!response.success) {
+            showAlert("Error loading doctors: " + response.message, "error");
+            return;
+          }
+
+          const doctors = response.doctors;
+          if (!doctors || !Array.isArray(doctors)) {
+            showAlert("No doctors found", "warning");
+            return;
+          }
+
+          doctors.forEach((d, i) => {
+            const opt = document.createElement("option");
+            opt.value = d;
+            opt.text = d;
+            sel.appendChild(opt);
+            if (i === 0) sel.value = d;
+          });
+
+          Calendar.loadCalendar(Calendar.currentYear, Calendar.currentMonth);
+        },
+
+        loadCalendar: function (year, month) {
+          showLoading();
+          this.currentYear = year;
+          this.currentMonth = month;
+          this.planningBData = {}; // Reset planningBData for new month
+          this.restrictionCache = {}; // Reset restriction cache for new month
+          document.getElementById("monthYear").textContent = new Date(
+            year,
+            month,
+          ).toLocaleString("default", { month: "long", year: "numeric" });
+          const selectedDoctor = document.getElementById("doctorSelect").value;
+
+          // Load planningB data first, then appointments
+          google.script.run
+            .withSuccessHandler((planningResult) => {
+              // Safely check planningResult - it might be null or undefined
+              if (
+                planningResult &&
+                planningResult.success &&
+                planningResult.data
+              ) {
+                this.planningBData = planningResult.data;
+                // Show alert for debugging
+                const dataKeys = Object.keys(this.planningBData);
+                if (dataKeys.length > 0) {
+                } else {
+                }
+              } else {
+                this.planningBData = {};
+              }
+
+              // Now load appointments
+              google.script.run
+                .withSuccessHandler(this.renderCalendar.bind(this))
+                .withFailureHandler(showError)
+                .getAppointmentsForMonth(year, month, selectedDoctor);
+            })
+            .withFailureHandler((error) => {
+              showAlert("Error loading planning data: " + error, "error");
+              this.planningBData = {};
+              // Continue loading appointments even if planningB fails
+              google.script.run
+                .withSuccessHandler(this.renderCalendar.bind(this))
+                .withFailureHandler(showError)
+                .getAppointmentsForMonth(year, month, selectedDoctor);
+            })
+            .getPlanningBDataForMonth(year, month);
+        },
+
+        renderCalendar: function (data) {
+          hideLoading();
+          if (!data) {
+            showAlert("No data available for this month.", "warning");
+            return;
+          }
+          // Store the appointments data for later use
+          this.appointmentsData = data;
+
+          const grid = document.getElementById("calendarGrid");
+          grid.innerHTML = "";
+
+          const firstDay = new Date(
+            this.currentYear,
+            this.currentMonth,
+            1,
+          ).getDay();
+          const daysInMonth = new Date(
+            this.currentYear,
+            this.currentMonth + 1,
+            0,
+          ).getDate();
+          const today = new Date();
+
+          // Get day of week for each day in the month
+          const dayNames = [
+            "Sunday",
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+          ];
+
+          // Fetch doctor availability once for all days to minimize server calls
+
+          // 1. Fetch the full exception map for the month
+          google.script.run
+            .withSuccessHandler((exceptionMap) => {
+              this.exceptionMap = exceptionMap;
+
+              // 2. Only once exceptions are loaded, fetch weekly availability
+              google.script.run
+                .withSuccessHandler((doctorData) => {
+                  let dayCounter = 1;
+                  for (let i = 0; i < 6; i++) {
+                    for (let j = 0; j < 7; j++) {
+                      const cell = document.createElement("div");
+                      cell.className = "dayCell";
+
+                      if (i === 0 && j < firstDay) {
+                        // Empty cells at the start of the month
+                        grid.appendChild(cell);
+                        continue;
+                      }
+
+                      if (dayCounter > daysInMonth) {
+                        // Empty cells at the end of the month
+                        grid.appendChild(cell);
+                        continue;
+                      }
+
+                      // Valid day cell
+                      cell.setAttribute("data-day", dayCounter);
+                      const dateStr = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, "0")}-${String(dayCounter).padStart(2, "0")}`;
+                      cell.setAttribute("data-date", dateStr);
+
+                      // Current day of week
+                      const currentDate = new Date(
+                        this.currentYear,
+                        this.currentMonth,
+                        dayCounter,
+                      );
+                      const dayOfWeek = currentDate.getDay();
+                      const dayName = dayNames[dayOfWeek];
+
+                      // Check if this day is in the past (before today)
+                      const todayStart = new Date(
+                        today.getFullYear(),
+                        today.getMonth(),
+                        today.getDate(),
+                      );
+                      const isPastDay = currentDate < todayStart;
+
+                      // For past days, only show the date number (no attributes)
+                      if (isPastDay) {
+                        cell.classList.add("past-day");
+                        grid.appendChild(cell);
+                        dayCounter++;
+                        continue;
+                      }
+
+                      if (data[dayCounter]) {
+                        // CRITICAL FIX: Calculate total appointments ONLY from NEW + OLD
+                        const newCount = data[dayCounter].NEW || 0;
+                        const oldCount = data[dayCounter].OLD || 0;
+                        const totalAppointments = newCount + oldCount;
+
+                        // Build appointment counts in grid format (similar to slot stats)
+                        let counts = '<div class="appointment-counts">';
+                        let countItems = [];
+
+                        // Add NEW count if any
+                        if (newCount > 0) {
+                          countItems.push(
+                            `<div class="appointment-count stat-new">NEW: ${newCount}</div>`,
+                          );
+                        }
+
+                        // Add OLD count if any
+                        if (oldCount > 0) {
+                          countItems.push(
+                            `<div class="appointment-count stat-old">OLD: ${oldCount}</div>`,
+                          );
+                        }
+
+                        // Add other appointment types
+                        for (const key in data[dayCounter]) {
+                          if (
+                            key !== "NEW" &&
+                            key !== "OLD" &&
+                            data[dayCounter][key] > 0
+                          ) {
+                            // Use specific class for known types, otherwise use color class
+                            let statClass = "stat-other";
+                            const keyUpper = key.toUpperCase();
+                            if (keyUpper === "GENERAL") {
+                              statClass = "stat-general";
+                            } else if (
+                              keyUpper === "WAITING LIST" ||
+                              keyUpper.includes("WAITING")
+                            ) {
+                              statClass = "stat-waiting-list";
+                            }
+                            countItems.push(
+                              `<div class="appointment-count ${statClass}">${key}: ${data[dayCounter][key]}</div>`,
+                            );
+                          }
+                        }
+
+                        // Join all count items and close the container
+                        counts += countItems.join("");
+                        counts += "</div>";
+                        cell.innerHTML = counts;
+
+                        // Calculate capacity
+                        const maxSlots = this.calculateTotalSlots(
+                          doctorData,
+                          dayName,
+                          dateStr,
+                        );
+                        const capacityPercentage =
+                          maxSlots > 0
+                            ? Math.round((totalAppointments / maxSlots) * 100)
+                            : 0;
+
+                        // Determine color class based on capacity percentage
+                        let capacityClass = "capacity-low";
+                        if (capacityPercentage >= 80) {
+                          capacityClass = "capacity-high";
+                        } else if (capacityPercentage >= 50) {
+                          capacityClass = "capacity-medium";
+                        }
+
+                        // Add capacity bar
+                        const capacityBar = `
+                    <div class="capacity-bar">
+                      <div class="capacity-bar-fill ${capacityClass}" style="width: ${capacityPercentage}%;"></div>
+                    </div>
+                    <div class="capacity-info">${totalAppointments}/${maxSlots} (${capacityPercentage}%)</div>
+                  `;
+                        cell.innerHTML += capacityBar;
+
+                        // Calculate and add load indicator
+                        google.script.run
+                          .withSuccessHandler((loadData) => {
+                            const { totalConsultTime, totalAvailableMinutes } =
+                              loadData;
+                            const loadPercentage =
+                              totalAvailableMinutes > 0
+                                ? Math.round(
+                                    (totalConsultTime / totalAvailableMinutes) *
+                                      100,
+                                  )
+                                : 0;
+
+                            // Determine color class based on load percentage
+                            let loadClass = "load-low";
+                            if (loadPercentage > 120) {
+                              loadClass = "load-overload";
+                            } else if (loadPercentage > 90) {
+                              loadClass = "load-high";
+                            } else if (loadPercentage > 50) {
+                              loadClass = "load-medium";
+                            }
+
+                            // Add load indicator
+                            const loadIndicator = `
+                        <div class="load-indicator">
+                          <div class="load-indicator-fill ${loadClass}" style="width: ${Math.min(loadPercentage, 100)}%;"></div>
+                        </div>
+                        <div class="load-info">${totalConsultTime}/${totalAvailableMinutes} min (${loadPercentage}%)</div>
+                      `;
+                            cell.innerHTML += loadIndicator;
+                          })
+                          .withFailureHandler((error) => {
+                            // Error calculating load
+                          })
+                          .calculateDayLoad(dateStr);
+
+                        // Add maxSlots input and slot stats
+                        const dayPlanningData =
+                          this.planningBData[dayCounter] || {};
+                        const planMaxSlots = dayPlanningData.maxSlots || 0;
+                        const planNaa = dayPlanningData.naa || 0;
+                        const planOaa = dayPlanningData.oaa || 0;
+                        const planTaa = dayPlanningData.taa || 0;
+                        const planRaa = dayPlanningData.raa || 0;
+
+                        const slotStatsHtml = this.createSlotStatsHtml(
+                          dateStr,
+                          dayCounter,
+                          planMaxSlots,
+                          planNaa,
+                          planOaa,
+                          planTaa,
+                          planRaa,
+                        );
+                        cell.innerHTML += slotStatsHtml;
+                        cell.classList.add("has-appointments");
+
+                        // Create a closure to correctly capture the day value
+                        const clickDay = dayCounter;
+                        cell.onclick = (e) => {
+                          // Don't trigger if clicking on input or button
+                          if (
+                            e.target.classList.contains("maxslots-input") ||
+                            e.target.classList.contains("maxslots-save")
+                          ) {
+                            return;
+                          }
+                          this.showDayDetails(clickDay);
+                        };
+                      } else {
+                        // Still add capacity bar for days with no appointments
+                        const calculatedMaxSlots = this.calculateTotalSlots(
+                          doctorData,
+                          dayName,
+                          dateStr,
+                        );
+                        const capacityBar = `
+                    <div class="capacity-bar">
+                      <div class="capacity-bar-fill capacity-low" style="width: 0%;"></div>
+                    </div>
+                    <div class="capacity-info">0/${calculatedMaxSlots} (0%)</div>
+                  `;
+                        cell.innerHTML += capacityBar;
+
+                        // Add empty load indicator for days with no appointments
+                        const loadIndicator = `
+                    <div class="load-indicator">
+                      <div class="load-indicator-fill load-low" style="width: 0%;"></div>
+                    </div>
+                    <div class="load-info">0/0 min (0%)</div>
+                  `;
+                        cell.innerHTML += loadIndicator;
+
+                        // Add maxSlots input and slot stats for empty days too
+                        const dayPlanningData =
+                          this.planningBData[dayCounter] || {};
+                        const planMaxSlots = dayPlanningData.maxSlots || 0;
+                        const planNaa = dayPlanningData.naa || 0;
+                        const planOaa = dayPlanningData.oaa || 0;
+                        const planTaa = dayPlanningData.taa || 0;
+                        const planRaa = dayPlanningData.raa || 0;
+
+                        const slotStatsHtml = this.createSlotStatsHtml(
+                          dateStr,
+                          dayCounter,
+                          planMaxSlots,
+                          planNaa,
+                          planOaa,
+                          planTaa,
+                          planRaa,
+                        );
+                        cell.innerHTML += slotStatsHtml;
+                      }
+
+                      if (
+                        today.getFullYear() === this.currentYear &&
+                        today.getMonth() === this.currentMonth &&
+                        today.getDate() === dayCounter
+                      ) {
+                        cell.classList.add("today");
+                      }
+
+                      grid.appendChild(cell);
+
+                      // Check early booking restrictions for this date (only for future dates)
+                      this.checkEarlyBookingRestriction(dateStr, cell);
+
+                      dayCounter++;
+                    }
+                  }
+                })
+                .withFailureHandler((error) => {
+                  showAlert("Error loading capacity data: " + error, "error");
+                })
+                .getDoctorAvailabilityDataToday(
+                  document.getElementById("doctorSelect").value,
+                );
+            })
+
+            .withFailureHandler(showError)
+            .getDoctorMonthlyExceptionMap(
+              // monthKey in "YYYY-MM" form
+              `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, "0")}`,
+              document.getElementById("doctorSelect").value,
+            );
+        },
+
+        // Calculate total possible slots for a given day of the week
+        calculateTotalSlots: function (doctorData, dayName, dateStr) {
+          if (!doctorData || !doctorData.doctors) return 0;
+
+          let totalMinutes = 0;
+          const slotInterval = 10; // Standard 10-minute slots
+          const selectedDoctor = document.getElementById("doctorSelect").value;
+
+          // Loop through all doctors (but filter if needed)
+          doctorData.doctors.forEach((doctor) => {
+            // If a specific doctor is selected, only count that doctor's availability
+            if (selectedDoctor && doctor.name !== selectedDoctor) {
+              return;
+            }
+
+            if (doctor[dayName]) {
+              // Split by commas to handle multiple time ranges
+              const timeRanges = doctor[dayName].split(",");
+
+              timeRanges.forEach((range) => {
+                const [startTime, endTime] = range.trim().split("-");
+                if (startTime && endTime) {
+                  // Convert time strings to minutes
+                  const startMinutes = this.timeStringToMinutes(
+                    startTime.trim(),
+                  );
+                  const endMinutes = this.timeStringToMinutes(endTime.trim());
+
+                  if (endMinutes > startMinutes) {
+                    totalMinutes += endMinutes - startMinutes;
+                  }
+                }
+              });
+            }
+          });
+
+          // --- subtract exception blocks for this date ---
+
+          const exceptions = [];
+          doctorData.doctors.forEach((doctor) => {
+            // If a specific doctor is selected, only process exceptions for that doctor
+            if (selectedDoctor && doctor.name !== selectedDoctor) {
+              return;
+            }
+
+            const excRanges = this.exceptionMap?.[doctor.name]?.[dateStr] || [];
+            excRanges.forEach((range) => {
+              const [exStart, exEnd] = range
+                .split("-")
+                .map((t) => this.timeStringToMinutes(t.trim()));
+              totalMinutes -= Math.max(0, exEnd - exStart);
+            });
+          });
+
+          // --- subtract fixed 30-minute lunch break ---
+          totalMinutes -= 30;
+
+          // never go below zero
+          totalMinutes = Math.max(0, totalMinutes);
+
+          // Calculate total slots based on 10-minute intervals
+          return Math.floor(totalMinutes / slotInterval);
+        },
+
+        // Helper function to convert time strings like "9:00" to minutes
+        timeStringToMinutes: function (timeStr) {
+          const [hours, minutes] = timeStr.split(":").map(Number);
+          return hours * 60 + (minutes || 0);
+        },
+
+        // Create HTML for maxSlots input and slot stats
+        createSlotStatsHtml: function (
+          dateStr,
+          day,
+          maxSlots,
+          naa,
+          oaa,
+          taa,
+          raa,
+        ) {
+          const raaClass = raa > 0 ? "available" : "";
+          // Show maxSlots value properly - empty string only if undefined/null, otherwise show the number
+          const maxSlotsValue =
+            maxSlots !== undefined && maxSlots !== null && maxSlots !== ""
+              ? maxSlots
+              : "";
+          const maxSlotsDisplay = maxSlots || 0;
+          return `
+                    <div class="maxslots-container" onclick="event.stopPropagation();">
+                        <span class="maxslots-label">Max:</span>
+                        <input type="number" 
+                               class="maxslots-input" 
+                               id="maxslots-${day}" 
+                               data-date="${dateStr}"
+                               value="${maxSlotsValue}" 
+                               min="0" 
+                               placeholder="0"
+                               onclick="event.stopPropagation();">
+                        <button class="maxslots-save" 
+                                onclick="event.stopPropagation(); Calendar.saveMaxSlots('${dateStr}', ${day});">
+                            <i class="fas fa-save"></i>
+                        </button>
+                    </div>
+                    <div class="slot-stats">
+                        <div class="slot-stat stat-maxslots">Max: ${maxSlotsDisplay}</div>
+                        <div class="slot-stat stat-naa">NAA: ${naa}</div>
+                        <div class="slot-stat stat-oaa">OAA: ${oaa}</div>
+                        <div class="slot-stat stat-taa">TAA: ${taa}</div>
+                        <div class="slot-stat stat-raa ${raaClass}">RAA: ${raa}</div>
+                    </div>
+                `;
+        },
+
+        // Save maxSlots value for a date
+        saveMaxSlots: function (dateStr, day) {
+          const input = document.getElementById(`maxslots-${day}`);
+          const maxSlots = parseInt(input.value) || 0;
+
+          if (maxSlots < 0) {
+            showAlert("MaxSlots cannot be negative", "warning");
+            return;
+          }
+
+          showLoading();
+
+          google.script.run
+            .withSuccessHandler((result) => {
+              hideLoading();
+              // Handle null or undefined result
+              if (!result) {
+                showAlert("Error: No response from server", "error");
+                return;
+              }
+              if (result.success) {
+                showAlert(
+                  `MaxSlots for ${formatDisplayDate(dateStr)} saved successfully. NAA: ${result.data.naa}, OAA: ${result.data.oaa}, TAA: ${result.data.taa}, RAA: ${result.data.raa}`,
+                  "success",
+                );
+                // Reload calendar to refresh stats from server
+                this.loadCalendar(this.currentYear, this.currentMonth);
+              } else {
+                showAlert(
+                  result.message || "Unknown error",
+                  "error",
+                  result.accessDenied ? "Access Denied" : "Error",
+                );
+              }
+            })
+            .withFailureHandler((error) => {
+              hideLoading();
+              showAlert("Error saving maxSlots: " + error, "error");
+            })
+            .updateMaxSlots(dateStr, maxSlots, window.sessionToken);
+        },
+
+        // Cache for early booking restriction data
+        restrictionCache: {},
+
+        // Check early booking restriction for a specific date
+        checkEarlyBookingRestriction: function (dateStr, dayCell) {
+          google.script.run
+            .withSuccessHandler((result) => {
+              if (result && result.success) {
+                // Cache the result
+                this.restrictionCache[dateStr] = result;
+
+                // Update the cell if restriction is active
+                if (result.restricted) {
+                  this.applyRestrictionIndicator(dayCell, result);
+                } else {
+                  // Remove restriction indicator if it was previously applied
+                  this.removeRestrictionIndicator(dayCell);
+                }
+              }
+            })
+            .withFailureHandler((error) => {})
+            .checkSlotAvailability(dateStr);
+        },
+
+        // Apply restriction indicator to a day cell
+        applyRestrictionIndicator: function (dayCell, restrictionData) {
+          // Add restricted class
+          dayCell.classList.add("early-booking-restricted");
+
+          // Determine which threshold is active and format the label
+          const triggeredThreshold = restrictionData.triggeredThreshold;
+          let thresholdLabel = "";
+          if (triggeredThreshold.days >= 10) {
+            thresholdLabel = "10+ days: " + triggeredThreshold.percentage + "%";
+          } else if (triggeredThreshold.days === 2) {
+            thresholdLabel = "2 days: " + triggeredThreshold.percentage + "%";
+          } else if (triggeredThreshold.days === 1) {
+            thresholdLabel = "1 day: " + triggeredThreshold.percentage + "%";
+          } else if (triggeredThreshold.days === 0) {
+            thresholdLabel = "Same day: " + triggeredThreshold.percentage + "%";
+          } else {
+            thresholdLabel =
+              triggeredThreshold.days +
+              " days: " +
+              triggeredThreshold.percentage +
+              "%";
+          }
+
+          // Find next available threshold (lower days value)
+          const allThresholds = restrictionData.allThresholds || [];
+          const sortedThresholds = allThresholds.sort(
+            (a, b) => b.days - a.days,
+          );
+          let nextThreshold = null;
+          for (let i = 0; i < sortedThresholds.length; i++) {
+            if (sortedThresholds[i].days < triggeredThreshold.days) {
+              nextThreshold = sortedThresholds[i];
+              break;
+            }
+          }
+
+          let nextThresholdText = "";
+          if (nextThreshold) {
+            if (nextThreshold.days === 0) {
+              nextThresholdText =
+                "Book on same day to allow " +
+                nextThreshold.percentage +
+                "% capacity";
+            } else if (nextThreshold.days === 1) {
+              nextThresholdText =
+                "Book within 1 day to allow " +
+                nextThreshold.percentage +
+                "% capacity";
+            } else {
+              nextThresholdText =
+                "Book within " +
+                nextThreshold.days +
+                " days to allow " +
+                nextThreshold.percentage +
+                "% capacity";
+            }
+          }
+
+          // Create tooltip content
+          const tooltipContent = `
+                    <div class="restriction-tooltip">
+                        <strong>Early Booking Restricted</strong><br>
+                        Active Threshold: ${thresholdLabel}<br>
+                        TAA: ${restrictionData.currentTAA} / ${restrictionData.maxSlots}<br>
+                        Usage: ${restrictionData.percentageUsed}%<br>
+                        ${nextThresholdText ? nextThresholdText : "Maximum capacity reached"}
+                    </div>
+                `;
+
+          // Add tooltip to cell
+          const existingTooltip = dayCell.querySelector(".restriction-tooltip");
+          if (existingTooltip) {
+            existingTooltip.remove();
+          }
+          dayCell.insertAdjacentHTML("beforeend", tooltipContent);
+
+          // Add restriction indicator badge with threshold label
+          const existingIndicator = dayCell.querySelector(
+            ".restriction-indicator",
+          );
+          if (!existingIndicator) {
+            const indicatorHtml = `
+                        <div class="restriction-indicator">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>${thresholdLabel} (${restrictionData.percentageUsed}%)</span>
+                        </div>
+                    `;
+            dayCell.insertAdjacentHTML("beforeend", indicatorHtml);
+          }
+        },
+
+        // Remove restriction indicator from a day cell
+        removeRestrictionIndicator: function (dayCell) {
+          dayCell.classList.remove("early-booking-restricted");
+          const tooltip = dayCell.querySelector(".restriction-tooltip");
+          if (tooltip) {
+            tooltip.remove();
+          }
+          const indicator = dayCell.querySelector(".restriction-indicator");
+          if (indicator) {
+            indicator.remove();
+          }
+        },
+
+        showDayDetails: function (day) {
+          try {
+            // Validate day against actual days in month
+            const daysInMonth = new Date(
+              this.currentYear,
+              this.currentMonth + 1,
+              0,
+            ).getDate();
+
+            if (day < 1 || day > daysInMonth) {
+              showAlert(`Invalid day for this month: ${day}`, "error");
+              return;
+            }
+
+            // Format the date string properly
+            const date = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+            const modal = document.getElementById("dayModal");
+            const modalTitle = document.getElementById("modalTitle");
+            const modalDate = document.getElementById("modalDate");
+            const modalContent = document.getElementById("modalContent");
+            const modalLoading = document.getElementById("modalLoading");
+
+            modal.style.display = "flex";
+
+            // Create date object and validate it
+            const dateObj = new Date(date + "T00:00:00"); // Add time component to ensure proper date parsing
+
+            if (isNaN(dateObj.getTime())) {
+              showAlert("Invalid date format", "error");
+              closeModal();
+              return;
+            }
+
+            // Format the date for display
+            modalDate.textContent = dateObj.toLocaleDateString("en-US", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            });
+
+            modalContent.innerHTML = "";
+            modalLoading.style.display = "flex";
+
+            // Always fetch appointments and build timeline using server-side slot generation
+            google.script.run
+              .withSuccessHandler((appointments) => {
+                // Now get comprehensive day timeline slots using same logic as load indicator
+                const selectedDoctor =
+                  document.getElementById("doctorSelect").value;
+                google.script.run
+                  .withSuccessHandler((timelineData) => {
+                    modalLoading.style.display = "none";
+                    this.displayServerTimelineSlots(
+                      appointments || [],
+                      timelineData,
+                      date,
+                      modalContent,
+                    );
+                  })
+                  .withFailureHandler((error) => {
+                    modalLoading.style.display = "none";
+                    // Fallback to just showing appointments
+                    this.displayAppointments(appointments || [], modalContent);
+                  })
+                  .getDayTimelineSlots(selectedDoctor, date);
+              })
+              .withFailureHandler((error) => {
+                modalLoading.style.display = "none";
+                modalContent.innerHTML = `<div class="text-center text-danger">Error loading appointments: ${error}</div>`;
+              })
+              .getAppointmentsForDay(date);
+          } catch (error) {
+            showAlert(`Error showing day details: ${error.message}`, "error");
+            closeModal();
+          }
+        },
+
+        displayAppointments: function (appointments, container) {
+          if (!appointments || appointments.length === 0) {
+            container.innerHTML =
+              '<div class="text-center text-muted">No appointments for this day</div>';
+            return;
+          }
+
+          appointments.forEach((appt) => {
+            const item = document.createElement("div");
+            item.className = "appointment-item";
+            item.innerHTML = `
+            <div class="appointment-time">${formatTime(appt.TimeSlot)}</div>
+            <div class="appointment-details">
+              <div class="appointment-patient">
+                ${appt.PatientName} (${appt.MRDNo})
+                <span class="badge ${getMemberBadgeClass(appt.PatientType)}">${appt.PatientType || "-"}</span>
+              </div>
+              <div class="appointment-type">${appt.AppointmentType}</div>
+              <div class="text-muted">${appt.Doctor}</div>
+            </div>
+            <div class="appointment-actions">
+              <button class="btn btn-sm btn-outline-primary" onclick="viewAppointment('${appt.AppointmentID}')">
+                View
+              </button>
+              <button class="btn btn-sm btn-outline-warning" onclick="rescheduleAppointment('${appt.AppointmentID}')">
+                Reschedule
+              </button>
+            </div>
+          `;
+            container.appendChild(item);
+          });
+        },
+
+        displayServerTimelineSlots: function (
+          appointments,
+          timelineData,
+          date,
+          container,
+        ) {
+          if (!timelineData.success) {
+            container.innerHTML = `<div class="text-center text-danger">Error loading timeline: ${timelineData.message || "Unknown error"}</div>`;
+            return;
+          }
+
+          // Create a map of appointment times for quick lookup
+          const appointmentMap = new Map();
+
+          if (appointments && appointments.length > 0) {
+            appointments.forEach((appt) => {
+              // Try multiple possible time field names
+              const possibleTimeFields = [
+                "TimeSlot",
+                "FixedSlot",
+                "Fixed Slot",
+                "timeslot",
+                "fixedslot",
+                "time_slot",
+              ];
+
+              let timeValue = null;
+              for (const field of possibleTimeFields) {
+                if (
+                  appt[field] !== undefined &&
+                  appt[field] !== null &&
+                  appt[field] !== ""
+                ) {
+                  timeValue = appt[field];
+                  break;
+                }
+              }
+
+              if (timeValue) {
+                const timeStr = this.extractTimeFromSlot(timeValue);
+                appointmentMap.set(timeStr, appt);
+              }
+            });
+          }
+
+          // Use server-generated comprehensive slot data
+          const allSlots = [
+            ...new Set([
+              ...timelineData.availableSlots,
+              ...timelineData.bookedSlots,
+              ...timelineData.blockedSlots,
+            ]),
+          ].sort(
+            (a, b) => this.timeStringToMinutes(a) - this.timeStringToMinutes(b),
+          );
+
+          if (allSlots.length === 0) {
+            container.innerHTML =
+              '<div class="text-center text-muted">No time slots available for this day</div>';
+            return;
+          }
+
+          // Build timeline using server-side slot categorization
+          allSlots.forEach((timeStr) => {
+            const item = document.createElement("div");
+
+            if (appointmentMap.has(timeStr)) {
+              // Render booked appointment
+              const appt = appointmentMap.get(timeStr);
+              item.className = "appointment-item";
+              item.innerHTML = `
+              <div class="appointment-time">${this.formatDisplayTime(timeStr)}</div>
+              <div class="appointment-details">
+                <div class="appointment-patient">
+                  ${appt.PatientName || appt["Patient Name"] || "Unknown"} (${appt.MRDNo || appt["MRD No"] || "N/A"})
+                  <span class="badge ${getMemberBadgeClass(appt.PatientType || appt["Patient Type"])}">${appt.PatientType || appt["Patient Type"] || "Guest"}</span>
+                </div>
+                <div class="appointment-type">${appt.AppointmentType || appt["Appointment Type"] || "GENERAL"}</div>
+                <div class="text-muted">${appt.Doctor || "Unknown Doctor"}</div>
+              </div>
+              <div class="appointment-actions">
+                <button class="btn btn-sm btn-outline-primary" onclick="viewAppointment('${appt.AppointmentID || appt["Appointment ID"]}')">
+                  View
+                </button>
+                <button class="btn btn-sm btn-outline-warning" onclick="rescheduleAppointment('${appt.AppointmentID || appt["Appointment ID"]}')">
+                  Reschedule
+                </button>
+              </div>
+            `;
+            } else if (timelineData.blockedSlots.includes(timeStr)) {
+              // Render blocked slot (lunch, exceptions, etc.)
+              item.className = "blocked-slot";
+              item.innerHTML = `
+              <div class="appointment-time">${this.formatDisplayTime(timeStr)}</div>
+              <div class="slot-label">Blocked (break/exception)</div>
+            `;
+            } else if (timelineData.availableSlots.includes(timeStr)) {
+              // Render available slot
+              item.className = "empty-slot";
+              const isFixed = timelineData.fixedSlots.includes(timeStr);
+              item.innerHTML = `
+              <div class="appointment-time">${this.formatDisplayTime(timeStr)}</div>
+              <div class="slot-label">Available${isFixed ? " (Fixed)" : ""}</div>
+            `;
+            } else {
+              // Should not happen with server-side logic, but handle gracefully
+              item.className = "empty-slot";
+              item.innerHTML = `
+              <div class="appointment-time">${this.formatDisplayTime(timeStr)}</div>
+              <div class="slot-label">Available</div>
+            `;
+            }
+
+            container.appendChild(item);
+          });
+        },
+
+        extractTimeFromSlot: function (timeSlot) {
+          if (!timeSlot) return "";
+
+          // Convert to string first and trim any whitespace
+          const timeStr = timeSlot.toString().trim();
+
+          // If it's already in HH:MM format, normalize it
+          if (timeStr.includes(":")) {
+            const parts = timeStr.split(":");
+            if (parts.length >= 2) {
+              let hours = parts[0].trim();
+              let minutes = parts[1].trim().substring(0, 2); // Take only first 2 digits of minutes
+
+              // Ensure we have valid numbers
+              if (!isNaN(hours) && !isNaN(minutes)) {
+                hours = parseInt(hours).toString().padStart(2, "0");
+                minutes = parseInt(minutes).toString().padStart(2, "0");
+                const result = `${hours}:${minutes}`;
+                return result;
+              }
+            }
+          }
+
+          // Try to parse as Date object
+          try {
+            const date = new Date(timeSlot);
+            if (!isNaN(date.getTime())) {
+              const hours = date.getHours().toString().padStart(2, "0");
+              const minutes = date.getMinutes().toString().padStart(2, "0");
+              const result = `${hours}:${minutes}`;
+              return result;
+            }
+          } catch (e) {
+            // Failed to parse as date
+          }
+
+          // If it looks like a time without colon (e.g., "0920" for 09:20)
+          if (/^\d{3,4}$/.test(timeStr)) {
+            const padded = timeStr.padStart(4, "0");
+            const hours = padded.substring(0, 2);
+            const minutes = padded.substring(2, 4);
+            const result = `${hours}:${minutes}`;
+            return result;
+          }
+
+          return timeStr;
+        },
+
+        formatDisplayTime: function (timeStr) {
+          // Convert 24-hour format to 12-hour format for display
+          const [hours, minutes] = timeStr.split(":").map(Number);
+          const ampm = hours >= 12 ? "PM" : "AM";
+          const displayHours = hours % 12 || 12;
+          return `${displayHours}:${minutes.toString().padStart(2, "0")} ${ampm}`;
+        },
+
+        nextMonth: function () {
+          this.currentMonth++;
+          if (this.currentMonth > 11) {
+            this.currentMonth = 0;
+            this.currentYear++;
+          }
+          this.loadCalendar(this.currentYear, this.currentMonth);
+        },
+
+        prevMonth: function () {
+          this.currentMonth--;
+          if (this.currentMonth < 0) {
+            this.currentMonth = 11;
+            this.currentYear--;
+          }
+          this.loadCalendar(this.currentYear, this.currentMonth);
+        },
+      };
+
+      // Initialize calendar on page load
+      document.addEventListener("DOMContentLoaded", function () {
+        Calendar.init();
+      });
+
+      function downloadExcel() {
+        showLoading();
+        showAlert("Generating Excel report...", "info");
+
+        const year = Calendar.currentYear;
+        const month = Calendar.currentMonth;
+        const doctor = document.getElementById("doctorSelect").value;
+
+        google.script.run
+          .withSuccessHandler(function (url) {
+            hideLoading();
+            if (url) {
+              window.open(url, "_blank");
+              showAlert("Excel report generated successfully!", "success");
+            } else {
+              showAlert("Failed to generate Excel report", "error");
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            showAlert("Error generating Excel: " + error, "error");
+          })
+          .generateMonthlyExcel(year, month, doctor, window.sessionToken);
+      }
+
+      function downloadPDF() {
+        showLoading();
+        showAlert("Generating PDF report (this may take a moment)...", "info");
+
+        const year = Calendar.currentYear;
+        const month = Calendar.currentMonth;
+        const doctor = document.getElementById("doctorSelect").value;
+
+        google.script.run
+          .withSuccessHandler(function (result) {
+            hideLoading();
+            if (result && result.pdfExportUrl) {
+              // Open PDF export URL directly - browser will download the PDF
+              window.open(result.pdfExportUrl, "_blank");
+              showAlert(
+                "PDF report is being downloaded. If download doesn't start, check your browser's download settings.",
+                "success",
+              );
+            } else if (result && result.spreadsheetUrl) {
+              // Fallback: open spreadsheet and user can export manually
+              window.open(result.spreadsheetUrl, "_blank");
+              showAlert(
+                "Spreadsheet opened. You can download as PDF from File > Download > PDF",
+                "info",
+              );
+            } else {
+              showAlert("Failed to generate PDF report", "error");
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            showAlert("Error generating PDF: " + error, "error");
+          })
+          .generateMonthlyPDF(year, month, doctor, window.sessionToken);
+      }
+
+      function goToDashboard() {
+        window.top.location.href =
+          window.baseUrl +
+          "?page=Dashboard&sessionToken=" +
+          encodeURIComponent(window.sessionToken);
+      }
+
+      // Navigation function (uses window.baseUrl and window.sessionToken from sharedLayout)
+      function goToPage(pageName) {
+        var newUrl =
+          window.baseUrl +
+          "?page=" +
+          pageName +
+          "&sessionToken=" +
+          encodeURIComponent(window.sessionToken);
+        window.top.location.href = newUrl;
+      }
+
+      // Logout function is handled by sharedLayout.html
+      // This function can be removed if sharedLayout handles it, but keeping for compatibility
+      function logout() {
+        if (
+          typeof google !== "undefined" &&
+          google.script &&
+          window.sessionToken
+        ) {
+          google.script.run
+            .withSuccessHandler(function () {
+              window.top.location.href = window.baseUrl;
+            })
+            .withFailureHandler(function (error) {
+              window.top.location.href = window.baseUrl;
+            })
+            .clearSession(window.sessionToken);
+        } else {
+          window.top.location.href = window.baseUrl;
+        }
+      }
+
+      function showError(message) {
+        showAlert("Error: " + message, "error");
+      }
+
+      function showLoading() {
+        const loadingDiv = document.createElement("div");
+        loadingDiv.id = "loadingOverlay";
+        loadingDiv.style.position = "fixed";
+        loadingDiv.style.top = "0";
+        loadingDiv.style.left = "0";
+        loadingDiv.style.width = "100%";
+        loadingDiv.style.height = "100%";
+        loadingDiv.style.display = "flex";
+        loadingDiv.style.justifyContent = "center";
+        loadingDiv.style.alignItems = "center";
+        loadingDiv.style.zIndex = "1000";
+        loadingDiv.innerHTML =
+          '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>';
+        document.body.appendChild(loadingDiv);
+      }
+
+      function hideLoading() {
+        const loadingDiv = document.getElementById("loadingOverlay");
+        if (loadingDiv) {
+          loadingDiv.remove();
+        }
+      }
+
+      function showAlert(message, type = "info", title = null) {
+        const container = document.getElementById("alertContainer");
+        const alert = document.createElement("div");
+        alert.className = `custom-alert ${type}`;
+
+        let icon = "";
+        switch (type) {
+          case "success":
+            icon = "✓";
+            title = title || "Success";
+            break;
+          case "error":
+            icon = "✕";
+            title = title || "Error";
+            break;
+          case "warning":
+            icon = "⚠";
+            title = title || "Warning";
+            break;
+          default:
+            icon = "ℹ";
+            title = title || "Information";
+        }
+
+        alert.innerHTML = `
+        <div class="alert-icon ${type}">${icon}</div>
+        <div class="alert-content">
+          <div class="alert-title">${title}</div>
+          <div class="alert-message">${message}</div>
+        </div>
+        <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+      `;
+
+        container.appendChild(alert);
+
+        setTimeout(() => {
+          alert.classList.add("closing");
+          setTimeout(() => alert.remove(), 300);
+        }, 5000);
+      }
+
+      function closeModal() {
+        document.getElementById("dayModal").style.display = "none";
+      }
+
+      function formatTime(timeStr) {
+        if (!timeStr) return "-";
+        const date = new Date(timeStr);
+        return date.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        });
+      }
+
+      function getMemberBadgeClass(type) {
+        if (!type) return "bg-secondary";
+        const typeStr = String(type).toUpperCase();
+        if (typeStr === "NEW") return "bg-success";
+        if (typeStr === "OLD") return "bg-primary";
+        if (typeStr.includes("REFER")) return "bg-warning";
+        if (typeStr === "GUEST") return "bg-info";
+        return "bg-dark";
+      }
+
+      function viewAppointment(appointmentId) {
+        window.top.location.href =
+          window.baseUrl +
+          "?page=viewAppointment&appointmentId=" +
+          appointmentId +
+          "&sessionToken=" +
+          encodeURIComponent(window.sessionToken);
+      }
+
+      function rescheduleAppointment(appointmentId) {
+        window.top.location.href =
+          window.baseUrl +
+          "?page=rescheduleAppointment&appointmentId=" +
+          appointmentId +
+          "&sessionToken=" +
+          encodeURIComponent(window.sessionToken);
+      }
+
+      function downloadDayExcel() {
+        const date = document.getElementById("modalDate").textContent;
+        showAlert("Preparing Excel download for " + date, "info");
+
+        // Get the date in YYYY-MM-DD format
+        const dateObj = new Date(date);
+        const formattedDate = dateObj.toISOString().split("T")[0];
+
+        google.script.run
+          .withSuccessHandler(function (url) {
+            if (url) {
+              // Create a temporary link and click it to download
+              const link = document.createElement("a");
+              link.href = url;
+              link.download = `Appointments_${formattedDate}.xlsx`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              showAlert("Excel file downloaded successfully", "success");
+            } else {
+              showAlert("No appointments found for this date", "warning");
+            }
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error downloading Excel: " + error, "error");
+          })
+          .generateDayExcel(formattedDate, window.sessionToken);
+      }
+
+      function previewDayExcel() {
+        const date = document.getElementById("modalDate").textContent;
+        showAlert("Preparing Excel preview for " + date, "info");
+
+        // Get the date in YYYY-MM-DD format
+        const dateObj = new Date(date);
+        const formattedDate = dateObj.toISOString().split("T")[0];
+
+        google.script.run
+          .withSuccessHandler(function (url) {
+            if (url) {
+              // Open the Excel file in a new tab
+              window.open(url, "_blank");
+              showAlert("Excel preview opened in new tab", "success");
+            } else {
+              showAlert("No appointments found for this date", "warning");
+            }
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error previewing Excel: " + error, "error");
+          })
+          .generateDayExcel(formattedDate, window.sessionToken);
+      }
+
+      function sendDayEmail() {
+        const date = document.getElementById("modalDate").textContent;
+        showAlert("Preparing email for " + date, "info");
+
+        // Get the date in YYYY-MM-DD format
+        const dateObj = new Date(date);
+        const formattedDate = dateObj.toISOString().split("T")[0];
+
+        google.script.run
+          .withSuccessHandler(function (result) {
+            if (result.success) {
+              showAlert("Email sent successfully", "success");
+            } else {
+              showAlert("Error sending email: " + result.message, "error");
+            }
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error sending email: " + error, "error");
+          })
+          .sendDayOverviewEmail(formattedDate, window.sessionToken);
+      }
+    </script>
+  </body>
+</html>

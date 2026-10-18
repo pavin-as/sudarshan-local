@@ -1,0 +1,428 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Lato:wght@400&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --primary-color: #4a90e2;
+        --primary-light: #e8f0fe;
+        --primary-dark: #2c5282;
+        --success-color: #48bb78;
+        --warning-color: #ed8936;
+        --danger-color: #e53e3e;
+        --text-primary: #2d3748;
+        --text-secondary: #4a5568;
+        --bg-light: #f7fafc;
+        --bg-white: #ffffff;
+      }
+
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background: linear-gradient(
+          135deg,
+          var(--primary-light),
+          var(--bg-light)
+        );
+        padding: 2rem;
+      }
+
+      .login-container {
+        width: 100%;
+        max-width: 400px;
+        background: var(--bg-white);
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .login-container::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(
+          90deg,
+          var(--primary-color),
+          var(--success-color)
+        );
+      }
+
+      .login-header {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .login-header h2 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+
+      .login-header p {
+        color: var(--text-secondary);
+        margin: 0;
+      }
+
+      .form-group {
+        margin-bottom: 1.5rem;
+        position: relative;
+      }
+
+      .form-label {
+        color: var(--text-primary);
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+      }
+
+      .form-control {
+        border: 2px solid var(--primary-light);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        padding-left: 2.5rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+      }
+
+      .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 4px 12px rgba(74, 144, 226, 0.15);
+      }
+
+      .form-icon {
+        position: absolute;
+        left: 1rem;
+        top: 2.5rem;
+        color: var(--text-secondary);
+        transition: all 0.3s ease;
+      }
+
+      .form-control:focus + .form-icon {
+        color: var(--primary-color);
+      }
+
+      .btn-login {
+        background: var(--primary-color);
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        width: 100%;
+        margin-top: 1rem;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .btn-login:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(74, 144, 226, 0.2);
+      }
+
+      .btn-login:active {
+        transform: translateY(0);
+      }
+
+      .btn-login .spinner-border {
+        display: none;
+        width: 1.2rem;
+        height: 1.2rem;
+        margin-right: 0.5rem;
+      }
+
+      .btn-login.loading {
+        pointer-events: none;
+      }
+
+      .btn-login.loading .spinner-border {
+        display: inline-block;
+      }
+
+      .btn-login.loading span {
+        display: none;
+      }
+
+      /* Alert Styles */
+      .alert-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-width: 400px;
+      }
+
+      .custom-alert {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 16px 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transform: translateX(120%);
+        animation: slideIn 0.3s forwards;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .custom-alert::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+      }
+
+      .custom-alert.success::before {
+        background: var(--success-color);
+      }
+
+      .custom-alert.error::before {
+        background: var(--danger-color);
+      }
+
+      .custom-alert.warning::before {
+        background: var(--warning-color);
+      }
+
+      .custom-alert.info::before {
+        background: var(--primary-color);
+      }
+
+      @keyframes slideIn {
+        to {
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes slideOut {
+        to {
+          transform: translateX(120%);
+        }
+      }
+
+      .custom-alert.closing {
+        animation: slideOut 0.3s forwards;
+      }
+
+      /* Continue Button Styles */
+      .continue-btn {
+        background: var(--success-color);
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        color: white;
+        font-weight: 500;
+        margin-top: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .continue-btn:hover {
+        background: #38a169;
+        transform: translateY(-1px);
+      }
+
+      /* Title styling */
+      .app-title {
+        font-family: "Montserrat", sans-serif;
+        font-size: 2.5rem;
+        letter-spacing: 0.05em;
+        color: var(--primary-color);
+        margin: 0;
+      }
+
+      /* Subtitle styling */
+      .app-subtitle {
+        font-family: "Lato", sans-serif;
+        font-size: 1rem;
+        color: var(--text-secondary);
+        margin: 0;
+        font-weight: 400;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="alert-container" id="alertContainer"></div>
+
+    <div class="login-container">
+      <div class="login-header">
+        <h1 class="app-title">Sudarshan</h1>
+        <h2 class="app-subtitle">Sampada Specialty Eye Care LLP</h2>
+      </div>
+
+      <div class="form-group">
+        <label for="username" class="form-label">Username</label>
+        <input
+          type="text"
+          class="form-control"
+          id="username"
+          placeholder="Enter your username"
+        />
+        <i class="fas fa-user form-icon"></i>
+      </div>
+      <div class="form-group">
+        <label for="password" class="form-label">Password</label>
+        <input
+          type="password"
+          class="form-control"
+          id="password"
+          placeholder="Enter your password"
+        />
+        <i class="fas fa-lock form-icon"></i>
+      </div>
+      <button class="btn btn-login" onclick="doLogin()">
+        <span
+          class="spinner-border spinner-border-sm"
+          role="status"
+          aria-hidden="true"
+        ></span>
+        <span>Sign In</span>
+      </button>
+    </div>
+
+    <script>
+      var baseUrl = "<?= ScriptApp.getService().getUrl() ?>";
+
+      function doLogin() {
+        var username = document.getElementById("username").value.trim();
+        var password = document.getElementById("password").value.trim();
+        var loginButton = document.querySelector(".btn-login");
+
+        if (!username || !password) {
+          showAlert("Please enter both username and password.", "warning");
+          return;
+        }
+
+        // Show loading state
+        loginButton.classList.add("loading");
+
+        google.script.run
+          .withSuccessHandler(function (isValid) {
+            loginButton.classList.remove("loading");
+
+            if (isValid) {
+              // Request session token
+              google.script.run
+                .withSuccessHandler(function (sessionToken) {
+                  // Show success message with continue button
+                  showAlert(
+                    "Login successful! Click continue to proceed.",
+                    "success",
+                    {
+                      showContinue: true,
+                      continueAction: function () {
+                        // User-initiated redirect
+                        window.top.location.href =
+                          baseUrl +
+                          "?page=dayOverview&sessionToken=" +
+                          encodeURIComponent(sessionToken);
+                      },
+                    },
+                  );
+                })
+                .withFailureHandler(function (error) {
+                  showAlert("Error creating session: " + error, "error");
+                })
+                .createSession(username);
+            } else {
+              showAlert("Invalid username or password.", "error");
+            }
+          })
+          .withFailureHandler(function (error) {
+            loginButton.classList.remove("loading");
+            showAlert("Error during login: " + error, "error");
+          })
+          .validateLogin(username, password);
+      }
+
+      function showAlert(message, type = "info", options = {}) {
+        const container = document.getElementById("alertContainer");
+        const alert = document.createElement("div");
+        alert.className = `custom-alert ${type}`;
+
+        let icon = "";
+        let title = options.title || "";
+        switch (type) {
+          case "success":
+            icon = "✓";
+            title = title || "Success";
+            break;
+          case "error":
+            icon = "✕";
+            title = title || "Error";
+            break;
+          case "warning":
+            icon = "⚠";
+            title = title || "Warning";
+            break;
+          default:
+            icon = "ℹ";
+            title = title || "Information";
+        }
+
+        alert.innerHTML = `
+        <div class="alert-icon">${icon}</div>
+        <div class="alert-content">
+          ${title ? `<div class="alert-title">${title}</div>` : ""}
+          <div class="alert-message">${message}</div>
+        </div>
+        <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+      `;
+
+        // Add continue button if specified
+        if (options.showContinue) {
+          const continueBtn = document.createElement("button");
+          continueBtn.className = "continue-btn";
+          continueBtn.textContent = "Continue";
+          continueBtn.onclick = function () {
+            if (options.continueAction) options.continueAction();
+            alert.remove();
+          };
+          alert.querySelector(".alert-content").appendChild(continueBtn);
+        } else {
+          // Auto-close after 5 seconds if no continue button
+          setTimeout(() => {
+            alert.classList.add("closing");
+            setTimeout(() => alert.remove(), 300);
+          }, 5000);
+        }
+
+        container.appendChild(alert);
+      }
+
+      // Handle Enter key in password field
+      document
+        .getElementById("password")
+        .addEventListener("keypress", function (e) {
+          if (e.key === "Enter") {
+            doLogin();
+          }
+        });
+    </script>
+  </body>
+</html>

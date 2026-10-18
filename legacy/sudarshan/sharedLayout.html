@@ -1,0 +1,669 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary-color: #4a90e2;
+        --primary-light: #e8f0fe;
+        --primary-dark: #2c5282;
+        --success-color: #48bb78;
+        --warning-color: #ed8936;
+        --danger-color: #e53e3e;
+        --text-primary: #2d3748;
+        --text-secondary: #4a5568;
+        --bg-light: #f7fafc;
+        --bg-white: #ffffff;
+        --header-height: 64px;
+      }
+
+      body {
+        background-color: var(--bg-light);
+        color: var(--text-primary);
+        min-height: 100vh;
+        transition:
+          background 0.3s,
+          color 0.3s;
+      }
+
+      .dark-mode {
+        --primary-color: #90cdf4;
+        --primary-light: #2d3748;
+        --primary-dark: #1a202c;
+        --success-color: #68d391;
+        --warning-color: #f6ad55;
+        --danger-color: #fc8181;
+        --text-primary: #e2e8f0;
+        --text-secondary: #a0aec0;
+        --bg-light: #1a202c;
+        --bg-white: #2d3748;
+        background-color: var(--bg-light);
+        color: var(--text-primary);
+      }
+
+      .shared-header {
+        background: var(--bg-white);
+        border-bottom: 1px solid var(--primary-light);
+        height: var(--header-height);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 2rem;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+
+      .shared-header .user-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .shared-header .user-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+
+      .shared-header .user-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.95rem;
+      }
+
+      .shared-header .user-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .shared-header .btn {
+        font-size: 0.8rem;
+        padding: 0.375rem 0.75rem;
+      }
+
+      .shared-header .dark-toggle {
+        margin-left: 1rem;
+        cursor: pointer;
+        background: none;
+        border: none;
+        color: var(--primary-color);
+        font-size: 1.2rem;
+        transition: color 0.2s;
+      }
+
+      .shared-header .dark-toggle:focus {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+      }
+
+      nav[role="navigation"] {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+      }
+
+      nav[role="navigation"] a {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        transition:
+          background 0.2s,
+          color 0.2s;
+      }
+
+      nav[role="navigation"] a:focus {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+        background: var(--primary-light);
+      }
+
+      nav[role="navigation"] a.active,
+      nav[role="navigation"] a[aria-current="page"] {
+        background: var(--primary-color);
+        color: white;
+      }
+
+      /* Dropdown styles */
+      .nav-dropdown {
+        position: relative;
+        display: inline-block;
+      }
+
+      .nav-dropdown-btn {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        transition:
+          background 0.2s,
+          color 0.2s;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: inherit;
+        font-family: inherit;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+
+      .nav-dropdown-btn:hover {
+        color: var(--primary-color);
+        background: var(--primary-light);
+      }
+
+      .nav-dropdown-btn:focus {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+        background: var(--primary-light);
+      }
+
+      .nav-dropdown-content {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: var(--bg-white);
+        min-width: 180px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        border-radius: 8px;
+        z-index: 1001;
+        padding: 0.5rem 0;
+        margin-top: 0.25rem;
+      }
+
+      .nav-dropdown-content a {
+        display: block;
+        padding: 0.5rem 1rem;
+        color: var(--text-primary);
+        text-decoration: none;
+        font-weight: 500;
+        transition: background 0.2s;
+        border-radius: 0;
+      }
+
+      .nav-dropdown-content a:hover {
+        background: var(--primary-light);
+        color: var(--primary-color);
+      }
+
+      .nav-dropdown:hover .nav-dropdown-content,
+      .nav-dropdown.show .nav-dropdown-content {
+        display: block;
+      }
+
+      .nav-dropdown-btn i {
+        font-size: 0.7rem;
+        transition: transform 0.2s;
+      }
+
+      .nav-dropdown:hover .nav-dropdown-btn i,
+      .nav-dropdown.show .nav-dropdown-btn i {
+        transform: rotate(180deg);
+      }
+
+      @media (max-width: 768px) {
+        .shared-header {
+          flex-direction: column;
+          height: auto;
+          padding: 1rem;
+          gap: 0.5rem;
+        }
+
+        nav[role="navigation"] {
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <header class="shared-header" role="banner">
+      <nav role="navigation" aria-label="Main navigation">
+        <a
+          href="javascript:void(0)"
+          onclick="goToPage('Dashboard')"
+          id="nav-dashboard"
+          >Dashboard</a
+        >
+        <a
+          href="javascript:void(0)"
+          onclick="goToPage('bookAppointment')"
+          id="nav-book"
+          >Booking</a
+        >
+        <a
+          href="javascript:void(0)"
+          onclick="goToPage('appointmentList')"
+          id="nav-appointments"
+          >Appointments</a
+        >
+        <a
+          href="javascript:void(0)"
+          onclick="goToPage('followupAppointment')"
+          id="nav-followup"
+          >Followup</a
+        >
+        <a
+          href="javascript:void(0)"
+          onclick="goToPage('dayOverview')"
+          id="nav-day"
+          >Day</a
+        >
+        <a
+          href="javascript:void(0)"
+          onclick="goToPage('cancelList')"
+          id="nav-cancel"
+          >Cancelled</a
+        >
+        <a
+          href="javascript:void(0)"
+          onclick="goToPage('monthOverview')"
+          id="nav-month"
+          >Month</a
+        >
+        <div class="nav-dropdown" id="moreDropdown">
+          <button
+            class="nav-dropdown-btn"
+            onclick="toggleDropdown('moreDropdown')"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >
+            More <i class="fas fa-chevron-down"></i>
+          </button>
+          <div class="nav-dropdown-content">
+            <a
+              href="javascript:void(0)"
+              onclick="goToPage('Broadcast')"
+              id="nav-broadcast"
+              style="display:none"
+            >
+              <i class="fab fa-whatsapp me-2"></i>Broadcast
+            </a>
+            <a
+              href="javascript:void(0)"
+              onclick="goToPage('directCall')"
+              id="nav-directcall"
+            >
+              <i class="fas fa-phone-alt me-2"></i>Direct Call
+            </a>
+            <a
+              href="javascript:void(0)"
+              onclick="goToPage('identification')"
+              id="nav-identification"
+            >
+              <i class="fas fa-stethoscope me-2"></i>Triage
+            </a>
+            <a
+              href="javascript:void(0)"
+              onclick="goToPage('triageView')"
+              id="nav-triageview"
+            >
+              <i class="fas fa-clipboard-list me-2"></i>Triage Queue
+            </a>
+            <a
+              href="javascript:void(0)"
+              onclick="goToPage('SlotOptimization')"
+              id="nav-slot"
+            >
+              <i class="fas fa-clock me-2"></i>Slot Optimization
+            </a>
+            <a
+              href="javascript:void(0)"
+              onclick="goToPage('patientMaster')"
+              id="nav-patient"
+            >
+              <i class="fas fa-users me-2"></i>Patients
+            </a>
+            <a
+              href="javascript:void(0)"
+              onclick="goToPage('archiveList')"
+              id="nav-archive"
+            >
+              <i class="fas fa-archive me-2"></i>Archive
+            </a>
+            <a
+              href="javascript:void(0)"
+              onclick="goToPage('AuditActivityView')"
+              id="nav-activity"
+              style="display:none"
+            >
+              <i class="fas fa-chart-bar me-2"></i>Activity
+            </a>
+            <a
+              href="javascript:void(0)"
+              onclick="goToPage('settings')"
+              id="nav-settings"
+              style="display:none"
+            >
+              <i class="fas fa-cog me-2"></i>Settings
+            </a>
+            <a
+              href="javascript:void(0)"
+              onclick="goToPage('Visualization')"
+              id="nav-visualization"
+              style="display:none"
+            >
+              <i class="fas fa-chart-line me-2"></i>Visualization
+            </a>
+            <a
+              href="javascript:void(0)"
+              onclick="goToPage('rescheduleAnalytics')"
+              id="nav-rescheduleanalytics"
+              style="display:none"
+            >
+              <i class="fas fa-calendar-alt me-2"></i>Reschedule Analytics
+            </a>
+            <a
+              href="javascript:void(0)"
+              onclick="goToPage('roleManagement')"
+              id="nav-rolemanagement"
+              style="display:none"
+            >
+              <i class="fas fa-user-shield me-2"></i>Role Management
+            </a>
+          </div>
+        </div>
+      </nav>
+      <div class="user-info" aria-label="User info">
+        <div class="user-avatar" id="userAvatar">U</div>
+        <span class="user-name" id="userName">Loading...</span>
+        <div class="user-actions">
+          <button
+            class="btn btn-outline-secondary btn-sm"
+            onclick="goToPage('Dashboard')"
+            aria-label="Go to Dashboard"
+          >
+            <i class="fas fa-home"></i>
+          </button>
+          <button
+            class="btn btn-danger btn-sm"
+            onclick="logout()"
+            aria-label="Logout"
+          >
+            <i class="fas fa-sign-out-alt"></i>
+          </button>
+          <button
+            class="dark-toggle"
+            id="darkModeToggle"
+            aria-label="Toggle dark mode"
+            tabindex="0"
+          >
+            <i class="fas fa-moon"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+    <script>
+      // Keyboard accessibility for nav
+      document.addEventListener("DOMContentLoaded", function () {
+        const navLinks = document.querySelectorAll('nav[role="navigation"] a');
+        navLinks.forEach((link) => {
+          link.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              link.click();
+            }
+          });
+        });
+        // Dark mode
+        const darkToggle = document.getElementById("darkModeToggle");
+        function setDarkMode(enabled) {
+          if (enabled) {
+            document.body.classList.add("dark-mode");
+            localStorage.setItem("darkMode", "1");
+          } else {
+            document.body.classList.remove("dark-mode");
+            localStorage.setItem("darkMode", "0");
+          }
+        }
+        darkToggle.addEventListener("click", function () {
+          setDarkMode(!document.body.classList.contains("dark-mode"));
+        });
+        darkToggle.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            darkToggle.click();
+          }
+        });
+        // Load dark mode preference
+        if (localStorage.getItem("darkMode") === "1") {
+          setDarkMode(true);
+        }
+        // Load user info
+        if (
+          typeof google !== "undefined" &&
+          google.script &&
+          window.sessionToken
+        ) {
+          google.script.run
+            .withSuccessHandler(function (fullName) {
+              if (fullName) {
+                document.getElementById("userName").textContent = fullName;
+                document.getElementById("userAvatar").textContent = fullName
+                  .charAt(0)
+                  .toUpperCase();
+              }
+            })
+            .getCurrentUserFullName(window.sessionToken);
+
+          // Show Activity link only for Level 1 (director/admin)
+          google.script.run
+            .withSuccessHandler(function (hasAccess) {
+              if (hasAccess) {
+                var link = document.getElementById("nav-activity");
+                if (link) link.style.display = "";
+              }
+            })
+            .canAccessAuditLogs(window.sessionToken);
+
+          // Show Settings link only for Level 1 (director/admin)
+          google.script.run
+            .withSuccessHandler(function (hasAccess) {
+              if (hasAccess) {
+                var link = document.getElementById("nav-settings");
+                if (link) link.style.display = "";
+              }
+            })
+            .canAccessSettings(window.sessionToken);
+
+          // Show Visualization link only for Level 1 (director/admin)
+          google.script.run
+            .withSuccessHandler(function (hasAccess) {
+              if (hasAccess) {
+                var link = document.getElementById("nav-visualization");
+                if (link) link.style.display = "";
+              }
+            })
+            .canAccessVisualization(window.sessionToken);
+
+          // Show Reschedule Analytics link only for Level 1 (director/admin)
+          google.script.run
+            .withSuccessHandler(function (hasAccess) {
+              if (hasAccess) {
+                var link = document.getElementById("nav-rescheduleanalytics");
+                if (link) link.style.display = "";
+              }
+            })
+            .canAccessRescheduleAnalytics(window.sessionToken);
+
+          // Show Role Management link only for Level 1 (director/admin)
+          google.script.run
+            .withSuccessHandler(function (hasAccess) {
+              if (hasAccess) {
+                var link = document.getElementById("nav-rolemanagement");
+                if (link) link.style.display = "";
+              }
+            })
+            .hasAdminAccess(window.sessionToken);
+
+          // Show Broadcast link only for Level 1 and Level 3
+          google.script.run
+            .withSuccessHandler(function (hasAccess) {
+              if (hasAccess) {
+                var link = document.getElementById("nav-broadcast");
+                if (link) link.style.display = "";
+              }
+            })
+            .canAccessBroadcast(window.sessionToken);
+        }
+      });
+      // ============================================
+      // Shared date display helpers (used by every page that includes sharedLayout)
+      // Dates are stored and sent as yyyy-MM-dd; these are for showing them to people only.
+      // ============================================
+      var DISPLAY_MONTHS = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+      ];
+
+      /**
+       * Split a date value into parts, or null if it is not a recognisable date.
+       * Accepts Date objects, "yyyy-MM-dd", "yyyy-MM-dd HH:mm[:ss]" and ISO timestamps.
+       * Values in any other format (e.g. "10/9/2026") are left alone by the callers.
+       */
+      function parseDisplayDateParts(value) {
+        if (value === null || value === undefined || value === "") return null;
+        var date;
+        if (value instanceof Date) {
+          date = value;
+        } else {
+          var text = String(value).trim();
+          var m = text.match(
+            /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?)?$/
+          );
+          if (m) {
+            // No time zone given: use the parts as written (avoids a one-day shift)
+            var month = parseInt(m[2], 10);
+            var day = parseInt(m[3], 10);
+            if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+            return {
+              year: m[1],
+              month: month,
+              day: day,
+              hasTime: m[4] !== undefined,
+              hours: m[4],
+              minutes: m[5],
+            };
+          }
+          if (!/^\d{4}-\d{2}-\d{2}T/.test(text)) return null;
+          date = new Date(text); // ISO timestamp with a time zone
+        }
+        if (isNaN(date.getTime())) return null;
+        return {
+          year: String(date.getFullYear()),
+          month: date.getMonth() + 1,
+          day: date.getDate(),
+          hasTime: true,
+          hours: String(date.getHours()).padStart(2, "0"),
+          minutes: String(date.getMinutes()).padStart(2, "0"),
+        };
+      }
+
+      var DISPLAY_WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+      function buildDisplayDateText(p, noWeekday) {
+        var text =
+          String(p.day).padStart(2, "0") + " " + DISPLAY_MONTHS[p.month - 1] + " " + p.year;
+        if (noWeekday) return text;
+        var weekday = new Date(parseInt(p.year, 10), p.month - 1, p.day).getDay();
+        return DISPLAY_WEEKDAYS[weekday] + ", " + text;
+      }
+
+      /**
+       * "2026-10-09" -> "Fri, 09 Oct 2026". Unrecognised values are returned unchanged.
+       * Pass noWeekday = true for dates where the weekday is noise (e.g. date of birth).
+       */
+      function formatDisplayDate(value, noWeekday) {
+        var p = parseDisplayDateParts(value);
+        if (!p) return value === null || value === undefined ? "" : String(value);
+        return buildDisplayDateText(p, noWeekday);
+      }
+
+      /** "2026-10-09" -> "09 Oct" (for tight spaces where the weekday/year are shown separately). */
+      function formatDisplayDayMonth(value) {
+        var p = parseDisplayDateParts(value);
+        if (!p) return value === null || value === undefined ? "" : String(value);
+        return String(p.day).padStart(2, "0") + " " + DISPLAY_MONTHS[p.month - 1];
+      }
+
+      /**
+       * "2026-10-09 14:42:56" -> "Fri, 09 Oct 2026, 14:42". Date-only values show just the date.
+       */
+      function formatDisplayDateTime(value, noWeekday) {
+        var p = parseDisplayDateParts(value);
+        if (!p) return value === null || value === undefined ? "" : String(value);
+        var text = buildDisplayDateText(p, noWeekday);
+        return p.hasTime ? text + ", " + p.hours + ":" + p.minutes : text;
+      }
+
+      // Navigation function
+      function goToPage(pageName) {
+        var newUrl =
+          window.baseUrl +
+          "?page=" +
+          pageName +
+          "&sessionToken=" +
+          encodeURIComponent(window.sessionToken);
+        window.top.location.href = newUrl;
+      }
+
+      // Dropdown toggle function
+      function toggleDropdown(dropdownId) {
+        const dropdown = document.getElementById(dropdownId);
+        if (dropdown) {
+          dropdown.classList.toggle("show");
+        }
+      }
+
+      // Close dropdown when clicking outside
+      document.addEventListener("click", function (e) {
+        const dropdowns = document.querySelectorAll(".nav-dropdown");
+        dropdowns.forEach(function (dropdown) {
+          if (!dropdown.contains(e.target)) {
+            dropdown.classList.remove("show");
+          }
+        });
+      });
+      // Logout function
+      function logout() {
+        if (
+          typeof google !== "undefined" &&
+          google.script &&
+          window.sessionToken
+        ) {
+          google.script.run
+            .withSuccessHandler(function () {
+              window.top.location.href = window.baseUrl;
+            })
+            .withFailureHandler(function (error) {
+              window.top.location.href = window.baseUrl;
+            })
+            .clearSession(window.sessionToken);
+        } else {
+          window.top.location.href = window.baseUrl;
+        }
+      }
+    </script>
+  </body>
+</html>

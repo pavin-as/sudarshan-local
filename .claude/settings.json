@@ -1,0 +1,6 @@
+{
+  "permissions": {
+    "allow": ["Read(**)", "Write(analysis/**)", "Write(modernized/**)", "Edit(analysis/**)", "Edit(modernized/**)"],
+    "deny": ["Edit(legacy/**)", "Write(legacy/**)", "Read(.env)"]
+  }
+}

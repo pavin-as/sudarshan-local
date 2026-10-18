@@ -1,0 +1,1141 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <base target="_top" />
+    <meta charset="UTF-8" />
+    <title>Triage Queue - Sampada VR Eye Care</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+    <style>
+      :root {
+        --primary-color: #4a90e2;
+        --primary-light: #e8f0fe;
+        --primary-dark: #2c5282;
+        --success-color: #48bb78;
+        --warning-color: #ed8936;
+        --danger-color: #e53e3e;
+        --text-primary: #2d3748;
+        --text-secondary: #4a5568;
+        --bg-light: #f7fafc;
+        --bg-white: #ffffff;
+        --emergency-color: #dc2626;
+        --urgent-color: #f59e0b;
+        --not-urgent-color: #10b981;
+      }
+
+      body {
+        background: var(--bg-light);
+        color: var(--text-primary);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+
+      .main-content {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem;
+      }
+
+      /* Page header */
+      .page-header {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem 2rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        border-left: 5px solid var(--emergency-color);
+      }
+
+      .page-header-icon {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, var(--emergency-color), var(--urgent-color));
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.4rem;
+        flex-shrink: 0;
+      }
+
+      .page-header h1 {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0;
+      }
+
+      .page-header p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+      }
+
+      /* Stats bar */
+      .stats-bar {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+      }
+
+      .stat-card {
+        background: var(--bg-white);
+        border-radius: 10px;
+        padding: 1rem 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        min-width: 130px;
+        flex: 1;
+        border-left: 4px solid var(--primary-color);
+      }
+
+      .stat-card.stat-pending { border-left-color: var(--urgent-color); }
+      .stat-card.stat-booked { border-left-color: var(--primary-color); }
+      .stat-card.stat-declined { border-left-color: var(--danger-color); }
+
+      .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1;
+      }
+
+      .stat-label {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        margin-top: 0.3rem;
+      }
+
+      /* Filter row */
+      .filter-row {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: flex-end;
+      }
+
+      .filter-row .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        min-width: 150px;
+      }
+
+      .filter-row .filter-group.search-group {
+        flex: 1;
+        min-width: 200px;
+      }
+
+      .filter-row label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .form-select, .form-control {
+        border: 2px solid var(--primary-light);
+        border-radius: 8px;
+        font-size: 0.9rem;
+        transition: border-color 0.2s;
+      }
+
+      .form-select:focus, .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+      }
+
+      /* Table card */
+      .table-card {
+        background: var(--bg-white);
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+      }
+
+      .table-card-header {
+        padding: 1rem 1.5rem;
+        border-bottom: 2px solid var(--primary-light);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .table-card-header h6 {
+        margin: 0;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .results-count {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+      }
+
+      #triageTable thead th {
+        background: var(--primary-color);
+        color: white;
+        font-weight: 600;
+        border: none;
+        padding: 0.85rem 1rem;
+        white-space: nowrap;
+        font-size: 0.85rem;
+      }
+
+      #triageTable tbody tr {
+        border-bottom: 1px solid #e2e8f0;
+        transition: background 0.15s;
+      }
+
+      #triageTable tbody tr:hover { background: #f8faff; }
+      #triageTable tbody td { padding: 0.85rem 1rem; vertical-align: middle; font-size: 0.875rem; }
+
+      .row-emergency { border-left: 4px solid var(--emergency-color) !important; }
+      .row-urgent    { border-left: 4px solid var(--urgent-color) !important; }
+      .row-not-urgent { border-left: 4px solid var(--not-urgent-color) !important; }
+
+      /* Badges */
+      .badge-emergency {
+        background: #fee2e2; color: var(--emergency-color);
+        padding: 0.3em 0.65em; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+      }
+
+      .badge-urgent {
+        background: #fef3c7; color: #92400e;
+        padding: 0.3em 0.65em; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+      }
+
+      .badge-not-urgent {
+        background: #d1fae5; color: #065f46;
+        padding: 0.3em 0.65em; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+      }
+
+      .badge-pending {
+        background: #fff7ed; color: #c2410c;
+        padding: 0.3em 0.65em; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+      }
+
+      .badge-completed {
+        background: #ecfdf5; color: #047857;
+        padding: 0.3em 0.65em; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+      }
+
+      .score-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        font-weight: 700;
+        font-size: 0.9rem;
+      }
+
+      .score-3 { background: #fee2e2; color: var(--emergency-color); }
+      .score-2 { background: #fef3c7; color: #92400e; }
+      .score-1 { background: #d1fae5; color: #065f46; }
+
+      /* Empty state */
+      .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: var(--text-secondary);
+      }
+
+      .empty-state i { opacity: 0.3; }
+
+      /* Modal Q answers */
+      .q-answer-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 0.875rem;
+      }
+
+      .q-answer-row:last-child { border-bottom: none; }
+      .q-label { color: var(--text-secondary); }
+
+      .score-label-high { color: var(--emergency-color); font-weight: 600; }
+      .score-label-medium { color: var(--urgent-color); font-weight: 600; }
+      .score-label-low { color: var(--not-urgent-color); font-weight: 600; }
+
+      .patient-detail-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-secondary);
+        margin-bottom: 0.2rem;
+      }
+
+      .patient-detail-value {
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: var(--text-primary);
+      }
+
+      /* Loading overlay */
+      .loading-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.9);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .loading-overlay.show { display: flex; }
+
+      .loading-spinner {
+        width: 60px;
+        height: 60px;
+        border: 4px solid var(--primary-light);
+        border-top-color: var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* Alert toast */
+      .alert-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        min-width: 300px;
+        max-width: 420px;
+      }
+
+      .alert-toast {
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+        animation: slideInRight 0.3s ease;
+      }
+
+      @keyframes slideInRight {
+        from { transform: translateX(110%); opacity: 0; }
+        to   { transform: translateX(0);   opacity: 1; }
+      }
+
+      /* Action button */
+      .btn-action {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 0.35rem 0.85rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .btn-action:hover { background: var(--primary-dark); }
+      .btn-action.update { background: #7c3aed; }
+      .btn-action.update:hover { background: #5b21b6; }
+
+      .datetime-cell { line-height: 1.4; }
+      .datetime-date { font-weight: 600; font-size: 0.85rem; }
+      .datetime-time { font-size: 0.78rem; color: var(--text-secondary); }
+
+      .patient-name { font-weight: 600; font-size: 0.9rem; }
+      .patient-sub  { font-size: 0.78rem; color: var(--text-secondary); }
+
+      /* Report print window styles (injected into new window) */
+      /* — defined in openReport() JS — */
+    </style>
+  </head>
+  <body>
+    <script>
+      window.sessionToken = "<?= sessionToken ?>";
+      window.baseUrl = "<?= webAppUrl ?>";
+    </script>
+    <?!= include('sharedLayout') ?>
+
+    <div class="alert-container" id="alertContainer"></div>
+
+    <div class="main-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="page-header-icon">
+          <i class="fas fa-clipboard-list"></i>
+        </div>
+        <div style="flex:1;">
+          <h1>Triage Queue</h1>
+          <p>Review and manage patient urgency assessments</p>
+        </div>
+        <button class="btn btn-outline-primary btn-sm" onclick="openReport()" title="Daily report + overdue pending">
+          <i class="fas fa-print me-1"></i>Report
+        </button>
+      </div>
+
+      <!-- Stats Bar -->
+      <div class="stats-bar">
+        <div class="stat-card" style="border-left-color: var(--text-secondary);">
+          <div class="stat-value" id="statTotalCount">—</div>
+          <div class="stat-label"><i class="fas fa-clipboard-list me-1"></i>Total Records</div>
+        </div>
+        <div class="stat-card stat-pending">
+          <div class="stat-value" id="statPendingCount">—</div>
+          <div class="stat-label"><i class="fas fa-hourglass-half me-1"></i>Pending Action</div>
+        </div>
+        <div class="stat-card stat-booked">
+          <div class="stat-value" id="statBookedCount">—</div>
+          <div class="stat-label"><i class="fas fa-calendar-check me-1"></i>Booked</div>
+        </div>
+        <div class="stat-card stat-declined">
+          <div class="stat-value" id="statDeclinedCount">—</div>
+          <div class="stat-label"><i class="fas fa-times-circle me-1"></i>Declined / Other</div>
+        </div>
+      </div>
+
+      <!-- Filter Row -->
+      <div class="filter-row">
+        <div class="filter-group">
+          <label>Date Range</label>
+          <select class="form-select" id="filterDatePreset" onchange="onDatePresetChange()">
+            <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
+            <option value="week" selected>Last 7 Days</option>
+            <option value="month">This Month</option>
+            <option value="all">All Time</option>
+            <option value="custom">Custom Range</option>
+          </select>
+        </div>
+        <div class="filter-group" id="customDateContainer" style="display:none;">
+          <label>From Date</label>
+          <input type="date" class="form-control" id="filterDateFrom" onchange="applyFilters()" />
+        </div>
+        <div class="filter-group" id="customDateToContainer" style="display:none;">
+          <label>To Date</label>
+          <input type="date" class="form-control" id="filterDateTo" onchange="applyFilters()" />
+        </div>
+        <div class="filter-group">
+          <label>Status</label>
+          <select class="form-select" id="filterStatus" onchange="applyFilters()">
+            <option value="">All</option>
+            <option value="Pending Action">Pending Action</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Category</label>
+          <select class="form-select" id="filterCategory" onchange="applyFilters()">
+            <option value="">All</option>
+            <option value="Emergency">Emergency</option>
+            <option value="Urgent">Urgent</option>
+            <option value="Not Urgent">Not Urgent</option>
+          </select>
+        </div>
+        <div class="filter-group search-group">
+          <label>Search</label>
+          <div class="input-group">
+            <span class="input-group-text" style="border:2px solid var(--primary-light);border-right:none;background:white;">
+              <i class="fas fa-search text-muted"></i>
+            </span>
+            <input type="text" class="form-control" id="filterSearch"
+              placeholder="Name, phone or MRD..."
+              oninput="applyFilters()"
+              style="border-left:none;" />
+          </div>
+        </div>
+        <div class="filter-group" style="align-self:flex-end;">
+          <button class="btn btn-outline-secondary" onclick="loadTriageRecords()" title="Refresh">
+            <i class="fas fa-sync-alt me-1"></i>Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- Table Card -->
+      <div class="table-card">
+        <div class="table-card-header">
+          <h6><i class="fas fa-table me-2 text-primary"></i>Triage Records</h6>
+          <div class="results-count" id="resultsCount"></div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0" id="triageTable" style="display:none;">
+            <thead>
+              <tr>
+                <th>Date / Time</th>
+                <th>Patient</th>
+                <th>MRD / Phone</th>
+                <th>Category</th>
+                <th style="text-align:center;">Score</th>
+                <th>Status</th>
+                <th>Remarks</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="triageTableBody"></tbody>
+          </table>
+        </div>
+        <div id="emptyState" class="empty-state">
+          <i class="fas fa-clipboard-list fa-3x mb-3"></i>
+          <p class="fw-600 mt-2">No triage records found.</p>
+          <p class="small">Try adjusting your filters or refresh the page.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Modal -->
+    <div class="modal fade" id="actionModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header" style="background:var(--primary-light);">
+            <h5 class="modal-title fw-700">
+              <i class="fas fa-clipboard-check me-2 text-primary"></i>Triage Decision
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+
+            <!-- Patient Summary -->
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <div class="patient-detail-label">Patient Name</div>
+                <div class="patient-detail-value fw-bold" id="modalName">—</div>
+              </div>
+              <div class="col-md-2">
+                <div class="patient-detail-label">Age</div>
+                <div class="patient-detail-value" id="modalAge">—</div>
+              </div>
+              <div class="col-md-2">
+                <div class="patient-detail-label">Gender</div>
+                <div class="patient-detail-value" id="modalGender">—</div>
+              </div>
+              <div class="col-md-2">
+                <div class="patient-detail-label">Type</div>
+                <div class="patient-detail-value" id="modalPatientType">—</div>
+              </div>
+              <div class="col-md-4">
+                <div class="patient-detail-label">Phone</div>
+                <div class="patient-detail-value" id="modalPhone">—</div>
+              </div>
+              <div class="col-md-4">
+                <div class="patient-detail-label">MRD No</div>
+                <div class="patient-detail-value" id="modalMRD">—</div>
+              </div>
+              <div class="col-md-2">
+                <div class="patient-detail-label">Category</div>
+                <div id="modalCategoryBadge">—</div>
+              </div>
+              <div class="col-md-2">
+                <div class="patient-detail-label">Max Score</div>
+                <div class="patient-detail-value" id="modalScore">—</div>
+              </div>
+            </div>
+
+            <hr class="my-3" />
+
+            <!-- Assessment Q answers -->
+            <h6 class="fw-bold mb-3"><i class="fas fa-stethoscope me-2 text-primary"></i>Assessment Answers</h6>
+            <div class="row g-0" id="modalQAnswers"></div>
+
+            <hr class="my-3" />
+
+            <!-- Decision -->
+            <div class="mb-3">
+              <label class="form-label fw-bold">
+                Decision <span class="text-danger">*</span>
+              </label>
+              <select class="form-select" id="modalDecision">
+                <option value="Pending Action">Pending Action</option>
+                <option value="Booked: Today">Booked: Today</option>
+                <option value="Booked: Tomorrow">Booked: Tomorrow</option>
+                <option value="Booked: Later Date">Booked: Later Date</option>
+                <option value="Declined: Wanted Today Only">Declined: Wanted Today Only</option>
+                <option value="Declined: Other Reason">Declined: Other Reason</option>
+                <option value="Other Action (See Remarks)">Other Action (See Remarks)</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Remarks</label>
+              <textarea class="form-control" id="modalRemarks" rows="3"
+                placeholder="Add details about the interaction or outcome..."></textarea>
+            </div>
+
+            <!-- Previous decision info -->
+            <div id="modalPrevDecision" class="alert alert-light py-2 small" style="display:none;">
+              <i class="fas fa-history me-1"></i>
+              Last updated by <strong id="modalDecisionBy"></strong>
+              on <strong id="modalDecisionDate"></strong>
+            </div>
+
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" id="modalSaveBtn" onclick="saveDecision()">
+              <span id="modalSaveBtnText"><i class="fas fa-save me-1"></i>Save Decision</span>
+              <span id="modalSaveSpinner" style="display:none;">
+                <span class="spinner-border spinner-border-sm me-1"></span>Saving...
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="text-center">
+        <div class="loading-spinner"></div>
+        <p class="mt-3 fw-bold" style="color:var(--primary-color);">Loading records...</p>
+      </div>
+    </div>
+
+    <script>
+      var allRecords = [];       // full dataset (all time)
+      var activeTriageId = null;
+
+      var Q_LABELS = ["Onset", "Vision", "Pain", "Floaters", "Redness", "Injury", "Symptoms"];
+      var Q_KEYS   = ["Q1_Onset","Q2_Vision","Q3_Pain","Q4_Floaters","Q5_Redness","Q6_Injury","Q7_Symptoms"];
+      var SCORE_LABELS = { "1": "Mild", "2": "Moderate", "3": "Serious" };
+
+      document.addEventListener("DOMContentLoaded", function () {
+        loadTriageRecords();
+      });
+
+      function loadTriageRecords() {
+        showLoading();
+        google.script.run
+          .withSuccessHandler(function (response) {
+            hideLoading();
+            if (response && response.success) {
+              allRecords = response.data || [];
+              applyFilters();
+            } else {
+              showAlert("Error loading records: " + (response ? response.message : "Unknown error"), "error");
+              allRecords = [];
+              applyFilters();
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            showAlert("Failed to load triage records: " + error, "error");
+            allRecords = [];
+            applyFilters();
+          })
+          .getTriageRecords(window.sessionToken);
+      }
+
+      function getDatePresetRange(preset) {
+        var now = new Date();
+        var formatDate = function (d) {
+          var yyyy = d.getFullYear();
+          var mm = String(d.getMonth() + 1).padStart(2, "0");
+          var dd = String(d.getDate()).padStart(2, "0");
+          return yyyy + "-" + mm + "-" + dd;
+        };
+
+        var toStr = formatDate(now);
+        var fromStr = "";
+
+        if (preset === "today") {
+          fromStr = toStr;
+        } else if (preset === "yesterday") {
+          var yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          fromStr = formatDate(yesterday);
+          toStr = fromStr;
+        } else if (preset === "week") {
+          var sixDaysAgo = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000);
+          fromStr = formatDate(sixDaysAgo);
+        } else if (preset === "month") {
+          var firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+          fromStr = formatDate(firstOfMonth);
+        } else if (preset === "all") {
+          fromStr = "";
+          toStr = "";
+        } else if (preset === "custom") {
+          fromStr = document.getElementById("filterDateFrom").value;
+          toStr = document.getElementById("filterDateTo").value;
+        }
+
+        return { from: fromStr, to: toStr };
+      }
+
+      function onDatePresetChange() {
+        var preset = document.getElementById("filterDatePreset").value;
+        var customContainer = document.getElementById("customDateContainer");
+        var customToContainer = document.getElementById("customDateToContainer");
+
+        if (preset === "custom") {
+          var now = new Date();
+          var formatDate = function (d) {
+            var yyyy = d.getFullYear();
+            var mm = String(d.getMonth() + 1).padStart(2, "0");
+            var dd = String(d.getDate()).padStart(2, "0");
+            return yyyy + "-" + mm + "-" + dd;
+          };
+          if (!document.getElementById("filterDateFrom").value) {
+            var sixDaysAgo = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000);
+            document.getElementById("filterDateFrom").value = formatDate(sixDaysAgo);
+          }
+          if (!document.getElementById("filterDateTo").value) {
+            document.getElementById("filterDateTo").value = formatDate(now);
+          }
+          customContainer.style.display = "";
+          customToContainer.style.display = "";
+        } else {
+          customContainer.style.display = "none";
+          customToContainer.style.display = "none";
+        }
+        applyFilters();
+      }
+
+      function applyFilters() {
+        var preset         = document.getElementById("filterDatePreset").value;
+        var dateRange      = getDatePresetRange(preset);
+        var statusFilter   = document.getElementById("filterStatus").value;
+        var categoryFilter = document.getElementById("filterCategory").value;
+        var searchFilter   = document.getElementById("filterSearch").value.trim().toLowerCase();
+
+        // 1. Filter by date range first
+        var dateFiltered = allRecords.filter(function (r) {
+          var recDateStr = (r.AssessmentDate || r.CreatedOn || "").substring(0, 10);
+          if (dateRange.from && recDateStr < dateRange.from) return false;
+          if (dateRange.to && recDateStr > dateRange.to) return false;
+          return true;
+        });
+
+        // Update stats bar based on date-filtered records
+        updateStats(dateFiltered);
+
+        // 2. Filter by status, category, and search
+        var filtered = dateFiltered.filter(function (r) {
+          if (statusFilter === "Pending Action" && r.DecisionStatus !== "Pending Action") return false;
+          if (statusFilter === "completed"      && r.DecisionStatus === "Pending Action") return false;
+          if (categoryFilter && r.Category !== categoryFilter) return false;
+          if (searchFilter) {
+            var name  = (r.PatientName || "").toLowerCase();
+            var phone = (r.Phone || "").toLowerCase();
+            var mrd   = (r.MRDNo || "").toLowerCase();
+            if (!name.includes(searchFilter) && !phone.includes(searchFilter) && !mrd.includes(searchFilter)) return false;
+          }
+          return true;
+        });
+
+        filtered = sortRecords(filtered);
+        renderTable(filtered);
+
+        var countEl = document.getElementById("resultsCount");
+        var suffix  = "";
+        if (preset === "today") suffix = " today";
+        else if (preset === "yesterday") suffix = " yesterday";
+        else if (preset === "week") suffix = " this week";
+        else if (preset === "month") suffix = " this month";
+        else if (preset === "all") suffix = " (all-time)";
+        else suffix = " in custom range";
+
+        if (countEl) countEl.textContent = filtered.length + " record" + (filtered.length !== 1 ? "s" : "") + suffix;
+      }
+
+      function sortRecords(records) {
+        return records.slice().sort(function (a, b) {
+          var ap = (a.DecisionStatus === "Pending Action") ? 0 : 1;
+          var bp = (b.DecisionStatus === "Pending Action") ? 0 : 1;
+          if (ap !== bp) return ap - bp;
+          var as = parseInt(a.MaxScore) || 0;
+          var bs = parseInt(b.MaxScore) || 0;
+          if (as !== bs) return bs - as;
+          return new Date(a.CreatedOn || 0) - new Date(b.CreatedOn || 0);
+        });
+      }
+
+      function renderTable(records) {
+        var tbody      = document.getElementById("triageTableBody");
+        var emptyState = document.getElementById("emptyState");
+        var table      = document.getElementById("triageTable");
+
+        if (!records || records.length === 0) {
+          tbody.innerHTML = "";
+          emptyState.style.display = "block";
+          table.style.display = "none";
+          return;
+        }
+
+        emptyState.style.display = "none";
+        table.style.display = "";
+        tbody.innerHTML = records.map(renderRow).join("");
+      }
+
+      function renderRow(r) {
+        var cat = r.Category || "";
+        var rowClass = cat === "Emergency" ? "row-emergency"
+                     : cat === "Urgent"    ? "row-urgent"
+                     : "row-not-urgent";
+
+        var dt = formatDateTime(r.AssessmentDate, r.CreatedOn);
+        var mrdPhone = [r.MRDNo, r.Phone].filter(Boolean).join(" / ") || "—";
+        var score = parseInt(r.MaxScore) || 0;
+        var isUpdate = r.DecisionStatus !== "Pending Action";
+
+        return '<tr class="' + rowClass + '">' +
+          '<td><div class="datetime-cell">' +
+            '<div class="datetime-date">' + escapeHtml(dt.date) + '</div>' +
+            '<div class="datetime-time">' + escapeHtml(dt.time) + '</div>' +
+          '</div></td>' +
+          '<td><div class="patient-name">' + escapeHtml(r.PatientName || "—") + '</div>' +
+               '<div class="patient-sub">' + escapeHtml(r.Age || "") + (r.Gender ? ' · ' + escapeHtml(r.Gender) : '') + '</div></td>' +
+          '<td class="small">' + escapeHtml(mrdPhone) + '</td>' +
+          '<td>' + buildCategoryBadge(cat) + '</td>' +
+          '<td style="text-align:center;"><span class="score-badge score-' + score + '">' + (score || "—") + '</span></td>' +
+          '<td>' + buildStatusBadge(r.DecisionStatus || "Pending Action") + '</td>' +
+          '<td class="small" style="max-width:200px;white-space:normal;">' + escapeHtml(r.DecisionRemarks || "—") + '</td>' +
+          '<td><button class="btn-action' + (isUpdate ? ' update' : '') + '" ' +
+               'onclick="openActionModal(\'' + escapeHtml(r.TriageID) + '\')">' +
+               (isUpdate ? 'Update' : 'Take Action') + '</button></td>' +
+        '</tr>';
+      }
+
+      function buildCategoryBadge(cat) {
+        if (cat === "Emergency")  return '<span class="badge-emergency">Emergency</span>';
+        if (cat === "Urgent")     return '<span class="badge-urgent">Urgent</span>';
+        if (cat === "Not Urgent") return '<span class="badge-not-urgent">Not Urgent</span>';
+        return '<span class="badge bg-secondary">' + escapeHtml(cat) + '</span>';
+      }
+
+      function buildStatusBadge(status) {
+        if (status === "Pending Action") return '<span class="badge-pending"><i class="fas fa-clock me-1"></i>Pending</span>';
+        return '<span class="badge-completed"><i class="fas fa-check me-1"></i>' + escapeHtml(status) + '</span>';
+      }
+
+      function openActionModal(triageId) {
+        var record = allRecords.find(function (r) { return r.TriageID === triageId; });
+        if (!record) {
+          showAlert("Record not found. Please refresh the page.", "error");
+          return;
+        }
+        activeTriageId = triageId;
+
+        setText("modalName",        record.PatientName  || "—");
+        setText("modalAge",         record.Age          || "—");
+        setText("modalGender",      record.Gender       || "—");
+        setText("modalPatientType", record.PatientType  || "—");
+        setText("modalPhone",       record.Phone        || "—");
+        setText("modalMRD",         record.MRDNo        || "—");
+        setText("modalScore",       record.MaxScore     || "—");
+        document.getElementById("modalCategoryBadge").innerHTML = buildCategoryBadge(record.Category || "");
+
+        // Q answers
+        var qHtml = Q_KEYS.map(function (key, i) {
+          var score = record[key];
+          var sev   = SCORE_LABELS[String(score)] || String(score);
+          var cls   = score == 3 ? "score-label-high" : score == 2 ? "score-label-medium" : "score-label-low";
+          return '<div class="col-md-6">' +
+            '<div class="q-answer-row">' +
+              '<span class="q-label">Q' + (i + 1) + ': ' + Q_LABELS[i] + '</span>' +
+              '<span class="' + cls + '">' + score + '/3 – ' + sev + '</span>' +
+            '</div></div>';
+        }).join("");
+        document.getElementById("modalQAnswers").innerHTML = qHtml;
+
+        // Decision and remarks
+        document.getElementById("modalDecision").value = record.DecisionStatus || "Pending Action";
+        document.getElementById("modalRemarks").value  = record.DecisionRemarks || "";
+
+        // Previous decision metadata
+        var prevDiv = document.getElementById("modalPrevDecision");
+        if (record.DecisionBy && record.DecisionDate) {
+          setText("modalDecisionBy",   record.DecisionBy);
+          setText("modalDecisionDate", formatDisplayDateTime(record.DecisionDate));
+          prevDiv.style.display = "";
+        } else {
+          prevDiv.style.display = "none";
+        }
+
+        setSaveButtonLoading(false);
+        new bootstrap.Modal(document.getElementById("actionModal")).show();
+      }
+
+      function saveDecision() {
+        var decision = document.getElementById("modalDecision").value;
+        var remarks  = document.getElementById("modalRemarks").value.trim();
+
+        if (!decision) {
+          showAlert("Please select a decision.", "warning");
+          return;
+        }
+
+        setSaveButtonLoading(true);
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            setSaveButtonLoading(false);
+            if (response && response.success) {
+              var rec = allRecords.find(function (r) { return r.TriageID === activeTriageId; });
+              if (rec) {
+                rec.DecisionStatus  = decision;
+                rec.DecisionRemarks = remarks;
+                rec.DecisionBy      = "—";
+                rec.DecisionDate    = new Date();
+              }
+              bootstrap.Modal.getInstance(document.getElementById("actionModal")).hide();
+              applyFilters();
+              showAlert("Decision saved successfully.", "success");
+            } else {
+              showAlert("Error: " + (response ? response.message : "Unknown error"), "error");
+            }
+          })
+          .withFailureHandler(function (error) {
+            setSaveButtonLoading(false);
+            showAlert("Failed to save decision: " + error, "error");
+          })
+          .updateTriageDecision(activeTriageId, decision, remarks, window.sessionToken);
+      }
+
+      function setSaveButtonLoading(loading) {
+        document.getElementById("modalSaveBtnText").style.display  = loading ? "none" : "";
+        document.getElementById("modalSaveSpinner").style.display  = loading ? "" : "none";
+        document.getElementById("modalSaveBtn").disabled           = loading;
+      }
+
+      function updateStats(records) {
+        var total = records.length;
+        var pending = 0;
+        var booked = 0;
+        var declined = 0;
+
+        records.forEach(function (r) {
+          var status = r.DecisionStatus || "Pending Action";
+          if (status === "Pending Action") {
+            pending++;
+          } else if (status.indexOf("Booked:") === 0) {
+            booked++;
+          } else {
+            declined++;
+          }
+        });
+
+        document.getElementById("statTotalCount").textContent     = total;
+        document.getElementById("statPendingCount").textContent   = pending;
+        document.getElementById("statBookedCount").textContent    = booked;
+        document.getElementById("statDeclinedCount").textContent  = declined;
+      }
+
+      function formatDateTime(assessmentDate, createdOn) {
+        var date = assessmentDate
+          ? formatDisplayDate(String(assessmentDate).substring(0, 10))
+          : "—";
+        var time = "";
+        if (createdOn) {
+          var parts = String(createdOn).split(" ");
+          if (parts.length >= 2) time = parts[1].substring(0, 5);
+        }
+        return { date: date, time: time };
+      }
+
+      function setText(id, val) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = val;
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function showLoading() {
+        document.getElementById("loadingOverlay").classList.add("show");
+      }
+
+      function hideLoading() {
+        document.getElementById("loadingOverlay").classList.remove("show");
+      }
+
+      function openReport() {
+        if (!allRecords.length) {
+          showAlert("No data loaded. Please wait for records to load first.", "warning");
+          return;
+        }
+
+        var today = new Date();
+        today.setHours(0, 0, 0, 0);
+        var todayStr = today.getFullYear() + "-" +
+          String(today.getMonth() + 1).padStart(2, "0") + "-" +
+          String(today.getDate()).padStart(2, "0");
+
+        // Section 1: today's entries (all statuses)
+        var todayRecords = allRecords.filter(function (r) {
+          return String(r.AssessmentDate || r.CreatedOn || "").substring(0, 10) === todayStr;
+        });
+
+        // Section 2: pending from any previous day
+        var overduePending = allRecords.filter(function (r) {
+          var d = String(r.AssessmentDate || r.CreatedOn || "").substring(0, 10);
+          return d < todayStr && r.DecisionStatus === "Pending Action";
+        });
+
+        // Sort each section: Emergency first, then highest score, then oldest
+        function reportSort(a, b) {
+          var catOrder = { "Emergency": 0, "Urgent": 1, "Not Urgent": 2 };
+          var ac = catOrder[a.Category] !== undefined ? catOrder[a.Category] : 3;
+          var bc = catOrder[b.Category] !== undefined ? catOrder[b.Category] : 3;
+          if (ac !== bc) return ac - bc;
+          return (parseInt(b.MaxScore) || 0) - (parseInt(a.MaxScore) || 0);
+        }
+        todayRecords  = todayRecords.sort(reportSort);
+        overduePending = overduePending.sort(reportSort);
+
+        var generatedAt = today.toLocaleDateString("en-IN", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+
+        function catStyle(cat) {
+          if (cat === "Emergency")  return "background:#fee2e2;color:#dc2626;";
+          if (cat === "Urgent")     return "background:#fef3c7;color:#92400e;";
+          if (cat === "Not Urgent") return "background:#d1fae5;color:#065f46;";
+          return "";
+        }
+
+        function statusStyle(s) {
+          return s === "Pending Action"
+            ? "background:#fff7ed;color:#c2410c;"
+            : "background:#ecfdf5;color:#047857;";
+        }
+
+        function rowBorder(cat) {
+          if (cat === "Emergency")  return "border-left:4px solid #dc2626;";
+          if (cat === "Urgent")     return "border-left:4px solid #f59e0b;";
+          return "border-left:4px solid #10b981;";
+        }
+
+        function badge(text, style) {
+          return '<span style="' + style + 'padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;">' + escHtml(text) + '</span>';
+        }
+
+        function escHtml(s) {
+          return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+        }
+
+        function buildRows(rows) {
+          if (!rows.length) return '<tr><td colspan="9" style="text-align:center;color:#718096;padding:1.5rem;">No records in this section.</td></tr>';
+          return rows.map(function (r, idx) {
+            var dt = formatDateTime(r.AssessmentDate, r.CreatedOn);
+            var mrdPhone = [r.MRDNo, r.Phone].filter(Boolean).join(" / ") || "—";
+            return '<tr style="' + rowBorder(r.Category) + '">' +
+              '<td style="text-align:center;color:#718096;">' + (idx + 1) + '</td>' +
+              '<td>' + escHtml(dt.date) + '<br><small style="color:#718096;">' + escHtml(dt.time) + '</small></td>' +
+              '<td><strong>' + escHtml(r.PatientName || "—") + '</strong><br><small style="color:#718096;">' + escHtml((r.Age || "") + (r.Gender ? " · " + r.Gender : "")) + '</small></td>' +
+              '<td>' + escHtml(mrdPhone) + '</td>' +
+              '<td style="text-align:center;">' + badge(r.Category || "—", catStyle(r.Category)) + '</td>' +
+              '<td style="text-align:center;font-weight:700;">' + escHtml(String(r.MaxScore || "—")) + '</td>' +
+              '<td>' + badge(r.DecisionStatus || "Pending Action", statusStyle(r.DecisionStatus)) + '</td>' +
+              '<td style="font-size:11px;max-width:160px;">' + escHtml(r.DecisionRemarks || "—") + '</td>' +
+              '<td style="font-size:11px;color:#718096;">' + escHtml(r.DecisionBy || "—") + '</td>' +
+            '</tr>';
+          }).join("");
+        }
+
+        var tableStyle = 'width:100%;border-collapse:collapse;font-size:12px;margin-bottom:0;';
+        var thStyle    = 'background:#4a90e2;color:white;padding:8px 10px;text-align:left;font-weight:600;white-space:nowrap;';
+        var tdStyle    = 'padding:7px 10px;border-bottom:1px solid #e2e8f0;vertical-align:middle;';
+
+        var thead = '<thead><tr>' +
+          '<th style="' + thStyle + 'width:30px;">#</th>' +
+          '<th style="' + thStyle + '">Date / Time</th>' +
+          '<th style="' + thStyle + '">Patient</th>' +
+          '<th style="' + thStyle + '">MRD / Phone</th>' +
+          '<th style="' + thStyle + 'text-align:center;">Category</th>' +
+          '<th style="' + thStyle + 'text-align:center;">Score</th>' +
+          '<th style="' + thStyle + '">Status</th>' +
+          '<th style="' + thStyle + '">Remarks</th>' +
+          '<th style="' + thStyle + '">Actioned By</th>' +
+        '</tr></thead>';
+
+        var summaryToday   = todayRecords.length + " records";
+        var summaryOverdue = overduePending.length + " overdue pending record" + (overduePending.length !== 1 ? "s" : "");
+
+        var html = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">' +
+          '<title>Triage Daily Report – ' + todayStr + '</title>' +
+          '<style>' +
+            'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0;padding:24px;color:#2d3748;background:#fff;}' +
+            'h2{margin:0 0 2px;font-size:18px;color:#2c5282;}' +
+            '.report-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #4a90e2;}' +
+            '.clinic-name{font-size:13px;color:#4a5568;}' +
+            '.report-meta{text-align:right;font-size:12px;color:#718096;}' +
+            '.section-title{font-size:13px;font-weight:700;color:#2c5282;margin:20px 0 8px;padding:6px 12px;background:#e8f0fe;border-left:4px solid #4a90e2;border-radius:0 4px 4px 0;}' +
+            '.section-title .count{font-weight:400;color:#4a5568;margin-left:8px;}' +
+            'table{' + tableStyle + '}' +
+            'th{' + thStyle + '}' +
+            'td{' + tdStyle + '}' +
+            'tr:last-child td{border-bottom:none;}' +
+            '.footer{margin-top:24px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:11px;color:#a0aec0;text-align:center;}' +
+            '@media print{' +
+              'body{padding:10px;}' +
+              '.no-print{display:none!important;}' +
+              'table{page-break-inside:auto;}' +
+              'tr{page-break-inside:avoid;}' +
+              'thead{display:table-header-group;}' +
+            '}' +
+          '</style></head><body>' +
+
+          '<div class="report-header">' +
+            '<div><h2>Triage Daily Report</h2><div class="clinic-name">Sampada VR Eye Care</div></div>' +
+            '<div class="report-meta">' +
+              '<div>' + generatedAt + '</div>' +
+              '<div style="margin-top:4px;">Generated: ' + new Date().toLocaleTimeString("en-IN") + '</div>' +
+              '<button class="no-print" onclick="window.print()" style="margin-top:8px;padding:5px 14px;background:#4a90e2;color:white;border:none;border-radius:6px;cursor:pointer;font-size:12px;">' +
+                '<span style="margin-right:4px;">🖨</span>Print / Save as PDF' +
+              '</button>' +
+            '</div>' +
+          '</div>' +
+
+          '<div class="section-title">Today\'s Entries<span class="count">(' + summaryToday + ')</span></div>' +
+          '<table>' + thead + '<tbody>' + buildRows(todayRecords) + '</tbody></table>' +
+
+          (overduePending.length > 0
+            ? '<div class="section-title" style="background:#fff7ed;border-left-color:#f59e0b;color:#92400e;">Overdue Pending from Previous Days<span class="count" style="color:#92400e;">(' + summaryOverdue + ')</span></div>' +
+              '<table>' + thead + '<tbody>' + buildRows(overduePending) + '</tbody></table>'
+            : '<div class="section-title" style="background:#ecfdf5;border-left-color:#10b981;color:#047857;">No Overdue Pending from Previous Days</div>'
+          ) +
+
+          '<div class="footer">Sampada VR Eye Care · Triage Report · ' + todayStr + '</div>' +
+          '</body></html>';
+
+        var win = window.open("", "_blank", "width=1050,height=800");
+        if (!win) {
+          showAlert("Please allow popups for this site to open the report.", "warning");
+          return;
+        }
+        win.document.write(html);
+        win.document.close();
+      }
+
+      function showAlert(message, type) {
+        var alertClass = type === "success" ? "alert-success"
+                       : type === "warning" ? "alert-warning"
+                       : type === "error"   ? "alert-danger"
+                       : "alert-info";
+        var iconClass  = type === "success" ? "fa-check-circle"
+                       : type === "warning" ? "fa-exclamation-triangle"
+                       : type === "error"   ? "fa-times-circle"
+                       : "fa-info-circle";
+        var container = document.getElementById("alertContainer");
+        container.innerHTML =
+          '<div class="alert ' + alertClass + ' alert-dismissible fade show alert-toast" role="alert">' +
+          '<i class="fas ' + iconClass + ' me-2"></i>' + escapeHtml(message) +
+          '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
+        setTimeout(function () {
+          var a = container.querySelector(".alert");
+          if (a) a.remove();
+        }, 5000);
+      }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

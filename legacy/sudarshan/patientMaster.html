@@ -1,0 +1,1137 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --primary-color: #4a90e2;
+        --primary-light: #e8f0fe;
+        --primary-dark: #2c5282;
+        --success-color: #48bb78;
+        --warning-color: #ed8936;
+        --danger-color: #e53e3e;
+        --text-primary: #2d3748;
+        --text-secondary: #4a5568;
+        --bg-light: #f7fafc;
+        --bg-white: #ffffff;
+      }
+
+      body {
+        background-color: var(--bg-light);
+        color: var(--text-primary);
+        min-height: 100vh;
+        padding: 2rem;
+      }
+
+      .container {
+        max-width: 1400px;
+      }
+
+      .page-header {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .page-header h1 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin: 0;
+        position: relative;
+        padding-left: 1rem;
+      }
+
+      .page-header h1::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 4px;
+        height: 70%;
+        background: linear-gradient(
+          to bottom,
+          var(--primary-color),
+          var(--success-color)
+        );
+        border-radius: 2px;
+      }
+
+      .search-section {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      }
+
+      .search-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+
+      .form-group {
+        margin-bottom: 0;
+      }
+
+      .form-control {
+        border: 2px solid var(--primary-light);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+      }
+
+      .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+      }
+
+      .patient-card {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+      }
+
+      .patient-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+      }
+
+      .patient-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--primary-light);
+      }
+
+      .patient-id {
+        font-weight: 600;
+        color: var(--primary-color);
+      }
+
+      .patient-status {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+
+      .status-active {
+        background-color: var(--success-color);
+        color: white;
+      }
+
+      .status-inactive {
+        background-color: var(--danger-color);
+        color: white;
+      }
+
+      .patient-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+
+      .detail-group {
+        margin-bottom: 0.5rem;
+      }
+
+      .detail-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.25rem;
+      }
+
+      .detail-value {
+        font-weight: 500;
+      }
+
+      .patient-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 2px solid var(--primary-light);
+      }
+
+      .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 2rem;
+      }
+
+      .page-link {
+        background: var(--bg-white);
+        border: 2px solid var(--primary-light);
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        color: var(--text-primary);
+        text-decoration: none;
+        transition: all 0.3s ease;
+      }
+
+      .page-link:hover {
+        background: var(--primary-light);
+        border-color: var(--primary-color);
+      }
+
+      .page-item.active .page-link {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+        color: white;
+      }
+
+      .alert-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+      }
+
+      .custom-alert {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+      }
+
+      .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid var(--primary-light);
+        border-top-color: var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* User Information Header Styles */
+      .user-info-header {
+        background: var(--bg-white);
+        border-bottom: 1px solid var(--primary-light);
+        padding: 0.75rem 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+
+      .user-info-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .user-details {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .user-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+
+      .user-text {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+      }
+
+      .user-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.95rem;
+      }
+
+      .user-role {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+      }
+
+      .user-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .user-actions .btn {
+        font-size: 0.8rem;
+        padding: 0.375rem 0.75rem;
+      }
+
+      /* Multi-select Type field styling */
+      .select2-container {
+        width: 100% !important;
+      }
+
+      .select2-selection {
+        min-height: 38px;
+        border: 2px solid var(--primary-light) !important;
+      }
+
+      .select2-selection:focus {
+        border-color: var(--primary-color) !important;
+        box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1) !important;
+      }
+
+      /* Results Header Styles */
+      .results-header {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .results-count {
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .results-count .count-number {
+        color: var(--primary-color);
+        font-size: 1.2rem;
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 768px) {
+        .user-info-content {
+          flex-direction: column;
+          gap: 0.75rem;
+          align-items: flex-start;
+        }
+
+        .user-actions {
+          width: 100%;
+          justify-content: flex-end;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <script>
+      window.sessionToken = "<?= sessionToken ?>";
+      window.baseUrl = "<?= webAppUrl ?>";
+    </script>
+    <?!= include('sharedLayout') ?>
+    <div class="alert-container" id="alertContainer"></div>
+
+    <div class="container">
+      <div class="page-header">
+        <h1>Patient Master Data</h1>
+        <button class="btn btn-primary" onclick="navigateToDashboard()">
+          <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </button>
+      </div>
+
+      <div class="search-section">
+        <form id="searchForm" class="search-form">
+          <div class="form-group">
+            <label for="mrdNo">MRD Number</label>
+            <input
+              type="text"
+              class="form-control"
+              id="mrdNo"
+              placeholder="Enter MRD No"
+            />
+          </div>
+          <div class="form-group">
+            <label for="patientName">Patient Name</label>
+            <input
+              type="text"
+              class="form-control"
+              id="patientName"
+              placeholder="Enter patient name"
+            />
+          </div>
+          <div class="form-group">
+            <label for="phone">Phone Number</label>
+            <input
+              type="text"
+              class="form-control"
+              id="phone"
+              placeholder="Enter phone number"
+            />
+          </div>
+          <div class="form-group">
+            <label for="type">Type</label>
+            <select class="form-control" id="type" multiple></select>
+          </div>
+          <div class="form-group">
+            <label for="status">Status</label>
+            <select class="form-control" id="status">
+              <option value="">All</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+          <div class="form-group d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="fas fa-search"></i> Search
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div id="resultsContainer">
+        <div class="text-center text-muted py-5">
+          <i class="fas fa-search fa-3x mb-3"></i>
+          <p>Use the search form above to find patients</p>
+        </div>
+      </div>
+
+      <nav aria-label="Page navigation">
+        <ul class="pagination" id="pagination"></ul>
+      </nav>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <script>
+      var baseUrl = "<?= webAppUrl ?>";
+      var sessionToken = "<?= sessionToken ?>";
+      var currentPage = 1;
+      var itemsPerPage = 10;
+      var totalItems = 0;
+      var patientTypeOptions = []; // Will store type options from server
+
+      document.addEventListener("DOMContentLoaded", function () {
+        checkAccess();
+        loadPatientTypeOptions();
+        setupEventListeners();
+        // Don't load patients automatically - only load when search is pressed
+      });
+
+      function checkAccess() {
+        google.script.run
+          .withSuccessHandler(function (hasAccess) {
+            if (!hasAccess) {
+              showAlert(
+                "Access denied. Admin or Manager privileges required.",
+                "error",
+              );
+              setTimeout(function () {
+                goToPage("Dashboard");
+              }, 2000);
+            }
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error checking access: " + error, "error");
+            goToPage("Dashboard");
+          })
+          .hasAccessToPatientMaster(sessionToken);
+      }
+
+      function loadPatientTypeOptions() {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response && response.success) {
+              patientTypeOptions = response.typeOptions || [];
+              populateTypeDropdowns();
+              // Don't load patients automatically - only load when search is pressed
+            } else {
+              showAlert(
+                response ? response.message : "Error loading patient types",
+                "error",
+              );
+            }
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error loading patient types: " + error, "error");
+          })
+          .getPatientTypeOptions();
+      }
+
+      function populateTypeDropdowns() {
+        // Populate the search form type dropdown
+        const typeSelect = document.getElementById("type");
+        if (typeSelect) {
+          typeSelect.innerHTML = "";
+
+          // Add all type options
+          patientTypeOptions.forEach(function (type) {
+            const option = document.createElement("option");
+            option.value = type;
+            option.textContent = type;
+            typeSelect.appendChild(option);
+          });
+
+          // Initialize Select2 for search form
+          $(typeSelect).select2({
+            theme: "bootstrap-5",
+            placeholder: "Select types...",
+            allowClear: true,
+            width: "100%",
+          });
+        }
+      }
+
+      function setupEventListeners() {
+        document
+          .getElementById("searchForm")
+          .addEventListener("submit", function (e) {
+            e.preventDefault();
+            currentPage = 1;
+            loadPatients();
+          });
+      }
+
+      function loadPatients() {
+        showLoading();
+
+        try {
+          // Get selected types as array
+          const selectedTypes = $("#type").val() || [];
+
+          const searchParams = {
+            mrdNo: document.getElementById("mrdNo").value || "",
+            patientName: document.getElementById("patientName").value || "",
+            phone: document.getElementById("phone").value || "",
+            type: Array.isArray(selectedTypes) ? selectedTypes : [],
+            status: document.getElementById("status").value || "",
+            page: currentPage,
+            itemsPerPage: itemsPerPage,
+          };
+
+          google.script.run
+            .withSuccessHandler(function (response) {
+              hideLoading();
+              if (response && response.success) {
+                displayPatients(response.patients, response.total);
+                updatePagination(response.total);
+              } else {
+                showAlert(
+                  response
+                    ? response.message || "Error loading patients"
+                    : "Error: No response",
+                  "error",
+                );
+                document.getElementById("resultsContainer").innerHTML = `
+                <div class="text-center text-muted py-5">
+                  <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                  <p>Error loading patients. Please try again.</p>
+                </div>
+              `;
+              }
+            })
+            .withFailureHandler(function (error) {
+              hideLoading();
+              showAlert("Error loading patients: " + error, "error");
+              document.getElementById("resultsContainer").innerHTML = `
+              <div class="text-center text-muted py-5">
+                <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                <p>Error: ${error}</p>
+              </div>
+            `;
+              if (error.toString().includes("session")) {
+                setTimeout(() => goToPage("Login"), 2000);
+              }
+            })
+            .searchPatients(searchParams);
+        } catch (err) {
+          hideLoading();
+          showAlert("Error: " + err.message, "error");
+        }
+      }
+
+      function displayPatients(patients, total) {
+        const container = document.getElementById("resultsContainer");
+        container.innerHTML = "";
+
+        if (!patients || patients.length === 0) {
+          container.innerHTML = `
+          <div class="text-center text-muted py-5">
+            <i class="fas fa-user-slash fa-3x mb-3"></i>
+            <p>No patients found matching your search criteria</p>
+          </div>
+        `;
+          return;
+        }
+
+        // Calculate pagination info for results header
+        const displayTotal = total || totalItems || patients.length;
+        const startIndex = (currentPage - 1) * itemsPerPage + 1;
+        const endIndex = Math.min(startIndex + itemsPerPage - 1, displayTotal);
+
+        // Add results header
+        const headerDiv = document.createElement("div");
+        headerDiv.className = "results-header";
+        headerDiv.innerHTML = `
+        <div class="results-count">
+          Showing <span class="count-number">${startIndex}-${endIndex}</span> of <span class="count-number">${displayTotal}</span> patients
+        </div>
+        <div>
+          <i class="fas fa-user-injured" style="color: var(--primary-color);"></i>
+        </div>
+      `;
+        container.appendChild(headerDiv);
+
+        patients.forEach(function (patient) {
+          const card = document.createElement("div");
+          card.className = "patient-card";
+          card.innerHTML = `
+          <div class="patient-header">
+            <div class="patient-id">${patient.MRDNo || "N/A"}</div>
+            <div class="patient-status status-${patient.Status?.toLowerCase() || "inactive"}">${patient.Status || "N/A"}</div>
+          </div>
+          <div class="patient-details">
+            <div class="detail-group">
+              <div class="detail-label">Name</div>
+              <div class="detail-value">${patient.Name || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Date of Birth</div>
+              <div class="detail-value">${formatDisplayDate(patient.DOB, true) || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Gender</div>
+              <div class="detail-value">${patient.Gender || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Phone</div>
+              <div class="detail-value">${patient.Phone || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Home No</div>
+              <div class="detail-value">${patient.HomeNo || "-"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Work No</div>
+              <div class="detail-value">${patient.WorkNo || "-"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Type</div>
+              <div class="detail-value">${
+                patient.Type
+                  ? patient.Type.split(",")
+                      .map((t) => t.trim())
+                      .join(", ")
+                  : "N/A"
+              }</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Registered On</div>
+              <div class="detail-value">${formatDisplayDateTime(patient.RegisteredOn) || "N/A"}</div>
+            </div>
+          </div>
+          <div class="detail-group mt-3">
+            <div class="detail-label">Address</div>
+            <div class="detail-value">${patient.Address || "-"}</div>
+          </div>
+          <div class="detail-group mt-2">
+            <div class="detail-label">Additional Info</div>
+            <div class="detail-value">${patient.AdditionalInfo || "-"}</div>
+          </div>
+          <div class="patient-actions">
+            <button class="btn btn-primary" onclick="editPatient('${patient.MRDNo}')">
+              <i class="fas fa-edit"></i> Edit
+            </button>
+            <button class="btn btn-danger" onclick="togglePatientStatus('${patient.MRDNo}', '${patient.Status}')">
+              <i class="fas fa-power-off"></i> Toggle Status
+            </button>
+          </div>
+        `;
+          container.appendChild(card);
+        });
+      }
+
+      function updatePagination(total) {
+        totalItems = total;
+        const totalPages = Math.ceil(total / itemsPerPage);
+        const pagination = document.getElementById("pagination");
+        pagination.innerHTML = "";
+
+        if (totalPages <= 1) return;
+
+        // Previous button
+        pagination.innerHTML += `
+        <li class="page-item ${currentPage === 1 ? "disabled" : ""}">
+          <a class="page-link" href="#" onclick="changePage(${currentPage - 1})">
+            <i class="fas fa-chevron-left"></i>
+          </a>
+        </li>
+      `;
+
+        // Page numbers
+        for (let i = 1; i <= totalPages; i++) {
+          if (
+            i === 1 ||
+            i === totalPages ||
+            (i >= currentPage - 2 && i <= currentPage + 2)
+          ) {
+            pagination.innerHTML += `
+            <li class="page-item ${currentPage === i ? "active" : ""}">
+              <a class="page-link" href="#" onclick="changePage(${i})">${i}</a>
+            </li>
+          `;
+          } else if (i === currentPage - 3 || i === currentPage + 3) {
+            pagination.innerHTML += `
+            <li class="page-item disabled">
+              <span class="page-link">...</span>
+            </li>
+          `;
+          }
+        }
+
+        // Next button
+        pagination.innerHTML += `
+        <li class="page-item ${currentPage === totalPages ? "disabled" : ""}">
+          <a class="page-link" href="#" onclick="changePage(${currentPage + 1})">
+            <i class="fas fa-chevron-right"></i>
+          </a>
+        </li>
+      `;
+      }
+
+      function changePage(page) {
+        if (page < 1 || page > Math.ceil(totalItems / itemsPerPage)) return;
+        currentPage = page;
+        loadPatients();
+      }
+
+      function editPatient(mrdNo) {
+        showAlert("Loading patient details...", "info");
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response.success) {
+              showEditModal(response.patient);
+            } else {
+              showAlert(response.message, "error");
+            }
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error loading patient details: " + error, "error");
+          })
+          .getPatientDetails(mrdNo);
+      }
+
+      function showEditModal(patient) {
+        const modal = document.createElement("div");
+        modal.className = "modal fade";
+        modal.innerHTML = `
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Edit Patient Details</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <form id="editForm">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">MRD No</label>
+                    <input type="text" class="form-control" id="editMrdNo" value="${patient.MRDNo}" readonly>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Name</label>
+                    <input type="text" class="form-control" id="editName" value="${patient.Name}">
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Date of Birth</label>
+                    <input type="date" class="form-control" id="editDob" value="${patient.DOB}">
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Gender</label>
+                    <select class="form-control" id="editGender">
+                      <option value="Male" ${patient.Gender === "Male" ? "selected" : ""}>Male</option>
+                      <option value="Female" ${patient.Gender === "Female" ? "selected" : ""}>Female</option>
+                      <option value="Other" ${patient.Gender === "Other" ? "selected" : ""}>Other</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Phone</label>
+                    <input type="text" class="form-control" id="editPhone" value="${patient.Phone}">
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Type</label>
+                    <select class="form-control" id="editType" multiple>
+                      ${getTypeOptionsHtml(patient.Type)}
+                    </select>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Home No</label>
+                    <input type="text" class="form-control" id="editHomeNo" value="${patient.HomeNo || ""}">
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Work No</label>
+                    <input type="text" class="form-control" id="editWorkNo" value="${patient.WorkNo || ""}">
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Address</label>
+                  <textarea class="form-control" id="editAddress" rows="2">${patient.Address || ""}</textarea>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Additional Info</label>
+                  <textarea class="form-control" id="editAdditionalInfo" rows="2">${patient.AdditionalInfo || ""}</textarea>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-primary" onclick="savePatientChanges('${patient.MRDNo}')">Save Changes</button>
+            </div>
+          </div>
+        </div>
+      `;
+        document.body.appendChild(modal);
+        const modalInstance = new bootstrap.Modal(modal);
+        modalInstance.show();
+
+        // Initialize Select2 for edit modal after modal is shown
+        modal.addEventListener(
+          "shown.bs.modal",
+          function () {
+            const editTypeSelect = document.getElementById("editType");
+            if (editTypeSelect) {
+              $(editTypeSelect).select2({
+                theme: "bootstrap-5",
+                placeholder: "Select types...",
+                allowClear: true,
+                width: "100%",
+                dropdownParent: modal,
+              });
+            }
+          },
+          { once: true },
+        );
+
+        // Clean up Select2 when modal is hidden
+        modal.addEventListener(
+          "hidden.bs.modal",
+          function () {
+            const editTypeSelect = document.getElementById("editType");
+            if (
+              editTypeSelect &&
+              $(editTypeSelect).hasClass("select2-hidden-accessible")
+            ) {
+              $(editTypeSelect).select2("destroy");
+            }
+            modal.remove();
+          },
+          { once: true },
+        );
+      }
+
+      // Helper function to generate HTML for type options
+      function getTypeOptionsHtml(selectedTypes) {
+        let html = "";
+
+        // Parse selectedTypes - can be comma-separated string or array
+        let selectedArray = [];
+        if (selectedTypes) {
+          if (typeof selectedTypes === "string") {
+            selectedArray = selectedTypes
+              .split(",")
+              .map((t) => t.trim())
+              .filter((t) => t);
+          } else if (Array.isArray(selectedTypes)) {
+            selectedArray = selectedTypes;
+          }
+        }
+
+        if (patientTypeOptions.length === 0) {
+          // Fallback options if dynamic loading failed
+          html += `<option value="NEW" ${selectedArray.includes("NEW") ? "selected" : ""}>New</option>`;
+          html += `<option value="OLD" ${selectedArray.includes("OLD") ? "selected" : ""}>Old</option>`;
+        } else {
+          patientTypeOptions.forEach(function (type) {
+            html += `<option value="${type}" ${selectedArray.includes(type) ? "selected" : ""}>${type}</option>`;
+          });
+        }
+
+        return html;
+      }
+
+      function savePatientChanges(mrdNo) {
+        // Get selected types as array and convert to comma-separated string
+        const selectedTypes = $("#editType").val() || [];
+        const typeString = Array.isArray(selectedTypes)
+          ? selectedTypes.join(", ")
+          : "";
+
+        const updatedData = {
+          mrdNo: mrdNo,
+          name: document.getElementById("editName").value,
+          dob: document.getElementById("editDob").value,
+          gender: document.getElementById("editGender").value,
+          phone: document.getElementById("editPhone").value,
+          homeNo: document.getElementById("editHomeNo").value,
+          workNo: document.getElementById("editWorkNo").value,
+          type: typeString,
+          address: document.getElementById("editAddress").value,
+          additionalInfo: document.getElementById("editAdditionalInfo").value,
+        };
+
+        showAlert("Saving changes...", "info");
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response.success) {
+              showAlert("Patient details updated successfully", "success");
+              bootstrap.Modal.getInstance(
+                document.querySelector(".modal"),
+              ).hide();
+              loadPatients();
+            } else {
+              showAlert(response.message, "error");
+            }
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error updating patient details: " + error, "error");
+          })
+          .updatePatientDetails(updatedData, sessionToken);
+      }
+
+      function togglePatientStatus(mrdNo, currentStatus) {
+        const newStatus = currentStatus === "Active" ? "Inactive" : "Active";
+
+        // Create and append the confirmation modal
+        const modal = document.createElement("div");
+        modal.className = "modal fade";
+        modal.id = "toggleStatusModal";
+        modal.setAttribute("tabindex", "-1");
+        modal.setAttribute("aria-labelledby", "toggleStatusModalLabel");
+        modal.setAttribute("aria-hidden", "true");
+
+        modal.innerHTML = `
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="toggleStatusModalLabel">Confirm Status Change</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <p>Are you sure you want to change the patient's status to <strong>${newStatus}</strong>?</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-primary" id="confirmToggleBtn">Confirm</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+        document.body.appendChild(modal);
+
+        // Show the modal
+        const modalInstance = new bootstrap.Modal(modal);
+        modalInstance.show();
+
+        // Handle confirmation
+        document
+          .getElementById("confirmToggleBtn")
+          .addEventListener("click", function () {
+            modalInstance.hide();
+
+            // Remove the modal from DOM after hiding
+            modal.addEventListener("hidden.bs.modal", function () {
+              modal.remove();
+            });
+
+            // Proceed with the status change
+            showAlert("Updating status...", "info");
+            google.script.run
+              .withSuccessHandler(function (response) {
+                if (response.success) {
+                  showAlert("Patient status updated successfully", "success");
+                  loadPatients();
+                } else {
+                  showAlert(response.message, "error");
+                }
+              })
+              .withFailureHandler(function (error) {
+                showAlert("Error updating patient status: " + error, "error");
+              })
+              .togglePatientStatus(mrdNo, sessionToken);
+          });
+
+        // Remove modal from DOM when closed without confirmation
+        modal.addEventListener("hidden.bs.modal", function () {
+          if (document.body.contains(modal)) {
+            modal.remove();
+          }
+        });
+      }
+
+      function showLoading() {
+        const overlay = document.createElement("div");
+        overlay.className = "loading-overlay";
+        overlay.innerHTML = '<div class="spinner"></div>';
+        document.body.appendChild(overlay);
+      }
+
+      function hideLoading() {
+        const overlay = document.querySelector(".loading-overlay");
+        if (overlay) overlay.remove();
+      }
+
+      function showAlert(message, type = "info") {
+        const container = document.getElementById("alertContainer");
+        if (!container) {
+          alert(message); // Fallback to regular alert
+          return;
+        }
+
+        const alert = document.createElement("div");
+        alert.className = `alert alert-${type} alert-dismissible fade show`;
+        alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+        container.appendChild(alert);
+
+        // Make sure the alert is visible
+        container.style.display = "block";
+
+        // Remove after 5 seconds
+        setTimeout(() => {
+          if (alert.parentNode) {
+            alert.remove();
+          }
+          // Hide container if empty
+          if (container.children.length === 0) {
+            container.style.display = "none";
+          }
+        }, 5000);
+      }
+      function navigateToDashboard() {
+        // Show a loading message
+        showAlert("Redirecting to Dashboard...", "info");
+
+        // Use google.script.run to navigate properly
+        google.script.run
+          .withSuccessHandler(function (url) {
+            // If we get a URL back, redirect to it
+            if (url) {
+              window.top.location.href = url;
+            } else {
+              // Fallback method
+              goToPage("Dashboard");
+            }
+          })
+          .withFailureHandler(function (error) {
+            // Fallback method
+            goToPage("Dashboard");
+          })
+          .getDashboardUrl(sessionToken);
+      }
+
+      function goToPage(pageName) {
+        window.top.location.href =
+          baseUrl + "?page=" + pageName + "&sessionToken=" + encodeURIComponent(sessionToken);
+      }
+
+      // Load user information
+      function loadUserInfo() {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response.success) {
+              const user = response;
+              document.getElementById("userName").textContent = user.username;
+              document.getElementById("userRole").textContent =
+                `${user.roleName} (Level ${user.level})`;
+              document.getElementById("userAvatar").textContent = user.username
+                .charAt(0)
+                .toUpperCase();
+            } else {
+              // Redirect to login if session is invalid
+              window.top.location.href = baseUrl;
+            }
+          })
+          .withFailureHandler(function (error) {
+            // Redirect to login if there's an error
+            window.top.location.href = baseUrl;
+          })
+          .getCurrentUserAccessLevel(sessionToken);
+      }
+
+      // Logout function
+      function logout() {
+        google.script.run
+          .withSuccessHandler(function () {
+            window.top.location.href = baseUrl;
+          })
+          .withFailureHandler(function (error) {
+            window.top.location.href = baseUrl;
+          })
+          .clearSession(sessionToken);
+      }
+
+      // Load user info when page loads
+      document.addEventListener("DOMContentLoaded", function () {
+        loadUserInfo();
+      });
+    </script>
+  </body>
+</html>

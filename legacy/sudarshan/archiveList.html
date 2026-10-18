@@ -1,0 +1,1070 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+    <style>
+      /* Color Variables */
+      :root {
+        --primary-color: #6c757d;
+        --primary-light: #e8f0fe;
+        --primary-dark: #495057;
+        --success-color: #48bb78;
+        --warning-color: #ed8936;
+        --danger-color: #e53e3e;
+        --text-primary: #2d3748;
+        --text-secondary: #4a5568;
+        --bg-light: #f7fafc;
+        --bg-white: #ffffff;
+      }
+
+      body {
+        background-color: var(--bg-light);
+        color: var(--text-primary);
+        min-height: 100vh;
+        padding: 2rem;
+      }
+
+      .container {
+        max-width: 1400px;
+      }
+
+      .page-header {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .page-header h1 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin: 0;
+        position: relative;
+        padding-left: 1rem;
+      }
+
+      .page-header h1::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 4px;
+        height: 70%;
+        background: linear-gradient(to bottom, var(--primary-color), #6c757d);
+        border-radius: 2px;
+      }
+
+      .search-section {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      }
+
+      .search-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmin(200px, 1fr));
+        gap: 1rem;
+      }
+
+      .form-control {
+        border: 2px solid var(--primary-light);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+      }
+
+      .appointment-card {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border-left: 4px solid #6c757d;
+      }
+
+      .appointment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--primary-light);
+      }
+
+      .appointment-id {
+        font-weight: 600;
+        color: var(--primary-color);
+      }
+
+      .appointment-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+
+      .detail-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.25rem;
+      }
+
+      .detail-value {
+        font-weight: 500;
+      }
+
+      .appointment-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 2px solid var(--primary-light);
+      }
+
+      .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 2rem;
+      }
+
+      .alert-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        max-width: 400px;
+      }
+
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+      }
+
+      .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid var(--primary-light);
+        border-top-color: var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Tag Styles */
+      .tag-group {
+        grid-column: 1 / -1;
+      }
+
+      .tags-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      .tag-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--primary-dark)
+        );
+        color: white;
+        padding: 0.35rem 0.65rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
+      }
+
+      .tag-badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      .tag-badge-readonly {
+        background: linear-gradient(135deg, #6c757d, #495057);
+        cursor: default;
+      }
+
+      .tag-badge-readonly:hover {
+        transform: none;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .tag-text {
+        line-height: 1;
+      }
+
+      .tag-remove {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 1rem;
+        line-height: 1;
+        padding: 0;
+        transition: all 0.2s ease;
+      }
+
+      .tag-remove:hover {
+        background: rgba(255, 255, 255, 0.4);
+        transform: scale(1.1);
+      }
+
+      .no-tags-message {
+        color: var(--text-secondary);
+        font-style: italic;
+        font-size: 0.9rem;
+      }
+
+      .tag-input-container {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        align-items: center;
+      }
+
+      .tag-input {
+        flex: 1;
+        border: 2px solid var(--primary-light);
+        border-radius: 8px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+      }
+
+      .tag-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+      }
+
+      .tag-select {
+        flex: 1;
+        border: 2px solid var(--primary-light);
+        border-radius: 8px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+      }
+
+      .tag-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+      }
+
+      .btn-add-tag {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+      }
+
+      .btn-add-tag:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      .btn-add-tag:active {
+        transform: translateY(0);
+      }
+    </style>
+  </head>
+
+  <body>
+    <script>
+      window.sessionToken = "<?= sessionToken ?>";
+      window.baseUrl = "<?= webAppUrl ?>";
+    </script>
+    <?!= include('sharedLayout') ?>
+    <div class="alert-container" id="alertContainer"></div>
+
+    <div class="container">
+      <div class="page-header">
+        <h1><i class="fas fa-archive"></i> Archived Appointments</h1>
+        <button class="btn btn-secondary" onclick="goToPage('Dashboard')">
+          <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </button>
+      </div>
+
+      <!-- Search Section -->
+      <div class="search-section">
+        <form id="searchForm" class="search-form">
+          <div class="form-group">
+            <label for="mrdNo">MRD Number</label>
+            <input
+              type="text"
+              class="form-control"
+              id="mrdNo"
+              placeholder="Enter MRD No"
+            />
+          </div>
+          <div class="form-group">
+            <label for="patientName">Patient Name</label>
+            <input
+              type="text"
+              class="form-control"
+              id="patientName"
+              placeholder="Enter patient name"
+            />
+          </div>
+          <div class="form-group">
+            <label for="appointmentId">Appointment ID</label>
+            <input
+              type="text"
+              class="form-control"
+              id="appointmentId"
+              placeholder="Enter appointment ID"
+            />
+          </div>
+          <div class="form-group">
+            <label for="tagFilter">Tag</label>
+            <select class="form-control" id="tagFilter">
+              <option value="">All Tags</option>
+            </select>
+          </div>
+          <div class="form-group d-flex align-items-end">
+            <button type="submit" class="btn btn-secondary w-100">
+              <i class="fas fa-search"></i> Search Archive
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Results Section -->
+      <div class="results-section" id="resultsContainer">
+        <!-- Archive cards will be dynamically added here -->
+      </div>
+
+      <!-- Pagination -->
+      <nav aria-label="Page navigation">
+        <ul class="pagination" id="pagination"></ul>
+      </nav>
+    </div>
+
+    <!-- Journey Modal -->
+    <div class="modal fade" id="journeyModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Appointment Journey</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body" id="journeyModalBody">
+            <!-- Journey timeline will be injected here -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Remarks Modal -->
+    <div class="modal fade" id="remarksModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              Remarks - <span id="remarksModalAppointmentId"></span>
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body" id="remarksModalBody">
+            <!-- Remarks will be injected here -->
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      var baseUrl = "<?= webAppUrl ?>";
+      var sessionToken = "<?= sessionToken ?>";
+      var currentPage = 1;
+      var itemsPerPage = 10;
+      var totalItems = 0;
+
+      document.addEventListener("DOMContentLoaded", function () {
+        setupEventListeners();
+        loadTagsForFilter("Archive");
+        // No initial load - cards should only render after search
+      });
+
+      function setupEventListeners() {
+        document
+          .getElementById("searchForm")
+          .addEventListener("submit", function (e) {
+            e.preventDefault();
+            currentPage = 1;
+            loadArchive();
+          });
+      }
+
+      /**
+       * Load all tags from the sheet for the filter dropdown
+       * @param {string} sheetName - The sheet name to get tags from
+       */
+      function loadTagsForFilter(sheetName) {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response.success && response.tags && response.tags.length > 0) {
+              const tagFilter = document.getElementById("tagFilter");
+              tagFilter.innerHTML = '<option value="">All Tags</option>';
+
+              response.tags.forEach(function (tag) {
+                const option = document.createElement("option");
+                option.value = tag;
+                option.textContent = tag;
+                tagFilter.appendChild(option);
+              });
+            }
+          })
+          .withFailureHandler(function (error) {})
+          .getAllTagsFromSheet(sheetName);
+      }
+
+      function loadArchive() {
+        showLoading();
+
+        const searchParams = {
+          mrdNo: document.getElementById("mrdNo").value,
+          patientName: document.getElementById("patientName").value,
+          appointmentId: document.getElementById("appointmentId").value,
+          tag: document.getElementById("tagFilter").value,
+          page: currentPage,
+          itemsPerPage: itemsPerPage,
+        };
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            hideLoading();
+            if (response.success) {
+              displayArchive(response.appointments, response.total);
+              updatePagination(response.total);
+            } else {
+              showAlert(response.message || "Error loading archive", "error");
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            showAlert("Error loading archive: " + error, "error");
+          })
+          .searchArchiveAppointments(searchParams);
+      }
+
+      /**
+       * Format Plan of Action from JSON array to human-readable string
+       * @param {string} planOfAction - The plan of action (could be JSON array or plain text)
+       * @return {string} Formatted plan of action
+       */
+      function formatPlanOfAction(planOfAction) {
+        if (!planOfAction || planOfAction === "-" || planOfAction === "N/A") {
+          return "N/A";
+        }
+
+        try {
+          // Try to parse as JSON array
+          const parsed = JSON.parse(planOfAction);
+          if (Array.isArray(parsed)) {
+            // Join array items with commas
+            return parsed.join(", ");
+          }
+          // If it's not an array, return as is
+          return planOfAction;
+        } catch (e) {
+          // If parsing fails, it's probably plain text, return as is
+          return planOfAction;
+        }
+      }
+
+      function displayArchive(appointments, total) {
+        const container = document.getElementById("resultsContainer");
+        container.innerHTML = "";
+
+        if (!appointments || appointments.length === 0) {
+          container.innerHTML = `
+          <div class="text-center text-muted py-5">
+            <i class="fas fa-archive fa-3x mb-3"></i>
+            <p>No archived appointments found</p>
+          </div>
+        `;
+          return;
+        }
+
+        // Calculate pagination info for results header
+        const displayTotal = total || totalItems || appointments.length;
+        const startIndex = (currentPage - 1) * itemsPerPage + 1;
+        const endIndex = Math.min(startIndex + itemsPerPage - 1, displayTotal);
+
+        // Add results header
+        const headerDiv = document.createElement("div");
+        headerDiv.className = "results-header";
+        headerDiv.innerHTML = `
+        <div class="results-count">
+          Showing <span class="count-number">${startIndex}-${endIndex}</span> of <span class="count-number">${displayTotal}</span> archived appointments
+        </div>
+        <div>
+          <i class="fas fa-archive" style="color: var(--primary-color);"></i>
+        </div>
+      `;
+        container.appendChild(headerDiv);
+
+        appointments.forEach(function (appt) {
+          const card = document.createElement("div");
+          card.className = "appointment-card";
+          card.innerHTML = `
+          <div class="appointment-header">
+            <div class="appointment-id">${appt.AppointmentID || "N/A"}</div>
+            <div class="appointment-date">
+              <i class="fas fa-calendar"></i> ${formatDisplayDate(appt.AppointmentDate) || "N/A"}
+              <i class="fas fa-clock ms-3"></i> ${appt.TimeSlot || "N/A"}
+              <span class="badge bg-secondary ms-2">ARCHIVED</span>
+            </div>
+          </div>
+          <div class="appointment-details">
+            <div class="detail-group">
+              <div class="detail-label">MRD No</div>
+              <div class="detail-value">${appt.MRDNo || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Patient Name</div>
+              <div class="detail-value">${appt.PatientName || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Age & Gender</div>
+              <div class="detail-value">${appt.Age || "N/A"} years, ${appt.Gender || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Phone</div>
+              <div class="detail-value">${appt.Phone || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Appointment Type</div>
+              <div class="detail-value">${appt.AppointmentType || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Doctor</div>
+              <div class="detail-value">${appt.Doctor || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Plan of Action</div>
+              <div class="detail-value">${formatPlanOfAction(appt.PlanOfAction)}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Remarks</div>
+              <div class="detail-value">${appt.Remarks ? (appt.Remarks.length > 50 ? appt.Remarks.substring(0, 50) + "..." : appt.Remarks) : "N/A"}</div>
+            </div>
+            <div class="detail-group tag-group">
+              <div class="detail-label">Tags</div>
+              <div class="detail-value">
+                <div class="tags-container" id="tags_container_${appt.AppointmentID || appt.aFollowID}">
+                  ${
+                    appt.Tag && appt.Tag.length > 0
+                      ? appt.Tag.map(
+                          (tag) => `
+                    <span class="tag-badge tag-badge-readonly">
+                      <span class="tag-text">${tag}</span>
+                    </span>
+                  `,
+                        ).join("")
+                      : '<span class="no-tags-message">No tags</span>'
+                  }
+                </div>
+              </div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Booked By</div>
+              <div class="detail-value">${appt.BookedBy || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Booking Date</div>
+              <div class="detail-value">${formatDisplayDateTime(appt.BookingDate) || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">4-Day Confirm Date</div>
+              <div class="detail-value">${formatDisplayDateTime(appt.FourDayConfirmDate) || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">4-Day Confirm By</div>
+              <div class="detail-value">${appt.FourDayConfirmBy || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">1-Day Confirm Date</div>
+              <div class="detail-value">${formatDisplayDateTime(appt.OneDayConfirmDate) || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">1-Day Confirm By</div>
+              <div class="detail-value">${appt.OneDayConfirmBy || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Deleted On</div>
+              <div class="detail-value">${formatDisplayDateTime(appt.DeletedOn) || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Deleted By</div>
+              <div class="detail-value">${appt.DeletedBy || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Archived On</div>
+              <div class="detail-value">${formatDisplayDateTime(appt.ArchivedOn || appt.ArchivedDate) || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Archived By</div>
+              <div class="detail-value">${appt.ArchivedBy || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Fixed Slot</div>
+              <div class="detail-value">${appt.FixedSlot || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Patient Type</div>
+              <div class="detail-value">${appt.PatientType || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Urgency Level</div>
+              <div class="detail-value">${appt.UrgencyLevel || "N/A"}</div>
+            </div>
+          </div>
+          <div class="appointment-actions">
+            <button class="btn btn-info" onclick="openJourneyModal('${appt.AppointmentID || appt.aFollowID || ""}')">
+              <i class="fas fa-route"></i> View Journey
+            </button>
+            <button class="btn btn-outline-secondary" onclick="viewRemarks('${appt.AppointmentID || appt.aFollowID || ""}')">
+              <i class="fas fa-comment"></i> View Remarks
+            </button>
+          </div>
+        `;
+          container.appendChild(card);
+        });
+      }
+
+      function updatePagination(total) {
+        totalItems = total;
+        const totalPages = Math.ceil(total / itemsPerPage);
+        const pagination = document.getElementById("pagination");
+        pagination.innerHTML = "";
+
+        if (totalPages <= 1) return;
+
+        // Previous button
+        pagination.innerHTML += `
+        <li class="page-item ${currentPage === 1 ? "disabled" : ""}">
+          <a class="page-link" href="#" onclick="changePage(${currentPage - 1}, event)">
+            <i class="fas fa-chevron-left"></i>
+          </a>
+        </li>
+      `;
+
+        // Page numbers (simple version - first, current, last)
+        if (totalPages <= 5) {
+          for (let i = 1; i <= totalPages; i++) {
+            pagination.innerHTML += `
+            <li class="page-item ${currentPage === i ? "active" : ""}">
+              <a class="page-link" href="#" onclick="changePage(${i}, event)">${i}</a>
+            </li>
+          `;
+          }
+        } else {
+          // Show first page
+          pagination.innerHTML += `
+          <li class="page-item ${currentPage === 1 ? "active" : ""}">
+            <a class="page-link" href="#" onclick="changePage(1, event)">1</a>
+          </li>
+        `;
+
+          if (currentPage > 3) {
+            pagination.innerHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+          }
+
+          // Show current and neighbors
+          for (
+            let i = Math.max(2, currentPage - 1);
+            i <= Math.min(totalPages - 1, currentPage + 1);
+            i++
+          ) {
+            pagination.innerHTML += `
+            <li class="page-item ${currentPage === i ? "active" : ""}">
+              <a class="page-link" href="#" onclick="changePage(${i}, event)">${i}</a>
+            </li>
+          `;
+          }
+
+          if (currentPage < totalPages - 2) {
+            pagination.innerHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+          }
+
+          // Show last page
+          pagination.innerHTML += `
+          <li class="page-item ${currentPage === totalPages ? "active" : ""}">
+            <a class="page-link" href="#" onclick="changePage(${totalPages}, event)">${totalPages}</a>
+          </li>
+        `;
+        }
+
+        // Next button
+        pagination.innerHTML += `
+        <li class="page-item ${currentPage === totalPages ? "disabled" : ""}">
+          <a class="page-link" href="#" onclick="changePage(${currentPage + 1}, event)">
+            <i class="fas fa-chevron-right"></i>
+          </a>
+        </li>
+      `;
+      }
+
+      function changePage(page, event) {
+        if (event) event.preventDefault();
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        if (page < 1 || page > totalPages) return;
+        currentPage = page;
+        loadArchive();
+      }
+
+      function showLoading() {
+        const overlay = document.createElement("div");
+        overlay.className = "loading-overlay";
+        overlay.innerHTML = '<div class="spinner"></div>';
+        document.body.appendChild(overlay);
+      }
+
+      function hideLoading() {
+        const overlay = document.querySelector(".loading-overlay");
+        if (overlay) overlay.remove();
+      }
+
+      function showAlert(message, type = "info") {
+        const container = document.getElementById("alertContainer");
+        const alert = document.createElement("div");
+        alert.className = `alert alert-${type} alert-dismissible fade show`;
+        alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+        container.appendChild(alert);
+        setTimeout(() => alert.remove(), 5000);
+      }
+
+      function goToPage(pageName) {
+        var newUrl =
+          baseUrl +
+          "?page=" +
+          pageName +
+          "&sessionToken=" +
+          encodeURIComponent(sessionToken);
+        window.top.location.href = newUrl;
+      }
+
+      // ============================================================================
+      // JOURNEY TRACKING FUNCTIONS
+      // ============================================================================
+
+      function openJourneyModal(appointmentId) {
+        // Validate appointmentId - if empty, show error
+        if (!appointmentId || appointmentId.trim() === "") {
+          showAlert(
+            "Cannot view journey: Appointment ID is missing. This may be an archived followup appointment.",
+            "error",
+          );
+          return;
+        }
+
+        showLoading();
+
+        const runner = google.script.run
+          .withSuccessHandler(function (response) {
+            hideLoading();
+
+            if (!response) {
+              showAlert("No response from server", "error");
+              return;
+            }
+
+            if (!response.success) {
+              const message = response.message || "Journey not available";
+              showAlert(message, "warning");
+              return;
+            }
+
+            renderJourneyModal(response);
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            showAlert("Error loading journey: " + error, "error");
+          });
+
+        runner.getAppointmentJourney(appointmentId);
+      }
+
+      function renderJourneyModal(response) {
+        const {
+          appointmentData = {},
+          journey = [],
+          currentSheet = "Unknown",
+        } = response || {};
+        const body = document.getElementById("journeyModalBody");
+
+        if (!journey || journey.length === 0) {
+          body.innerHTML = `
+          <div class="text-center text-muted py-3">
+            <i class="fas fa-route fa-2x mb-2"></i>
+            <p>No journey entries recorded yet.</p>
+          </div>
+        `;
+        } else {
+          const entries = journey
+            .slice()
+            .reverse()
+            .map(
+              (entry) => `
+          <li class="list-group-item">
+            <div class="fw-bold text-primary text-uppercase">${entry.action || "Unknown"}</div>
+            <div class="small text-muted mb-1">
+              ${entry.timestamp ? formatDisplayDateTime(new Date(entry.timestamp)) : "Unknown time"}
+              ${entry.by ? ` · by ${entry.by}` : ""}
+            </div>
+            <div class="small text-muted mb-2">
+              ${entry.fromSheet || "—"} <i class="fas fa-arrow-right mx-2"></i> ${entry.toSheet || "—"}
+            </div>
+            ${entry.description ? `<div>${entry.description}</div>` : ""}
+            ${entry.reason ? `<div class="small text-muted mt-1">Reason: ${entry.reason}</div>` : ""}
+            ${
+              entry.fromDate || entry.toDate || entry.fromTime || entry.toTime
+                ? `
+              <div class="small text-muted mt-2">
+                ${entry.fromDate ? `From: ${formatDisplayDate(entry.fromDate)}` : ""}
+                ${entry.fromTime ? ` ${entry.fromTime}` : ""}
+                ${entry.toDate || entry.toTime ? "<br>" : ""}
+                ${entry.toDate ? `To: ${formatDisplayDate(entry.toDate)}` : ""}
+                ${entry.toTime ? ` ${entry.toTime}` : ""}
+              </div>`
+                : ""
+            }
+          </li>
+        `,
+            )
+            .join("");
+
+          body.innerHTML = `
+          <div class="mb-3">
+            <div><strong>Appointment ID:</strong> ${appointmentData.id || "N/A"}</div>
+            <div><strong>Patient:</strong> ${appointmentData.patient || "N/A"}</div>
+            <div><strong>Current Location:</strong> <span class="badge bg-secondary">${currentSheet}</span></div>
+            <div><strong>Appointment Date:</strong> ${formatDisplayDate(appointmentData.date) || "N/A"}</div>
+            <div><strong>Appointment Time:</strong> ${appointmentData.time || "N/A"}</div>
+          </div>
+          <ul class="list-group journey-list">
+            ${entries}
+          </ul>
+        `;
+        }
+
+        const modalElement = document.getElementById("journeyModal");
+        const modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
+        modalInstance.show();
+      }
+
+      // ============================================================================
+      // TAG MANAGEMENT FUNCTIONS (Read-only for Archive)
+      // ============================================================================
+
+      /**
+       * Refresh tag display (read-only version for archive)
+       * @param {string} appointmentId - The appointment ID
+       * @param {string[]} tags - Tags array
+       */
+      function refreshTagDisplay(appointmentId, tags) {
+        const tagsContainer = document.getElementById(
+          "tags_container_" + appointmentId,
+        );
+
+        if (!tagsContainer) {
+          return;
+        }
+
+        // Clear current display
+        tagsContainer.innerHTML = "";
+
+        // Show empty state if no tags
+        if (!tags || tags.length === 0) {
+          tagsContainer.innerHTML =
+            '<span class="no-tags-message">No tags</span>';
+          return;
+        }
+
+        // Render each tag as read-only badge (no remove button)
+        tags.forEach((tag) => {
+          const tagBadge = document.createElement("span");
+          tagBadge.className = "tag-badge tag-badge-readonly";
+
+          const tagText = document.createElement("span");
+          tagText.className = "tag-text";
+          tagText.textContent = tag;
+
+          tagBadge.appendChild(tagText);
+          tagsContainer.appendChild(tagBadge);
+        });
+      }
+
+      // ============================================================================
+      // REMARKS VIEWING FUNCTIONS
+      // ============================================================================
+
+      function viewRemarks(appointmentId) {
+        showLoading();
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            hideLoading();
+
+            if (!response) {
+              showAlert("No response from server", "error");
+              return;
+            }
+
+            if (!response.success) {
+              showAlert(response.message || "Error loading remarks", "error");
+              return;
+            }
+
+            renderRemarksModal(
+              appointmentId,
+              response.remarks,
+              response.hasRemarks,
+            );
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            showAlert("Error loading remarks: " + error, "error");
+          })
+          .getArchivedRemarks(appointmentId);
+      }
+
+      function renderRemarksModal(appointmentId, remarks, hasRemarks) {
+        const body = document.getElementById("remarksModalBody");
+        const titleElement = document.getElementById(
+          "remarksModalAppointmentId",
+        );
+
+        titleElement.textContent = appointmentId;
+
+        if (!hasRemarks || !remarks || remarks.trim() === "") {
+          body.innerHTML = `
+          <div class="text-center text-muted py-5">
+            <i class="fas fa-comment-slash fa-3x mb-3"></i>
+            <p>No remarks found for this appointment.</p>
+          </div>
+        `;
+        } else {
+          // Split by " | " separator and format each remark
+          const remarkParts = remarks.split(" | ");
+
+          let remarksHTML = '<div class="remarks-container">';
+
+          remarkParts.forEach((remarkPart, index) => {
+            // Each part is in format: [timestamp] text (by author)
+            const match = remarkPart.match(
+              /^\[([^\]]+)\]\s*(.+?)\s*\(by\s+(.+?)\)$/,
+            );
+
+            if (match) {
+              const [, timestamp, text, author] = match;
+              remarksHTML += `
+              <div class="card mb-3 ${index === 0 ? "border-primary" : ""}">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="card-title mb-0">
+                      ${index === 0 ? '<span class="badge bg-primary me-2">Latest</span>' : ""}
+                      Remark #${remarkParts.length - index}
+                    </h6>
+                    <small class="text-muted">${formatDisplayDateTime(timestamp)}</small>
+                  </div>
+                  <p class="card-text">${text}</p>
+                  <small class="text-muted">Added by: ${author}</small>
+                </div>
+              </div>
+            `;
+            } else {
+              // Fallback if format doesn't match - just display as-is
+              remarksHTML += `
+              <div class="card mb-3">
+                <div class="card-body">
+                  <p class="card-text">${remarkPart}</p>
+                </div>
+              </div>
+            `;
+            }
+          });
+
+          remarksHTML += "</div>";
+          body.innerHTML = remarksHTML;
+        }
+
+        const modalElement = document.getElementById("remarksModal");
+        const modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
+        modalInstance.show();
+      }
+    </script>
+  </body>
+</html>

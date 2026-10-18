@@ -1,0 +1,618 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+      :root {
+        --primary-color: #128c7e;
+        --primary-light: #e8f5e9;
+        --primary-dark: #075e54;
+        --bg-light: #f7fafc;
+        --bg-white: #ffffff;
+        --text-primary: #2d3748;
+      }
+
+      body {
+        background-color: var(--bg-light);
+        color: var(--text-primary);
+        min-height: 100vh;
+        padding-bottom: 3rem;
+      }
+
+      .container {
+        max-width: 1100px;
+        margin-top: 2rem;
+      }
+
+      .page-header {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .page-header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0;
+        color: var(--primary-dark);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .card {
+        background: var(--bg-white);
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        margin-bottom: 2rem;
+        overflow: hidden;
+      }
+
+      .card-header {
+        background: var(--bg-white);
+        border-bottom: 1px solid rgba(0,0,0,0.08);
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .card-body {
+        padding: 1.5rem;
+      }
+
+      .btn-whatsapp {
+        background-color: #128c7e;
+        color: white;
+        border: none;
+        font-weight: 600;
+      }
+
+      .btn-whatsapp:hover {
+        background-color: #075e54;
+        color: white;
+      }
+
+      .btn-whatsapp:disabled {
+        background-color: #9bbbb6;
+        color: white;
+      }
+
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+      }
+
+      .spinner {
+        width: 3rem;
+        height: 3rem;
+        border: 4px solid var(--primary-light);
+        border-top-color: var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      .alert-container {
+        position: fixed;
+        top: 24px;
+        right: 24px;
+        z-index: 10000;
+        max-width: 400px;
+      }
+
+      .badge-count {
+        background-color: var(--primary-color);
+        color: white;
+        font-size: 0.9rem;
+        padding: 0.4em 0.8em;
+        border-radius: 20px;
+      }
+
+      .table th {
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .history-date {
+        font-weight: 600;
+      }
+
+      /* Dark mode support matching sharedLayout variables */
+      .dark-mode {
+        --bg-light: #1a202c;
+        --bg-white: #2d3748;
+        --text-primary: #e2e8f0;
+        --primary-light: #2d3748;
+      }
+
+      .dark-mode .card,
+      .dark-mode .page-header {
+        background: var(--bg-white);
+        color: var(--text-primary);
+      }
+
+      .dark-mode .card-header {
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+      }
+
+      .dark-mode .table {
+        color: var(--text-primary);
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      window.sessionToken = "<?= sessionToken ?>";
+      window.baseUrl = "<?= webAppUrl ?>";
+    </script>
+    <?!= include('sharedLayout') ?>
+
+    <div class="alert-container" id="alertContainer"></div>
+
+    <div class="loading-overlay" id="loadingOverlay" style="display:none">
+      <div class="spinner"></div>
+    </div>
+
+    <div class="container" id="mainContainer">
+      <div id="broadcastPanel" style="display:none">
+        
+        <!-- Header -->
+        <div class="page-header">
+          <h1><i class="fab fa-whatsapp"></i> WhatsApp Reminder Broadcast</h1>
+          <button class="btn btn-outline-secondary btn-sm" onclick="goToPage('Dashboard')">
+            <i class="fas fa-arrow-left"></i> Dashboard
+          </button>
+        </div>
+
+        <!-- Controls Card -->
+        <div class="card">
+          <div class="card-header">
+            <span>Broadcast Controls</span>
+          </div>
+          <div class="card-body">
+            <div class="row align-items-end g-3">
+              <div class="col-md-4">
+                <label for="date" class="form-label font-weight-bold">Select Appointment Date</label>
+                <input type="date" id="date" class="form-control">
+              </div>
+              <div class="col-md-8 d-flex gap-2">
+                <button id="previewBtn" class="btn btn-outline-secondary px-4 py-2" onclick="preview()">
+                  <i class="fas fa-eye me-2"></i>Preview Targets
+                </button>
+                <button id="sendBtn" class="btn btn-whatsapp px-4 py-2" onclick="openConfirmModal()" disabled>
+                  <i class="fas fa-paper-plane me-2"></i>Send Reminders
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview Results Area -->
+        <div id="previewArea" style="display:none" class="card">
+          <div class="card-header">
+            <span>Target Preview</span>
+            <span class="badge badge-count" id="targetCountBadge">Total Targets: 0</span>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle">
+                <thead>
+                  <tr>
+                    <th>Patient Name</th>
+                    <th>Appointment Time</th>
+                    <th>Destination Phone</th>
+                  </tr>
+                </thead>
+                <tbody id="previewTableBody">
+                  <!-- Dynamic rows go here -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Skipped List -->
+            <div id="skippedArea" style="display:none" class="mt-4 border-top pt-3">
+              <h6 class="text-warning"><i class="fas fa-exclamation-triangle"></i> Excluded/Skipped Patients</h6>
+              <ul class="list-group list-group-flush list-group-numbered" id="skippedList">
+                <!-- Skipped items -->
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sending Results Card -->
+        <div id="resultsArea" style="display:none" class="card">
+          <div class="card-header">
+            <span>Broadcast Sending Results</span>
+          </div>
+          <div class="card-body">
+            <div class="row text-center mb-4">
+              <div class="col-4">
+                <div class="p-3 border rounded bg-success-subtle text-success">
+                  <h3 id="resSentCount" class="mb-0">0</h3>
+                  <small>Sent Successfully</small>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="p-3 border rounded bg-warning-subtle text-warning">
+                  <h3 id="resSkippedCount" class="mb-0">0</h3>
+                  <small>Skipped</small>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="p-3 border rounded bg-danger-subtle text-danger">
+                  <h3 id="resFailedCount" class="mb-0">0</h3>
+                  <small>Failed</small>
+                </div>
+              </div>
+            </div>
+
+            <div id="detailsSentList" class="mb-3"></div>
+          </div>
+        </div>
+
+        <!-- Broadcast History Card -->
+        <div class="card">
+          <div class="card-header">
+            <span>Duplicate Prevention & Sent Summaries (Current & Future Runs)</span>
+            <button class="btn btn-sm btn-outline-secondary" onclick="loadHistory()">
+              <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle">
+                <thead>
+                  <tr>
+                    <th>Appointment Date</th>
+                    <th>Campaign Name</th>
+                    <th>Run Time</th>
+                    <th>Sent</th>
+                    <th>Skipped</th>
+                    <th>Failed</th>
+                    <th>Executed By</th>
+                  </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                  <tr>
+                    <td colspan="7" class="text-center text-muted py-4">Loading history log...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal fade" id="confirmSendModal" tabindex="-1" aria-labelledby="confirmSendModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow border-0 rounded-4">
+          <div class="modal-header bg-danger text-white border-0 py-3">
+            <h5 class="modal-title font-weight-bold" id="confirmSendModalLabel">
+              <i class="fas fa-exclamation-triangle me-2"></i>Confirm Broadcast Dispatch
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-4 text-center">
+            <div class="mb-3 text-danger">
+              <i class="fab fa-whatsapp fa-3x"></i>
+            </div>
+            <h5 class="mb-2">Are you sure you want to proceed?</h5>
+            <p class="text-secondary mb-0">This will initiate the WhatsApp appointment reminder broadcast campaign for all confirmed patients on:</p>
+            <h4 class="mt-2 text-primary font-weight-bold" id="confirmApptDate"></h4>
+          </div>
+          <div class="modal-footer border-0 bg-light py-3 d-flex justify-content-center gap-2">
+            <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" id="confirmSendSubmitBtn" class="btn btn-danger px-4" onclick="executeSend()">Yes, Send Broadcast</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      var previewLoadedDate = null;
+
+      document.addEventListener("DOMContentLoaded", function () {
+        // Set default date to today
+        var today = new Date();
+        var yyyy = today.getFullYear();
+        var mm = String(today.getMonth() + 1).padStart(2, '0');
+        var dd = String(today.getDate()).padStart(2, '0');
+        var dateInput = document.getElementById("date");
+        dateInput.value = yyyy + "-" + mm + "-" + dd;
+
+        // Disable Send Reminders button if date is changed
+        dateInput.addEventListener("change", function() {
+          document.getElementById("sendBtn").disabled = true;
+          document.getElementById("previewArea").style.display = "none";
+          previewLoadedDate = null;
+        });
+
+        // Perform access check and initial history fetch
+        checkAccessAndLoad();
+      });
+
+      function checkAccessAndLoad() {
+        showLoading();
+        if (typeof google === "undefined" || !google.script) {
+          hideLoading();
+          showAlert("Google Script API connection not found.", "danger");
+          return;
+        }
+
+        google.script.run
+          .withSuccessHandler(function (hasAccess) {
+            hideLoading();
+            if (!hasAccess) {
+              document.getElementById("mainContainer").innerHTML = `
+                <div class="alert alert-danger text-center p-5 m-5 rounded shadow">
+                  <h4><i class="fas fa-exclamation-triangle"></i> Access Denied</h4>
+                  <p class="mb-0">You do not have permission to view this page. Access is limited to Level 1 and Level 3 users.</p>
+                  <button class="btn btn-secondary mt-3" onclick="goToPage('Dashboard')">Back to Dashboard</button>
+                </div>
+              `;
+              return;
+            }
+            document.getElementById("broadcastPanel").style.display = "block";
+            loadHistory();
+          })
+          .withFailureHandler(function (err) {
+            hideLoading();
+            showAlert("Failed to verify page permissions: " + err, "danger");
+          })
+          .canAccessBroadcast(window.sessionToken);
+      }
+
+      function loadHistory() {
+        google.script.run
+          .withSuccessHandler(function (history) {
+            var tbody = document.getElementById("historyTableBody");
+            tbody.innerHTML = "";
+            if (!history || history.length === 0) {
+              tbody.innerHTML = `
+                <tr>
+                  <td colspan="7" class="text-center text-muted py-4">No broadcast runs logged for today or future dates.</td>
+                </tr>
+              `;
+              return;
+            }
+
+            history.forEach(function (h) {
+              var tr = document.createElement("tr");
+              tr.innerHTML = `
+                <td class="history-date text-primary">${esc(h.displayDate)}</td>
+                <td><span class="badge bg-secondary">${esc(h.campaignName)}</span></td>
+                <td><small class="text-muted">${esc(formatDisplayDateTime(h.timestamp))}</small></td>
+                <td><strong class="text-success">${h.sentCount}</strong></td>
+                <td><span class="text-warning">${h.skippedCount}</span></td>
+                <td><span class="text-danger">${h.failedCount}</span></td>
+                <td><small>${esc(h.sentBy)}</small></td>
+              `;
+              tbody.appendChild(tr);
+            });
+          })
+          .withFailureHandler(function (err) {
+            showAlert("Failed to load broadcast history log: " + err, "danger");
+          })
+          .getBroadcastHistory(window.sessionToken);
+      }
+
+      function preview() {
+        var date = document.getElementById("date").value;
+        if (!date) {
+          showAlert("Please select an appointment date first.", "warning");
+          return;
+        }
+
+        showLoading();
+        document.getElementById("previewArea").style.display = "none";
+        document.getElementById("resultsArea").style.display = "none";
+
+        google.script.run
+          .withSuccessHandler(function (res) {
+            hideLoading();
+            previewLoadedDate = date;
+            document.getElementById("sendBtn").disabled = false;
+            document.getElementById("previewArea").style.display = "block";
+            document.getElementById("targetCountBadge").textContent = "Total Targets: " + res.totalCount;
+
+            var tbody = document.getElementById("previewTableBody");
+            tbody.innerHTML = "";
+
+            if (!res.targets || res.targets.length === 0) {
+              tbody.innerHTML = `
+                <tr>
+                  <td colspan="3" class="text-center text-muted py-4">No confirmed targets found scheduled for this date.</td>
+                </tr>
+              `;
+            } else {
+              res.targets.forEach(function (t) {
+                var tr = document.createElement("tr");
+                tr.innerHTML = `
+                  <td><strong>${esc(t.name)}</strong></td>
+                  <td><span class="badge bg-light text-dark border">${esc(t.time)}</span></td>
+                  <td><code class="text-secondary">+${esc(t.phone)}</code></td>
+                `;
+                tbody.appendChild(tr);
+              });
+            }
+
+            var skippedArea = document.getElementById("skippedArea");
+            var skippedList = document.getElementById("skippedList");
+            skippedList.innerHTML = "";
+
+            if (res.skipped && res.skipped.length > 0) {
+              skippedArea.style.display = "block";
+              res.skipped.forEach(function (s) {
+                var li = document.createElement("li");
+                li.className = "list-group-item d-flex justify-content-between align-items-center bg-transparent border-0 py-1";
+                li.innerHTML = `
+                  <span>${esc(s.name)}</span>
+                  <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning">${esc(s.reason)}</span>
+                `;
+                skippedList.appendChild(li);
+              });
+            } else {
+              skippedArea.style.display = "none";
+            }
+          })
+          .withFailureHandler(function (err) {
+            hideLoading();
+            showAlert("Preview generation failed: " + err, "danger");
+          })
+          .getBroadcastPreview(window.sessionToken, date);
+      }
+
+      var confirmModal;
+      function openConfirmModal() {
+        var date = document.getElementById("date").value;
+        if (!date) {
+          showAlert("Please select a date first.", "warning");
+          return;
+        }
+
+        if (previewLoadedDate !== date) {
+          showAlert("Please click 'Preview Targets' for this date before sending reminders.", "warning");
+          document.getElementById("sendBtn").disabled = true;
+          return;
+        }
+
+        document.getElementById("confirmApptDate").textContent = formatDisplayDate_(date);
+
+        if (!confirmModal) {
+          confirmModal = new bootstrap.Modal(document.getElementById('confirmSendModal'));
+        }
+        confirmModal.show();
+      }
+
+      function executeSend() {
+        if (confirmModal) {
+          confirmModal.hide();
+        }
+
+        var date = document.getElementById("date").value;
+        showLoading();
+        document.getElementById("previewArea").style.display = "none";
+        document.getElementById("resultsArea").style.display = "none";
+
+        google.script.run
+          .withSuccessHandler(function (res) {
+            hideLoading();
+            showAlert("Broadcast run completed successfully!", "success");
+            
+            document.getElementById("resultsArea").style.display = "block";
+            document.getElementById("resSentCount").textContent = res.sentCount;
+            document.getElementById("resSkippedCount").textContent = res.skippedCount;
+            document.getElementById("resFailedCount").textContent = res.failedCount;
+
+            var detailsList = document.getElementById("detailsSentList");
+            detailsList.innerHTML = "";
+
+            var html = "";
+            if (res.failed && res.failed.length > 0) {
+              html += `<div class="alert alert-danger p-3 mb-3">
+                        <h6 class="alert-heading font-weight-bold mb-2">Failed Dispatches:</h6>
+                        <ul class="mb-0 ps-3">`;
+              res.failed.forEach(function (f) {
+                html += `<li><strong>${esc(f.name)}</strong> (Phone: +${esc(f.phone)}) — Reason: <span class="font-italic">${esc(f.reason)}</span></li>`;
+              });
+              html += `</ul></div>`;
+            }
+
+            if (res.sent && res.sent.length > 0) {
+              html += `<div class="alert alert-success p-3">
+                        <h6 class="alert-heading font-weight-bold mb-2">Sent Logs:</h6>
+                        <ul class="mb-0 ps-3">`;
+              res.sent.forEach(function (s) {
+                html += `<li><strong>${esc(s.name)}</strong> (Time: ${esc(s.time)}) — Dispatched to +${esc(s.phone)}</li>`;
+              });
+              html += `</ul></div>`;
+            }
+
+            detailsList.innerHTML = html;
+            loadHistory(); // Reload history logs to display current run
+          })
+          .withFailureHandler(function (err) {
+            hideLoading();
+            showAlert("Reminder broadcast execution failed: " + err, "danger");
+          })
+          .sendAppointmentReminders(window.sessionToken, date);
+      }
+
+      function showLoading() {
+        document.getElementById("loadingOverlay").style.display = "flex";
+      }
+
+      function hideLoading() {
+        document.getElementById("loadingOverlay").style.display = "none";
+      }
+
+      function showAlert(message, type) {
+        var container = document.getElementById("alertContainer");
+        var alert = document.createElement("div");
+        alert.className = `alert alert-${type} alert-dismissible fade show shadow`;
+        alert.innerHTML = `
+          <span>${esc(message)}</span>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        container.appendChild(alert);
+
+        // Auto dismiss alert after 5 seconds
+        setTimeout(function () {
+          var bsAlert = new bootstrap.Alert(alert);
+          bsAlert.close();
+        }, 5000);
+      }
+
+      function formatDisplayDate_(yyyymmdd) {
+        var parts = String(yyyymmdd).split("-");
+        if (parts.length !== 3) return String(yyyymmdd);
+        var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        var year = parts[0];
+        var monthIdx = parseInt(parts[1], 10) - 1;
+        var day = parseInt(parts[2], 10);
+        var monthName = months[monthIdx] || parts[1];
+        return day + "-" + monthName + "-" + year;
+      }
+
+      function esc(s) {
+        return String(s == null ? '' : s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,695 @@
+<!--
+  PaymentPanel.html — shared payment UI for appointmentList and cancelList.
+
+  Included with <?!= include('PaymentPanel') ?>. Talks only to PaymentApi.gs,
+  PaymentService.gs and PaymentRefund.gs. If the payment module is disabled
+  (payment.enabled = false in API_setting) nothing renders and both pages behave
+  exactly as they did before.
+
+  Everything hangs off window.PaymentPanel so it cannot collide with the host
+  page's own globals.
+-->
+<style>
+  .payment-panel {
+    margin: 10px 0 0;
+    padding: 10px 12px;
+    border-radius: 6px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    display: none;
+  }
+  .payment-panel.is-visible {
+    display: block;
+  }
+  .payment-panel-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .payment-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  .payment-badge.pending {
+    background: #fff3cd;
+    color: #7a5b00;
+  }
+  .payment-badge.paid {
+    background: #d1e7dd;
+    color: #0f5132;
+  }
+  .payment-badge.failed {
+    background: #f8d7da;
+    color: #842029;
+  }
+  .payment-badge.review {
+    background: #f8d7da;
+    color: #842029;
+  }
+  .payment-badge.refunded {
+    background: #cfe2ff;
+    color: #084298;
+  }
+  .payment-badge.none {
+    background: #e9ecef;
+    color: #495057;
+  }
+  .payment-panel-meta {
+    font-size: 12px;
+    color: #64748b;
+  }
+  .payment-panel .btn {
+    padding: 2px 10px;
+    font-size: 13px;
+  }
+</style>
+
+<script>
+  window.PaymentPanel = (function () {
+    var enabled = false;
+    var canRefund = false;
+    var config = null;
+    var context = "appointment"; // "appointment" | "cancel"
+    var statuses = {};
+
+    function token() {
+      return window.sessionToken;
+    }
+
+    /** Load module config once per page. Failures leave the panel hidden. */
+    function init(pageContext) {
+      context = pageContext || "appointment";
+      google.script.run
+        .withSuccessHandler(function (result) {
+          if (!result || !result.success || !result.enabled) return;
+          enabled = true;
+          config = result;
+          google.script.run
+            .withSuccessHandler(function (allowed) {
+              canRefund = allowed === true;
+            })
+            .canIssueRefunds(token());
+        })
+        .withFailureHandler(function () {
+          // Payment module unavailable — the list must still work.
+        })
+        .getPaymentBookingContext(token());
+    }
+
+    /**
+     * Fill in the payment panels for a freshly rendered page of appointments.
+     * One backend call for the whole page, not one per row.
+     */
+    function render(appointments) {
+      if (!enabled || !appointments || !appointments.length) return;
+
+      var ids = appointments.map(function (appt) {
+        return appt.AppointmentID;
+      });
+
+      google.script.run
+        .withSuccessHandler(function (result) {
+          if (!result || !result.success) return;
+          statuses = result.statuses || {};
+          ids.forEach(function (id) {
+            paint(id, statuses[id]);
+          });
+        })
+        .withFailureHandler(function () {})
+        .getPaymentStatusMap(ids, token());
+    }
+
+    function badgeFor(status) {
+      var paymentStatus = status.paymentStatus || "";
+      var appointmentStatus = status.appointmentStatus || "";
+      var refundStatus = status.refundStatus || "";
+
+      if (appointmentStatus === "MANUAL_REVIEW_REQUIRED") {
+        return '<span class="payment-badge review">NEEDS REVIEW</span>';
+      }
+      if (refundStatus === "REFUNDED") {
+        return '<span class="payment-badge refunded">REFUNDED</span>';
+      }
+      if (refundStatus === "PARTIALLY_REFUNDED") {
+        return '<span class="payment-badge refunded">PART REFUNDED</span>';
+      }
+      if (refundStatus === "REFUND_PENDING") {
+        return '<span class="payment-badge refunded">REFUND PENDING</span>';
+      }
+      if (refundStatus === "REFUND_FAILED") {
+        return '<span class="payment-badge failed">REFUND FAILED</span>';
+      }
+      if (paymentStatus === "PAID") {
+        return (
+          '<span class="payment-badge paid">PAID ' + status.amountDisplay + "</span>"
+        );
+      }
+      if (paymentStatus === "PENDING") {
+        return (
+          '<span class="payment-badge pending">AWAITING ' +
+          status.amountDisplay +
+          "</span>"
+        );
+      }
+      if (paymentStatus === "EXPIRED") {
+        return '<span class="payment-badge failed">PAYMENT EXPIRED</span>';
+      }
+      if (paymentStatus === "CANCELLED") {
+        return '<span class="payment-badge none">PAYMENT CANCELLED</span>';
+      }
+      if (paymentStatus === "FAILED") {
+        return '<span class="payment-badge failed">PAYMENT FAILED</span>';
+      }
+      return '<span class="payment-badge none">' + paymentStatus + "</span>";
+    }
+
+    function paint(appointmentId, status) {
+      var panel = document.getElementById("payment_panel_" + appointmentId);
+      if (!panel) return;
+
+      var buttons = [];
+      var meta = "";
+
+      if (!status) {
+        // No payment request has ever been raised for this appointment.
+        if (context !== "appointment") {
+          panel.classList.remove("is-visible");
+          return;
+        }
+        panel.classList.add("is-visible");
+        panel.innerHTML =
+          '<div class="payment-panel-row">' +
+          '<span class="payment-badge none">NO PAYMENT</span>' +
+          '<button class="btn btn-outline-primary" onclick="PaymentPanel.openGenerate(\'' +
+          appointmentId +
+          '\')"><i class="fas fa-link"></i> Generate payment link</button>' +
+          "</div>";
+        return;
+      }
+
+      var ref = status.paymentRef;
+
+      if (status.paymentStatus === "PENDING") {
+        buttons.push(
+          '<button class="btn btn-outline-primary" onclick="PaymentPanel.check(\'' +
+            ref +
+            '\')"><i class="fas fa-rotate"></i> Check payment</button>'
+        );
+        buttons.push(
+          '<button class="btn btn-outline-success" onclick="PaymentPanel.resendWhatsApp(\'' +
+            ref +
+            '\')"><i class="fab fa-whatsapp"></i> Resend link</button>'
+        );
+        buttons.push(
+          '<button class="btn btn-outline-danger" onclick="PaymentPanel.cancelRequest(\'' +
+            ref +
+            '\')">Cancel request</button>'
+        );
+      } else if (status.paymentStatus === "PAID") {
+        if (canRefund && status.refundStatus !== "REFUNDED") {
+          buttons.push(
+            '<button class="btn btn-outline-danger" onclick="PaymentPanel.openRefund(\'' +
+              ref +
+              "', '" +
+              appointmentId +
+              '\')"><i class="fas fa-rotate-left"></i> ' +
+              (context === "appointment" ? "Cancel &amp; refund" : "Refund") +
+              "</button>"
+          );
+        }
+        if (status.refundStatus && status.refundStatus !== "NONE") {
+          buttons.push(
+            '<button class="btn btn-outline-secondary" onclick="PaymentPanel.openRefundHistory(\'' +
+              ref +
+              '\')">Refund status</button>'
+          );
+        }
+      } else if (context === "appointment") {
+        // EXPIRED / CANCELLED / FAILED — a fresh link is allowed.
+        buttons.push(
+          '<button class="btn btn-outline-primary" onclick="PaymentPanel.openGenerate(\'' +
+            appointmentId +
+            '\')"><i class="fas fa-link"></i> New payment link</button>'
+        );
+      }
+
+      if (status.appointmentStatus) {
+        meta =
+          '<span class="payment-panel-meta">' +
+          status.appointmentStatus.replace(/_/g, " ") +
+          " &middot; " +
+          ref +
+          "</span>";
+      }
+
+      panel.classList.add("is-visible");
+      panel.innerHTML =
+        '<div class="payment-panel-row">' +
+        badgeFor(status) +
+        buttons.join("") +
+        meta +
+        '<span class="payment-panel-meta" id="payment_msg_' +
+        appointmentId +
+        '"></span>' +
+        "</div>";
+    }
+
+    function say(appointmentId, message, colour) {
+      var box = document.getElementById("payment_msg_" + appointmentId);
+      if (!box) return;
+      box.textContent = message;
+      box.style.color = colour || "#64748b";
+    }
+
+    function appointmentIdFor(ref) {
+      for (var id in statuses) {
+        if (statuses[id].paymentRef === ref) return id;
+      }
+      return "";
+    }
+
+    /* ----------------------------- actions ------------------------------ */
+
+    function check(ref) {
+      var id = appointmentIdFor(ref);
+      say(id, "Checking with the provider...");
+      google.script.run
+        .withSuccessHandler(function (result) {
+          if (!result || !result.success) {
+            say(id, (result && result.message) || "Check failed.", "#b02a37");
+            return;
+          }
+          say(
+            id,
+            result.message,
+            result.paymentStatus === "PAID" ? "#0f5132" : "#64748b"
+          );
+          if (result.changed) reloadList();
+        })
+        .withFailureHandler(function (error) {
+          say(id, "Check failed: " + error.message, "#b02a37");
+        })
+        .checkPaymentStatus(ref, token());
+    }
+
+    function resendWhatsApp(ref) {
+      var id = appointmentIdFor(ref);
+      google.script.run
+        .withSuccessHandler(function (result) {
+          if (!result || !result.success) {
+            say(id, (result && result.message) || "Could not build message.", "#b02a37");
+            return;
+          }
+          window.open(result.whatsapp.waLink, "_blank");
+          say(id, "WhatsApp opened — send the message.", "#0f5132");
+        })
+        .withFailureHandler(function (error) {
+          say(id, "Failed: " + error.message, "#b02a37");
+        })
+        .getPaymentWhatsAppMessage(ref, token(), true);
+    }
+
+    /**
+     * The slot is only held pending payment, so cancelling the request cancels
+     * the booking outright — the appointment row has to go, or it keeps
+     * blocking the slot in getBookedSlots(). One decision, one dialog.
+     */
+    function cancelRequest(ref) {
+      var body =
+        "<p>This will cancel the appointment and release the slot.</p>" +
+        '<p class="text-muted small mb-0">The payment link stops working immediately and the slot becomes available to other patients.</p>';
+
+      var modal = showModal(
+        "Cancel payment request",
+        body,
+        "Cancel appointment & release slot",
+        function (m) {
+          var id = appointmentIdFor(ref);
+          setModalError(m, "Cancelling...", "#64748b");
+
+          google.script.run
+            .withSuccessHandler(function (result) {
+              if (!result || !result.success) {
+                return setModalError(m, (result && result.message) || "Failed.");
+              }
+              m.hide();
+              say(id, result.message, "#0f5132");
+              reloadList();
+            })
+            .withFailureHandler(function (error) {
+              setModalError(m, "Failed: " + error.message);
+            })
+            .cancelPaymentRequest(ref, token(), "Cancelled from list screen");
+        }
+      );
+
+      // The confirm button destroys a booking — colour it accordingly.
+      var confirmBtn = document.getElementById("pp_modal_confirm");
+      if (confirmBtn) confirmBtn.className = "btn btn-danger";
+    }
+
+    /* --------------------------- generate link -------------------------- */
+
+    function openGenerate(appointmentId) {
+      if (!config) return;
+      var body =
+        '<div class="mb-3"><label class="form-label">Booking amount (Rs)</label>' +
+        '<input type="number" class="form-control" id="pp_amount" min="1" step="1" value="' +
+        config.defaultAmountPaise / 100 +
+        '"' +
+        (config.allowAmountOverride ? "" : " readonly") +
+        "></div>" +
+        '<div class="mb-3"><label class="form-label">Mobile for the payment link</label>' +
+        '<input type="tel" class="form-control" id="pp_mobile" maxlength="10" placeholder="10-digit number"></div>' +
+        '<div class="form-check mb-2"><input class="form-check-input" type="checkbox" id="pp_confirmed">' +
+        '<label class="form-check-label" for="pp_confirmed">I confirmed this number with the patient</label></div>' +
+        '<p class="text-muted small mb-0">The slot is held for ' +
+        config.holdMinutes +
+        " minutes once the link is created.</p>";
+
+      showModal(
+        "Generate payment link",
+        body,
+        "Create link",
+        function (modal) {
+          var rupees = Number(document.getElementById("pp_amount").value);
+          var mobile = document
+            .getElementById("pp_mobile")
+            .value.replace(/\D/g, "");
+
+          if (!rupees || rupees <= 0) return setModalError(modal, "Enter a valid amount.");
+          if (!/^[6-9]\d{9}$/.test(mobile)) {
+            return setModalError(modal, "Enter a valid 10-digit mobile number.");
+          }
+          if (!document.getElementById("pp_confirmed").checked) {
+            return setModalError(modal, "Confirm the number with the patient first.");
+          }
+
+          setModalError(modal, "Creating link...", "#64748b");
+          google.script.run
+            .withSuccessHandler(function (result) {
+              if (!result || !result.success) {
+                return setModalError(modal, (result && result.message) || "Failed.");
+              }
+              setModalError(modal, "", "#64748b");
+              modal.hide();
+              if (result.whatsapp) window.open(result.whatsapp.waLink, "_blank");
+              reloadList();
+            })
+            .withFailureHandler(function (error) {
+              setModalError(modal, "Failed: " + error.message);
+            })
+            .createPaymentLinkForAppointment(
+              appointmentId,
+              Math.round(rupees * 100),
+              mobile,
+              token()
+            );
+        }
+      );
+    }
+
+    /* ------------------------------ refund ------------------------------ */
+
+    function openRefund(ref, appointmentId) {
+      google.script.run
+        .withSuccessHandler(function (ctx) {
+          if (!ctx || !ctx.success) {
+            notice("Refund", (ctx && ctx.message) || "Could not load refund details.");
+            return;
+          }
+          if (!ctx.refundable) {
+            notice("Refund not possible", ctx.message || "This payment cannot be refunded.");
+            return;
+          }
+          renderRefundModal(ctx, appointmentId);
+        })
+        .withFailureHandler(function (error) {
+          notice("Refund", "Could not load refund details: " + error.message);
+        })
+        .getRefundContext(ref, token());
+    }
+
+    function renderRefundModal(ctx, appointmentId) {
+      var reasons = (ctx.reasons || [])
+        .map(function (reason) {
+          return '<option value="' + reason + '">' + reason + "</option>";
+        })
+        .join("");
+
+      var rows = [
+        ["Patient", ctx.patientName],
+        ["MRD No", ctx.mrdNo],
+        ["Appointment", ctx.appointmentDate + " " + (ctx.appointmentTime || "")],
+        ["Original payment", ctx.paidAmountDisplay],
+        ["Original Payment ID", ctx.providerPaymentId],
+        ["Already refunded", ctx.alreadyRefundedDisplay],
+        ["Refundable now", ctx.refundableAmountDisplay],
+      ];
+
+      var table = rows
+        .map(function (row) {
+          return (
+            '<tr><td class="text-muted pe-3">' +
+            row[0] +
+            '</td><td class="fw-semibold">' +
+            (row[1] || "—") +
+            "</td></tr>"
+          );
+        })
+        .join("");
+
+      var body =
+        '<table class="table table-sm mb-3"><tbody>' +
+        table +
+        "</tbody></table>" +
+        '<div class="mb-3"><label class="form-label">Refund amount (Rs)</label>' +
+        '<input type="number" class="form-control" id="pp_refund_amount" min="1" step="1" value="' +
+        ctx.refundableAmountPaise / 100 +
+        '"></div>' +
+        '<div class="mb-3"><label class="form-label">Reason</label>' +
+        '<select class="form-select" id="pp_refund_reason"><option value="">Select a reason...</option>' +
+        reasons +
+        "</select></div>" +
+        '<div class="mb-3"><label class="form-label">Remarks (optional)</label>' +
+        '<textarea class="form-control" id="pp_refund_remarks" rows="2"></textarea></div>' +
+        '<div class="alert alert-warning py-2 mb-0 small">The refund goes back through the original payment method. ' +
+        (context === "appointment"
+          ? "The appointment will be cancelled first."
+          : "This appointment is already cancelled.") +
+        "</div>";
+
+      showModal(
+        context === "appointment" ? "Cancel appointment &amp; refund" : "Confirm refund",
+        body,
+        "Confirm refund",
+        function (modal) {
+          var rupees = Number(document.getElementById("pp_refund_amount").value);
+          var reason = document.getElementById("pp_refund_reason").value;
+          var remarks = document.getElementById("pp_refund_remarks").value;
+
+          if (!rupees || rupees <= 0) return setModalError(modal, "Enter a refund amount.");
+          if (rupees * 100 > ctx.refundableAmountPaise) {
+            return setModalError(
+              modal,
+              "Amount exceeds the refundable balance of " + ctx.refundableAmountDisplay + "."
+            );
+          }
+          if (!reason) return setModalError(modal, "Select a refund reason.");
+
+          setModalError(modal, "Processing refund...", "#64748b");
+
+          var handler = function (result) {
+            var refund = result && result.refund ? result.refund : result;
+            if (!result || !result.success) {
+              return setModalError(modal, (result && result.message) || "Refund failed.");
+            }
+            modal.hide();
+            if (refund && refund.patientMessage) {
+              window.open(refund.patientMessage.waLink, "_blank");
+            }
+            notice("Refund", result.message || "Refund initiated.");
+            reloadList();
+          };
+
+          if (context === "appointment") {
+            google.script.run
+              .withSuccessHandler(handler)
+              .withFailureHandler(function (error) {
+                setModalError(modal, "Failed: " + error.message);
+              })
+              .cancelAppointmentAndRefund({
+                appointmentId: appointmentId,
+                amountPaise: Math.round(rupees * 100),
+                reason: reason,
+                remarks: remarks,
+                sessionToken: token(),
+              });
+          } else {
+            google.script.run
+              .withSuccessHandler(handler)
+              .withFailureHandler(function (error) {
+                setModalError(modal, "Failed: " + error.message);
+              })
+              .initiateRefund({
+                paymentRef: ctx.paymentRef,
+                amountPaise: Math.round(rupees * 100),
+                reason: reason,
+                remarks: remarks,
+                sessionToken: token(),
+              });
+          }
+        }
+      );
+    }
+
+    function openRefundHistory(ref) {
+      google.script.run
+        .withSuccessHandler(function (result) {
+          if (!result || !result.success) {
+            notice("Refunds", (result && result.message) || "Could not load refunds.");
+            return;
+          }
+          if (!result.refunds.length) {
+            notice("Refunds", "No refunds have been raised for this payment.");
+            return;
+          }
+
+          var rows = result.refunds
+            .map(function (refund) {
+              return (
+                "<tr><td>" +
+                refund.amountDisplay +
+                "</td><td>" +
+                refund.refundStatus +
+                "</td><td>" +
+                (refund.providerRefundId || "—") +
+                "</td><td>" +
+                (refund.reason || "—") +
+                "</td><td>" +
+                (refund.arn || "—") +
+                '</td><td><button class="btn btn-sm btn-outline-primary" onclick="PaymentPanel.checkRefund(\'' +
+                refund.refundRef +
+                '\')">Check</button></td></tr>'
+              );
+            })
+            .join("");
+
+          showModal(
+            "Refunds for " + ref,
+            '<table class="table table-sm"><thead><tr><th>Amount</th><th>Status</th><th>Refund ID</th><th>Reason</th><th>Bank ref</th><th></th></tr></thead><tbody>' +
+              rows +
+              "</tbody></table>",
+            null,
+            null
+          );
+        })
+        .withFailureHandler(function (error) {
+          notice("Refunds", "Could not load refunds: " + error.message);
+        })
+        .getRefundsForPayment(ref, token());
+    }
+
+    function checkRefund(refundRef) {
+      google.script.run
+        .withSuccessHandler(function (result) {
+          notice(
+            "Refund status",
+            ((result && result.message) || "Could not check the refund.") +
+              (result && result.arn ? " Bank reference: " + result.arn : "")
+          );
+          if (result && result.changed) reloadList();
+        })
+        .withFailureHandler(function (error) {
+          notice("Refund status", "Check failed: " + error.message);
+        })
+        .checkRefundStatus(refundRef, token());
+    }
+
+    /* ------------------------- modal plumbing --------------------------- */
+
+    function showModal(title, bodyHtml, confirmLabel, onConfirm) {
+      var existing = document.getElementById("paymentPanelModal");
+      if (existing) existing.remove();
+
+      var wrapper = document.createElement("div");
+      wrapper.className = "modal fade";
+      wrapper.id = "paymentPanelModal";
+      wrapper.tabIndex = -1;
+      wrapper.innerHTML =
+        '<div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">' +
+        '<div class="modal-header"><h5 class="modal-title">' +
+        title +
+        '</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>' +
+        '<div class="modal-body">' +
+        bodyHtml +
+        '<div id="pp_modal_error" class="mt-2 small" style="color:#b02a37"></div></div>' +
+        '<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>' +
+        (confirmLabel
+          ? '<button type="button" class="btn btn-primary" id="pp_modal_confirm">' +
+            confirmLabel +
+            "</button>"
+          : "") +
+        "</div></div></div>";
+
+      document.body.appendChild(wrapper);
+      var modal = new bootstrap.Modal(wrapper);
+
+      if (confirmLabel && onConfirm) {
+        document.getElementById("pp_modal_confirm").onclick = function () {
+          onConfirm(modal);
+        };
+      }
+
+      wrapper.addEventListener("hidden.bs.modal", function () {
+        wrapper.remove();
+      });
+
+      modal.show();
+      return modal;
+    }
+
+    /**
+     * Informational modal. Browser alert()/confirm() are avoided throughout —
+     * inside an Apps Script iframe they render as "An embedded page at
+     * ...googleusercontent.com says", which looks like a phishing prompt to
+     * reception staff.
+     */
+    function notice(title, message) {
+      showModal(title, '<p class="mb-0">' + message + "</p>", null, null);
+    }
+
+    function setModalError(modal, message, colour) {
+      var box = document.getElementById("pp_modal_error");
+      if (box) {
+        box.textContent = message || "";
+        box.style.color = colour || "#b02a37";
+      }
+    }
+
+    /** Re-run the host page's own search so badges and rows stay in step. */
+    function reloadList() {
+      if (typeof loadAppointments === "function") loadAppointments();
+      else if (typeof loadCancelledAppointments === "function") {
+        loadCancelledAppointments();
+      }
+    }
+
+    return {
+      init: init,
+      render: render,
+      check: check,
+      resendWhatsApp: resendWhatsApp,
+      cancelRequest: cancelRequest,
+      openGenerate: openGenerate,
+      openRefund: openRefund,
+      openRefundHistory: openRefundHistory,
+      checkRefund: checkRefund,
+    };
+  })();
+</script>

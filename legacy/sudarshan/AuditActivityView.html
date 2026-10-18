@@ -1,0 +1,1089 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+      :root {
+        --primary-color: #4a90e2;
+        --primary-light: #e8f0fe;
+        --primary-dark: #2c5282;
+        --success-color: #48bb78;
+        --warning-color: #ed8936;
+        --danger-color: #e53e3e;
+        --text-primary: #2d3748;
+        --text-secondary: #4a5568;
+        --bg-light: #f7fafc;
+        --bg-white: #ffffff;
+        --header-height: 64px;
+      }
+
+      body {
+        background-color: var(--bg-light);
+        color: var(--text-primary);
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        min-height: 100vh;
+        transition: background 0.3s, color 0.3s;
+      }
+
+      .dark-mode {
+        --primary-color: #90cdf4;
+        --primary-light: #2d3748;
+        --primary-dark: #1a202c;
+        --success-color: #68d391;
+        --warning-color: #f6ad55;
+        --danger-color: #fc8181;
+        --text-primary: #e2e8f0;
+        --text-secondary: #a0aec0;
+        --bg-light: #1a202c;
+        --bg-white: #2d3748;
+        background-color: var(--bg-light);
+        color: var(--text-primary);
+      }
+
+      .main-container {
+        padding: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      .card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        margin-bottom: 2rem;
+        background: var(--bg-white);
+      }
+
+      .card-header {
+        background: linear-gradient(135deg, var(--primary-light), var(--bg-white));
+        border-bottom: 1px solid var(--primary-light);
+        border-radius: 12px 12px 0 0 !important;
+        padding: 1rem 1.5rem;
+      }
+
+      .card-header h5 {
+        color: var(--primary-dark);
+        font-weight: 600;
+        margin: 0;
+      }
+
+      .card-body {
+        background: var(--bg-white);
+        color: var(--text-primary);
+        border-radius: 0 0 12px 12px;
+      }
+
+      .form-label {
+        font-weight: 500;
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+      }
+
+      .form-control, .form-select {
+        border-radius: 8px;
+        border-color: #e2e8f0;
+        background: var(--bg-white);
+        color: var(--text-primary);
+      }
+
+      .dark-mode .form-control,
+      .dark-mode .form-select {
+        background: #3a4a5c;
+        border-color: #4a5568;
+        color: var(--text-primary);
+      }
+
+      .btn-primary {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+        border-radius: 8px;
+      }
+
+      .btn-outline-secondary {
+        border-radius: 8px;
+        color: var(--text-secondary);
+        border-color: #e2e8f0;
+      }
+
+      .chart-container {
+        position: relative;
+        height: 360px;
+      }
+
+      .table {
+        color: var(--text-primary);
+      }
+
+      .table thead th {
+        background: var(--primary-light);
+        color: var(--primary-dark);
+        font-weight: 600;
+        font-size: 0.85rem;
+        border: none;
+        white-space: nowrap;
+      }
+
+      .dark-mode .table thead th {
+        background: #2d3748;
+        color: var(--primary-color);
+      }
+
+      .table tbody tr:hover {
+        background: var(--primary-light);
+      }
+
+      .dark-mode .table tbody tr:hover {
+        background: #2d3748;
+      }
+
+      .table td {
+        vertical-align: middle;
+        font-size: 0.875rem;
+        border-color: var(--primary-light);
+      }
+
+      .dark-mode .table td {
+        border-color: #4a5568;
+      }
+
+      .details-cell {
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        cursor: pointer;
+        color: var(--primary-color);
+      }
+
+      .details-cell:hover {
+        text-decoration: underline;
+      }
+
+      .badge-action {
+        font-size: 0.75rem;
+        padding: 0.3em 0.6em;
+        border-radius: 6px;
+      }
+
+      .action-CREATE, .action-SUBMIT { background: #c6f6d5; color: #276749; }
+      .action-CANCEL, .action-DELETE { background: #fed7d7; color: #9b2c2c; }
+      .action-UPDATE, .action-RESCHEDULE, .action-EDIT { background: #fefcbf; color: #744210; }
+      .action-ARCHIVE { background: #e9d8fd; color: #553c9a; }
+      .action-ADD { background: #bee3f8; color: #2a4365; }
+      .action-default { background: #e2e8f0; color: #4a5568; }
+
+      .dark-mode .action-CREATE, .dark-mode .action-SUBMIT { background: #276749; color: #c6f6d5; }
+      .dark-mode .action-CANCEL, .dark-mode .action-DELETE { background: #9b2c2c; color: #fed7d7; }
+      .dark-mode .action-UPDATE, .dark-mode .action-RESCHEDULE, .dark-mode .action-EDIT { background: #744210; color: #fefcbf; }
+      .dark-mode .action-ARCHIVE { background: #553c9a; color: #e9d8fd; }
+      .dark-mode .action-ADD { background: #2a4365; color: #bee3f8; }
+      .dark-mode .action-default { background: #4a5568; color: #e2e8f0; }
+
+      .page-title {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: var(--primary-dark);
+      }
+
+      .dark-mode .page-title { color: var(--primary-color); }
+
+      .no-data-msg {
+        text-align: center;
+        padding: 3rem 0;
+        color: var(--text-secondary);
+      }
+
+      .loading-spinner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem 0;
+        color: var(--primary-color);
+      }
+
+      .modal-content {
+        background: var(--bg-white);
+        color: var(--text-primary);
+      }
+
+      .modal-header {
+        background: var(--primary-light);
+        border-bottom: 1px solid var(--primary-light);
+      }
+
+      pre.details-pre {
+        background: var(--bg-light);
+        color: var(--text-primary);
+        border-radius: 8px;
+        padding: 1rem;
+        font-size: 0.82rem;
+        max-height: 400px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+
+      .dark-mode pre.details-pre {
+        background: #1a202c;
+      }
+
+      .stat-card {
+        background: var(--bg-white);
+        border-radius: 10px;
+        padding: 1rem 1.25rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+      }
+
+      .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1;
+      }
+
+      .stat-label {
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+        margin-top: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <?!= include('sharedLayout') ?>
+
+    <div class="main-container">
+      <!-- Page header -->
+      <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+          <h1 class="page-title"><i class="fas fa-chart-bar me-2" style="color:var(--primary-color)"></i>User Activity Dashboard</h1>
+          <p class="text-secondary mb-0" style="font-size:0.9rem">Clinic staff activity — excludes login/logout events</p>
+        </div>
+        <div id="accessDeniedBadge" style="display:none">
+          <span class="badge bg-danger fs-6"><i class="fas fa-lock me-1"></i>Access Denied</span>
+        </div>
+      </div>
+
+      <!-- Alert area -->
+      <div id="alertArea"></div>
+
+      <!-- Search / filter card (shown first) -->
+      <div class="card">
+        <div class="card-header">
+          <h5><i class="fas fa-search me-2"></i>Search Logs</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12 col-md-3">
+              <label class="form-label">User</label>
+              <select id="filterUsername" class="form-select">
+                <option value="">All Users</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-3">
+              <label class="form-label">Action Type</label>
+              <select id="filterActionType" class="form-select">
+                <option value="">All Actions</option>
+              </select>
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label">Date From</label>
+              <input type="date" id="filterDateFrom" class="form-control" />
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label">Date To</label>
+              <input type="date" id="filterDateTo" class="form-control" />
+            </div>
+            <div class="col-12 col-md-2 d-flex align-items-end gap-2">
+              <button class="btn btn-primary w-100" onclick="applyFilters()">
+                <i class="fas fa-search me-1"></i>Search
+              </button>
+              <button class="btn btn-outline-secondary" onclick="clearFilters()" title="Clear filters">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart card -->
+      <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <h5><i class="fas fa-users me-2"></i>Activity by User</h5>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <div class="d-flex align-items-center gap-1">
+              <label class="form-label mb-0 me-1" style="white-space:nowrap">From</label>
+              <input type="date" id="chartDateFrom" class="form-control form-control-sm" style="width:145px" />
+            </div>
+            <div class="d-flex align-items-center gap-1">
+              <label class="form-label mb-0 me-1" style="white-space:nowrap">To</label>
+              <input type="date" id="chartDateTo" class="form-control form-control-sm" style="width:145px" />
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="refreshChart()">
+              <i class="fas fa-sync-alt me-1"></i>Apply
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="chartLoading" class="loading-spinner">
+            <div class="spinner-border text-primary me-2" role="status"></div> Loading chart data…
+          </div>
+          <div id="chartNoData" class="no-data-msg" style="display:none">
+            <i class="fas fa-chart-bar fa-2x mb-2 d-block" style="color:var(--primary-light)"></i>
+            No activity data for the selected period.
+          </div>
+          <div id="chartWrapper" style="display:none">
+            <div class="chart-container">
+              <canvas id="activityChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats row -->
+      <div class="row g-3 mb-4" id="statsRow" style="display:none !important">
+        <div class="col-6 col-md-3">
+          <div class="stat-card">
+            <div class="stat-icon" style="background:#e8f0fe"><i class="fas fa-list-check" style="color:#4a90e2"></i></div>
+            <div>
+              <div class="stat-value" id="statTotalActions">—</div>
+              <div class="stat-label">Total Actions (table)</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card">
+            <div class="stat-icon" style="background:#c6f6d5"><i class="fas fa-user-check" style="color:#48bb78"></i></div>
+            <div>
+              <div class="stat-value" id="statActiveUsers">—</div>
+              <div class="stat-label">Active Users</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card">
+            <div class="stat-icon" style="background:#fefcbf"><i class="fas fa-bolt" style="color:#ed8936"></i></div>
+            <div>
+              <div class="stat-value" id="statActionTypes">—</div>
+              <div class="stat-label">Action Types</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card">
+            <div class="stat-icon" style="background:#fed7d7"><i class="fas fa-table-list" style="color:#e53e3e"></i></div>
+            <div>
+              <div class="stat-value" id="statFiltered">—</div>
+              <div class="stat-label">Table Rows (filtered)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Credit & API Usage -->
+      <div class="card mb-4">
+        <div class="card-header d-flex align-items-center justify-content-between" style="cursor:pointer" onclick="toggleCreditSection()">
+          <h5 class="mb-0"><i class="fas fa-coins me-2"></i>Credit &amp; API Usage</h5>
+          <button class="btn btn-sm btn-outline-warning" id="creditToggleBtn">
+            <i class="fas fa-chevron-down"></i> Show
+          </button>
+        </div>
+        <div id="creditSectionBody" class="card-body" style="display:none">
+          <div class="row g-3 mb-3">
+            <div class="col-md-3">
+              <label class="form-label">From</label>
+              <input type="date" id="creditDateFrom" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">To</label>
+              <input type="date" id="creditDateTo" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+              <button class="btn btn-sm btn-primary w-100" onclick="loadCreditUsage()"><i class="fas fa-sync-alt me-1"></i> Load</button>
+            </div>
+          </div>
+
+          <!-- Credit stat cards -->
+          <div class="row g-3 mb-3" id="creditStatsRow" style="display:none">
+            <div class="col-6 col-md-4">
+              <div class="stat-card">
+                <div class="stat-icon" style="background:#c6f6d5"><i class="fab fa-whatsapp" style="color:#25D366"></i></div>
+                <div>
+                  <div class="stat-value" id="creditWhatsapp">0</div>
+                  <div class="stat-label">WhatsApp Reminders</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-md-4">
+              <div class="stat-card">
+                <div class="stat-icon" style="background:#e8f0fe"><i class="fas fa-robot" style="color:#4285F4"></i></div>
+                <div>
+                  <div class="stat-value" id="creditLlm">0</div>
+                  <div class="stat-label">LLM (Gemini) Calls</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-md-4">
+              <div class="stat-card">
+                <div class="stat-icon" style="background:#fefcbf"><i class="fas fa-coins" style="color:#d69e2e"></i></div>
+                <div>
+                  <div class="stat-value" id="creditTotal">0</div>
+                  <div class="stat-label">Total API Calls</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Credit detail table -->
+          <div id="creditTableWrapper" style="display:none">
+            <div id="creditTableLoading" class="loading-spinner py-3">
+              <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div> Loading credit usage…
+            </div>
+            <div class="table-responsive" id="creditTableContent" style="display:none">
+              <table class="table table-sm table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>User</th>
+                    <th>Type</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody id="creditTableBody"></tbody>
+              </table>
+            </div>
+            <div id="creditNoData" class="text-center text-muted py-3" style="display:none">No API / credit activity found in this period.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Log table card -->
+      <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <h5><i class="fas fa-scroll me-2"></i>Activity Log</h5>
+          <span id="tableCountBadge" class="badge" style="background:var(--primary-color);font-size:0.8rem"></span>
+        </div>
+        <div class="card-body p-0">
+          <div id="tableLoading" class="loading-spinner py-5">
+            <div class="spinner-border text-primary me-2" role="status"></div> Loading logs…
+          </div>
+          <div id="tableWrapper" style="display:none">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Full Name</th>
+                    <th>Role</th>
+                    <th>Action</th>
+                    <th>Target Type</th>
+                    <th>Target ID</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody id="logTableBody"></tbody>
+              </table>
+            </div>
+            <!-- Pagination -->
+            <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top" style="border-color:var(--primary-light)!important">
+              <span id="paginationInfo" class="text-secondary" style="font-size:0.85rem"></span>
+              <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary btn-sm" id="btnPrev" onclick="prevPage()" disabled>
+                  <i class="fas fa-chevron-left"></i> Prev
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" id="btnNext" onclick="nextPage()" disabled>
+                  Next <i class="fas fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div id="tableNoData" class="no-data-msg" style="display:none">
+            <i class="fas fa-inbox fa-2x mb-2 d-block" style="color:var(--primary-light)"></i>
+            No log entries found for the selected filters.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Details Modal -->
+    <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title"><i class="fas fa-info-circle me-2"></i>Log Entry Details</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div id="detailsContent" style="font-size:0.9rem"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      window.sessionToken = "<?= sessionToken ?>";
+      window.baseUrl = "<?= webAppUrl ?>";
+
+      // ── State ─────────────────────────────────────────────────────────────
+      var activityChart = null;
+      var currentOffset = 0;
+      var pageSize = 50;
+      var totalRecords = 0;
+      var currentFilters = {};
+
+      // Chart colour palette (12 distinct colours)
+      var CHART_COLORS = [
+        "#4a90e2","#48bb78","#ed8936","#e53e3e","#9f7aea",
+        "#38b2ac","#f6ad55","#fc8181","#68d391","#76e4f7",
+        "#b794f4","#f6e05e"
+      ];
+
+      // ── Helpers ────────────────────────────────────────────────────────────
+      function todayString() {
+        var d = new Date();
+        return d.getFullYear() + "-" +
+          String(d.getMonth() + 1).padStart(2, "0") + "-" +
+          String(d.getDate()).padStart(2, "0");
+      }
+
+      function firstDayOfMonth() {
+        var d = new Date();
+        return d.getFullYear() + "-" +
+          String(d.getMonth() + 1).padStart(2, "0") + "-01";
+      }
+
+      function showAlert(msg, type) {
+        document.getElementById("alertArea").innerHTML =
+          '<div class="alert alert-' + type + ' alert-dismissible fade show">' +
+          msg +
+          '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
+      }
+
+      function actionBadgeClass(action) {
+        if (!action) return "action-default";
+        var a = action.toUpperCase();
+        if (a.includes("CREATE") || a.includes("SUBMIT") || a.includes("ADD_APPOINTMENT")) return "action-CREATE";
+        if (a.includes("CANCEL") || a.includes("DELETE")) return "action-CANCEL";
+        if (a.includes("UPDATE") || a.includes("RESCHEDULE") || a.includes("EDIT")) return "action-UPDATE";
+        if (a.includes("ARCHIVE")) return "action-ARCHIVE";
+        if (a.includes("ADD")) return "action-ADD";
+        return "action-default";
+      }
+
+      function formatTimestamp(ts) {
+        if (!ts) return "—";
+        var d = new Date(ts);
+        if (isNaN(d)) return String(ts);
+        return (
+          formatDisplayDate(d) + ", " + d.toLocaleTimeString("en-IN", { hour12: false })
+        );
+      }
+
+      function escapeHtml(str) {
+        if (str === null || str === undefined) return "—";
+        return String(str)
+          .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      }
+
+      // ── Access check ───────────────────────────────────────────────────────
+      function checkAccess() {
+        google.script.run
+          .withSuccessHandler(function(hasAccess) {
+            if (!hasAccess) {
+              document.getElementById("accessDeniedBadge").style.display = "";
+              showAlert("Access denied. Director/Admin access required.", "danger");
+              setTimeout(function() { goToPage("Dashboard"); }, 2500);
+            } else {
+              initPage();
+            }
+          })
+          .withFailureHandler(function(err) {
+            showAlert("Error checking access: " + err, "danger");
+            setTimeout(function() { goToPage("Dashboard"); }, 2500);
+          })
+          .canAccessAuditLogs(window.sessionToken);
+      }
+
+      // ── Initialisation ─────────────────────────────────────────────────────
+      function initPage() {
+        var today = todayString();
+        document.getElementById("chartDateFrom").value = today;
+        document.getElementById("chartDateTo").value = today;
+        document.getElementById("filterDateFrom").value = today;
+        document.getElementById("filterDateTo").value = today;
+
+        document.getElementById("statsRow").style.display = "";
+        document.getElementById("creditDateFrom").value = firstDayOfMonth();
+        document.getElementById("creditDateTo").value = today;
+
+        // Load all users + action types from the full sheet for dropdowns
+        google.script.run
+          .withSuccessHandler(function(result) {
+            if (!result || !result.success) return;
+
+            var userSelect = document.getElementById("filterUsername");
+            result.users.forEach(function(u) {
+              var opt = document.createElement("option");
+              opt.value = u.username;
+              opt.textContent = u.fullName + " (" + u.username + ")";
+              userSelect.appendChild(opt);
+            });
+
+            var actionSelect = document.getElementById("filterActionType");
+            result.actionTypes.forEach(function(at) {
+              var opt = document.createElement("option");
+              opt.value = at;
+              opt.textContent = at;
+              actionSelect.appendChild(opt);
+            });
+          })
+          .withFailureHandler(function(err) {
+            showAlert("Error loading filter options: " + err, "warning");
+          })
+          .getAuditFilterOptions(window.sessionToken);
+
+        loadChart(today, today);
+        loadTable({ dateFrom: today, dateTo: today }, 0);
+      }
+
+      // ── Chart ──────────────────────────────────────────────────────────────
+      function refreshChart() {
+        var df = document.getElementById("chartDateFrom").value;
+        var dt = document.getElementById("chartDateTo").value;
+        loadChart(df, dt);
+      }
+
+      function loadChart(dateFrom, dateTo) {
+        document.getElementById("chartLoading").style.display = "";
+        document.getElementById("chartWrapper").style.display = "none";
+        document.getElementById("chartNoData").style.display = "none";
+
+        google.script.run
+          .withSuccessHandler(function(result) {
+            document.getElementById("chartLoading").style.display = "none";
+            if (!result || !result.success) {
+              showAlert(result ? result.message : "Failed to load chart data.", "danger");
+              return;
+            }
+            if (result.users.length === 0) {
+              document.getElementById("chartNoData").style.display = "";
+              document.getElementById("statActiveUsers").textContent = "0";
+              document.getElementById("statActionTypes").textContent = "0";
+              return;
+            }
+            renderChart(result);
+            document.getElementById("statActiveUsers").textContent = result.users.length;
+            document.getElementById("statActionTypes").textContent = result.actionTypes.length;
+          })
+          .withFailureHandler(function(err) {
+            document.getElementById("chartLoading").style.display = "none";
+            showAlert("Error loading chart: " + err, "danger");
+          })
+          .getAuditActivitySummary(dateFrom, dateTo, window.sessionToken);
+      }
+
+      function renderChart(result) {
+        // Build Chart.js datasets — one dataset per actionType
+        var labels = result.users.map(function(u) {
+          return result.data[u].fullName || u;
+        });
+
+        var datasets = result.actionTypes.map(function(actionType, idx) {
+          var color = CHART_COLORS[idx % CHART_COLORS.length];
+          var values = result.users.map(function(u) {
+            return result.data[u].counts ? (result.data[u].counts[actionType] || 0) : 0;
+          });
+          return {
+            label: actionType,
+            data: values,
+            backgroundColor: color,
+            borderColor: color,
+            borderWidth: 1,
+            borderRadius: 4,
+          };
+        });
+
+        document.getElementById("chartWrapper").style.display = "";
+
+        if (activityChart) {
+          activityChart.data.labels = labels;
+          activityChart.data.datasets = datasets;
+          activityChart.update();
+          return;
+        }
+
+        var ctx = document.getElementById("activityChart").getContext("2d");
+        activityChart = new Chart(ctx, {
+          type: "bar",
+          data: { labels: labels, datasets: datasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: {
+                  padding: 16,
+                  font: { size: 12 },
+                  color: getComputedStyle(document.body).getPropertyValue("--text-primary").trim() || "#2d3748",
+                },
+              },
+              tooltip: {
+                callbacks: {
+                  footer: function(items) {
+                    var total = items.reduce(function(s, i) { return s + i.parsed.y; }, 0);
+                    return "Total: " + total;
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                stacked: true,
+                ticks: { color: getComputedStyle(document.body).getPropertyValue("--text-secondary").trim() || "#4a5568" },
+                grid: { display: false },
+              },
+              y: {
+                stacked: true,
+                beginAtZero: true,
+                ticks: {
+                  stepSize: 1,
+                  color: getComputedStyle(document.body).getPropertyValue("--text-secondary").trim() || "#4a5568",
+                },
+                grid: { color: "rgba(0,0,0,0.05)" },
+                title: { display: true, text: "Actions" },
+              },
+            },
+          },
+        });
+      }
+
+      // ── Log Table ──────────────────────────────────────────────────────────
+      function applyFilters() {
+        var filters = {};
+        var username = document.getElementById("filterUsername").value.trim();
+        var actionType = document.getElementById("filterActionType").value;
+        var df = document.getElementById("filterDateFrom").value;
+        var dt = document.getElementById("filterDateTo").value;
+
+        if (username) filters.username = username;
+        if (actionType) filters.actionType = actionType;
+        if (df) filters.dateFrom = df;
+        if (dt) filters.dateTo = dt;
+
+        // Sync chart dates to filter dates
+        if (df) document.getElementById("chartDateFrom").value = df;
+        if (dt) document.getElementById("chartDateTo").value = dt;
+        loadChart(df || "", dt || "");
+
+        currentFilters = filters;
+        currentOffset = 0;
+        loadTable(filters, 0);
+      }
+
+      function clearFilters() {
+        var today = todayString();
+        document.getElementById("filterUsername").selectedIndex = 0;
+        document.getElementById("filterActionType").selectedIndex = 0;
+        document.getElementById("filterDateFrom").value = today;
+        document.getElementById("filterDateTo").value = today;
+        document.getElementById("chartDateFrom").value = today;
+        document.getElementById("chartDateTo").value = today;
+        currentFilters = { dateFrom: today, dateTo: today };
+        currentOffset = 0;
+        loadChart(today, today);
+        loadTable(currentFilters, 0);
+      }
+
+      function prevPage() {
+        if (currentOffset <= 0) return;
+        currentOffset = Math.max(0, currentOffset - pageSize);
+        loadTable(currentFilters, currentOffset);
+      }
+
+      function nextPage() {
+        if (currentOffset + pageSize >= totalRecords) return;
+        currentOffset += pageSize;
+        loadTable(currentFilters, currentOffset);
+      }
+
+      function loadTable(filters, offset) {
+        document.getElementById("tableLoading").style.display = "";
+        document.getElementById("tableWrapper").style.display = "none";
+        document.getElementById("tableNoData").style.display = "none";
+
+        google.script.run
+          .withSuccessHandler(function(result) {
+            document.getElementById("tableLoading").style.display = "none";
+            if (!result || !result.success) {
+              showAlert(result ? result.message : "Failed to load logs.", "danger");
+              return;
+            }
+            totalRecords = result.totalCount || 0;
+            renderTable(result.logs || []);
+            updatePagination(result.totalCount, result.returnedCount, offset);
+
+            document.getElementById("statTotalActions").textContent = result.totalCount || 0;
+            document.getElementById("statFiltered").textContent = result.returnedCount || 0;
+          })
+          .withFailureHandler(function(err) {
+            document.getElementById("tableLoading").style.display = "none";
+            showAlert("Error loading logs: " + err, "danger");
+          })
+          .getAuditLogs(filters, pageSize, offset, window.sessionToken);
+      }
+
+      // Parse details (string or object) into a plain JS object, or null if not JSON.
+      function parseDetails(raw) {
+        if (!raw) return null;
+        if (typeof raw === "object") return raw;
+        var s = String(raw).trim();
+        if (s.charAt(0) === "{" || s.charAt(0) === "[") {
+          try { return JSON.parse(s); } catch(e) {}
+        }
+        return null;
+      }
+
+      // Friendly label map for common detail keys
+      var KEY_LABELS = {
+        fullName: "Full Name", role: "Role", date: "Date", time: "Time",
+        patientName: "Patient", mrd: "MRD No", mrdNo: "MRD No",
+        doctor: "Doctor", doctorName: "Doctor",
+        remarkText: "Remark", commentText: "Comment",
+        addedBy: "Added By", sequenceNumber: "Seq #",
+        sheetName: "Sheet", appointmentId: "Appointment ID",
+        before: "Before", after: "After",
+        oldDate: "Old Date", newDate: "New Date", oldTime: "Old Time", newTime: "New Time",
+        reason: "Reason", status: "Status", tag: "Tag", tags: "Tags",
+        cancelledBy: "Cancelled By", archivedBy: "Archived By",
+        restoredBy: "Restored By", updatedFields: "Updated Fields",
+        appointmentType: "Appointment Type", planOfAction: "Plan of Action", remarksAdded: "Remarks Added",
+        callbackRequired: "Callback Required",
+        actionType: "Action", targetType: "Target", ipAddress: "IP Address",
+      };
+
+      function labelFor(key) {
+        if (KEY_LABELS[key]) return KEY_LABELS[key];
+        // camelCase → Title Case with spaces
+        return key.replace(/([A-Z])/g, " $1").replace(/^./, function(c) { return c.toUpperCase(); });
+      }
+
+      // Convert a parsed object into a human-readable multi-line string.
+      function objectToReadable(obj, indent) {
+        if (obj === null || obj === undefined) return "—";
+        indent = indent || "";
+        if (Array.isArray(obj)) {
+          return obj.map(function(v, i) { return indent + (i + 1) + ". " + objectToReadable(v, indent + "   "); }).join("\n");
+        }
+        if (typeof obj === "object") {
+          return Object.keys(obj).map(function(k) {
+            var val = obj[k];
+            var label = labelFor(k);
+            if (typeof val === "object" && val !== null) {
+              return indent + label + ":\n" + objectToReadable(val, indent + "   ");
+            }
+            return indent + label + ": " + (val === "" || val === null || val === undefined ? "—" : val);
+          }).join("\n");
+        }
+        return String(obj);
+      }
+
+      // Short one-line summary for the table cell (first 2 meaningful keys).
+      function detailsPreviewText(raw) {
+        var obj = parseDetails(raw);
+        if (!obj || typeof obj !== "object" || Array.isArray(obj)) {
+          var s = String(raw || "").trim();
+          return s.length > 55 ? s.substring(0, 52) + "…" : s;
+        }
+        var keys = Object.keys(obj).filter(function(k) {
+          return obj[k] !== null && obj[k] !== undefined && String(obj[k]).trim() !== "";
+        });
+        var parts = keys.slice(0, 2).map(function(k) {
+          return labelFor(k) + ": " + obj[k];
+        });
+        var preview = parts.join(" · ");
+        if (keys.length > 2) preview += " …";
+        return preview || "View details";
+      }
+
+      function renderTable(logs) {
+        var tbody = document.getElementById("logTableBody");
+        if (logs.length === 0) {
+          tbody.innerHTML = "";
+          document.getElementById("tableNoData").style.display = "";
+          return;
+        }
+
+        // Store log details indexed by row for modal access without escaping issues
+        window._logDetailsCache = [];
+
+        document.getElementById("tableWrapper").style.display = "";
+        var html = "";
+        logs.forEach(function(log, idx) {
+          var badgeClass = actionBadgeClass(log.actionType);
+          window._logDetailsCache[idx] = log.details;
+          var preview = detailsPreviewText(log.details);
+
+          html += "<tr>" +
+            "<td style='white-space:nowrap;font-size:0.82rem'>" + escapeHtml(formatTimestamp(log.timestamp)) + "</td>" +
+            "<td><strong>" + escapeHtml(log.fullName) + "</strong><br><small class='text-secondary'>" + escapeHtml(log.username) + "</small></td>" +
+            "<td><span class='badge bg-secondary'>" + escapeHtml(log.userRole) + "</span></td>" +
+            "<td><span class='badge badge-action " + badgeClass + "'>" + escapeHtml(log.actionType) + "</span></td>" +
+            "<td>" + escapeHtml(log.targetType) + "</td>" +
+            "<td style='font-size:0.82rem'>" + escapeHtml(log.targetId) + "</td>" +
+            "<td class='details-cell' onclick='showDetailsModal(" + idx + ")' title='Click to view full details'>" +
+            escapeHtml(preview) + "</td>" +
+            "</tr>";
+        });
+        tbody.innerHTML = html;
+      }
+
+      function updatePagination(total, returned, offset) {
+        var from = total === 0 ? 0 : offset + 1;
+        var to = Math.min(offset + (returned || 0), total);
+        document.getElementById("paginationInfo").textContent =
+          "Showing " + from + "–" + to + " of " + total + " entries";
+        document.getElementById("tableCountBadge").textContent = total + " entries";
+        document.getElementById("btnPrev").disabled = offset <= 0;
+        document.getElementById("btnNext").disabled = (offset + pageSize) >= total;
+      }
+
+      function showDetailsModal(idx) {
+        var raw = (window._logDetailsCache && window._logDetailsCache[idx] !== undefined)
+          ? window._logDetailsCache[idx] : null;
+
+        var obj = parseDetails(raw);
+        var el = document.getElementById("detailsContent");
+
+        if (obj && typeof obj === "object" && !Array.isArray(obj)) {
+          // Render as a clean key-value table
+          var rows = Object.keys(obj).map(function(k) {
+            var val = obj[k];
+            var displayVal;
+            if (typeof val === "object" && val !== null) {
+              displayVal = "<pre style='margin:0;font-size:0.82rem;white-space:pre-wrap'>" +
+                escapeHtml(objectToReadable(val, "")) + "</pre>";
+            } else {
+              displayVal = escapeHtml(val === null || val === undefined || val === "" ? "—" : String(val));
+            }
+            return "<tr><td style='width:38%;font-weight:600;color:var(--text-secondary);padding:0.4rem 0.6rem;vertical-align:top'>" +
+              escapeHtml(labelFor(k)) +
+              "</td><td style='padding:0.4rem 0.6rem;word-break:break-all'>" + displayVal + "</td></tr>";
+          }).join("");
+          el.innerHTML = "<table style='width:100%;border-collapse:collapse'>" + rows + "</table>";
+        } else if (Array.isArray(obj)) {
+          el.innerHTML = "<pre style='margin:0;font-size:0.85rem;white-space:pre-wrap'>" +
+            escapeHtml(objectToReadable(obj)) + "</pre>";
+        } else {
+          // Plain string fallback
+          var text = raw ? String(raw) : "No details available.";
+          el.innerHTML = "<p style='margin:0;white-space:pre-wrap'>" + escapeHtml(text) + "</p>";
+        }
+
+        new bootstrap.Modal(document.getElementById("detailsModal")).show();
+      }
+
+      // ── Credit & API Usage ──────────────────────────────────────────────────
+      let creditExpanded = false;
+      function toggleCreditSection() {
+        creditExpanded = !creditExpanded;
+        const body = document.getElementById("creditSectionBody");
+        const btn = document.getElementById("creditToggleBtn");
+        if (creditExpanded) {
+          body.style.display = "";
+          btn.innerHTML = '<i class="fas fa-chevron-up"></i> Hide';
+        } else {
+          body.style.display = "none";
+          btn.innerHTML = '<i class="fas fa-chevron-down"></i> Show';
+        }
+      }
+
+      function loadCreditUsage() {
+        const df = document.getElementById("creditDateFrom").value;
+        const dt = document.getElementById("creditDateTo").value;
+        if (!df) { showAlert("Please select a From date.", "warning"); return; }
+        if (!dt) { showAlert("Please select a To date.", "warning"); return; }
+
+        // Expand section if collapsed
+        if (!creditExpanded) toggleCreditSection();
+
+        document.getElementById("creditTableWrapper").style.display = "";
+        document.getElementById("creditTableLoading").style.display = "";
+        document.getElementById("creditTableContent").style.display = "none";
+        document.getElementById("creditNoData").style.display = "none";
+        document.getElementById("creditStatsRow").style.display = "none";
+
+        google.script.run
+          .withSuccessHandler(function(result) {
+            document.getElementById("creditTableLoading").style.display = "none";
+            if (!result || !result.success) {
+              showAlert(result ? result.message : "Failed to load credit usage.", "danger");
+              return;
+            }
+            document.getElementById("creditStatsRow").style.display = "";
+            document.getElementById("creditWhatsapp").textContent = result.whatsappCount || 0;
+            document.getElementById("creditLlm").textContent = result.llmCount || 0;
+            document.getElementById("creditTotal").textContent = result.totalCount || 0;
+
+            if (!result.entries || result.entries.length === 0) {
+              document.getElementById("creditNoData").style.display = "";
+              return;
+            }
+            document.getElementById("creditTableContent").style.display = "";
+            var html = "";
+            result.entries.forEach(function(e) {
+              var typeLabel = e.actionType === "SEND_REMINDERS"
+                ? '<span class="badge" style="background:#25D366;color:#fff">WhatsApp</span>'
+                : '<span class="badge" style="background:#4285F4;color:#fff">LLM</span>';
+              var detailPreview = "";
+              if (e.details && typeof e.details === "object") {
+                var keys = Object.keys(e.details).filter(function(k) {
+                  return e.details[k] !== null && e.details[k] !== "";
+                }).slice(0, 2);
+                detailPreview = keys.map(function(k) { return k + ": " + e.details[k]; }).join(", ");
+              }
+              html += "<tr>" +
+                "<td style='font-size:0.85rem'>" + formatTimestamp(e.timestamp) + "</td>" +
+                "<td>" + escapeHtml(e.fullName || e.username) + "</td>" +
+                "<td>" + typeLabel + "</td>" +
+                "<td style='font-size:0.85rem;max-width:250px'>" + escapeHtml(detailPreview) + "</td>" +
+                "</tr>";
+            });
+            document.getElementById("creditTableBody").innerHTML = html;
+          })
+          .withFailureHandler(function(err) {
+            document.getElementById("creditTableLoading").style.display = "none";
+            showAlert("Error loading credit usage: " + err, "danger");
+          })
+          .getCreditUsageSummary(df, dt, window.sessionToken);
+      }
+
+      // ── Boot ───────────────────────────────────────────────────────────────
+      document.addEventListener("DOMContentLoaded", function() {
+        if (typeof google !== "undefined" && google.script && window.sessionToken) {
+          checkAccess();
+        } else {
+          showAlert("Unable to connect to Google Apps Script.", "danger");
+        }
+      });
+    </script>
+  </body>
+</html>

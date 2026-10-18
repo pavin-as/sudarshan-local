@@ -1,0 +1,22 @@
+# secrets and local config
+.env
+*.local.md
+SECRETS.local.md
+# data exports and backups - never commit patient data
+*.xlsx
+*.csv
+*.bak
+*.sql.gz
+*.dump
+# build / runtime
+node_modules/
+dist/
+build/
+logs/
+*.log
+__pycache__/
+.venv/
+# OS junk
+._*
+.DS_Store
+Thumbs.db

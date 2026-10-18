@@ -1,0 +1,2146 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+    <style>
+      /* Color Variables */
+      :root {
+        --primary-color: #4a90e2;
+        --primary-light: #e8f0fe;
+        --primary-dark: #2c5282;
+        --success-color: #48bb78;
+        --warning-color: #ed8936;
+        --danger-color: #e53e3e;
+        --text-primary: #2d3748;
+        --text-secondary: #4a5568;
+        --bg-light: #f7fafc;
+        --bg-white: #ffffff;
+      }
+
+      body {
+        background-color: var(--bg-light);
+        color: var(--text-primary);
+        min-height: 100vh;
+        padding: 2rem;
+      }
+
+      .container {
+        max-width: 1400px;
+      }
+
+      /* Header Section */
+      .page-header {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .page-header h1 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin: 0;
+        position: relative;
+        padding-left: 1rem;
+      }
+
+      .page-header h1::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 4px;
+        height: 70%;
+        background: linear-gradient(
+          to bottom,
+          var(--primary-color),
+          var(--success-color)
+        );
+        border-radius: 2px;
+      }
+
+      /* Search Section */
+      .search-section {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      }
+
+      .search-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+
+      .form-group {
+        margin-bottom: 0;
+      }
+
+      .form-control {
+        border: 2px solid var(--primary-light);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+      }
+
+      .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+      }
+
+      /* Results Section */
+      .results-section {
+        margin-bottom: 2rem;
+      }
+
+      .appointment-card {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+      }
+
+      .appointment-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+      }
+
+      .appointment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--primary-light);
+      }
+
+      .appointment-id {
+        font-weight: 600;
+        color: var(--primary-color);
+      }
+
+      .appointment-date {
+        color: var(--text-secondary);
+      }
+
+      .appointment-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+
+      .detail-group {
+        margin-bottom: 0.5rem;
+      }
+
+      .detail-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.25rem;
+      }
+
+      .detail-value {
+        font-weight: 500;
+      }
+
+      .appointment-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 2px solid var(--primary-light);
+      }
+
+      /* Pagination */
+      .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 2rem;
+      }
+
+      .page-item {
+        list-style: none;
+      }
+
+      .page-link {
+        background: var(--bg-white);
+        border: 2px solid var(--primary-light);
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        color: var(--text-primary);
+        text-decoration: none;
+        transition: all 0.3s ease;
+      }
+
+      .page-link:hover {
+        background: var(--primary-light);
+        border-color: var(--primary-color);
+      }
+
+      .page-item.active .page-link {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+        color: white;
+      }
+
+      /* Alert Container */
+      .alert-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-width: 400px;
+      }
+
+      .custom-alert {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 16px 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transform: translateX(120%);
+        animation: slideIn 0.3s forwards;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .custom-alert::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+      }
+
+      .custom-alert.success::before {
+        background: var(--success-color);
+      }
+
+      .custom-alert.error::before {
+        background: var(--danger-color);
+      }
+
+      .custom-alert.warning::before {
+        background: var(--warning-color);
+      }
+
+      .custom-alert.info::before {
+        background: var(--primary-color);
+      }
+
+      @keyframes slideIn {
+        to {
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes slideOut {
+        to {
+          transform: translateX(120%);
+        }
+      }
+
+      .custom-alert.closing {
+        animation: slideOut 0.3s forwards;
+      }
+
+      /* Loading State */
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+      }
+
+      .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid var(--primary-light);
+        border-top-color: var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .badge {
+        font-size: 0.8rem;
+        padding: 0.35em 0.65em;
+      }
+
+      .badge i {
+        margin-right: 0.25rem;
+      }
+
+      .appointment-card .badge,
+      .appointment-item .badge {
+        vertical-align: middle;
+      }
+
+      /* Fixed Slot Badge */
+      .badge.bg-warning {
+        background-color: #f59e0b !important;
+        color: #ffffff;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        animation: pulse 2s infinite;
+      }
+
+      .badge .fa-thumbtack {
+        transform: rotate(45deg);
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+        }
+
+        70% {
+          box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+        }
+
+        100% {
+          box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+        }
+      }
+
+      /* User Information Header Styles */
+      .user-info-header {
+        background: var(--bg-white);
+        border-bottom: 1px solid var(--primary-light);
+        padding: 0.75rem 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+
+      .user-info-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .user-details {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .user-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+
+      .user-text {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+      }
+
+      .user-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.95rem;
+      }
+
+      .user-role {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+      }
+
+      .user-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .user-actions .btn {
+        font-size: 0.8rem;
+        padding: 0.375rem 0.75rem;
+      }
+
+      /* Tag Styles */
+      .tag-group {
+        grid-column: 1 / -1;
+      }
+
+      .tags-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      .tag-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--primary-dark)
+        );
+        color: white;
+        padding: 0.35rem 0.65rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
+      }
+
+      .tag-badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      .tag-badge-readonly {
+        background: linear-gradient(135deg, #6c757d, #495057);
+        cursor: default;
+      }
+
+      .tag-badge-readonly:hover {
+        transform: none;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .tag-text {
+        line-height: 1;
+      }
+
+      .tag-remove {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 1rem;
+        line-height: 1;
+        padding: 0;
+        transition: all 0.2s ease;
+      }
+
+      .tag-remove:hover {
+        background: rgba(255, 255, 255, 0.4);
+        transform: scale(1.1);
+      }
+
+      .no-tags-message {
+        color: var(--text-secondary);
+        font-style: italic;
+        font-size: 0.9rem;
+      }
+
+      .tag-input-container {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        align-items: center;
+      }
+
+      .tag-input {
+        flex: 1;
+        border: 2px solid var(--primary-light);
+        border-radius: 8px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+      }
+
+      .tag-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+      }
+
+      .tag-select {
+        flex: 1;
+        border: 2px solid var(--primary-light);
+        border-radius: 8px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+      }
+
+      .tag-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+      }
+
+      .btn-add-tag {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+      }
+
+      .btn-add-tag:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      .btn-add-tag:active {
+        transform: translateY(0);
+      }
+
+      .btn-add-tag:disabled {
+        background: #cbd5e0;
+        cursor: not-allowed;
+        opacity: 0.6;
+        transform: none;
+      }
+
+      .tag-input:disabled,
+      .tag-select:disabled {
+        background: #f7fafc;
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      .tag-remove:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+
+      /* Results Header Styles */
+      .results-header {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .results-count {
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .results-count .count-number {
+        color: var(--primary-color);
+        font-size: 1.2rem;
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 768px) {
+        .user-info-content {
+          flex-direction: column;
+          gap: 0.75rem;
+          align-items: flex-start;
+        }
+
+        .user-actions {
+          width: 100%;
+          justify-content: flex-end;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <script>
+      window.sessionToken = "<?= sessionToken ?>";
+      window.baseUrl = "<?= webAppUrl ?>";
+    </script>
+    <?!= include('sharedLayout') ?>
+    <?!= include('PaymentPanel') ?>
+    <div class="alert-container" id="alertContainer"></div>
+
+    <div class="container">
+      <div class="page-header">
+        <h1>Appointment List</h1>
+        <button class="btn btn-primary" onclick="goToPage('Dashboard')">
+          <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </button>
+      </div>
+
+      <!-- Search Section -->
+      <div class="search-section">
+        <form id="searchForm" class="search-form">
+          <div class="form-group">
+            <label for="mrdNo">MRD Number</label>
+            <input
+              type="text"
+              class="form-control"
+              id="mrdNo"
+              placeholder="Enter MRD No"
+            />
+          </div>
+          <div class="form-group">
+            <label for="patientName">Patient Name</label>
+            <input
+              type="text"
+              class="form-control"
+              id="patientName"
+              placeholder="Enter patient name"
+            />
+          </div>
+          <div class="form-group">
+            <label for="phone">Phone Number</label>
+            <input
+              type="text"
+              class="form-control"
+              id="phone"
+              placeholder="Enter phone number"
+            />
+          </div>
+          <div class="form-group">
+            <label for="remarks">Remarks</label>
+            <input
+              type="text"
+              class="form-control"
+              id="remarks"
+              placeholder="Search in remarks"
+            />
+          </div>
+          <div class="form-group">
+            <label for="tagFilter">Tag</label>
+            <select class="form-control" id="tagFilter">
+              <option value="">All Tags</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="fourDayConfirm">4-Day Confirmation</label>
+            <select class="form-control" id="fourDayConfirm">
+              <option value="">All</option>
+              <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="oneDayConfirm">1-Day Confirmation</label>
+            <select class="form-control" id="oneDayConfirm">
+              <option value="">All</option>
+              <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
+            </select>
+          </div>
+          <div class="form-group d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="fas fa-search"></i> Search
+            </button>
+          </div>
+          <!-- new Show Duplicates button -->
+          <div class="form-group d-flex align-items-end">
+            <button
+              type="button"
+              class="btn btn-outline-primary w-100 mt-2"
+              onclick="showDuplicateAppointments()"
+            >
+              <i class="fas fa-users"></i> Show Duplicates
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Results Section -->
+      <div class="results-section" id="resultsContainer">
+        <!-- Appointment cards will be dynamically added here -->
+      </div>
+
+      <!-- Pagination -->
+      <nav aria-label="Page navigation">
+        <ul class="pagination" id="pagination">
+          <!-- Pagination will be dynamically added here -->
+        </ul>
+      </nav>
+    </div>
+
+    <!-- Journey Modal -->
+    <div class="modal fade" id="journeyModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Appointment Journey</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body" id="journeyModalBody">
+            <!-- Journey content populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      var baseUrl = "<?= webAppUrl ?>";
+      var sessionToken = "<?= sessionToken ?>";
+      var currentPage = 1;
+      var itemsPerPage = 10;
+      var totalItems = 0;
+
+      // Track whether we’re viewing duplicates
+      let isShowingDuplicates = false;
+      let duplicateAppointments = [];
+      let duplicateTotal = 0;
+
+      // Initialize the page
+      document.addEventListener("DOMContentLoaded", function () {
+        // Don't load appointments on page load - only show empty state
+        displayEmptyState();
+        setupEventListeners();
+        loadTagsForFilter("appointment");
+      });
+
+      function setupEventListeners() {
+        document
+          .getElementById("searchForm")
+          .addEventListener("submit", function (e) {
+            e.preventDefault();
+            isShowingDuplicates = false;
+            currentPage = 1;
+            loadAppointments();
+          });
+      }
+
+      /**
+       * Load all tags from the sheet for the filter dropdown
+       * @param {string} sheetName - The sheet name to get tags from
+       */
+      function loadTagsForFilter(sheetName) {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response.success && response.tags && response.tags.length > 0) {
+              const tagFilter = document.getElementById("tagFilter");
+              tagFilter.innerHTML = '<option value="">All Tags</option>';
+
+              response.tags.forEach(function (tag) {
+                const option = document.createElement("option");
+                option.value = tag;
+                option.textContent = tag;
+                tagFilter.appendChild(option);
+              });
+            }
+          })
+          .withFailureHandler(function (error) {})
+          .getAllTagsFromSheet(sheetName);
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        PaymentPanel.init("appointment");
+      });
+
+      function loadAppointments() {
+        showLoading();
+
+        const searchParams = {
+          mrdNo: document.getElementById("mrdNo").value,
+          patientName: document.getElementById("patientName").value,
+          phone: document.getElementById("phone").value,
+          remarks: document.getElementById("remarks").value,
+          tag: document.getElementById("tagFilter").value,
+          fourDayConfirm: document.getElementById("fourDayConfirm").value,
+          oneDayConfirm: document.getElementById("oneDayConfirm").value,
+          page: currentPage,
+          itemsPerPage: itemsPerPage,
+        };
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            hideLoading();
+
+            if (response.success) {
+              // Debug: Log the appointments data to inspect FixedSlot values
+              displayAppointments(response.appointments, response.total);
+              updatePagination(response.total);
+            } else {
+              showAlert(
+                response.message || "Error loading appointments",
+                "error",
+              );
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            showAlert("Error loading appointments: " + error, "error");
+          })
+          .searchAppointments(searchParams);
+      }
+
+      function displayEmptyState() {
+        const container = document.getElementById("resultsContainer");
+        container.innerHTML = `
+        <div class="text-center text-muted py-5">
+          <i class="fas fa-search fa-3x mb-3"></i>
+          <p>Use the search form above to find appointments or click "Show Duplicates" to view MRDs with multiple appointments</p>
+        </div>
+      `;
+        // Clear pagination
+        document.getElementById("pagination").innerHTML = "";
+      }
+
+      /**
+       * Format Plan of Action from JSON array to human-readable string
+       * @param {string} planOfAction - The plan of action (could be JSON array or plain text)
+       * @return {string} Formatted plan of action
+       */
+      function formatPlanOfAction(planOfAction) {
+        if (!planOfAction || planOfAction === "-") {
+          return "-";
+        }
+
+        try {
+          // Try to parse as JSON array
+          const parsed = JSON.parse(planOfAction);
+          if (Array.isArray(parsed)) {
+            // Join array items with commas
+            return parsed.join(", ");
+          }
+          // If it's not an array, return as is
+          return planOfAction;
+        } catch (e) {
+          // If parsing fails, it's probably plain text, return as is
+          return planOfAction;
+        }
+      }
+
+      function displayAppointments(appointments, total) {
+        const container = document.getElementById("resultsContainer");
+        container.innerHTML = "";
+
+        if (!appointments || appointments.length === 0) {
+          container.innerHTML = `
+          <div class="text-center text-muted py-5">
+            <i class="fas fa-search fa-3x mb-3"></i>
+            <p>No appointments found matching your search criteria</p>
+          </div>
+        `;
+          return;
+        }
+
+        // Calculate pagination info for results header
+        const displayTotal = total || totalItems || appointments.length;
+        const startIndex = (currentPage - 1) * itemsPerPage + 1;
+        const endIndex = Math.min(startIndex + itemsPerPage - 1, displayTotal);
+
+        // Add results header
+        const headerDiv = document.createElement("div");
+        headerDiv.className = "results-header";
+        headerDiv.innerHTML = `
+        <div class="results-count">
+          Showing <span class="count-number">${startIndex}-${endIndex}</span> of <span class="count-number">${displayTotal}</span> active appointments
+        </div>
+        <div>
+          <i class="fas fa-calendar-check" style="color: var(--primary-color);"></i>
+        </div>
+      `;
+        container.appendChild(headerDiv);
+
+        appointments.forEach(function (appt) {
+          // Debug: Log each appointment to check FixedSlot property
+          const card = document.createElement("div");
+          card.className = "appointment-card";
+          // Determine if we should show the fixed slot badge
+          const fixedSlotBadge =
+            appt.FixedSlot === true ||
+            appt.FixedSlot === "Yes" ||
+            appt.FixedSlot === "true"
+              ? '<span class="badge bg-warning ms-2" title="This is a fixed time slot"><i class="fas fa-thumbtack"></i> FIXED SLOT</span>'
+              : "";
+          card.innerHTML = `
+          <div class="appointment-header">
+            <div class="appointment-id">${appt.AppointmentID || "N/A"}</div>
+            <div class="appointment-date">
+              <i class="fas fa-calendar"></i> ${formatDisplayDate(appt.AppointmentDate) || "N/A"}
+              <i class="fas fa-clock ms-3"></i> ${appt.TimeSlot || "N/A"}
+              ${fixedSlotBadge}
+            </div>
+          </div>
+          <div class="appointment-details">
+            <div class="detail-group">
+              <div class="detail-label">MRD No</div>
+              <div class="detail-value">${appt.MRDNo || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Patient Name</div>
+              <div class="detail-value">${appt.PatientName || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Age & Gender</div>
+              <div class="detail-value">${appt.Age || "N/A"} years, ${appt.Gender || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Phone</div>
+              <div class="detail-value">${appt.Phone || "N/A"}</div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Appointment Type</div>
+              <div class="detail-value">
+                <select id="type_${appt.AppointmentID}" class="form-select form-select-sm" style="display: none;">
+                </select>
+                <span id="type_display_${appt.AppointmentID}">${appt.AppointmentType || "N/A"}</span>
+              </div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Doctor</div>
+              <div class="detail-value">
+                <select id="doctor_${appt.AppointmentID}" class="form-select form-select-sm" style="display: none;">
+                </select>
+                <span id="doctor_display_${appt.AppointmentID}">${appt.Doctor || "N/A"}</span>
+              </div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Plan of Action</div>
+              <div class="detail-value">
+                <span id="plan_${appt.AppointmentID}" contenteditable="false">${formatPlanOfAction(appt.PlanOfAction)}</span>
+              </div>
+            </div>
+            <div class="detail-group">
+              <div class="detail-label">Remarks</div>
+              <div class="detail-value">
+                <span id="remarks_${appt.AppointmentID}" contenteditable="false">${appt.Remarks || "-"}</span>
+              </div>
+            </div>
+            <div class="detail-group tag-group">
+              <div class="detail-label">Tags</div>
+              <div class="detail-value">
+                <div class="tags-container" id="tags_container_${appt.AppointmentID}">
+                  ${
+                    appt.Tag && appt.Tag.length > 0
+                      ? appt.Tag.map(
+                          (tag) => `
+                    <span class="tag-badge">
+                      <span class="tag-text">${tag}</span>
+                      <button class="tag-remove" onclick="removeTag('${appt.AppointmentID}', 'appointment', '${tag}')" title="Remove tag">×</button>
+                    </span>
+                  `,
+                        ).join("")
+                      : '<span class="no-tags-message">No tags</span>'
+                  }
+                </div>
+                <div class="tag-input-container">
+                  <input type="text" 
+                         class="tag-input" 
+                         id="tag_input_${appt.AppointmentID}" 
+                         placeholder="Type new tag or select existing..."
+                         onfocus="loadExistingTags('${appt.AppointmentID}', 'appointment')"
+                         oninput="filterTagDropdown('${appt.AppointmentID}')"
+                         onkeypress="handleTagInputKeypress(event, '${appt.AppointmentID}', 'appointment')">
+                  <select class="tag-select" 
+                          id="tag_select_${appt.AppointmentID}"
+                          onchange="handleTagDropdownSelection('${appt.AppointmentID}', 'appointment')">
+                    <option value="">Select existing tag...</option>
+                  </select>
+                  <button class="btn-add-tag" 
+                          onclick="addTagFromInput('${appt.AppointmentID}', 'appointment')">
+                    Add Tag
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="payment-panel" id="payment_panel_${appt.AppointmentID}"></div>
+          <div class="appointment-actions">
+            <button class="btn btn-outline-secondary" onclick="editAppointment('${appt.AppointmentID}')">Edit</button>
+            <button class="btn btn-outline-success" id="save_${appt.AppointmentID}" style="display:none" onclick="saveAppointment('${appt.AppointmentID}')">Save</button>
+            <button class="btn btn-outline-warning" id="cancelEdit_${appt.AppointmentID}" style="display:none" onclick="cancelEditAppointment('${appt.AppointmentID}')">Cancel</button>
+            <button class="btn btn-warning" 
+                    data-appointment-id="${appt.AppointmentID}" 
+                    onclick="rescheduleAppointment(event)">
+              <i class="fas fa-clock"></i> Reschedule
+            </button>
+            <button class="btn btn-info" onclick="openJourneyModal('${appt.AppointmentID}')">
+              <i class="fas fa-route"></i> Journey
+            </button>
+            <button class="btn btn-danger" onclick="confirmDelete('${appt.AppointmentID}')">
+              <i class="fas fa-trash"></i> Delete
+            </button>
+            <button class="btn btn-outline-warning btn-sm"
+                 onclick="archiveAppointmentClient('${appt.AppointmentID}')">
+            <i class="fas fa-archive"></i> Archive
+           </button>
+          </div>
+        `;
+          container.appendChild(card);
+        });
+
+        // Payment badges and actions (PaymentPanel.html). No-op when
+        // the payment module is disabled.
+        PaymentPanel.render(appointments);
+      }
+
+      function updatePagination(total) {
+        totalItems = total;
+        const totalPages = Math.ceil(total / itemsPerPage);
+        const pagination = document.getElementById("pagination");
+        const maxLinks = 5; // Number of page links to show in the sliding window
+
+        // Clear pagination container
+        pagination.innerHTML = "";
+
+        // Calculate sliding window
+        let startPage = Math.max(1, currentPage - Math.floor(maxLinks / 2));
+        let endPage = Math.min(totalPages, startPage + maxLinks - 1);
+
+        // Adjust startPage if endPage reaches the end
+        if (endPage === totalPages) {
+          startPage = Math.max(1, endPage - maxLinks + 1);
+        }
+
+        // Previous button (disabled at page 1)
+        pagination.innerHTML += `
+        <li class="page-item ${currentPage === 1 ? "disabled" : ""}">
+           <a class="page-link" href="#" onclick="changePage(${currentPage - 1}, event)">
+            <i class="fas fa-chevron-left"></i>
+          </a>
+        </li>
+      `;
+
+        // First page link and ellipsis (if startPage > 1)
+        if (startPage > 1) {
+          pagination.innerHTML += `
+          <li class="page-item">
+            <a class="page-link" href="#" onclick="changePage(1, event)">1</a>
+          </li>
+        `;
+          if (startPage > 2) {
+            pagination.innerHTML += `
+            <li class="page-item disabled">
+              <span class="page-link">...</span>
+            </li>
+          `;
+          }
+        }
+
+        // Page number links (sliding window)
+        for (let i = startPage; i <= endPage; i++) {
+          pagination.innerHTML += `
+          <li class="page-item ${currentPage === i ? "active" : ""}">
+             <a class="page-link" href="#" onclick="changePage(${i}, event)">${i}</a>
+          </li>
+        `;
+        }
+
+        // Last page link and ellipsis (if endPage < totalPages)
+        if (endPage < totalPages) {
+          if (endPage < totalPages - 1) {
+            pagination.innerHTML += `
+            <li class="page-item disabled">
+              <span class="page-link">...</span>
+            </li>
+          `;
+          }
+          pagination.innerHTML += `
+          <li class="page-item">
+            <a class="page-link" href="#" onclick="changePage(${totalPages}, event)">${totalPages}</a>
+          </li>
+        `;
+        }
+
+        // Next button (disabled at last page)
+        pagination.innerHTML += `
+        <li class="page-item ${currentPage === totalPages || totalPages === 0 ? "disabled" : ""}">
+          <a class="page-link" href="#" onclick="changePage(${currentPage + 1}, event)">
+            <i class="fas fa-chevron-right"></i>
+          </a>
+        </li>
+      `;
+      }
+
+      function changePage(page, event) {
+        if (event) event.preventDefault();
+        const totalPages = Math.ceil(
+          (isShowingDuplicates ? duplicateTotal : totalItems) / itemsPerPage,
+        );
+        if (page < 1 || page > totalPages) return;
+        currentPage = page;
+        if (isShowingDuplicates) {
+          renderDuplicatePage();
+        } else {
+          loadAppointments();
+        }
+      }
+
+      function editAppointment(appointmentId) {
+        // Show save and cancel buttons
+        document.getElementById("save_" + appointmentId).style.display =
+          "inline-block";
+        document.getElementById("cancelEdit_" + appointmentId).style.display =
+          "inline-block";
+
+        // Load appointment types and doctors for dropdowns
+        loadAppointmentTypesForEdit(appointmentId);
+        loadDoctorsForEdit(appointmentId);
+
+        // Show dropdowns and hide display spans
+        document.getElementById("type_" + appointmentId).style.display =
+          "inline-block";
+        document.getElementById("type_display_" + appointmentId).style.display =
+          "none";
+        document.getElementById("doctor_" + appointmentId).style.display =
+          "inline-block";
+        document.getElementById(
+          "doctor_display_" + appointmentId,
+        ).style.display = "none";
+
+        // Make plan and remarks editable
+        const planElement = document.getElementById("plan_" + appointmentId);
+        const remarksElement = document.getElementById(
+          "remarks_" + appointmentId,
+        );
+
+        planElement.setAttribute("contenteditable", "true");
+        remarksElement.setAttribute("contenteditable", "true");
+
+        // Add visual feedback for editable fields
+        planElement.style.backgroundColor = "#f8f9fa";
+        planElement.style.padding = "0.5rem";
+        planElement.style.borderRadius = "4px";
+        planElement.style.border = "1px solid #dee2e6";
+        planElement.style.minHeight = "2rem";
+        planElement.style.display = "block";
+        planElement.style.width = "100%";
+
+        remarksElement.style.backgroundColor = "#f8f9fa";
+        remarksElement.style.padding = "0.5rem";
+        remarksElement.style.borderRadius = "4px";
+        remarksElement.style.border = "1px solid #dee2e6";
+        remarksElement.style.minHeight = "2rem";
+        remarksElement.style.display = "block";
+        remarksElement.style.width = "100%";
+      }
+
+      function loadAppointmentTypesForEdit(appointmentId) {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response.success) {
+              const typeSelect = document.getElementById(
+                "type_" + appointmentId,
+              );
+              const currentType = document.getElementById(
+                "type_display_" + appointmentId,
+              ).textContent;
+
+              response.appointmentTypes.forEach((type) => {
+                const option = document.createElement("option");
+                option.value = type;
+                option.textContent = type;
+                if (type === currentType) option.selected = true;
+                typeSelect.appendChild(option);
+              });
+            }
+          })
+          .getAppointmentTypes();
+      }
+
+      function loadDoctorsForEdit(appointmentId) {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response.success) {
+              const doctorSelect = document.getElementById(
+                "doctor_" + appointmentId,
+              );
+              const currentDoctor = document.getElementById(
+                "doctor_display_" + appointmentId,
+              ).textContent;
+
+              response.doctors.forEach((doctor) => {
+                const option = document.createElement("option");
+                option.value = doctor;
+                option.textContent = doctor;
+                if (doctor === currentDoctor) option.selected = true;
+                doctorSelect.appendChild(option);
+              });
+            }
+          })
+          .getDoctors();
+      }
+
+      function saveAppointment(appointmentId) {
+        const updatedData = {
+          appointmentId: appointmentId,
+          type: document.getElementById("type_" + appointmentId).value,
+          doctor: document.getElementById("doctor_" + appointmentId).value,
+          plan: document.getElementById("plan_" + appointmentId).textContent,
+          remarks: document.getElementById("remarks_" + appointmentId)
+            .textContent,
+        };
+
+        const saveButton = document.getElementById("save_" + appointmentId);
+        saveButton.disabled = true;
+        saveButton.innerHTML =
+          '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response.success) {
+              showAlert("Changes saved successfully!", "success");
+              saveButton.style.display = "none";
+              document.getElementById(
+                "type_" + appointmentId,
+              ).style.backgroundColor = "";
+              document.getElementById(
+                "doctor_" + appointmentId,
+              ).style.backgroundColor = "";
+              document.getElementById(
+                "plan_" + appointmentId,
+              ).style.backgroundColor = "";
+              document.getElementById(
+                "remarks_" + appointmentId,
+              ).style.backgroundColor = "";
+            } else {
+              showAlert("Error saving changes: " + response.message, "error");
+            }
+            saveButton.disabled = false;
+            saveButton.innerHTML = "Save";
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error saving changes: " + error, "error");
+            saveButton.disabled = false;
+            saveButton.innerHTML = "Save";
+          })
+          .updateAppointmentDetails(updatedData, sessionToken);
+      }
+
+      function cancelEditAppointment(appointmentId) {
+        // Hide Save and Cancel buttons
+        document.getElementById("save_" + appointmentId).style.display = "none";
+        document.getElementById("cancelEdit_" + appointmentId).style.display =
+          "none";
+
+        // Hide dropdowns, show display spans
+        document.getElementById("type_" + appointmentId).style.display = "none";
+        document.getElementById("type_display_" + appointmentId).style.display =
+          "inline-block";
+        document.getElementById("doctor_" + appointmentId).style.display =
+          "none";
+        document.getElementById(
+          "doctor_display_" + appointmentId,
+        ).style.display = "inline-block";
+
+        // Make plan and remarks non-editable
+        const planElement = document.getElementById("plan_" + appointmentId);
+        const remarksElement = document.getElementById(
+          "remarks_" + appointmentId,
+        );
+
+        planElement.setAttribute("contenteditable", "false");
+        remarksElement.setAttribute("contenteditable", "false");
+
+        // Remove visual feedback for editable fields
+        planElement.style.backgroundColor = "";
+        planElement.style.padding = "";
+        planElement.style.borderRadius = "";
+        planElement.style.border = "";
+        planElement.style.minHeight = "";
+        planElement.style.display = "";
+        planElement.style.width = "";
+
+        remarksElement.style.backgroundColor = "";
+        remarksElement.style.padding = "";
+        remarksElement.style.borderRadius = "";
+        remarksElement.style.border = "";
+        remarksElement.style.minHeight = "";
+        remarksElement.style.display = "";
+        remarksElement.style.width = "";
+
+        // Reload appointments to revert any changes
+        loadAppointments();
+      }
+
+      function rescheduleAppointment(event) {
+        event.preventDefault();
+        const button = event.target.closest("button");
+        const appointmentId = button.getAttribute("data-appointment-id");
+
+        if (!appointmentId) {
+          showAlert(
+            "Error: Appointment ID not found. Please try again.",
+            "error",
+          );
+          return;
+        }
+
+        const url = new URL(baseUrl);
+        url.searchParams.append("page", "rescheduleAppointment");
+        url.searchParams.append("sessionToken", sessionToken);
+        url.searchParams.append(
+          "appointmentId",
+          encodeURIComponent(appointmentId),
+        );
+        window.top.location.href = url.toString();
+      }
+
+      function confirmDelete(id) {
+        const modal = document.createElement("div");
+        modal.className = "modal fade";
+        modal.innerHTML = `
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Confirm Delete</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <p>Are you sure you want to delete this appointment?</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+              <button type="button" class="btn btn-danger" onclick="deleteAppointment('${id}')">Yes</button>
+            </div>
+          </div>
+        </div>
+      `;
+        document.body.appendChild(modal);
+        new bootstrap.Modal(modal).show();
+      }
+
+      function deleteAppointment(id) {
+        showAlert("Deleting appointment...", "warning");
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response.success) {
+              showAlert("Appointment deleted successfully", "success");
+              bootstrap.Modal.getInstance(
+                document.querySelector(".modal"),
+              ).hide();
+
+              // Cancellation and refund are separate decisions (handoff §19).
+              // If money was collected, say so and let staff choose.
+              if (response.payment && response.payment.refundable) {
+                showAlert(
+                  "This appointment was paid (" +
+                    response.payment.paidAmountDisplay +
+                    "). Refund it from the Cancelled list if appropriate.",
+                  "warning",
+                );
+              }
+              loadAppointments();
+            } else {
+              showAlert(response.message, "error");
+            }
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error deleting appointment: " + error, "error");
+          })
+          .cancelAppointmentWithPaymentCheck(id, sessionToken, false);
+      }
+
+      function showLoading() {
+        const overlay = document.createElement("div");
+        overlay.className = "loading-overlay";
+        overlay.innerHTML = '<div class="spinner"></div>';
+        document.body.appendChild(overlay);
+      }
+
+      function hideLoading() {
+        const overlay = document.querySelector(".loading-overlay");
+        if (overlay) overlay.remove();
+      }
+
+      function showAlert(message, type = "info") {
+        const container = document.getElementById("alertContainer");
+        const alert = document.createElement("div");
+        alert.className = `custom-alert ${type}`;
+
+        let icon = "";
+        switch (type) {
+          case "success":
+            icon = "✓";
+            break;
+          case "error":
+            icon = "✕";
+            break;
+          case "warning":
+            icon = "⚠";
+            break;
+          default:
+            icon = "ℹ";
+        }
+
+        alert.innerHTML = `
+        <div class="alert-icon ${type}">${icon}</div>
+        <div class="alert-content">
+          <div class="alert-message">${message}</div>
+        </div>
+        <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+      `;
+
+        container.appendChild(alert);
+
+        setTimeout(() => {
+          alert.classList.add("closing");
+          setTimeout(() => alert.remove(), 300);
+        }, 5000);
+      }
+
+      function goToPage(pageName) {
+        var newUrl =
+          baseUrl +
+          "?page=" +
+          pageName +
+          "&sessionToken=" +
+          encodeURIComponent(sessionToken);
+        window.top.location.href = newUrl;
+      }
+
+      function showDuplicateAppointments() {
+        showLoading();
+        currentPage = 1;
+        isShowingDuplicates = true;
+        google.script.run
+          .withSuccessHandler(function (response) {
+            hideLoading();
+            if (response.success) {
+              duplicateAppointments = response.appointments;
+              duplicateTotal = response.total;
+              renderDuplicatePage();
+            } else {
+              showAlert(response.message || "No duplicates found", "info");
+              displayEmptyState();
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            showAlert("Error fetching duplicates: " + error, "error");
+            displayEmptyState();
+          })
+          .getDuplicateAppointments();
+      }
+
+      function renderDuplicatePage() {
+        // compute slice
+        const start = (currentPage - 1) * itemsPerPage;
+        const pageData = duplicateAppointments.slice(
+          start,
+          start + itemsPerPage,
+        );
+        displayAppointments(pageData, duplicateTotal);
+        updatePagination(duplicateTotal);
+      }
+
+      function archiveAppointmentClient(appointmentId) {
+        showAlert(
+          "Are you sure you want to archive this appointment?",
+          "warning",
+          "Confirm Archiving",
+        );
+        const container = document.getElementById("alertContainer");
+        const alert = container.lastElementChild;
+        const btns = document.createElement("div");
+        btns.className = "alert-buttons mt-3";
+        btns.innerHTML = `
+    <button class="btn btn-outline-secondary btn-sm me-2" autofocus
+            onclick="this.closest('.custom-alert').remove()">
+      No, Keep Appointment
+    </button>
+    <button class="btn btn-warning btn-sm"
+            onclick="confirmArchive('${appointmentId}', this)">
+      Yes, Archive
+    </button>
+  `;
+        alert.querySelector(".alert-content").appendChild(btns);
+      }
+
+      function confirmArchive(appointmentId, button) {
+        button.disabled = true;
+        button.innerHTML =
+          '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Archiving...';
+        button.closest(".custom-alert").remove();
+        google.script.run
+          .withSuccessHandler((response) => {
+            if (response.success) {
+              showAlert(response.message, "success");
+
+              if (isShowingDuplicates) {
+                // remove archived appt from duplicates array
+                duplicateAppointments = duplicateAppointments.filter(
+                  (a) => a.AppointmentID !== appointmentId,
+                );
+                duplicateTotal--;
+                renderDuplicatePage(); // re-render the filtered duplicates
+              } else {
+                loadAppointments(); // normal view
+              }
+            } else {
+              showAlert(
+                "Error archiving appointment: " + response.message,
+                "error",
+              );
+            }
+          })
+          .archiveAppointment(appointmentId, sessionToken);
+      }
+
+      function openJourneyModal(appointmentId) {
+        showLoading();
+
+        const runner = google.script.run
+          .withSuccessHandler(function (response) {
+            hideLoading();
+
+            // Try to stringify the response to see its structure
+            try {
+            } catch (e) {}
+
+            if (!response) {
+              showAlert("No response from server", "error");
+              return;
+            }
+
+            if (!response.success) {
+              const message = response.message || "Journey not available";
+              showAlert(message, "warning");
+              return;
+            }
+
+            renderJourneyModal(response);
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+            showAlert("Error loading journey: " + error, "error");
+          });
+
+        runner.getAppointmentJourney(appointmentId);
+      }
+
+      function renderJourneyModal(response) {
+        const {
+          appointmentData = {},
+          journey = [],
+          currentSheet = "Unknown",
+        } = response || {};
+
+        const body = document.getElementById("journeyModalBody");
+
+        if (!journey || journey.length === 0) {
+          body.innerHTML = `
+          <div class="text-center text-muted py-3">
+            <i class="fas fa-route fa-2x mb-2"></i>
+            <p>No journey entries recorded yet.</p>
+          </div>
+        `;
+        } else {
+          const entries = journey
+            .slice()
+            .reverse()
+            .map(
+              (entry) => `
+          <li class="list-group-item">
+            <div class="fw-bold text-primary text-uppercase">${entry.action || "Unknown action"}</div>
+            <div class="small text-muted mb-1">
+              ${entry.timestamp ? formatDisplayDateTime(new Date(entry.timestamp)) : "Unknown time"}
+              ${entry.by ? ` · by ${entry.by}` : ""}
+            </div>
+            <div class="small text-muted mb-2">
+              ${entry.fromSheet || "—"} <i class="fas fa-arrow-right mx-2"></i> ${entry.toSheet || "—"}
+            </div>
+            ${entry.description ? `<div>${entry.description}</div>` : ""}
+            ${entry.reason ? `<div class="small text-muted mt-1">Reason: ${entry.reason}</div>` : ""}
+            ${
+              entry.fromDate || entry.toDate || entry.fromTime || entry.toTime
+                ? `
+              <div class="small text-muted mt-2">
+                ${entry.fromDate ? `From: ${formatDisplayDate(entry.fromDate)}` : ""}
+                ${entry.fromTime ? ` ${entry.fromTime}` : ""}
+                ${entry.toDate || entry.toTime ? "<br>" : ""}
+                ${entry.toDate ? `To: ${formatDisplayDate(entry.toDate)}` : ""}
+                ${entry.toTime ? ` ${entry.toTime}` : ""}
+              </div>`
+                : ""
+            }
+          </li>
+        `,
+            )
+            .join("");
+
+          body.innerHTML = `
+          <div class="mb-3">
+            <div><strong>Appointment ID:</strong> ${appointmentData.id || "N/A"}</div>
+            <div><strong>Patient:</strong> ${appointmentData.patient || "N/A"}</div>
+            <div><strong>Current Location:</strong> ${currentSheet}</div>
+            <div><strong>Appointment Date:</strong> ${formatDisplayDate(appointmentData.date) || "N/A"}</div>
+            <div><strong>Appointment Time:</strong> ${appointmentData.time || "N/A"}</div>
+          </div>
+          <ul class="list-group journey-list">
+            ${entries}
+          </ul>
+        `;
+        }
+
+        const modalElement = document.getElementById("journeyModal");
+
+        if (!modalElement) {
+          showAlert(
+            "Modal element not found. Please refresh the page.",
+            "error",
+          );
+          return;
+        }
+
+        try {
+          const modalInstance =
+            bootstrap.Modal.getOrCreateInstance(modalElement);
+          modalInstance.show();
+        } catch (e) {
+          showAlert("Error displaying journey: " + e.message, "error");
+        }
+      }
+
+      // Load user information
+      function loadUserInfo() {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response.success) {
+              const user = response;
+              document.getElementById("userName").textContent = user.username;
+              document.getElementById("userRole").textContent =
+                `${user.roleName} (Level ${user.level})`;
+              document.getElementById("userAvatar").textContent = user.username
+                .charAt(0)
+                .toUpperCase();
+            } else {
+              // Redirect to login if session is invalid
+              window.top.location.href = baseUrl;
+            }
+          })
+          .withFailureHandler(function (error) {
+            // Redirect to login if there's an error
+            window.top.location.href = baseUrl;
+          })
+          .getCurrentUserAccessLevel(sessionToken);
+      }
+
+      // Logout function
+      function logout() {
+        google.script.run
+          .withSuccessHandler(function () {
+            window.top.location.href = baseUrl;
+          })
+          .withFailureHandler(function (error) {
+            window.top.location.href = baseUrl;
+          })
+          .clearSession(sessionToken);
+      }
+
+      // Load user info when page loads
+      document.addEventListener("DOMContentLoaded", function () {
+        loadUserInfo();
+      });
+
+      // ============================================================================
+      // TAG MANAGEMENT FUNCTIONS
+      // ============================================================================
+
+      /**
+       * Add a tag to an appointment
+       * @param {string} appointmentId - The appointment ID
+       * @param {string} sheetName - The sheet name (appointment, cancel, Archive)
+       * @param {string} tag - The tag to add
+       */
+      function addTag(appointmentId, sheetName, tag) {
+        // Validate tag input
+        if (!tag || tag.trim() === "") {
+          showAlert("Please enter a tag name", "warning");
+          return;
+        }
+
+        const trimmedTag = tag.trim();
+
+        // Get current tags to check for duplicates
+        const tagsContainer = document.getElementById(
+          "tags_container_" + appointmentId,
+        );
+        const existingTags = Array.from(
+          tagsContainer.querySelectorAll(".tag-text"),
+        ).map((el) => el.textContent);
+
+        if (existingTags.includes(trimmedTag)) {
+          showAlert("Tag already exists", "warning");
+          return;
+        }
+
+        // Disable buttons during operation
+        const addButton = document.querySelector(
+          `button[onclick*="addTagFromInput('${appointmentId}'"]`,
+        );
+        const inputField = document.getElementById(
+          "tag_input_" + appointmentId,
+        );
+        const dropdown = document.getElementById("tag_select_" + appointmentId);
+
+        if (addButton) addButton.disabled = true;
+        if (inputField) inputField.disabled = true;
+        if (dropdown) dropdown.disabled = true;
+
+        // Show loading indicator
+        showLoading();
+
+        // Call backend function
+        google.script.run
+          .withSuccessHandler(function (response) {
+            hideLoading();
+
+            // Re-enable buttons
+            if (addButton) addButton.disabled = false;
+            if (inputField) inputField.disabled = false;
+            if (dropdown) dropdown.disabled = false;
+
+            if (response.success) {
+              showAlert("Tag added successfully", "success");
+              // Update UI with new tag
+              refreshTagDisplay(appointmentId, response.tags);
+              // Clear input field
+              if (inputField) inputField.value = "";
+              // Reload existing tags to update dropdown
+              loadExistingTags(appointmentId, sheetName);
+            } else {
+              // Handle specific error cases
+              const errorMessage = response.message || "Unknown error";
+
+              // Check for concurrent modification (tag already exists might indicate concurrent add)
+              if (errorMessage.includes("already exists")) {
+                showAlert("Tag already exists on this appointment", "warning");
+                // Refresh display to show current state
+                if (response.tags && response.tags.length > 0) {
+                  refreshTagDisplay(appointmentId, response.tags);
+                }
+              } else if (errorMessage.includes("not found")) {
+                showAlert(
+                  "Appointment not found. The page may need to be refreshed.",
+                  "error",
+                );
+              } else {
+                showAlert("Error adding tag: " + errorMessage, "error");
+              }
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+
+            // Re-enable buttons
+            if (addButton) addButton.disabled = false;
+            if (inputField) inputField.disabled = false;
+            if (dropdown) dropdown.disabled = false;
+
+            // Check if it's a network error
+            const isNetworkError =
+              error &&
+              (error.toString().includes("network") ||
+                error.toString().includes("timeout") ||
+                error.toString().includes("connection"));
+
+            if (isNetworkError) {
+              showAlert("Network error adding tag. Click to retry.", "error");
+              retryOperation(function () {
+                addTag(appointmentId, sheetName, trimmedTag);
+              }, "add tag");
+            } else {
+              showAlert("Error adding tag: " + error, "error");
+            }
+          })
+          .addTagToAppointment(
+            appointmentId,
+            sheetName,
+            trimmedTag,
+            sessionToken,
+          );
+      }
+
+      /**
+       * Remove a tag from an appointment
+       * @param {string} appointmentId - The appointment ID
+       * @param {string} sheetName - The sheet name (appointment, cancel, Archive)
+       * @param {string} tag - The tag to remove
+       */
+      function removeTag(appointmentId, sheetName, tag) {
+        // Disable all tag remove buttons during operation
+        const tagsContainer = document.getElementById(
+          "tags_container_" + appointmentId,
+        );
+        const removeButtons = tagsContainer
+          ? tagsContainer.querySelectorAll(".tag-remove")
+          : [];
+        removeButtons.forEach((btn) => (btn.disabled = true));
+
+        // Disable add button and inputs
+        const addButton = document.querySelector(
+          `button[onclick*="addTagFromInput('${appointmentId}'"]`,
+        );
+        const inputField = document.getElementById(
+          "tag_input_" + appointmentId,
+        );
+        const dropdown = document.getElementById("tag_select_" + appointmentId);
+
+        if (addButton) addButton.disabled = true;
+        if (inputField) inputField.disabled = true;
+        if (dropdown) dropdown.disabled = true;
+
+        // Show loading indicator
+        showLoading();
+
+        // Call backend function
+        google.script.run
+          .withSuccessHandler(function (response) {
+            hideLoading();
+
+            // Re-enable buttons
+            if (addButton) addButton.disabled = false;
+            if (inputField) inputField.disabled = false;
+            if (dropdown) dropdown.disabled = false;
+
+            if (response.success) {
+              showAlert("Tag removed successfully", "success");
+              // Update UI
+              refreshTagDisplay(appointmentId, response.tags);
+              // Reload existing tags to update dropdown
+              loadExistingTags(appointmentId, sheetName);
+            } else {
+              // Handle specific error cases
+              const errorMessage = response.message || "Unknown error";
+
+              // Check for concurrent modification
+              if (errorMessage.includes("not found")) {
+                showAlert(
+                  "Tag or appointment not found. The page may need to be refreshed.",
+                  "error",
+                );
+                // Offer to refresh the display
+                setTimeout(function () {
+                  if (
+                    confirm("Would you like to refresh the appointment data?")
+                  ) {
+                    location.reload();
+                  }
+                }, 1000);
+              } else {
+                showAlert("Error removing tag: " + errorMessage, "error");
+              }
+
+              // Re-enable remove buttons on error
+              removeButtons.forEach((btn) => (btn.disabled = false));
+            }
+          })
+          .withFailureHandler(function (error) {
+            hideLoading();
+
+            // Re-enable buttons
+            if (addButton) addButton.disabled = false;
+            if (inputField) inputField.disabled = false;
+            if (dropdown) dropdown.disabled = false;
+            removeButtons.forEach((btn) => (btn.disabled = false));
+
+            // Check if it's a network error
+            const isNetworkError =
+              error &&
+              (error.toString().includes("network") ||
+                error.toString().includes("timeout") ||
+                error.toString().includes("connection"));
+
+            if (isNetworkError) {
+              showAlert("Network error removing tag. Click to retry.", "error");
+              retryOperation(function () {
+                removeTag(appointmentId, sheetName, tag);
+              }, "remove tag");
+            } else {
+              showAlert("Error removing tag: " + error, "error");
+            }
+          })
+          .removeTagFromAppointment(
+            appointmentId,
+            sheetName,
+            tag,
+            sessionToken,
+          );
+      }
+
+      // Store all available tags for each appointment for filtering
+      const availableTagsCache = {};
+
+      /**
+       * Retry a failed operation with user confirmation
+       * @param {Function} operation - The operation to retry
+       * @param {string} operationName - Name of the operation for display
+       */
+      function retryOperation(operation, operationName) {
+        if (
+          confirm(
+            `The ${operationName} operation failed. Would you like to retry?`,
+          )
+        ) {
+          operation();
+        }
+      }
+
+      /**
+       * Load existing tags for dropdown
+       * @param {string} appointmentId - The appointment ID
+       * @param {string} sheetName - The sheet name
+       */
+      function loadExistingTags(appointmentId, sheetName) {
+        // Get current tags for this appointment
+        const tagsContainer = document.getElementById(
+          "tags_container_" + appointmentId,
+        );
+        const currentTags = Array.from(
+          tagsContainer.querySelectorAll(".tag-text"),
+        ).map((el) => el.textContent);
+
+        // Show loading state in dropdown
+        const dropdown = document.getElementById("tag_select_" + appointmentId);
+        if (dropdown) {
+          dropdown.innerHTML = '<option value="">Loading tags...</option>';
+          dropdown.disabled = true;
+        }
+
+        // Call backend to get all tags
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response.success) {
+              // Filter out tags already on current appointment
+              const availableTags = response.tags.filter(
+                (tag) => !currentTags.includes(tag),
+              );
+
+              // Sort tags alphabetically
+              availableTags.sort();
+
+              // Store in cache for filtering
+              availableTagsCache[appointmentId] = availableTags;
+
+              // Populate dropdown
+              if (dropdown) {
+                dropdown.innerHTML =
+                  '<option value="">Select existing tag...</option>';
+
+                if (availableTags.length === 0) {
+                  dropdown.innerHTML =
+                    '<option value="">No existing tags available</option>';
+                  dropdown.disabled = true;
+                } else {
+                  availableTags.forEach((tag) => {
+                    const option = document.createElement("option");
+                    option.value = tag;
+                    option.textContent = tag;
+                    dropdown.appendChild(option);
+                  });
+                  dropdown.disabled = false;
+                }
+              }
+            } else {
+              // Handle error case
+              if (dropdown) {
+                dropdown.innerHTML =
+                  '<option value="">Error loading tags</option>';
+                dropdown.disabled = true;
+              }
+            }
+          })
+          .withFailureHandler(function (error) {
+            // Show error state in dropdown
+            if (dropdown) {
+              dropdown.innerHTML =
+                '<option value="">Error loading tags</option>';
+              dropdown.disabled = true;
+            }
+            showAlert("Error loading existing tags", "error");
+          })
+          .getAllTags();
+      }
+
+      /**
+       * Refresh tag display after modification
+       * @param {string} appointmentId - The appointment ID
+       * @param {string[]} tags - Updated tags array
+       */
+      function refreshTagDisplay(appointmentId, tags) {
+        const tagsContainer = document.getElementById(
+          "tags_container_" + appointmentId,
+        );
+
+        if (!tagsContainer) {
+          return;
+        }
+
+        // Clear current display
+        tagsContainer.innerHTML = "";
+
+        // Show empty state if no tags
+        if (!tags || tags.length === 0) {
+          tagsContainer.innerHTML =
+            '<span class="no-tags-message">No tags</span>';
+          return;
+        }
+
+        // Render each tag as badge with remove button
+        tags.forEach((tag) => {
+          const tagBadge = document.createElement("span");
+          tagBadge.className = "tag-badge";
+
+          const tagText = document.createElement("span");
+          tagText.className = "tag-text";
+          tagText.textContent = tag;
+
+          const removeButton = document.createElement("button");
+          removeButton.className = "tag-remove";
+          removeButton.textContent = "×";
+          removeButton.title = "Remove tag";
+          removeButton.onclick = function () {
+            removeTag(appointmentId, "appointment", tag);
+          };
+
+          tagBadge.appendChild(tagText);
+          tagBadge.appendChild(removeButton);
+          tagsContainer.appendChild(tagBadge);
+        });
+      }
+
+      /**
+       * Add tag from input field
+       * @param {string} appointmentId - The appointment ID
+       * @param {string} sheetName - The sheet name
+       */
+      function addTagFromInput(appointmentId, sheetName) {
+        const inputField = document.getElementById(
+          "tag_input_" + appointmentId,
+        );
+        const tag = inputField.value.trim();
+
+        if (tag) {
+          addTag(appointmentId, sheetName, tag);
+          // Clear input after successful addition
+          inputField.value = "";
+        } else {
+          showAlert("Please enter a tag name", "warning");
+        }
+      }
+
+      /**
+       * Handle Enter key press in tag input field
+       * @param {Event} event - The keypress event
+       * @param {string} appointmentId - The appointment ID
+       * @param {string} sheetName - The sheet name
+       */
+      function handleTagInputKeypress(event, appointmentId, sheetName) {
+        if (event.key === "Enter" || event.keyCode === 13) {
+          event.preventDefault();
+          addTagFromInput(appointmentId, sheetName);
+        }
+      }
+
+      /**
+       * Handle dropdown selection
+       * @param {string} appointmentId - The appointment ID
+       * @param {string} sheetName - The sheet name
+       */
+      function handleTagDropdownSelection(appointmentId, sheetName) {
+        const dropdown = document.getElementById("tag_select_" + appointmentId);
+        const selectedTag = dropdown.value;
+
+        if (selectedTag) {
+          addTag(appointmentId, sheetName, selectedTag);
+          // Reset dropdown after selection
+          dropdown.value = "";
+        }
+      }
+
+      /**
+       * Filter tag dropdown based on input text
+       * @param {string} appointmentId - The appointment ID
+       */
+      function filterTagDropdown(appointmentId) {
+        const inputField = document.getElementById(
+          "tag_input_" + appointmentId,
+        );
+        const dropdown = document.getElementById("tag_select_" + appointmentId);
+
+        if (!inputField || !dropdown) return;
+
+        const filterText = inputField.value.toLowerCase().trim();
+        const availableTags = availableTagsCache[appointmentId] || [];
+
+        // Filter tags based on input
+        const filteredTags = availableTags.filter((tag) =>
+          tag.toLowerCase().includes(filterText),
+        );
+
+        // Update dropdown with filtered tags
+        dropdown.innerHTML = '<option value="">Select existing tag...</option>';
+
+        if (filteredTags.length === 0) {
+          if (filterText) {
+            dropdown.innerHTML =
+              '<option value="">No matching tags found</option>';
+          } else {
+            dropdown.innerHTML =
+              '<option value="">No existing tags available</option>';
+          }
+          dropdown.disabled = true;
+        } else {
+          filteredTags.forEach((tag) => {
+            const option = document.createElement("option");
+            option.value = tag;
+            option.textContent = tag;
+            dropdown.appendChild(option);
+          });
+          dropdown.disabled = false;
+        }
+      }
+    </script>
+  </body>
+</html>

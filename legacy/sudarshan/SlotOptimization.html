@@ -1,0 +1,1105 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      /* Reuse dashboard color vars */
+      :root {
+        --primary-color: #4a90e2;
+        --text-primary: #2d3748;
+        --text-secondary: #4a5568;
+        --bg-light: #f7fafc;
+        --bg-white: #ffffff;
+        --success-color: #48bb78;
+        --warning-color: #ed8936;
+        --danger-color: #e53e3e;
+      }
+      body {
+        background: var(--bg-light);
+        color: var(--text-primary);
+        padding: 2rem;
+      }
+      .dashboard-header {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .card {
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      }
+      .table {
+        margin-bottom: 0;
+      }
+
+      .table th {
+        font-weight: 600;
+        white-space: nowrap;
+        background-color: #f8f9fa;
+      }
+
+      .table td {
+        vertical-align: middle;
+        padding: 0.75rem;
+      }
+
+      .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* Custom scrollbar for better visual */
+      .table-responsive::-webkit-scrollbar {
+        height: 8px;
+      }
+
+      .table-responsive::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+      }
+
+      .table-responsive::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+      }
+
+      .table-responsive::-webkit-scrollbar-thumb:hover {
+        background: #555;
+      }
+
+      /* Loading overlay styles */
+      .loading-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.9);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+      }
+
+      .loading-overlay.active {
+        display: flex;
+      }
+
+      .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 1rem;
+      }
+
+      .loading-text {
+        color: var(--primary-color);
+        font-size: 1.2rem;
+        font-weight: 500;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Alert Container Styles */
+      .alert-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-width: 400px;
+      }
+
+      .custom-alert {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 16px 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transform: translateX(120%);
+        animation: slideIn 0.3s forwards;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .custom-alert::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+      }
+
+      .custom-alert.success::before {
+        background: var(--success-color);
+      }
+
+      .custom-alert.error::before {
+        background: var(--danger-color);
+      }
+
+      .custom-alert.warning::before {
+        background: var(--warning-color);
+      }
+
+      .custom-alert.info::before {
+        background: var(--primary-color);
+      }
+
+      .alert-icon {
+        font-size: 1.2rem;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+      }
+
+      .alert-content {
+        flex: 1;
+      }
+
+      .alert-title {
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+
+      .alert-message {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+      }
+
+      .alert-close {
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 0;
+        color: var(--text-secondary);
+        opacity: 0.7;
+        transition: opacity 0.2s;
+      }
+
+      .alert-close:hover {
+        opacity: 1;
+      }
+
+      @keyframes slideIn {
+        to {
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes slideOut {
+        to {
+          transform: translateX(120%);
+        }
+      }
+
+      .custom-alert.closing {
+        animation: slideOut 0.3s forwards;
+      }
+
+      /* Add this to your existing styles */
+      .table-primary {
+        background-color: rgba(74, 144, 226, 0.1) !important;
+      }
+
+      #optScheduleTableBody td:last-child {
+        text-align: center;
+        width: 100px;
+      }
+
+      @media print {
+        .download-buttons,
+        .nav-tabs,
+        #saveControls {
+          display: none !important;
+        }
+      }
+
+      /* User Information Header Styles */
+      .user-info-header {
+        background: var(--bg-white);
+        border-bottom: 1px solid var(--primary-color);
+        padding: 0.75rem 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+
+      .user-info-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .user-details {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .user-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+
+      .user-text {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+      }
+
+      .user-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.95rem;
+      }
+
+      .user-role {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+      }
+
+      .user-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .user-actions .btn {
+        font-size: 0.8rem;
+        padding: 0.375rem 0.75rem;
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 768px) {
+        .user-info-content {
+          flex-direction: column;
+          gap: 0.75rem;
+          align-items: flex-start;
+        }
+
+        .user-actions {
+          width: 100%;
+          justify-content: flex-end;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      window.sessionToken = "<?= sessionToken ?>";
+      window.baseUrl = "<?= webAppUrl ?>";
+    </script>
+    <?!= include('sharedLayout') ?>
+    <div class="alert-container" id="alertContainer"></div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Optimizing Slots...</div>
+    </div>
+
+    <div class="container">
+      <!-- Header -->
+      <div class="dashboard-header">
+        <h1>Slot Optimization</h1>
+        <button class="btn btn-danger" onclick="logout()">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+
+      <!-- Date picker + button -->
+      <div class="card p-3 mb-4">
+        <div class="row align-items-end">
+          <div class="col-sm-4">
+            <label for="optDate" class="form-label">Select Date:</label>
+            <input id="optDate" type="date" class="form-control" />
+          </div>
+          <div class="col-sm-4">
+            <button id="runOptimizationBtn" class="btn btn-primary">
+              <i class="fas fa-cogs"></i> Optimize Slots
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs for results -->
+      <ul class="nav nav-tabs mb-3" id="optTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link active"
+            data-bs-toggle="tab"
+            data-bs-target="#tabSchedule"
+            type="button"
+            role="tab"
+          >
+            Optimized Schedule
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            data-bs-toggle="tab"
+            data-bs-target="#tabBlocks"
+            type="button"
+            role="tab"
+          >
+            Availability Blocks
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            data-bs-toggle="tab"
+            data-bs-target="#tabUtilization"
+            type="button"
+            role="tab"
+          >
+            Utilization Report
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            data-bs-toggle="tab"
+            data-bs-target="#tabReschedule"
+            type="button"
+            role="tab"
+          >
+            Reschedule List
+          </button>
+        </li>
+      </ul>
+
+      <div class="tab-content">
+        <!-- Optimized Schedule -->
+        <div class="tab-pane fade show active" id="tabSchedule" role="tabpanel">
+          <div class="card mb-4">
+            <div class="card-body">
+              <h5 class="card-title mb-3">Optimized Schedule</h5>
+              <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                  <thead class="table-light">
+                    <tr>
+                      <th style="min-width: 100px">Date</th>
+                      <th style="min-width: 100px">MRD No</th>
+                      <th style="min-width: 150px">Patient Name</th>
+                      <th style="min-width: 200px">Procedures</th>
+                      <th style="min-width: 100px">Priority</th>
+                      <th style="min-width: 120px">Check-In Time</th>
+                      <th style="min-width: 120px">Consult Start</th>
+                      <th style="min-width: 120px">Consult End</th>
+                      <th style="min-width: 120px">Duration (mins)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="optScheduleTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Availability Blocks -->
+        <div class="tab-pane fade" id="tabBlocks" role="tabpanel">
+          <div class="card mb-4">
+            <div class="card-body">
+              <h5 class="card-title">Availability Blocks</h5>
+              <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Block Start</th>
+                      <th>Block End</th>
+                      <th>Duration (mins)</th>
+                      <th>Original Slots</th>
+                      <th>Remaining Slots</th>
+                    </tr>
+                  </thead>
+                  <tbody id="availBlocksTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Utilization Report -->
+        <div class="tab-pane fade" id="tabUtilization" role="tabpanel">
+          <div class="card mb-4">
+            <div class="card-body">
+              <h5 class="card-title">Utilization Report</h5>
+              <div class="table-responsive">
+                <table class="table table-bordered">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Total Available</th>
+                      <th>Scheduled</th>
+                      <th>Remaining</th>
+                      <th>Utilization %</th>
+                      <th>Scheduled Patients</th>
+                      <th>Rescheduled Patients</th>
+                      <th>Total Patients</th>
+                    </tr>
+                  </thead>
+                  <tbody id="utilReportTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Reschedule List -->
+        <div class="tab-pane fade" id="tabReschedule" role="tabpanel">
+          <div class="card mb-4">
+            <div class="card-body">
+              <h5 class="card-title">Reschedule List</h5>
+              <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>MRD No</th>
+                      <th>Patient Name</th>
+                      <th>Procedures</th>
+                      <th>Priority</th>
+                      <th>Duration</th>
+                      <th>Original Slot</th>
+                      <th>Reason</th>
+                      <th>Attempted Blocks</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rescheduleTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Download buttons section -->
+      <div class="download-buttons">
+        <button class="btn btn-outline-primary" onclick="sendEmailOverview()">
+          <i class="fas fa-envelope"></i> Send Email
+        </button>
+        <button
+          class="btn btn-outline-primary"
+          onclick="printOptimizedSchedule()"
+        >
+          <i class="fas fa-print"></i> Print Schedule
+        </button>
+        <button class="btn btn-outline-secondary" onclick="goBack()">
+          <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </button>
+      </div>
+    </div>
+
+    <!-- Add this modal at the bottom of the body, before the scripts -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Confirm Changes</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <p>
+              Are you sure you want to finalize these appointments? This will
+              update the appointment sheet.
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <button type="button" class="btn btn-primary" id="confirmSaveBtn">
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add this section for save/cancel buttons (place it below the download buttons section) -->
+    <div id="saveControls" class="d-none mt-3">
+      <button id="saveBtn" class="btn btn-success me-2">
+        <i class="fas fa-save"></i> Save Final Selections
+      </button>
+      <button id="cancelBtn" class="btn btn-outline-secondary">
+        <i class="fas fa-times"></i> Cancel
+      </button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      var baseUrl = "<?= webAppUrl ?>";
+      var sessionToken = "<?= sessionToken ?>";
+
+      // Add these variables at the top of your script
+      let selectedAppointments = [];
+      let currentOptimizationDate = "";
+
+      function showAlert(message, type = "info", title = null) {
+        const container = document.getElementById("alertContainer");
+        const alert = document.createElement("div");
+        alert.className = `custom-alert ${type}`;
+
+        let icon = "";
+        switch (type) {
+          case "success":
+            icon = "✓";
+            title = title || "Success";
+            break;
+          case "error":
+            icon = "✕";
+            title = title || "Error";
+            break;
+          case "warning":
+            icon = "⚠";
+            title = title || "Warning";
+            break;
+          default:
+            icon = "ℹ";
+            title = title || "Information";
+        }
+
+        alert.innerHTML = `
+        <div class="alert-icon ${type}">${icon}</div>
+        <div class="alert-content">
+          ${title ? `<div class="alert-title">${title}</div>` : ""}
+          <div class="alert-message">${message}</div>
+        </div>
+        <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+      `;
+
+        container.appendChild(alert);
+
+        // Auto-close after 5 seconds
+        setTimeout(() => {
+          alert.classList.add("closing");
+          setTimeout(() => alert.remove(), 300);
+        }, 5000);
+      }
+
+      /*// Trigger optimization
+    document.getElementById('runOptimizationBtn')
+      .addEventListener('click', () => {
+        const date = document.getElementById('optDate').value;
+        if (!date) { alert('Please select a date'); return; }
+        
+        // Show loading overlay
+        document.getElementById('loadingOverlay').classList.add('active');
+        // Disable the button while processing
+        document.getElementById('runOptimizationBtn').disabled = true;
+        
+        google.script.run
+          .withSuccessHandler((result) => {
+            // Hide loading overlay
+            document.getElementById('loadingOverlay').classList.remove('active');
+            // Re-enable the button
+            document.getElementById('runOptimizationBtn').disabled = false;
+            renderAllSections(result);
+          })
+          .withFailureHandler(e => {
+            // Hide loading overlay
+            document.getElementById('loadingOverlay').classList.remove('active');
+            // Re-enable the button
+            document.getElementById('runOptimizationBtn').disabled = false;
+            alert('Error: '+e.message);
+          })
+          .runSlotOptimizationForDate(date);
+      });*/
+
+      // After optimization, fetch each sheet's data
+      function renderAllSections(summary) {
+        if (!summary.success) {
+          alert("Failed: " + summary.message);
+          return;
+        }
+        google.script.run
+          .withSuccessHandler(renderTable.bind(null, "optScheduleTableBody"))
+          .getSheetData("Optimized Schedule");
+        google.script.run
+          .withSuccessHandler(renderTable.bind(null, "availBlocksTableBody"))
+          .getSheetData("Availability Blocks");
+        google.script.run
+          .withSuccessHandler(renderTable.bind(null, "utilReportTableBody"))
+          .getSheetData("Utilization Report");
+        google.script.run
+          .withSuccessHandler(renderTable.bind(null, "rescheduleTableBody"))
+          .getSheetData("Reschedule List");
+      }
+
+      // Enhanced table rendering function
+      function renderTable(tbodyId, data) {
+        const tbody = document.getElementById(tbodyId);
+        tbody.innerHTML = "";
+        if (!data || data.length <= 1) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 9;
+          td.textContent = "No data available";
+          td.className = "text-center";
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+          return;
+        }
+
+        data.slice(1).forEach((row) => {
+          const tr = document.createElement("tr");
+          row.forEach((cell, index) => {
+            const td = document.createElement("td");
+            // Format the cell content based on the column
+            if (index === 0) {
+              // Date column
+              td.textContent = cell ? formatDisplayDate(new Date(cell)) : "";
+            } else if ([5, 6, 7].includes(index)) {
+              // Time columns
+              td.textContent = cell || "-";
+            } else {
+              td.textContent = cell || "-";
+            }
+            tr.appendChild(td);
+          });
+
+          // Add Final button column
+          const actionTd = document.createElement("td");
+          const finalBtn = document.createElement("button");
+          finalBtn.className = "btn btn-sm btn-outline-primary";
+          finalBtn.innerHTML = '<i class="fas fa-check"></i> Final';
+          finalBtn.dataset.mrd = row[1]; // MRD No is in column 1
+          finalBtn.dataset.time = row[5]; // Check-in time is in column 5
+          finalBtn.addEventListener("click", handleFinalClick);
+          actionTd.appendChild(finalBtn);
+          tr.appendChild(actionTd);
+          tbody.appendChild(tr);
+        });
+      }
+
+      function sendEmailOverview() {
+        // Show loading message
+        showAlert("Sending email overview...", "info");
+
+        const date = document.getElementById("optDate").value;
+        if (!date) {
+          showAlert("Please select a date first.", "warning");
+          return;
+        }
+
+        // Disable the button while processing
+        const button = document.querySelector(".download-buttons button");
+        button.disabled = true;
+
+        // Show loading overlay
+        document.getElementById("loadingOverlay").classList.add("active");
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            // Hide loading overlay
+            document
+              .getElementById("loadingOverlay")
+              .classList.remove("active");
+            // Re-enable the button
+            button.disabled = false;
+
+            if (response.success) {
+              showAlert("Email sent successfully!", "success");
+            } else {
+              showAlert("Failed to send email: " + response.message, "error");
+            }
+          })
+          .withFailureHandler(function (error) {
+            // Hide loading overlay
+            document
+              .getElementById("loadingOverlay")
+              .classList.remove("active");
+            // Re-enable the button
+            button.disabled = false;
+            showAlert("Error sending email: " + error, "error");
+          })
+          .sendEmailOverview();
+      }
+
+      function goBack() {
+        // Show loading message
+        showAlert("Redirecting to Dashboard...", "info");
+        // Navigate back to the Dashboard with session token
+        window.top.location.href =
+          baseUrl +
+          "?page=Dashboard&sessionToken=" +
+          encodeURIComponent(sessionToken);
+      }
+
+      function logout() {
+        console.log(
+          "SlotOptimization: Logout clicked, session token:",
+          sessionToken,
+        );
+        showAlert("Logging out...", "info");
+        google.script.run
+          .withSuccessHandler(function () {
+            window.top.location.href = baseUrl;
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error during logout: " + error, "error");
+          })
+          .clearSession(sessionToken);
+      }
+
+      // Add these new functions
+      function handleFinalClick(e) {
+        const btn = e.target.closest("button");
+        const mrd = btn.dataset.mrd;
+        const time = btn.dataset.time;
+
+        // Toggle selection
+        const index = selectedAppointments.findIndex((a) => a.mrd === mrd);
+        if (index === -1) {
+          // Add to selection
+          selectedAppointments.push({ mrd, time });
+          btn.classList.remove("btn-outline-primary");
+          btn.classList.add("btn-primary");
+          btn.closest("tr").classList.add("table-primary");
+        } else {
+          // Remove from selection
+          selectedAppointments.splice(index, 1);
+          btn.classList.remove("btn-primary");
+          btn.classList.add("btn-outline-primary");
+          btn.closest("tr").classList.remove("table-primary");
+        }
+
+        // Show/hide save controls
+        document
+          .getElementById("saveControls")
+          .classList.toggle("d-none", selectedAppointments.length === 0);
+      }
+
+      /**
+       * Saves the final selections to the appointment sheet
+       */
+      function saveFinalSelections() {
+        try {
+          if (!selectedAppointments.length) {
+            showAlert("No appointments selected", "warning");
+            return;
+          }
+
+          // Validate we have a date
+          if (!currentOptimizationDate) {
+            showAlert("No optimization date found", "error");
+            return;
+          }
+
+          // Show confirmation modal
+          const modal = new bootstrap.Modal(
+            document.getElementById("confirmModal"),
+          );
+          modal.show();
+
+          // Set up confirm button handler (only once)
+          const confirmBtn = document.getElementById("confirmSaveBtn");
+          confirmBtn.onclick = function () {
+            modal.hide();
+
+            // Show loading overlay
+            const loadingOverlay = document.getElementById("loadingOverlay");
+            loadingOverlay.classList.add("active");
+
+            // Disable buttons during processing
+            document.getElementById("saveBtn").disabled = true;
+            document.getElementById("cancelBtn").disabled = true;
+
+            // Call server function to update appointments
+            google.script.run
+              .withSuccessHandler(function (result) {
+                loadingOverlay.classList.remove("active");
+                document.getElementById("saveBtn").disabled = false;
+                document.getElementById("cancelBtn").disabled = false;
+
+                if (result.success) {
+                  showAlert(
+                    result.message || "Appointments updated successfully!",
+                    "success",
+                  );
+                  // Clear all table data
+                  [
+                    "optScheduleTableBody",
+                    "availBlocksTableBody",
+                    "utilReportTableBody",
+                    "rescheduleTableBody",
+                  ].forEach((id) => {
+                    document.getElementById(id).innerHTML = "";
+                    const tr = document.createElement("tr");
+                    const td = document.createElement("td");
+                    td.colSpan = 9;
+                    td.textContent =
+                      "No data available - run optimization to generate results";
+                    td.className = "text-center text-muted";
+                    tr.appendChild(td);
+                    document.getElementById(id).appendChild(tr);
+                  });
+                  // Clear selections
+                  cancelSelections();
+                  // Reset the date picker
+                  document.getElementById("optDate").value = "";
+                  currentOptimizationDate = "";
+                } else {
+                  showAlert(
+                    result.message || "Error updating appointments",
+                    "error",
+                  );
+                }
+              })
+              .withFailureHandler(function (error) {
+                loadingOverlay.classList.remove("active");
+                document.getElementById("saveBtn").disabled = false;
+                document.getElementById("cancelBtn").disabled = false;
+                showAlert("Error: " + error.message, "error");
+              })
+              .updateFinalAppointments(
+                currentOptimizationDate,
+                selectedAppointments,
+              );
+          };
+        } catch (error) {
+          console.error("Error in saveFinalSelections:", error);
+          showAlert("Error saving selections", "error");
+        }
+      }
+
+      // Event Listeners
+      document.addEventListener("DOMContentLoaded", function () {
+        // Save button click handler
+        document
+          .getElementById("saveBtn")
+          .addEventListener("click", function (e) {
+            e.preventDefault();
+            saveFinalSelections();
+          });
+
+        // Cancel button click handler
+        document
+          .getElementById("cancelBtn")
+          .addEventListener("click", function (e) {
+            e.preventDefault();
+            cancelSelections();
+          });
+
+        // Optimization button click handler - stores the current date
+        document
+          .getElementById("runOptimizationBtn")
+          .addEventListener("click", function () {
+            currentOptimizationDate = document.getElementById("optDate").value;
+            if (!currentOptimizationDate) {
+              showAlert("Please select a date first", "warning");
+              return;
+            }
+
+            const runBtn = this; // cache for re-enable later
+            runBtn.disabled = true; // ← added
+
+            // Show loading overlay
+            document.getElementById("loadingOverlay").classList.add("active");
+
+            // Clear any previous selections
+            cancelSelections();
+
+            // Continue with existing optimization logic
+            google.script.run
+              .withSuccessHandler((result) => {
+                document
+                  .getElementById("loadingOverlay")
+                  .classList.remove("active");
+                runBtn.disabled = false; // ← added
+                renderAllSections(result);
+              })
+              .withFailureHandler((e) => {
+                document
+                  .getElementById("loadingOverlay")
+                  .classList.remove("active");
+                runBtn.disabled = false; // ← added
+                showAlert("Error: " + e.message, "error");
+              })
+              .runSlotOptimizationForDate(currentOptimizationDate);
+          });
+      });
+
+      /**
+       * Clears all selected appointments and resets the UI
+       */
+      function cancelSelections() {
+        try {
+          // Clear visual selections from all rows
+          document
+            .querySelectorAll("#optScheduleTableBody tr")
+            .forEach((tr) => {
+              // Remove highlight class
+              tr.classList.remove("table-primary");
+
+              // Reset button styling
+              const btn = tr.querySelector("button");
+              if (btn) {
+                btn.classList.remove("btn-primary");
+                btn.classList.add("btn-outline-primary");
+                btn.innerHTML = '<i class="fas fa-check"></i> Final'; // Reset icon if changed
+              }
+            });
+
+          // Clear the selected appointments array
+          selectedAppointments = [];
+
+          // Hide the save controls
+          document.getElementById("saveControls").classList.add("d-none");
+
+          // Show feedback to user
+          showAlert("Selection cancelled", "info");
+        } catch (error) {
+          console.error("Error in cancelSelections:", error);
+          showAlert("Error cancelling selections", "error");
+        }
+      }
+
+      function printOptimizedSchedule() {
+        // Clone the table
+        const originalTable = document.querySelector("#tabSchedule table");
+        const clone = originalTable.cloneNode(true);
+
+        // Remove the action column (last column)
+        clone.querySelectorAll("tr").forEach((tr) => {
+          const cells = tr.querySelectorAll("td, th");
+          if (cells.length > 9) {
+            // Only if there are more than 9 columns
+            for (let i = cells.length - 1; i >= 9; i--) {
+              cells[i].remove();
+            }
+          }
+        });
+
+        // Create a new window for printing
+        const printWindow = window.open("", "", "width=800,height=600");
+        printWindow.document.write(`
+    <html>
+      <head>
+        <title>Optimized Schedule Print</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f2f2f2; font-weight: bold; }
+          tr:nth-child(even) { background-color: #f9f9f9; }
+          .print-header { text-align: center; margin-bottom: 20px; }
+          .print-title { font-size: 18px; font-weight: bold; }
+          .print-date { margin-top: 5px; }
+        </style>
+      </head>
+      <body>
+        <div class="print-header">
+          <div class="print-title">Optimized Schedule</div>
+          <div class="print-date">${formatDisplayDate(document.getElementById("optDate").value) || "No date selected"}</div>
+        </div>
+        ${clone.outerHTML}
+        <script>
+          window.onload = function() {
+            window.print();
+            setTimeout(function() {
+              window.close();
+            }, 100);
+          };
+        <\/script>
+      </body>
+    </html>
+  `);
+        printWindow.document.close();
+      }
+
+      // Load user information
+      function loadUserInfo() {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response.success) {
+              const user = response;
+              document.getElementById("userName").textContent = user.username;
+              document.getElementById("userRole").textContent =
+                `${user.roleName} (Level ${user.level})`;
+              document.getElementById("userAvatar").textContent = user.username
+                .charAt(0)
+                .toUpperCase();
+            } else {
+              console.error("Error loading user info:", response.message);
+              // Redirect to login if session is invalid
+              window.top.location.href = baseUrl;
+            }
+          })
+          .withFailureHandler(function (error) {
+            console.error("Error loading user info:", error);
+            // Redirect to login if there's an error
+            window.top.location.href = baseUrl;
+          })
+          .getCurrentUserAccessLevel(sessionToken);
+      }
+
+      // Navigation function
+      function goToPage(pageName) {
+        var newUrl =
+          baseUrl +
+          "?page=" +
+          pageName +
+          "&sessionToken=" +
+          encodeURIComponent(sessionToken);
+        window.top.location.href = newUrl;
+      }
+
+      // Load user info when page loads
+      document.addEventListener("DOMContentLoaded", function () {
+        loadUserInfo();
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,803 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Appointment List - Optimized</title>
+
+    <!-- External CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Custom CSS -->
+    <style>
+      /* Critical CSS only - move rest to external file */
+      :root {
+        --primary-color: #4a90e2;
+        --success-color: #48bb78;
+        --warning-color: #ed8936;
+        --danger-color: #e53e3e;
+      }
+
+      .skeleton {
+        animation: pulse 1.5s ease-in-out infinite alternate;
+      }
+      .skeleton-line {
+        height: 20px;
+        background: linear-gradient(
+          90deg,
+          #f0f0f0 25%,
+          #e0e0e0 50%,
+          #f0f0f0 75%
+        );
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+        margin-bottom: 10px;
+        border-radius: 4px;
+      }
+
+      @keyframes loading {
+        0% {
+          background-position: 200% 0;
+        }
+        100% {
+          background-position: -200% 0;
+        }
+      }
+
+      .error-state {
+        text-align: center;
+        padding: 2rem;
+        color: var(--danger-color);
+      }
+
+      .search-input-group {
+        position: relative;
+      }
+
+      .search-loading {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Loading Overlay -->
+    <div
+      id="loadingOverlay"
+      class="d-none position-fixed top-0 start-0 w-100 h-100 bg-white bg-opacity-75 d-flex justify-content-center align-items-center"
+      style="z-index: 9999"
+    >
+      <div class="text-center">
+        <div class="spinner-border text-primary mb-3" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <div id="loadingText">Loading appointments...</div>
+      </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div
+      id="toastContainer"
+      class="toast-container position-fixed top-0 end-0 p-3"
+      style="z-index: 9999"
+    ></div>
+
+    <div class="container-fluid px-4 py-3">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+          <i class="fas fa-calendar-alt text-primary me-2"></i>
+          Appointment List <span class="badge bg-success">Optimized</span>
+        </h1>
+        <button class="btn btn-outline-primary" onclick="goToPage('Dashboard')">
+          <i class="fas fa-arrow-left"></i> Dashboard
+        </button>
+      </div>
+
+      <!-- Advanced Search Card -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-search me-2"></i>Search Appointments
+          </h5>
+        </div>
+        <div class="card-body">
+          <form id="searchForm">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label for="mrdNo" class="form-label">MRD Number</label>
+                <div class="search-input-group">
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="mrdNo"
+                    placeholder="Enter MRD No"
+                  />
+                  <div class="search-loading">
+                    <div
+                      class="spinner-border spinner-border-sm"
+                      role="status"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <label for="patientName" class="form-label">Patient Name</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="patientName"
+                  placeholder="Enter patient name"
+                />
+              </div>
+              <div class="col-md-4">
+                <label for="phone" class="form-label">Phone Number</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="phone"
+                  placeholder="Enter phone number"
+                />
+              </div>
+              <div class="col-md-3">
+                <label for="appointmentDate" class="form-label"
+                  >Appointment Date</label
+                >
+                <input type="date" class="form-control" id="appointmentDate" />
+              </div>
+              <div class="col-md-3">
+                <label for="fourDayConfirm" class="form-label"
+                  >4-Day Confirmation</label
+                >
+                <select class="form-control" id="fourDayConfirm">
+                  <option value="">All</option>
+                  <option value="pending">Pending</option>
+                  <option value="confirmed">Confirmed</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label for="oneDayConfirm" class="form-label"
+                  >1-Day Confirmation</label
+                >
+                <select class="form-control" id="oneDayConfirm">
+                  <option value="">All</option>
+                  <option value="pending">Pending</option>
+                  <option value="confirmed">Confirmed</option>
+                </select>
+              </div>
+              <div class="col-md-3 d-flex align-items-end">
+                <div class="d-grid w-100">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Search
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="row mt-3">
+              <div class="col-md-6">
+                <button
+                  type="button"
+                  class="btn btn-outline-info w-100"
+                  onclick="showDuplicateAppointments()"
+                >
+                  <i class="fas fa-users"></i> Show Duplicate MRDs
+                </button>
+              </div>
+              <div class="col-md-6">
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary w-100"
+                  onclick="exportResults()"
+                >
+                  <i class="fas fa-download"></i> Export Results
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Results Summary -->
+      <div id="resultsSummary" class="card mb-3 d-none">
+        <div class="card-body py-2">
+          <div class="d-flex justify-content-between align-items-center">
+            <span id="resultsCount" class="text-muted"></span>
+            <div class="btn-group btn-group-sm" role="group">
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                onclick="toggleView('card')"
+              >
+                <i class="fas fa-th-large"></i> Cards
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                onclick="toggleView('table')"
+              >
+                <i class="fas fa-table"></i> Table
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results Container -->
+      <div id="resultsContainer">
+        <!-- Dynamic content will be inserted here -->
+      </div>
+
+      <!-- Pagination -->
+      <nav aria-label="Appointment pagination" class="mt-4">
+        <ul class="pagination justify-content-center" id="pagination">
+          <!-- Pagination will be dynamically generated -->
+        </ul>
+      </nav>
+    </div>
+
+    <!-- External Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom Scripts -->
+    <script>
+      // Configuration
+      const CONFIG = {
+        baseUrl: "<?= webAppUrl ?>",
+        sessionToken: "<?= sessionToken ?>",
+        itemsPerPage: 20,
+        searchDebounceDelay: 300,
+        cacheTimeout: 5 * 60 * 1000, // 5 minutes
+      };
+
+      // Application State
+      const AppState = {
+        currentPage: 1,
+        totalItems: 0,
+        isShowingDuplicates: false,
+        currentView: "card",
+        searchCache: new Map(),
+        lastSearchParams: null,
+      };
+
+      // Utility Functions
+      const Utils = {
+        debounce(func, wait) {
+          let timeout;
+          return function executedFunction(...args) {
+            const later = () => {
+              clearTimeout(timeout);
+              func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+          };
+        },
+
+        formatDate(dateString) {
+          if (!dateString) return "";
+          try {
+            return new Date(dateString).toLocaleDateString();
+          } catch (e) {
+            return dateString;
+          }
+        },
+
+        createCacheKey(params) {
+          return JSON.stringify(params);
+        },
+
+        showToast(message, type = "info") {
+          const toastHtml = `
+          <div class="toast align-items-center text-bg-${type} border-0" role="alert">
+            <div class="d-flex">
+              <div class="toast-body">${message}</div>
+              <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+          </div>
+        `;
+
+          const toastElement = document.createElement("div");
+          toastElement.innerHTML = toastHtml;
+          document
+            .getElementById("toastContainer")
+            .appendChild(toastElement.firstElementChild);
+
+          const toast = new bootstrap.Toast(toastElement.firstElementChild);
+          toast.show();
+        },
+      };
+
+      // Loading States
+      const LoadingManager = {
+        show(text = "Loading...") {
+          document.getElementById("loadingText").textContent = text;
+          document.getElementById("loadingOverlay").classList.remove("d-none");
+        },
+
+        hide() {
+          document.getElementById("loadingOverlay").classList.add("d-none");
+        },
+
+        showSkeleton() {
+          const container = document.getElementById("resultsContainer");
+          container.innerHTML = Array(5)
+            .fill(0)
+            .map(
+              () => `
+          <div class="card mb-3">
+            <div class="card-body">
+              <div class="skeleton-line" style="width: 60%;"></div>
+              <div class="skeleton-line" style="width: 80%;"></div>
+              <div class="skeleton-line" style="width: 70%;"></div>
+              <div class="skeleton-line" style="width: 40%;"></div>
+            </div>
+          </div>
+        `,
+            )
+            .join("");
+        },
+
+        showError(message) {
+          const container = document.getElementById("resultsContainer");
+          container.innerHTML = `
+          <div class="error-state">
+            <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+            <h4>Oops! Something went wrong</h4>
+            <p class="text-muted">${message}</p>
+            <button class="btn btn-primary" onclick="loadAppointments()">
+              <i class="fas fa-redo"></i> Try Again
+            </button>
+          </div>
+        `;
+        },
+
+        showEmpty() {
+          const container = document.getElementById("resultsContainer");
+          container.innerHTML = `
+          <div class="text-center py-5">
+            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+            <h4>No appointments found</h4>
+            <p class="text-muted">Try adjusting your search criteria</p>
+          </div>
+        `;
+        },
+      };
+
+      // API Manager
+      const ApiManager = {
+        async callGoogleScript(functionName, ...args) {
+          return new Promise((resolve, reject) => {
+            google.script.run
+              .withSuccessHandler(resolve)
+              .withFailureHandler(reject)
+              [functionName](...args);
+          });
+        },
+
+        async searchAppointments(params) {
+          const cacheKey = Utils.createCacheKey(params);
+          const cached = AppState.searchCache.get(cacheKey);
+
+          if (cached && Date.now() - cached.timestamp < CONFIG.cacheTimeout) {
+            return cached.data;
+          }
+
+          try {
+            const result = await this.callGoogleScript(
+              "optimizedSearchAppointments",
+              params,
+            );
+
+            // Cache successful results
+            if (result.success) {
+              AppState.searchCache.set(cacheKey, {
+                data: result,
+                timestamp: Date.now(),
+              });
+            }
+
+            return result;
+          } catch (error) {
+            throw new Error("Search failed. Please try again.");
+          }
+        },
+      };
+
+      // UI Renderer
+      const UIRenderer = {
+        renderAppointmentCard(appointment) {
+          const fixedSlotBadge =
+            appointment.FixedSlot === true || appointment.FixedSlot === "Yes"
+              ? '<span class="badge bg-warning ms-2"><i class="fas fa-thumbtack"></i> FIXED</span>'
+              : "";
+
+          return `
+          <div class="card mb-3 appointment-card" data-id="${appointment.AppointmentID}">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <h6 class="card-title mb-0 text-primary">${appointment.AppointmentID}</h6>
+                <div class="text-muted small">
+                  <i class="fas fa-calendar"></i> ${Utils.formatDate(appointment.AppointmentDate)}
+                  <i class="fas fa-clock ms-2"></i> ${appointment.TimeSlot}
+                  ${fixedSlotBadge}
+                </div>
+              </div>
+              
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <strong>MRD:</strong> ${appointment.MRDNo}<br>
+                  <strong>Patient:</strong> ${appointment.PatientName}<br>
+                  <strong>Age/Gender:</strong> ${appointment.Age}/${appointment.Gender}
+                </div>
+                <div class="col-md-6">
+                  <strong>Phone:</strong> ${appointment.Phone}<br>
+                  <strong>Type:</strong> ${appointment.AppointmentType}<br>
+                  <strong>Doctor:</strong> ${appointment.Doctor}
+                </div>
+              </div>
+              
+              <div class="mt-3 d-flex gap-2 flex-wrap">
+                <button class="btn btn-sm btn-outline-primary" onclick="editAppointment('${appointment.AppointmentID}')">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+                <button class="btn btn-sm btn-warning" onclick="rescheduleAppointment('${appointment.AppointmentID}')">
+                  <i class="fas fa-clock"></i> Reschedule
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteAppointment('${appointment.AppointmentID}')">
+                  <i class="fas fa-trash"></i> Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        },
+
+        renderAppointmentTable(appointments) {
+          const rows = appointments
+            .map(
+              (apt) => `
+          <tr data-id="${apt.AppointmentID}">
+            <td>${apt.AppointmentID}</td>
+            <td>${Utils.formatDate(apt.AppointmentDate)}</td>
+            <td>${apt.TimeSlot}</td>
+            <td>${apt.MRDNo}</td>
+            <td>${apt.PatientName}</td>
+            <td>${apt.Phone}</td>
+            <td>${apt.Doctor}</td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-primary" onclick="editAppointment('${apt.AppointmentID}')">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-warning" onclick="rescheduleAppointment('${apt.AppointmentID}')">
+                  <i class="fas fa-clock"></i>
+                </button>
+                <button class="btn btn-outline-danger" onclick="deleteAppointment('${apt.AppointmentID}')">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `,
+            )
+            .join("");
+
+          return `
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>ID</th>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>MRD</th>
+                  <th>Patient</th>
+                  <th>Phone</th>
+                  <th>Doctor</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+          </div>
+        `;
+        },
+
+        displayAppointments(appointments) {
+          const container = document.getElementById("resultsContainer");
+
+          if (!appointments || appointments.length === 0) {
+            LoadingManager.showEmpty();
+            return;
+          }
+
+          if (AppState.currentView === "table") {
+            container.innerHTML = this.renderAppointmentTable(appointments);
+          } else {
+            container.innerHTML = appointments
+              .map((apt) => this.renderAppointmentCard(apt))
+              .join("");
+          }
+
+          // Update results summary
+          this.updateResultsSummary(appointments.length);
+        },
+
+        updateResultsSummary(count) {
+          const summary = document.getElementById("resultsSummary");
+          const countElement = document.getElementById("resultsCount");
+
+          if (count > 0) {
+            summary.classList.remove("d-none");
+            countElement.textContent = `Showing ${count} of ${AppState.totalItems} appointments`;
+          } else {
+            summary.classList.add("d-none");
+          }
+        },
+
+        updatePagination(total) {
+          AppState.totalItems = total;
+          const totalPages = Math.ceil(total / CONFIG.itemsPerPage);
+          const pagination = document.getElementById("pagination");
+
+          if (totalPages <= 1) {
+            pagination.innerHTML = "";
+            return;
+          }
+
+          let paginationHtml = "";
+
+          // Previous button
+          paginationHtml += `
+          <li class="page-item ${AppState.currentPage === 1 ? "disabled" : ""}">
+            <a class="page-link" href="#" onclick="changePage(${AppState.currentPage - 1}, event)">
+              <i class="fas fa-chevron-left"></i>
+            </a>
+          </li>
+        `;
+
+          // Page numbers (show max 5 pages)
+          const startPage = Math.max(1, AppState.currentPage - 2);
+          const endPage = Math.min(totalPages, startPage + 4);
+
+          for (let i = startPage; i <= endPage; i++) {
+            paginationHtml += `
+            <li class="page-item ${AppState.currentPage === i ? "active" : ""}">
+              <a class="page-link" href="#" onclick="changePage(${i}, event)">${i}</a>
+            </li>
+          `;
+          }
+
+          // Next button
+          paginationHtml += `
+          <li class="page-item ${AppState.currentPage === totalPages ? "disabled" : ""}">
+            <a class="page-link" href="#" onclick="changePage(${AppState.currentPage + 1}, event)">
+              <i class="fas fa-chevron-right"></i>
+            </a>
+          </li>
+        `;
+
+          pagination.innerHTML = paginationHtml;
+        },
+      };
+
+      // Main Application Logic
+      const AppointmentList = {
+        async init() {
+          this.setupEventListeners();
+          await this.loadInitialData();
+        },
+
+        setupEventListeners() {
+          // Search form
+          document
+            .getElementById("searchForm")
+            .addEventListener("submit", (e) => {
+              e.preventDefault();
+              this.performSearch();
+            });
+
+          // Debounced search on input
+          const debouncedSearch = Utils.debounce(
+            () => this.performSearch(),
+            CONFIG.searchDebounceDelay,
+          );
+          ["mrdNo", "patientName", "phone"].forEach((id) => {
+            document
+              .getElementById(id)
+              .addEventListener("input", debouncedSearch);
+          });
+
+          // Other form controls
+          ["appointmentDate", "fourDayConfirm", "oneDayConfirm"].forEach(
+            (id) => {
+              document
+                .getElementById(id)
+                .addEventListener("change", () => this.performSearch());
+            },
+          );
+        },
+
+        async loadInitialData() {
+          LoadingManager.show("Loading appointments...");
+          try {
+            await this.performSearch();
+          } catch (error) {
+            LoadingManager.showError(error.message);
+          } finally {
+            LoadingManager.hide();
+          }
+        },
+
+        async performSearch() {
+          const searchParams = this.getSearchParams();
+          AppState.lastSearchParams = searchParams;
+          AppState.isShowingDuplicates = false;
+
+          try {
+            LoadingManager.showSkeleton();
+            const response = await ApiManager.searchAppointments(searchParams);
+
+            if (response.success) {
+              UIRenderer.displayAppointments(response.appointments);
+              UIRenderer.updatePagination(response.total);
+            } else {
+              LoadingManager.showError(response.message || "Search failed");
+            }
+          } catch (error) {
+            LoadingManager.showError(error.message);
+          }
+        },
+
+        getSearchParams() {
+          return {
+            mrdNo: document.getElementById("mrdNo").value.trim(),
+            patientName: document.getElementById("patientName").value.trim(),
+            phone: document.getElementById("phone").value.trim(),
+            appointmentDate: document.getElementById("appointmentDate").value,
+            fourDayConfirm: document.getElementById("fourDayConfirm").value,
+            oneDayConfirm: document.getElementById("oneDayConfirm").value,
+            page: AppState.currentPage,
+            itemsPerPage: CONFIG.itemsPerPage,
+          };
+        },
+      };
+
+      // Global Functions (called from HTML)
+      async function changePage(page, event) {
+        if (event) event.preventDefault();
+        if (page < 1) return;
+
+        AppState.currentPage = page;
+
+        if (AppState.isShowingDuplicates) {
+          await showDuplicateAppointments();
+        } else {
+          await AppointmentList.performSearch();
+        }
+      }
+
+      function toggleView(view) {
+        AppState.currentView = view;
+
+        // Update button states
+        document.querySelectorAll('[onclick^="toggleView"]').forEach((btn) => {
+          btn.classList.remove("active");
+        });
+        event.target.classList.add("active");
+
+        // Re-render current data
+        if (AppState.lastSearchParams) {
+          AppointmentList.performSearch();
+        }
+      }
+
+      async function showDuplicateAppointments() {
+        AppState.isShowingDuplicates = true;
+        AppState.currentPage = 1;
+
+        try {
+          LoadingManager.show("Finding duplicate appointments...");
+          const response = await ApiManager.callGoogleScript(
+            "optimizedGetDuplicateAppointments",
+          );
+
+          if (response.success) {
+            UIRenderer.displayAppointments(response.appointments);
+            UIRenderer.updatePagination(response.total);
+            Utils.showToast(
+              `Found ${response.total} appointments with duplicate MRDs`,
+              "info",
+            );
+          } else {
+            Utils.showToast(response.message, "warning");
+            LoadingManager.showEmpty();
+          }
+        } catch (error) {
+          LoadingManager.showError(error.message);
+        } finally {
+          LoadingManager.hide();
+        }
+      }
+
+      function goToPage(pageName) {
+        const url = new URL(CONFIG.baseUrl);
+        url.searchParams.set("page", pageName);
+        url.searchParams.set("sessionToken", CONFIG.sessionToken);
+        window.top.location.href = url.toString();
+      }
+
+      // Action functions with integration to existing backend
+      function editAppointment(id) {
+        // Integrate with existing updateAppointmentDetails function
+        Utils.showToast("Edit functionality coming soon", "info");
+      }
+
+      function rescheduleAppointment(id) {
+        const url = new URL(CONFIG.baseUrl);
+        url.searchParams.set("page", "rescheduleAppointment");
+        url.searchParams.set("sessionToken", CONFIG.sessionToken);
+        url.searchParams.set("appointmentId", id);
+        window.top.location.href = url.toString();
+      }
+
+      async function deleteAppointment(id) {
+        if (confirm("Are you sure you want to delete this appointment?")) {
+          try {
+            LoadingManager.show("Deleting appointment...");
+            const response = await ApiManager.callGoogleScript(
+              "deleteAppointment",
+              id,
+              CONFIG.sessionToken,
+            );
+
+            if (response.success) {
+              Utils.showToast("Appointment deleted successfully", "success");
+              // Refresh the current view
+              if (AppState.isShowingDuplicates) {
+                await showDuplicateAppointments();
+              } else {
+                await AppointmentList.performSearch();
+              }
+            } else {
+              Utils.showToast(
+                response.message || "Failed to delete appointment",
+                "danger",
+              );
+            }
+          } catch (error) {
+            Utils.showToast(
+              "Error deleting appointment: " + error.message,
+              "danger",
+            );
+          } finally {
+            LoadingManager.hide();
+          }
+        }
+      }
+
+      function exportResults() {
+        Utils.showToast("Export functionality coming soon", "info");
+      }
+
+      // Initialize app when DOM is loaded
+      document.addEventListener("DOMContentLoaded", () => {
+        AppointmentList.init();
+      });
+    </script>
+  </body>
+</html>

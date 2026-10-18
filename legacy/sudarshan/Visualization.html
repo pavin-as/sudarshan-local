@@ -1,0 +1,2007 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      /* Color Variables */
+      :root {
+        --primary-color: #4a90e2;
+        --primary-light: #e8f0fe;
+        --primary-dark: #2c5282;
+        --success-color: #48bb78;
+        --warning-color: #ed8936;
+        --danger-color: #e53e3e;
+        --text-primary: #2d3748;
+        --text-secondary: #4a5568;
+        --bg-light: #f7fafc;
+        --bg-white: #ffffff;
+      }
+
+      body {
+        background-color: var(--bg-light);
+        color: var(--text-primary);
+        min-height: 100vh;
+        padding: 2rem;
+      }
+
+      .container {
+        max-width: 1400px;
+      }
+
+      /* Header Section */
+      .dashboard-header {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .dashboard-header h1 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin: 0;
+        position: relative;
+        padding-left: 1rem;
+      }
+
+      .dashboard-header h1::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 4px;
+        height: 70%;
+        background: linear-gradient(
+          to bottom,
+          var(--primary-color),
+          var(--success-color)
+        );
+        border-radius: 2px;
+      }
+
+      /* Stats Cards */
+      .stats-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+      }
+
+      .stat-card {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+      }
+
+      .stat-card .icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+      }
+
+      .stat-card .icon.primary {
+        background: var(--primary-light);
+        color: var(--primary-color);
+      }
+
+      .stat-card .icon.success {
+        background: rgba(72, 187, 120, 0.1);
+        color: var(--success-color);
+      }
+
+      .stat-card .icon.warning {
+        background: rgba(237, 137, 54, 0.1);
+        color: var(--warning-color);
+      }
+
+      .stat-card .icon.danger {
+        background: rgba(229, 62, 62, 0.1);
+        color: var(--danger-color);
+      }
+
+      .stat-card .value {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+
+      .stat-card .label {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+      }
+
+      .stat-card .trend {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+      }
+
+      .stat-card .trend.up {
+        color: var(--success-color);
+      }
+
+      .stat-card .trend.down {
+        color: var(--danger-color);
+      }
+
+      /* Charts Section */
+      .charts-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+      }
+
+      .chart-card {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      }
+
+      .chart-card h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--text-primary);
+      }
+
+      /* Quick Actions */
+      .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+
+      .action-button {
+        background: var(--bg-white);
+        border: 2px solid var(--primary-light);
+        border-radius: 12px;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        color: var(--text-primary);
+      }
+
+      .action-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+        border-color: var(--primary-color);
+        background: var(--primary-light);
+      }
+
+      .action-button i {
+        font-size: 1.5rem;
+        color: var(--primary-color);
+      }
+
+      /* Upcoming Appointments */
+      .upcoming-appointments {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        margin-bottom: 2rem;
+      }
+
+      .upcoming-appointments h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--text-primary);
+      }
+
+      .appointment-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem;
+        border-bottom: 1px solid var(--primary-light);
+        transition: all 0.3s ease;
+      }
+
+      .appointment-item:last-child {
+        border-bottom: none;
+      }
+
+      .appointment-item:hover {
+        background: var(--primary-light);
+      }
+
+      .appointment-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .appointment-time {
+        font-weight: 600;
+        color: var(--primary-color);
+      }
+
+      .appointment-details {
+        color: var(--text-secondary);
+      }
+
+      .appointment-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      /* Menu Items */
+      .menu-container {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      }
+
+      .menu-item {
+        background: var(--bg-white);
+        border: 2px solid var(--primary-light);
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        cursor: pointer;
+        text-decoration: none;
+        color: var(--text-primary);
+      }
+
+      .menu-item:last-child {
+        margin-bottom: 0;
+      }
+
+      .menu-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+        border-color: var(--primary-color);
+        background: var(--primary-light);
+      }
+
+      .menu-item i {
+        font-size: 1.5rem;
+        color: var(--primary-color);
+        width: 2rem;
+        text-align: center;
+      }
+
+      .menu-item span {
+        font-size: 1.1rem;
+        font-weight: 500;
+      }
+
+      /* Alert Container */
+      .alert-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-width: 400px;
+      }
+
+      .custom-alert {
+        background: var(--bg-white);
+        border-radius: 12px;
+        padding: 16px 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transform: translateX(120%);
+        animation: slideIn 0.3s forwards;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .custom-alert::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+      }
+
+      .custom-alert.success::before {
+        background: var(--success-color);
+      }
+
+      .custom-alert.error::before {
+        background: var(--danger-color);
+      }
+
+      .custom-alert.warning::before {
+        background: var(--warning-color);
+      }
+
+      .custom-alert.info::before {
+        background: var(--primary-color);
+      }
+
+      @keyframes slideIn {
+        to {
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes slideOut {
+        to {
+          transform: translateX(120%);
+        }
+      }
+
+      .custom-alert.closing {
+        animation: slideOut 0.3s forwards;
+      }
+
+      /* Loading state styles */
+      .stat-card.loading {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .stat-card.loading::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        animation: loading 1.5s infinite;
+      }
+
+      @keyframes loading {
+        0% {
+          transform: translateX(-100%);
+        }
+        100% {
+          transform: translateX(100%);
+        }
+      }
+
+      /* Confirmation buttons and status */
+      .confirmation-buttons {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .confirmation-status {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+
+      .confirmation-status.confirmed {
+        color: var(--success-color);
+      }
+
+      .appointment-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+      }
+
+      .btn-outline-primary:hover {
+        background-color: var(--primary-color);
+        color: white;
+      }
+
+      .btn-outline-warning:hover {
+        background-color: var(--warning-color);
+        color: white;
+      }
+
+      .btn-outline-danger:hover {
+        background-color: var(--danger-color);
+        color: white;
+      }
+
+      .spinner-border-sm {
+        width: 1rem;
+        height: 1rem;
+        border-width: 0.2em;
+      }
+
+      .confirmation-status {
+        font-size: 0.8rem;
+        color: var(--success-color);
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        background-color: rgba(72, 187, 120, 0.1);
+      }
+
+      .confirmation-status.confirmed {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+
+      /* Patient name tooltip styling */
+      .patientName,
+      .appointment-time {
+        position: relative;
+        cursor: help;
+        border-bottom: 1px dotted var(--primary-color);
+      }
+
+      .patientName:hover::after,
+      .appointment-time:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        left: 0;
+        top: 100%;
+        z-index: 999;
+        background-color: #2c5282;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 14px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        white-space: nowrap;
+        font-weight: normal;
+        min-width: 200px;
+        text-align: left;
+      }
+
+      /* Confirmation status */
+      .confirmation-status {
+        font-size: 0.8rem;
+        color: var(--success-color);
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        background-color: rgba(72, 187, 120, 0.1);
+      }
+
+      .confirmation-status.confirmed {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+
+      /* Analytics Section Styling */
+      .analytics-section {
+        margin-top: 2rem;
+      }
+
+      .analytics-section .chart-card {
+        min-height: 400px;
+      }
+
+      .analytics-section .form-label {
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+      }
+
+      .analytics-section .form-control {
+        border: 2px solid var(--primary-light);
+        border-radius: 8px;
+        transition: all 0.3s ease;
+      }
+
+      .analytics-section .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.25);
+      }
+
+      .analytics-section .btn-primary {
+        background: var(--primary-color);
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        transition: all 0.3s ease;
+      }
+
+      .analytics-section .btn-primary:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+      }
+
+      .analytics-section .btn-primary:disabled {
+        background: var(--text-secondary);
+        transform: none;
+      }
+
+      .analytics-section canvas {
+        max-height: 300px;
+      }
+
+      .text-muted {
+        color: var(--text-secondary) !important;
+        font-style: italic;
+      }
+
+      /* User Information Header Styles */
+      .user-info-header {
+        background: var(--bg-white);
+        border-bottom: 1px solid var(--primary-light);
+        padding: 0.75rem 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+
+      .user-info-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .user-details {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .user-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+
+      .user-text {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+      }
+
+      .user-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.95rem;
+      }
+
+      .user-role {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+      }
+
+      .user-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .user-actions .btn {
+        font-size: 0.8rem;
+        padding: 0.375rem 0.75rem;
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 768px) {
+        .user-info-content {
+          flex-direction: column;
+          gap: 0.75rem;
+          align-items: flex-start;
+        }
+
+        .user-actions {
+          width: 100%;
+          justify-content: flex-end;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      window.sessionToken = "<?= sessionToken ?>";
+      window.baseUrl = "<?= webAppUrl ?>";
+    </script>
+    <?!= include('sharedLayout') ?>
+    <?!= include('PaymentRefundPrompt') ?>
+    <div class="alert-container" id="alertContainer"></div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <a class="action-button" onclick="goToPage('bookAppointment')">
+        <i class="fas fa-calendar-plus"></i>
+        <span>Book Appointment</span>
+      </a>
+      <a class="action-button" onclick="goToPage('appointmentList')">
+        <i class="fas fa-search"></i>
+        <span>Search Appointments</span>
+      </a>
+      <a class="action-button" onclick="goToPage('patientMaster')">
+        <i class="fas fa-user-plus"></i>
+        <span>Add Patient</span>
+      </a>
+      <a class="action-button" onclick="goToPage('cancelList')">
+        <i class="fas fa-calendar-times"></i>
+        <span>Cancelled Appointments</span>
+      </a>
+      <a class="action-button" onclick="goToPage('settings')">
+        <i class="fas fa-cog"></i>
+        <span>Settings</span>
+      </a>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-container">
+      <div class="stat-card">
+        <div class="icon primary">
+          <i class="fas fa-calendar-check"></i>
+        </div>
+        <div class="value" id="todayAppointments">0</div>
+        <div class="label">Today's Appointments</div>
+        <div class="trend up">
+          <i class="fas fa-arrow-up"></i>
+          <span>12% from yesterday</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="icon warning">
+          <i class="fas fa-clock"></i>
+        </div>
+        <div class="value" id="pendingConfirmations">0</div>
+        <div class="label">Pending Confirmations</div>
+        <div class="trend down">
+          <i class="fas fa-arrow-down"></i>
+          <span>5% from last week</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="icon success">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="value" id="monthlyPatients">0</div>
+        <div class="label">Monthly Patients</div>
+        <div class="trend up">
+          <i class="fas fa-arrow-up"></i>
+          <span>8% from last month</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="icon danger">
+          <i class="fas fa-calendar-times"></i>
+        </div>
+        <div class="value" id="availableSlots">0</div>
+        <div class="label">Available Slots Today</div>
+        <div class="trend">
+          <i class="fas fa-minus"></i>
+          <span>No change</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rescheduling Analytics Section -->
+    <div class="stats-container">
+      <div class="stat-card">
+        <div class="icon warning">
+          <i class="fas fa-exchange-alt"></i>
+        </div>
+        <div class="value" id="totalReschedules">0</div>
+        <div class="label">Total Reschedules</div>
+        <div class="trend" id="rescheduleTrend">
+          <i class="fas fa-minus"></i>
+          <span>No change</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="icon danger">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="value" id="highRiskAppointments">0</div>
+        <div class="label">High Risk (3+ Reschedules)</div>
+        <div class="trend">
+          <i class="fas fa-exclamation-circle"></i>
+          <span>Requires attention</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="icon primary">
+          <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="value" id="avgReschedules">0</div>
+        <div class="label">Avg Reschedules/Appointment</div>
+        <div class="trend">
+          <i class="fas fa-info-circle"></i>
+          <span>Target: < 1.0</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="icon success">
+          <i class="fas fa-calendar-day"></i>
+        </div>
+        <div class="value" id="monthlyReschedules">0</div>
+        <div class="label">This Month's Reschedules</div>
+        <div class="trend" id="monthlyRescheduleTrend">
+          <i class="fas fa-minus"></i>
+          <span>No change</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- High Risk Appointments Alert -->
+    <div
+      id="highRiskAlert"
+      class="alert alert-warning"
+      style="display: none; margin-bottom: 1.5rem"
+    >
+      <div class="d-flex align-items-center">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <div>
+          <strong>High Risk Appointments Detected!</strong>
+          <span id="highRiskCount">0</span> appointments have been rescheduled 3
+          or more times.
+          <span id="highRiskActions">
+            <a
+              href="#"
+              onclick="goToPage('rescheduleAnalytics')"
+              class="alert-link"
+              >View Details</a
+            >
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-container">
+      <div class="chart-card">
+        <h3>Appointment Distribution</h3>
+        <canvas id="appointmentDistribution"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Weekly Trends</h3>
+        <canvas id="weeklyTrends"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Waiting List Distribution</h3>
+        <canvas id="waitingListDistribution"></canvas>
+      </div>
+    </div>
+
+    <!-- Analytics Charts Section -->
+    <div class="charts-container analytics-section">
+      <div class="chart-card">
+        <h3>Booking Analytics</h3>
+        <div class="mb-3">
+          <div class="row">
+            <div class="col-md-5">
+              <label for="bookingFromDate" class="form-label">From Date</label>
+              <input type="date" class="form-control" id="bookingFromDate" />
+            </div>
+            <div class="col-md-5">
+              <label for="bookingToDate" class="form-label">To Date</label>
+              <input type="date" class="form-control" id="bookingToDate" />
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              <button class="btn btn-primary" onclick="loadBookingAnalytics()">
+                <i class="fas fa-search"></i> Load
+              </button>
+            </div>
+          </div>
+        </div>
+        <canvas id="bookingAnalytics"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Rescheduling Analytics</h3>
+        <div class="mb-3">
+          <div class="row">
+            <div class="col-md-5">
+              <label for="rescheduleFromDate" class="form-label"
+                >From Date</label
+              >
+              <input type="date" class="form-control" id="rescheduleFromDate" />
+            </div>
+            <div class="col-md-5">
+              <label for="rescheduleToDate" class="form-label">To Date</label>
+              <input type="date" class="form-control" id="rescheduleToDate" />
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              <button
+                class="btn btn-primary"
+                onclick="loadReschedulingAnalyticsByDateRange()"
+              >
+                <i class="fas fa-search"></i> Load
+              </button>
+            </div>
+          </div>
+        </div>
+        <canvas id="reschedulingAnalytics"></canvas>
+      </div>
+    </div>
+
+    <!-- Upcoming Appointments -->
+    <div class="upcoming-appointments">
+      <h3>Upcoming Appointments</h3>
+      <div id="upcomingAppointmentsList">
+        <!-- Will be populated dynamically -->
+      </div>
+    </div>
+
+    <!-- Main Menu -->
+    <div class="menu-container">
+      <a class="menu-item" onclick="goToPage('Dashboard')">
+        <i class="fas fa-tachometer-alt"></i>
+        <span>Dashboard</span>
+      </a>
+      <a class="menu-item" onclick="goToPage('dayOverview')">
+        <i class="fas fa-calendar-day"></i>
+        <span>Day Overview Calendar</span>
+      </a>
+      <a class="menu-item" onclick="goToPage('monthOverview')">
+        <i class="fas fa-calendar-alt"></i>
+        <span>Month Overview Calendar</span>
+      </a>
+      <a class="menu-item" onclick="goToPage('bookAppointment')">
+        <i class="fas fa-calendar-plus"></i>
+        <span>Book Appointment</span>
+      </a>
+      <a class="menu-item" onclick="goToPage('appointmentList')">
+        <i class="fas fa-list"></i>
+        <span>Appointment List / Search</span>
+      </a>
+      <a class="menu-item" onclick="goToPage('cancelList')">
+        <i class="fas fa-calendar-times"></i>
+        <span>Cancelled Appointments</span>
+      </a>
+      <a class="menu-item" onclick="goToPage('patientMaster')">
+        <i class="fas fa-user-md"></i>
+        <span>Patient Master Data</span>
+      </a>
+      <a class="menu-item" onclick="goToPage('settings')">
+        <i class="fas fa-cog"></i>
+        <span>Settings Configuration</span>
+      </a>
+    </div>
+
+    <script>
+      var baseUrl = "<?= webAppUrl ?>";
+      var sessionToken = "<?= sessionToken ?>";
+
+      // Initialize charts when the page loads
+      document.addEventListener("DOMContentLoaded", function () {
+        // Initialize chart instances as global variables
+        window.distributionChart = null;
+        window.trendsChart = null;
+        window.waitingListChart = null;
+        window.bookingAnalyticsChart = null;
+        window.reschedulingAnalyticsChart = null;
+        initializeCharts();
+        loadDashboardData();
+        checkRescheduleAnalyticsAccess();
+
+        // Set default date range (last 30 days)
+        const today = new Date();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+
+        document.getElementById("bookingFromDate").value = thirtyDaysAgo
+          .toISOString()
+          .split("T")[0];
+        document.getElementById("bookingToDate").value = today
+          .toISOString()
+          .split("T")[0];
+        document.getElementById("rescheduleFromDate").value = thirtyDaysAgo
+          .toISOString()
+          .split("T")[0];
+        document.getElementById("rescheduleToDate").value = today
+          .toISOString()
+          .split("T")[0];
+      });
+
+      function checkRescheduleAnalyticsAccess() {
+        google.script.run
+          .withSuccessHandler(function (hasAccess) {
+            if (!hasAccess) {
+              const highRiskActions =
+                document.getElementById("highRiskActions");
+              if (highRiskActions) {
+                highRiskActions.innerHTML =
+                  '<span class="text-muted">(Access restricted to administrators)</span>';
+              }
+            }
+          })
+          .withFailureHandler(function (error) {
+            const highRiskActions = document.getElementById("highRiskActions");
+            if (highRiskActions) {
+              highRiskActions.innerHTML =
+                '<span class="text-muted">(Access check failed)</span>';
+            }
+          })
+          .canAccessRescheduleAnalytics(sessionToken);
+      }
+
+      function initializeCharts() {
+        // Appointment Distribution Chart
+        const distributionCtx = document
+          .getElementById("appointmentDistribution")
+          .getContext("2d");
+        window.distributionChart = new Chart(distributionCtx, {
+          type: "pie",
+          data: {
+            labels: ["General", "Specialized", "Follow-up", "Emergency"],
+            datasets: [
+              {
+                data: [30, 25, 20, 15],
+                backgroundColor: ["#4a90e2", "#48bb78", "#ed8936", "#e53e3e"],
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                position: "bottom",
+              },
+            },
+          },
+        });
+
+        // Weekly Trends Chart
+        const trendsCtx = document
+          .getElementById("weeklyTrends")
+          .getContext("2d");
+        window.trendsChart = new Chart(trendsCtx, {
+          type: "line",
+          data: {
+            labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+            datasets: [
+              {
+                label: "Appointments",
+                data: [12, 19, 15, 17, 14, 8, 5],
+                borderColor: "#4a90e2",
+                tension: 0.4,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                display: false,
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+              },
+            },
+          },
+        });
+
+        // Waiting List Distribution Chart
+        const waitingListCtx = document
+          .getElementById("waitingListDistribution")
+          .getContext("2d");
+
+        window.waitingListChart = new Chart(waitingListCtx, {
+          type: "pie",
+          data: {
+            labels: ["Red", "Yellow", "Green"],
+            datasets: [
+              {
+                data: [0, 0, 0],
+                backgroundColor: [
+                  "#ed3636", // Red
+                  "#ede736", // Yellow
+                  "#39ed36", // Green
+                ],
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: {
+                position: "bottom",
+                display: true,
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    const total = context.dataset.data.reduce(
+                      (a, b) => a + b,
+                      0,
+                    );
+                    const percentage =
+                      total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
+                    return `${context.label}: ${context.raw} (${percentage}%)`;
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
+
+      function loadDashboardData() {
+        // Show loading state
+        document.querySelectorAll(".stat-card").forEach((card) => {
+          card.classList.add("loading");
+        });
+
+        // Load today's appointments count
+        google.script.run
+          .withSuccessHandler(function (data) {
+            document.getElementById("todayAppointments").textContent =
+              data.count;
+            updateTrend("todayAppointments", data.trend);
+            document
+              .querySelector("#todayAppointments")
+              .closest(".stat-card")
+              .classList.remove("loading");
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error loading today's appointments", "error");
+            document
+              .querySelector("#todayAppointments")
+              .closest(".stat-card")
+              .classList.remove("loading");
+          })
+          .getTodayAppointmentsCount();
+
+        // Load pending confirmations
+        google.script.run
+          .withSuccessHandler(function (data) {
+            document.getElementById("pendingConfirmations").textContent =
+              data.count;
+            updateTrend("pendingConfirmations", data.trend);
+            document
+              .querySelector("#pendingConfirmations")
+              .closest(".stat-card")
+              .classList.remove("loading");
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error loading pending confirmations", "error");
+            document
+              .querySelector("#pendingConfirmations")
+              .closest(".stat-card")
+              .classList.remove("loading");
+          })
+          .getPending4DayConfirmationsCount();
+
+        // Load monthly patients
+        google.script.run
+          .withSuccessHandler(function (data) {
+            document.getElementById("monthlyPatients").textContent = data.count;
+            updateTrend("monthlyPatients", data.trend);
+            document
+              .querySelector("#monthlyPatients")
+              .closest(".stat-card")
+              .classList.remove("loading");
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error loading monthly patients", "error");
+            document
+              .querySelector("#monthlyPatients")
+              .closest(".stat-card")
+              .classList.remove("loading");
+          })
+          .getMonthlyPatientsCount();
+
+        // Load available slots
+        google.script.run
+          .withSuccessHandler(function (data) {
+            document.getElementById("availableSlots").textContent = data.count;
+            updateTrend("availableSlots", data.trend);
+            document
+              .querySelector("#availableSlots")
+              .closest(".stat-card")
+              .classList.remove("loading");
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error loading available slots", "error");
+            document
+              .querySelector("#availableSlots")
+              .closest(".stat-card")
+              .classList.remove("loading");
+          })
+          .getAvailableSlotsCount();
+
+        // Load appointment distribution
+        google.script.run
+          .withSuccessHandler(function (distribution) {
+            updateDistributionChart(distribution);
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error loading appointment distribution", "error");
+          })
+          .getAppointmentDistribution();
+
+        // Load weekly trends
+        google.script.run
+          .withSuccessHandler(function (weeklyData) {
+            updateWeeklyTrendsChart(weeklyData);
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error loading weekly trends", "error");
+          })
+          .getWeeklyTrends();
+
+        // Load waiting list distribution
+        google.script.run
+          .withSuccessHandler(function (data) {
+            updateWaitingListChart(data);
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error loading waiting list distribution", "error");
+          })
+          .getWaitingListDistribution();
+
+        // Load rescheduling analytics
+        google.script.run
+          .withSuccessHandler(function (data) {
+            // Update rescheduling stats
+            document.getElementById("totalReschedules").textContent =
+              data.totalReschedules || 0;
+            document.getElementById("highRiskAppointments").textContent =
+              data.highRiskAppointments || 0;
+            document.getElementById("avgReschedules").textContent =
+              data.averageReschedulesPerAppointment || 0;
+            document.getElementById("monthlyReschedules").textContent =
+              data.currentMonthReschedules || 0;
+
+            // Update trends
+            updateRescheduleTrend("rescheduleTrend", data.trend || 0);
+            updateRescheduleTrend("monthlyRescheduleTrend", data.trend || 0);
+
+            // Show high risk alert if needed
+            if (data.highRiskAppointments > 0) {
+              document.getElementById("highRiskCount").textContent =
+                data.highRiskAppointments;
+              document.getElementById("highRiskAlert").style.display = "block";
+            }
+
+            // Store data for detailed view
+            window.reschedulingData = data;
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error loading rescheduling analytics", "error");
+          })
+          .getReschedulingStats();
+
+        // Load upcoming appointments
+        google.script.run
+          .withSuccessHandler(function (response) {
+            try {
+              const container = document.getElementById(
+                "upcomingAppointmentsList",
+              );
+
+              container.innerHTML = "";
+
+              if (!response || !response.success) {
+                container.innerHTML = `
+                <div class="text-center text-danger py-4">
+                  <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                  <p>${response?.message || "Error loading appointments"}</p>
+                </div>
+              `;
+                return;
+              }
+
+              const appointments = response.appointments;
+
+              if (!appointments || appointments.length === 0) {
+                container.innerHTML = `
+                <div class="text-center text-muted py-4">
+                  <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                  <p>No upcoming appointments</p>
+                </div>
+              `;
+                return;
+              }
+
+              appointments.forEach(function (appt, index) {
+                if (!appt) {
+                  return;
+                }
+
+                const div = document.createElement("div");
+                div.className = "appointment-item";
+
+                // Determine which confirmation buttons to show
+                let confirmButtonsHTML = "";
+
+                if (!appt.fourDayConfirmDate && !appt.oneDayConfirmDate) {
+                  confirmButtonsHTML = `
+                  <div id="confirm4DayContainer_${appt.id}">
+                    <button id="confirm4Day_${appt.id}" class="btn btn-sm btn-outline-primary" onclick="confirm4Day('${appt.id}')">4-Day Confirm</button>
+                  </div>
+                  <div id="confirm1DayContainer_${appt.id}">
+                    <button id="confirm1Day_${appt.id}" class="btn btn-sm btn-outline-primary" onclick="confirm1Day('${appt.id}')">1-Day Confirm</button>
+                  </div>
+                `;
+                } else if (appt.fourDayConfirmDate && !appt.oneDayConfirmDate) {
+                  confirmButtonsHTML = `
+                  <div id="confirm4DayContainer_${appt.id}">
+                    <div class="confirmation-status confirmed">✓ 4-Day Confirmed: ${formatDisplayDateTime(appt.fourDayConfirmDate)} by ${appt.fourDayConfirmBy}</div>
+                  </div>
+                  <div id="confirm1DayContainer_${appt.id}">
+                    <button id="confirm1Day_${appt.id}" class="btn btn-sm btn-outline-primary" onclick="confirm1Day('${appt.id}')">1-Day Confirm</button>
+                  </div>
+                `;
+                } else if (!appt.fourDayConfirmDate && appt.oneDayConfirmDate) {
+                  confirmButtonsHTML = `
+                  <div id="confirm4DayContainer_${appt.id}">
+                    <button id="confirm4Day_${appt.id}" class="btn btn-sm btn-outline-primary" onclick="confirm4Day('${appt.id}')">4-Day Confirm</button>
+                  </div>
+                  <div id="confirm1DayContainer_${appt.id}">
+                    <div class="confirmation-status confirmed">✓ 1-Day Confirmed: ${formatDisplayDateTime(appt.oneDayConfirmDate)} by ${appt.oneDayConfirmBy}</div>
+                  </div>
+                `;
+                }
+
+                div.innerHTML = `
+                <div class="appointment-info">
+                  <div class="appointment-time" data-tooltip="Date: ${formatDisplayDate(appt.date) || "N/A"}">${appt.time || "N/A"}</div>
+                  <div class="appointment-details">
+                    <div><span class="patientName" data-tooltip="MRD: ${appt.mrdNo || "N/A"} • Ph: ${appt.phone || "N/A"}">${appt.patientName || "N/A"}</span></div>
+                    <div>${appt.type || "N/A"} - ${appt.doctor || "N/A"}</div>
+                  </div>
+                </div>
+                <div class="appointment-actions">
+                  <div class="confirmation-buttons">
+                    ${confirmButtonsHTML}
+                  </div>
+                  <div class="action-buttons">
+                    <button class="btn btn-sm btn-outline-warning" data-appointment-id="${appt.id}" onclick="rescheduleAppointment(event)">
+                      <i class="fas fa-clock"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="cancelAppointment('${appt.id}')">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                </div>
+              `;
+                container.appendChild(div);
+              });
+            } catch (error) {
+              showAlert("Error processing appointments data", "error");
+
+              const container = document.getElementById(
+                "upcomingAppointmentsList",
+              );
+              container.innerHTML = `
+              <div class="text-center text-danger py-4">
+                <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                <p>Error processing appointments data: ${error.message}</p>
+              </div>
+            `;
+            }
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error loading upcoming appointments", "error");
+            const container = document.getElementById(
+              "upcomingAppointmentsList",
+            );
+            container.innerHTML = `
+            <div class="text-center text-danger py-4">
+              <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+              <p>Error loading appointments</p>
+            </div>
+          `;
+          })
+          .getUpcomingAppointments();
+      }
+
+      function updateTrend(elementId, trend) {
+        const trendElement = document.querySelector(`#${elementId}`)
+          .nextElementSibling.nextElementSibling;
+        const trendValue = parseFloat(trend);
+
+        if (trendValue > 0) {
+          trendElement.className = "trend up";
+          trendElement.innerHTML = `
+          <i class="fas fa-arrow-up"></i>
+          <span>${Math.abs(trendValue).toFixed(1)}% from previous period</span>
+        `;
+        } else if (trendValue < 0) {
+          trendElement.className = "trend down";
+          trendElement.innerHTML = `
+          <i class="fas fa-arrow-down"></i>
+          <span>${Math.abs(trendValue).toFixed(1)}% from previous period</span>
+        `;
+        } else {
+          trendElement.className = "trend";
+          trendElement.innerHTML = `
+          <i class="fas fa-minus"></i>
+          <span>No change</span>
+        `;
+        }
+      }
+
+      function updateDistributionChart(distribution) {
+        const ctx = document
+          .getElementById("appointmentDistribution")
+          .getContext("2d");
+        const labels = Object.keys(distribution);
+        const data = Object.values(distribution);
+
+        // Destroy existing chart if it exists
+        if (window.distributionChart) {
+          window.distributionChart.destroy();
+        }
+
+        window.distributionChart = new Chart(ctx, {
+          type: "pie",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                data: data,
+                backgroundColor: [
+                  "#4a90e2",
+                  "#48bb78",
+                  "#ed8936",
+                  "#e53e3e",
+                  "#9f7aea",
+                  "#4299e1",
+                ],
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                position: "bottom",
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    const total = context.dataset.data.reduce(
+                      (a, b) => a + b,
+                      0,
+                    );
+                    const percentage = ((context.raw / total) * 100).toFixed(1);
+                    return `${context.label}: ${context.raw} (${percentage}%)`;
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
+
+      function updateWeeklyTrendsChart(weeklyData) {
+        const ctx = document.getElementById("weeklyTrends").getContext("2d");
+        const labels = [
+          "Sunday",
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+        ];
+
+        // Destroy existing chart if it exists
+        if (window.trendsChart) {
+          window.trendsChart.destroy();
+        }
+
+        window.trendsChart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "Appointments",
+                data: weeklyData,
+                borderColor: "#4a90e2",
+                backgroundColor: "rgba(74, 144, 226, 0.1)",
+                tension: 0.4,
+                fill: true,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                display: false,
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    return `${context.raw} appointments`;
+                  },
+                },
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  stepSize: 1,
+                },
+              },
+            },
+          },
+        });
+      }
+
+      function updateWaitingListChart(data) {
+        if (!window.waitingListChart) {
+          return;
+        }
+
+        const total = data.red + data.yellow + data.green;
+
+        window.waitingListChart.data.datasets[0].data = [
+          data.red,
+          data.yellow,
+          data.green,
+        ];
+        window.waitingListChart.update();
+      }
+
+      function logout() {
+        showAlert("Logging out...", "info");
+        google.script.run
+          .withSuccessHandler(function () {
+            window.top.location.href = baseUrl;
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error during logout: " + error, "error");
+          })
+          .clearSession(sessionToken);
+      }
+
+      function goToPage(pageName) {
+        showAlert("Navigating to " + pageName + "...", "info");
+        var newUrl =
+          baseUrl +
+          "?page=" +
+          pageName +
+          "&sessionToken=" +
+          encodeURIComponent(sessionToken);
+        window.top.location.href = newUrl;
+      }
+
+      function showAlert(message, type = "info", title = null) {
+        const container = document.getElementById("alertContainer");
+        const alert = document.createElement("div");
+        alert.className = `custom-alert ${type}`;
+
+        let icon = "";
+        switch (type) {
+          case "success":
+            icon = "✓";
+            title = title || "Success";
+            break;
+          case "error":
+            icon = "✕";
+            title = title || "Error";
+            break;
+          case "warning":
+            icon = "⚠";
+            title = title || "Warning";
+            break;
+          default:
+            icon = "ℹ";
+            title = title || "Information";
+        }
+
+        alert.innerHTML = `
+        <div class="alert-icon ${type}">${icon}</div>
+        <div class="alert-content">
+          <div class="alert-title">${title}</div>
+          <div class="alert-message">${message}</div>
+        </div>
+        <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+      `;
+
+        container.appendChild(alert);
+
+        setTimeout(() => {
+          alert.classList.add("closing");
+          setTimeout(() => alert.remove(), 300);
+        }, 5000);
+      }
+
+      // Appointment action functions
+      function confirm4Day(appointmentId) {
+        var button = document.getElementById("confirm4Day_" + appointmentId);
+        button.disabled = true;
+        button.innerHTML =
+          '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Confirming...';
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response.success) {
+              showAlert(response.message, "success");
+              refreshAppointmentRow(
+                appointmentId,
+                response.confirmationDate,
+                response.confirmedBy,
+                "4-Day",
+              );
+              // Refresh dashboard data if both confirmations are now done
+              if (
+                document
+                  .getElementById("confirm1DayContainer_" + appointmentId)
+                  .querySelector(".confirmation-status.confirmed")
+              ) {
+                loadDashboardData(); // Refresh the dashboard to remove fully confirmed appointments
+              }
+            } else {
+              showAlert(response.message, "error");
+              button.disabled = false;
+              button.innerHTML = "4-Day Confirm";
+            }
+          })
+          .confirmAppointment4Day(appointmentId, sessionToken);
+      }
+
+      function confirm1Day(appointmentId) {
+        var button = document.getElementById("confirm1Day_" + appointmentId);
+        button.disabled = true;
+        button.innerHTML =
+          '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Confirming...';
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response.success) {
+              showAlert(response.message, "success");
+              refreshAppointmentRow(
+                appointmentId,
+                response.confirmationDate,
+                response.confirmedBy,
+                "1-Day",
+              );
+              // Refresh dashboard data if both confirmations are now done
+              if (
+                document
+                  .getElementById("confirm4DayContainer_" + appointmentId)
+                  .querySelector(".confirmation-status.confirmed")
+              ) {
+                loadDashboardData(); // Refresh the dashboard to remove fully confirmed appointments
+              }
+            } else {
+              showAlert(response.message, "error");
+              button.disabled = false;
+              button.innerHTML = "1-Day Confirm";
+            }
+          })
+          .confirmAppointment1Day(appointmentId, sessionToken);
+      }
+
+      function rescheduleAppointment(event) {
+        event.preventDefault();
+        const button = event.target.closest("button");
+        const appointmentId = button.getAttribute("data-appointment-id");
+
+        if (!appointmentId) {
+          showAlert(
+            "Error: Appointment ID not found. Please try again.",
+            "error",
+          );
+          return;
+        }
+
+        const url = new URL(baseUrl);
+        url.searchParams.append("page", "rescheduleAppointment");
+        url.searchParams.append("sessionToken", sessionToken);
+        url.searchParams.append(
+          "appointmentId",
+          encodeURIComponent(appointmentId),
+        );
+
+        window.top.location.href = url.toString();
+      }
+
+      function cancelAppointment(appointmentId) {
+        if (!confirm("Are you sure you want to cancel this appointment?")) {
+          return;
+        }
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response.success) {
+              showAlert(response.message, "success");
+              // Refresh the appointments list
+              loadUpcomingAppointments();
+              // Offer the refund if this appointment was paid for. Silent when
+              // there is no payment, so every cancellation can call it.
+              typeof PaymentRefundPrompt !== "undefined" &&
+                PaymentRefundPrompt.handle(response, {
+                onDone: loadUpcomingAppointments,
+              });
+            } else {
+              showAlert(response.message, "error");
+            }
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error canceling appointment: " + error, "error");
+          })
+          .cancelAppointmentWithPaymentCheck(appointmentId, sessionToken, false);
+      }
+
+      function refreshAppointmentRow(
+        appointmentId,
+        confirmationDate,
+        confirmedBy,
+        confirmationType,
+      ) {
+        let containerId;
+        let buttonId;
+
+        if (confirmationType === "4-Day") {
+          containerId = "confirm4DayContainer_" + appointmentId;
+          buttonId = "confirm4Day_" + appointmentId;
+        } else if (confirmationType === "1-Day") {
+          containerId = "confirm1DayContainer_" + appointmentId;
+          buttonId = "confirm1Day_" + appointmentId;
+        }
+
+        if (containerId && buttonId) {
+          const container = document.getElementById(containerId);
+          if (container) {
+            container.innerHTML = `<div class="confirmation-status confirmed">✓ ${confirmationType} Confirmed: ${formatDisplayDateTime(confirmationDate)} by ${confirmedBy}</div>`;
+          }
+        }
+      }
+
+      // Rescheduling Analytics Helper Functions
+      function updateRescheduleTrend(elementId, trend) {
+        const trendElement = document.getElementById(elementId);
+        const trendValue = parseFloat(trend);
+
+        if (trendValue > 0) {
+          trendElement.className = "trend up";
+          trendElement.innerHTML = `
+          <i class="fas fa-arrow-up"></i>
+          <span>${Math.abs(trendValue).toFixed(1)}% from previous month</span>
+        `;
+        } else if (trendValue < 0) {
+          trendElement.className = "trend down";
+          trendElement.innerHTML = `
+          <i class="fas fa-arrow-down"></i>
+          <span>${Math.abs(trendValue).toFixed(1)}% from previous month</span>
+        `;
+        } else {
+          trendElement.className = "trend";
+          trendElement.innerHTML = `
+          <i class="fas fa-minus"></i>
+          <span>No change</span>
+        `;
+        }
+      }
+
+      // Analytics Functions
+      function loadBookingAnalytics() {
+        const fromDate = document.getElementById("bookingFromDate").value;
+        const toDate = document.getElementById("bookingToDate").value;
+
+        if (!fromDate || !toDate) {
+          showAlert("Please select both from and to dates", "warning");
+          return;
+        }
+
+        if (fromDate > toDate) {
+          showAlert("From date cannot be after to date", "warning");
+          return;
+        }
+
+        // Show loading state
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML =
+          '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...';
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            button.disabled = false;
+            button.innerHTML = originalText;
+
+            if (response.success) {
+              updateBookingAnalyticsChart(response.data);
+              showAlert(
+                `Loaded ${response.totalBookings} total bookings`,
+                "success",
+              );
+            } else {
+              showAlert(
+                "Error loading booking analytics: " + response.message,
+                "error",
+              );
+            }
+          })
+          .withFailureHandler(function (error) {
+            button.disabled = false;
+            button.innerHTML = originalText;
+            showAlert("Error loading booking analytics: " + error, "error");
+          })
+          .getBookingAnalytics(fromDate, toDate);
+      }
+
+      function loadReschedulingAnalyticsByDateRange() {
+        const fromDate = document.getElementById("rescheduleFromDate").value;
+        const toDate = document.getElementById("rescheduleToDate").value;
+
+        if (!fromDate || !toDate) {
+          showAlert("Please select both from and to dates", "warning");
+          return;
+        }
+
+        if (fromDate > toDate) {
+          showAlert("From date cannot be after to date", "warning");
+          return;
+        }
+
+        // Show loading state
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML =
+          '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...';
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            button.disabled = false;
+            button.innerHTML = originalText;
+
+            if (response.success) {
+              updateReschedulingAnalyticsChart(response.data);
+              showAlert(
+                `Loaded ${response.totalReschedules} total reschedules`,
+                "success",
+              );
+            } else {
+              showAlert(
+                "Error loading rescheduling analytics: " + response.message,
+                "error",
+              );
+            }
+          })
+          .withFailureHandler(function (error) {
+            button.disabled = false;
+            button.innerHTML = originalText;
+            showAlert(
+              "Error loading rescheduling analytics: " + error,
+              "error",
+            );
+          })
+          .getReschedulingAnalyticsByDateRange(fromDate, toDate);
+      }
+
+      function updateBookingAnalyticsChart(data) {
+        const ctx = document
+          .getElementById("bookingAnalytics")
+          .getContext("2d");
+
+        // Destroy existing chart if it exists
+        if (window.bookingAnalyticsChart) {
+          window.bookingAnalyticsChart.destroy();
+        }
+
+        if (!data || data.length === 0) {
+          // Show no data message
+          ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+          ctx.font = "16px Arial";
+          ctx.fillStyle = "#666";
+          ctx.textAlign = "center";
+          ctx.fillText(
+            "No booking data available for selected date range",
+            ctx.canvas.width / 2,
+            ctx.canvas.height / 2,
+          );
+          return;
+        }
+
+        const labels = data.map((item) => item.user);
+        const counts = data.map((item) => item.count);
+
+        // Generate colors
+        const colors = generateColors(labels.length);
+
+        window.bookingAnalyticsChart = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "Bookings",
+                data: counts,
+                backgroundColor: colors,
+                borderColor: colors.map((color) => color.replace("0.8", "1")),
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false,
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    const total = context.dataset.data.reduce(
+                      (a, b) => a + b,
+                      0,
+                    );
+                    const percentage =
+                      total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
+                    return `${context.raw} bookings (${percentage}%)`;
+                  },
+                },
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  stepSize: 1,
+                },
+              },
+            },
+          },
+        });
+      }
+
+      function updateReschedulingAnalyticsChart(data) {
+        const ctx = document
+          .getElementById("reschedulingAnalytics")
+          .getContext("2d");
+
+        // Destroy existing chart if it exists
+        if (window.reschedulingAnalyticsChart) {
+          window.reschedulingAnalyticsChart.destroy();
+        }
+
+        if (!data || data.length === 0) {
+          // Show no data message
+          ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+          ctx.font = "16px Arial";
+          ctx.fillStyle = "#666";
+          ctx.textAlign = "center";
+          ctx.fillText(
+            "No rescheduling data available for selected date range",
+            ctx.canvas.width / 2,
+            ctx.canvas.height / 2,
+          );
+          return;
+        }
+
+        const labels = data.map((item) => item.user);
+        const counts = data.map((item) => item.count);
+
+        // Generate colors
+        const colors = generateColors(labels.length);
+
+        window.reschedulingAnalyticsChart = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "Reschedules",
+                data: counts,
+                backgroundColor: colors,
+                borderColor: colors.map((color) => color.replace("0.8", "1")),
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false,
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    const total = context.dataset.data.reduce(
+                      (a, b) => a + b,
+                      0,
+                    );
+                    const percentage =
+                      total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
+                    return `${context.raw} reschedules (${percentage}%)`;
+                  },
+                },
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  stepSize: 1,
+                },
+              },
+            },
+          },
+        });
+      }
+
+      function generateColors(count) {
+        const colors = [
+          "rgba(74, 144, 226, 0.8)", // Blue
+          "rgba(72, 187, 120, 0.8)", // Green
+          "rgba(237, 137, 54, 0.8)", // Orange
+          "rgba(229, 62, 62, 0.8)", // Red
+          "rgba(159, 122, 234, 0.8)", // Purple
+          "rgba(66, 153, 225, 0.8)", // Light Blue
+          "rgba(245, 101, 101, 0.8)", // Light Red
+          "rgba(72, 187, 120, 0.8)", // Light Green
+          "rgba(237, 137, 54, 0.8)", // Light Orange
+          "rgba(159, 122, 234, 0.8)", // Light Purple
+        ];
+
+        const result = [];
+        for (let i = 0; i < count; i++) {
+          result.push(colors[i % colors.length]);
+        }
+        return result;
+      }
+    </script>
+  </body>
+</html>

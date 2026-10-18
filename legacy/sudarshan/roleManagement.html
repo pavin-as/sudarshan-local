@@ -1,0 +1,589 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary-color: #4a90e2;
+        --primary-light: #e8f0fe;
+        --primary-dark: #2c5282;
+        --success-color: #48bb78;
+        --warning-color: #ed8936;
+        --danger-color: #e53e3e;
+        --text-primary: #2d3748;
+        --text-secondary: #4a5568;
+        --bg-light: #f7fafc;
+        --bg-white: #ffffff;
+      }
+
+      body {
+        background: var(--bg-light);
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--text-primary);
+      }
+
+      .navbar {
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--primary-dark)
+        );
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .navbar-brand {
+        font-weight: 600;
+        color: white !important;
+      }
+
+      .nav-link {
+        color: rgba(255, 255, 255, 0.9) !important;
+        transition: color 0.3s ease;
+      }
+
+      .nav-link:hover {
+        color: white !important;
+      }
+
+      .main-container {
+        padding: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+
+      .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 25px rgba(0, 0, 0, 0.12);
+      }
+
+      .card-header {
+        background: linear-gradient(
+          135deg,
+          var(--primary-light),
+          var(--bg-white)
+        );
+        border-bottom: 1px solid #e2e8f0;
+        border-radius: 12px 12px 0 0 !important;
+        padding: 1.5rem;
+      }
+
+      .level-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+
+      .level-1 {
+        background: #fed7d7;
+        color: #c53030;
+      }
+      .level-2 {
+        background: #fef5e7;
+        color: #d69e2e;
+      }
+      .level-3 {
+        background: #e6fffa;
+        color: #2f855a;
+      }
+      .level-4 {
+        background: #f7fafc;
+        color: #4a5568;
+      }
+
+      .role-table {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .role-table th {
+        background: var(--primary-light);
+        color: var(--primary-dark);
+        font-weight: 600;
+        border: none;
+        padding: 1rem;
+      }
+
+      .role-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #e2e8f0;
+        vertical-align: middle;
+      }
+
+      .btn-primary {
+        background: var(--primary-color);
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+      }
+
+      .btn-primary:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+      }
+
+      .alert {
+        border: none;
+        border-radius: 8px;
+        padding: 1rem 1.5rem;
+      }
+
+      .access-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+      }
+
+      .access-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        border-left: 4px solid var(--primary-color);
+      }
+
+      .access-card h5 {
+        color: var(--primary-dark);
+        margin-bottom: 0.5rem;
+      }
+
+      .access-card p {
+        color: var(--text-secondary);
+        margin: 0;
+        font-size: 0.9rem;
+      }
+
+      .user-info {
+        background: linear-gradient(
+          135deg,
+          var(--primary-light),
+          var(--bg-white)
+        );
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+      }
+
+      .user-info h4 {
+        color: var(--primary-dark);
+        margin-bottom: 0.5rem;
+      }
+
+      .user-details {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .user-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 1.2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#">
+          <i class="fas fa-shield-alt me-2"></i>
+          Role Management System
+        </a>
+        <div class="navbar-nav ms-auto">
+          <a class="nav-link" href="#" onclick="goToPage('Dashboard')">
+            <i class="fas fa-home me-1"></i>Dashboard
+          </a>
+          <a class="nav-link" href="#" onclick="logout()">
+            <i class="fas fa-sign-out-alt me-1"></i>Logout
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="main-container">
+      <div class="alert-container" id="alertContainer"></div>
+
+      <!-- User Info Section -->
+      <div class="user-info">
+        <h4><i class="fas fa-user me-2"></i>Current User Information</h4>
+        <div class="user-details">
+          <div class="user-avatar" id="userAvatar">U</div>
+          <div>
+            <h5 id="userName">Loading...</h5>
+            <p id="userRole">Loading role information...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Access Level Summary -->
+      <div class="access-summary">
+        <div class="access-card">
+          <h5>
+            <i class="fas fa-crown text-warning me-2"></i>Level 1 -
+            Director/Admin
+          </h5>
+          <p>
+            Full system access including user management, system settings, and
+            all administrative functions.
+          </p>
+        </div>
+        <div class="access-card">
+          <h5><i class="fas fa-user-md text-info me-2"></i>Level 2 - Doctor</h5>
+          <p>
+            Medical and patient management, appointment archiving, and clinical
+            operations.
+          </p>
+        </div>
+        <div class="access-card">
+          <h5>
+            <i class="fas fa-briefcase text-success me-2"></i>Level 3 - Manager
+          </h5>
+          <p>
+            Operational management, patient updates, analytics, and appointment
+            management.
+          </p>
+        </div>
+        <div class="access-card">
+          <h5>
+            <i class="fas fa-user text-secondary me-2"></i>Level 4 - General
+            User
+          </h5>
+          <p>
+            Basic appointment operations including booking, viewing, and basic
+            patient information.
+          </p>
+        </div>
+      </div>
+
+      <!-- Role Management Table -->
+      <div class="card">
+        <div class="card-header">
+          <h4 class="mb-0">
+            <i class="fas fa-users-cog me-2"></i>
+            Role-Based Access Control System
+          </h4>
+          <p class="mb-0 text-muted">Manage user roles and access levels</p>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table role-table mb-0">
+              <thead>
+                <tr>
+                  <th>Role</th>
+                  <th>Access Level</th>
+                  <th>Permissions</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody id="roleTableBody">
+                <!-- Role data will be populated here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Current User Access Details -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h4 class="mb-0">
+            <i class="fas fa-key me-2"></i>
+            Your Current Access Permissions
+          </h4>
+        </div>
+        <div class="card-body">
+          <div class="row" id="permissionsGrid">
+            <!-- Permissions will be populated here -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      var baseUrl = "<?= webAppUrl ?>";
+      var sessionToken = "<?= sessionToken ?>";
+
+      document.addEventListener("DOMContentLoaded", function () {
+        checkAdminAccess();
+        loadUserInfo();
+        loadRoleTable();
+        loadUserPermissions();
+      });
+
+      function checkAdminAccess() {
+        google.script.run
+          .withSuccessHandler(function (hasAccess) {
+            if (!hasAccess) {
+              showAlert("Access denied. Admin privileges required.", "error");
+              setTimeout(function () {
+                goToPage("Dashboard");
+              }, 2000);
+            }
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error checking access: " + error, "error");
+            goToPage("Dashboard");
+          })
+          .hasAdminAccess(sessionToken);
+      }
+
+      function loadUserInfo() {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (response.success) {
+              const user = response;
+              document.getElementById("userName").textContent = user.username;
+              document.getElementById("userRole").textContent =
+                `${user.roleName} (Level ${user.level})`;
+              document.getElementById("userAvatar").textContent = user.username
+                .charAt(0)
+                .toUpperCase();
+            }
+          })
+          .withFailureHandler(function (error) {})
+          .getCurrentUserAccessLevel(sessionToken);
+      }
+
+      function loadRoleTable() {
+        google.script.run
+          .withSuccessHandler(function (roles) {
+            const tbody = document.getElementById("roleTableBody");
+            tbody.innerHTML = "";
+
+            roles.forEach((role) => {
+              const row = document.createElement("tr");
+              row.innerHTML = `
+              <td><strong>${role.role.charAt(0).toUpperCase() + role.role.slice(1)}</strong></td>
+              <td><span class="level-badge level-${role.level}">Level ${role.level}</span></td>
+              <td>${getPermissionsForLevel(role.level)}</td>
+              <td>${role.description}</td>
+            `;
+              tbody.appendChild(row);
+            });
+          })
+          .withFailureHandler(function (error) {})
+          .getAvailableRoles();
+      }
+
+      function getPermissionsForLevel(level) {
+        const permissions = {
+          1: "All system functions, user management, system settings",
+          2: "Medical operations, patient management, appointment archiving",
+          3: "Operational management, analytics, appointment management",
+          4: "Basic appointment operations, viewing patient info",
+        };
+        return permissions[level] || "Limited access";
+      }
+
+      function loadUserPermissions() {
+        const permissions = [
+          {
+            name: "Admin Access",
+            check: "hasAdminAccess",
+            icon: "fas fa-crown",
+            color: "warning",
+          },
+          {
+            name: "Doctor Access",
+            check: "hasDoctorAccess",
+            icon: "fas fa-user-md",
+            color: "info",
+          },
+          {
+            name: "Manager Access",
+            check: "hasManagerAccess",
+            icon: "fas fa-briefcase",
+            color: "success",
+          },
+          {
+            name: "Delete Appointments",
+            check: "canDeleteAppointments",
+            icon: "fas fa-trash",
+            color: "danger",
+          },
+          {
+            name: "Archive Appointments",
+            check: "canArchiveAppointments",
+            icon: "fas fa-archive",
+            color: "secondary",
+          },
+          {
+            name: "Update Patient Details",
+            check: "canUpdatePatientDetails",
+            icon: "fas fa-user-edit",
+            color: "primary",
+          },
+          {
+            name: "View Analytics",
+            check: "canViewAnalytics",
+            icon: "fas fa-chart-bar",
+            color: "info",
+          },
+          {
+            name: "Manage System Settings",
+            check: "canManageSystemSettings",
+            icon: "fas fa-cogs",
+            color: "warning",
+          },
+          {
+            name: "Access Visualization",
+            check: "canAccessVisualization",
+            icon: "fas fa-chart-line",
+            color: "info",
+          },
+          {
+            name: "Access Settings",
+            check: "canAccessSettings",
+            icon: "fas fa-cog",
+            color: "warning",
+          },
+          {
+            name: "Book Appointments",
+            check: "canBookAppointments",
+            icon: "fas fa-calendar-plus",
+            color: "success",
+          },
+          {
+            name: "Reschedule Appointments",
+            check: "canRescheduleAppointments",
+            icon: "fas fa-calendar-week",
+            color: "primary",
+          },
+          {
+            name: "Cancel Appointments",
+            check: "canCancelAppointments",
+            icon: "fas fa-calendar-times",
+            color: "danger",
+          },
+          {
+            name: "Confirm Appointments",
+            check: "canConfirmAppointments",
+            icon: "fas fa-check-circle",
+            color: "success",
+          },
+        ];
+
+        const grid = document.getElementById("permissionsGrid");
+        grid.innerHTML = "";
+
+        permissions.forEach((permission) => {
+          const col = document.createElement("div");
+          col.className = "col-md-6 col-lg-4 mb-3";
+
+          col.innerHTML = `
+          <div class="d-flex align-items-center p-3 border rounded">
+            <i class="${permission.icon} text-${permission.color} me-3" style="font-size: 1.2rem;"></i>
+            <div class="flex-grow-1">
+              <div class="fw-bold">${permission.name}</div>
+              <div class="permission-status" id="perm_${permission.check}">
+                <small class="text-muted">Checking...</small>
+              </div>
+            </div>
+          </div>
+        `;
+          grid.appendChild(col);
+
+          // Check permission
+          checkPermission(permission.check, `perm_${permission.check}`);
+        });
+      }
+
+      function checkPermission(permissionFunction, elementId) {
+        google.script.run
+          .withSuccessHandler(function (hasPermission) {
+            const element = document.getElementById(elementId);
+            if (hasPermission) {
+              element.innerHTML =
+                '<small class="text-success"><i class="fas fa-check me-1"></i>Granted</small>';
+            } else {
+              element.innerHTML =
+                '<small class="text-danger"><i class="fas fa-times me-1"></i>Denied</small>';
+            }
+          })
+          .withFailureHandler(function (error) {
+            const element = document.getElementById(elementId);
+            element.innerHTML =
+              '<small class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Error</small>';
+          })
+          [permissionFunction](sessionToken);
+      }
+
+      function showAlert(message, type = "info", options = {}) {
+        const alertContainer = document.getElementById("alertContainer");
+        const alertDiv = document.createElement("div");
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+
+        if (options.showContinue) {
+          const continueBtn = document.createElement("button");
+          continueBtn.className = "btn btn-sm btn-primary ms-2";
+          continueBtn.textContent = "Continue";
+          continueBtn.onclick = options.continueAction;
+          alertDiv.appendChild(continueBtn);
+        }
+
+        alertContainer.appendChild(alertDiv);
+
+        if (!options.showContinue) {
+          setTimeout(() => {
+            if (alertDiv.parentNode) {
+              alertDiv.remove();
+            }
+          }, 5000);
+        }
+      }
+
+      function goToPage(page) {
+        window.top.location.href =
+          baseUrl +
+          "?page=" +
+          page +
+          "&sessionToken=" +
+          encodeURIComponent(sessionToken);
+      }
+
+      function logout() {
+        google.script.run
+          .withSuccessHandler(function () {
+            window.top.location.href = baseUrl;
+          })
+          .withFailureHandler(function (error) {
+            showAlert("Error during logout: " + error, "error");
+          })
+          .clearSession(sessionToken);
+      }
+    </script>
+  </body>
+</html>

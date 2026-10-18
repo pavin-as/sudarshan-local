@@ -1,0 +1,2586 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Color Variables */
+    :root {
+      --primary-color: #4a90e2;
+      --primary-light: #e8f0fe;
+      --primary-dark: #2c5282;
+      --success-color: #48bb78;
+      --warning-color: #ed8936;
+      --danger-color: #e53e3e;
+      --text-primary: #2d3748;
+      --text-secondary: #4a5568;
+      --bg-light: #f7fafc;
+      --bg-white: #ffffff;
+    }
+
+    body {
+      background-color: var(--bg-light);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 1400px;
+    }
+
+    /* Header Section */
+    .dashboard-header {
+      background: var(--bg-white);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .dashboard-header h1 {
+      color: var(--text-primary);
+      font-weight: 600;
+      margin: 0;
+      position: relative;
+      padding-left: 1rem;
+    }
+
+    .dashboard-header h1::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 70%;
+      background: linear-gradient(to bottom, var(--primary-color), var(--success-color));
+      border-radius: 2px;
+    }
+
+    /* Stats Cards */
+    .stats-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--bg-white);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    .stat-card .icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .stat-card .icon.primary {
+      background: var(--primary-light);
+      color: var(--primary-color);
+    }
+
+    .stat-card .icon.success {
+      background: rgba(72, 187, 120, 0.1);
+      color: var(--success-color);
+    }
+
+    .stat-card .icon.warning {
+      background: rgba(237, 137, 54, 0.1);
+      color: var(--warning-color);
+    }
+
+    .stat-card .icon.danger {
+      background: rgba(229, 62, 62, 0.1);
+      color: var(--danger-color);
+    }
+
+       /* make the “trend” text match the icon colour */
+  .stat-card .trend.danger  { color: var(--danger-color); }
+  .stat-card .trend.warning { color: var(--warning-color); }
+  .stat-card .trend.success { color: var(--success-color); }
+
+
+    .stat-card .value {
+      font-size: 2rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-card .label {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+
+    .stat-card .trend {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      margin-top: 0.5rem;
+    }
+
+    .stat-card .trend.up {
+      color: var(--success-color);
+    }
+
+    .stat-card .trend.down {
+      color: var(--danger-color);
+    }
+
+    /* Charts Section */
+    .charts-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .chart-card {
+      background: var(--bg-white);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .chart-card h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .action-button {
+      background: var(--bg-white);
+      border: 2px solid var(--primary-light);
+      border-radius: 12px;
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+
+    .action-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+      border-color: var(--primary-color);
+      background: var(--primary-light);
+    }
+
+    .action-button i {
+      font-size: 1.5rem;
+      color: var(--primary-color);
+    }
+
+    /* Upcoming Appointments */
+    .upcoming-appointments {
+      background: var(--bg-white);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      margin-bottom: 2rem;
+    }
+
+    .upcoming-appointments h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    .appointment-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem;
+      border-bottom: 1px solid var(--primary-light);
+      transition: all 0.3s ease;
+    }
+
+    .appointment-item:last-child {
+      border-bottom: none;
+    }
+
+    .appointment-item:hover {
+      background: var(--primary-light);
+    }
+
+    .appointment-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .appointment-time {
+      font-weight: 600;
+      color: var(--primary-color);
+    }
+
+    .appointment-details {
+      color: var(--text-secondary);
+    }
+
+    .appointment-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    /* Menu Items */
+    .menu-container {
+      background: var(--bg-white);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .menu-item {
+      background: var(--bg-white);
+      border: 2px solid var(--primary-light);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      cursor: pointer;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+
+    .menu-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .menu-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+      border-color: var(--primary-color);
+      background: var(--primary-light);
+    }
+
+    .menu-item i {
+      font-size: 1.5rem;
+      color: var(--primary-color);
+      width: 2rem;
+      text-align: center;
+    }
+
+    .menu-item span {
+      font-size: 1.1rem;
+      font-weight: 500;
+    }
+
+    /* Alert Container */
+    .alert-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 400px;
+    }
+
+    .custom-alert {
+      background: var(--bg-white);
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transform: translateX(120%);
+      animation: slideIn 0.3s forwards;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .custom-alert::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+    }
+
+    .custom-alert.success::before {
+      background: var(--success-color);
+    }
+
+    .custom-alert.error::before {
+      background: var(--danger-color);
+    }
+
+    .custom-alert.warning::before {
+      background: var(--warning-color);
+    }
+
+    .custom-alert.info::before {
+      background: var(--primary-color);
+    }
+
+    @keyframes slideIn {
+      to {
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes slideOut {
+      to {
+        transform: translateX(120%);
+      }
+    }
+
+    .custom-alert.closing {
+      animation: slideOut 0.3s forwards;
+    }
+
+    /* Loading state styles */
+    .stat-card.loading {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .stat-card.loading::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      animation: loading 1.5s infinite;
+    }
+    
+    @keyframes loading {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    /* Confirmation buttons and status */
+    .confirmation-buttons {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .confirmation-status {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .confirmation-status.confirmed {
+      color: var(--success-color);
+    }
+
+    .appointment-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn-sm {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    .btn-outline-primary:hover {
+      background-color: var(--primary-color);
+      color: white;
+    }
+
+    .btn-outline-warning:hover {
+      background-color: var(--warning-color);
+      color: white;
+    }
+
+    .btn-outline-danger:hover {
+      background-color: var(--danger-color);
+      color: white;
+    }
+
+    .spinner-border-sm {
+      width: 1rem;
+      height: 1rem;
+      border-width: 0.2em;
+    }
+
+    .confirmation-status {
+      font-size: 0.8rem;
+      color: var(--success-color);
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      background-color: rgba(72, 187, 120, 0.1);
+    }
+
+    .confirmation-status.confirmed {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    /* Patient name tooltip styling */
+    .patientName, .appointment-time {
+      position: relative;
+      cursor: help;
+      border-bottom: 1px dotted var(--primary-color);
+    }
+
+    .patientName:hover::after, .appointment-time:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      left: 0;
+      top: 100%;
+      z-index: 999;
+      background-color: #2c5282;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      white-space: nowrap;
+      font-weight: normal;
+      min-width: 200px;
+      text-align: left;
+    }
+
+    /* Confirmation status */
+    .confirmation-status {
+      font-size: 0.8rem;
+      color: var(--success-color);
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      background-color: rgba(72, 187, 120, 0.1);
+    }
+
+    .confirmation-status.confirmed {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    /* Slot stats styling for dashboard */
+    .slot-stats-container {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      font-size: 0.75rem;
+    }
+
+    .slot-stat-item {
+      padding: 0.5rem;
+      border-radius: 6px;
+      text-align: center;
+      font-weight: 500;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .slot-stat-label {
+      font-size: 0.65rem;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .slot-stat-value {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .stat-maxslots {
+      background: #e9d8fd;
+      color: #553c9a;
+      grid-column: span 2;
+    }
+
+    .stat-naa {
+      background: #c6f6d5;
+      color: #276749;
+    }
+
+    .stat-oaa {
+      background: #bee3f8;
+      color: #2b6cb0;
+    }
+
+    .stat-taa {
+      background: #fefcbf;
+      color: #975a16;
+    }
+
+    .stat-raa {
+      background: #fed7d7;
+      color: #c53030;
+    }
+
+    .stat-raa.available {
+      background: #c6f6d5;
+      color: #276749;
+    }
+
+    /* Monthly Patients Breakdown */
+    .stat-wl {
+      background: #fed7d7;
+      color: #c53030;
+    }
+
+    .stat-dc {
+      background: #bee3f8;
+      color: #2b6cb0;
+    }
+
+    .stat-followup {
+      background: #c6f6d5;
+      color: #276749;
+    }
+
+    .stat-cancelled {
+      background: #fefcbf;
+      color: #975a16;
+    }
+
+    /* Today's Appointments Type Breakdown */
+    .stat-appt-type {
+      background: #e9d8fd;
+      color: #553c9a;
+    }
+
+    /* Pending Confirmation Days */
+    .stat-pending-day {
+      background: #f0f4f8;
+      color: #2d3748;
+      border: 1px solid #cbd5e0;
+      padding: 0.75rem 0.5rem;
+    }
+
+    .stat-pending-day .day-header {
+      font-size: 0.7rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--primary-color);
+      text-transform: uppercase;
+    }
+
+    .stat-pending-day .pending-counts {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+
+    .stat-pending-day .pending-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .stat-pending-day .pending-label {
+      font-size: 0.6rem;
+      opacity: 0.7;
+    }
+
+    .stat-pending-day .pending-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .pending-4day { color: var(--warning-color); }
+    .pending-1day { color: var(--danger-color); }
+
+    /* Tab Navigation Styling */
+    .dashboard-tabs {
+      background: var(--bg-white);
+      border-radius: 12px 12px 0 0;
+      padding: 1rem 1rem 0;
+      margin-bottom: 0;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      border-bottom: none;
+    }
+
+    .dashboard-tabs .nav-link {
+      color: var(--text-secondary);
+      border: none;
+      border-bottom: 3px solid transparent;
+      padding: 1rem 1.5rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      background: transparent;
+    }
+
+    .dashboard-tabs .nav-link:hover {
+      color: var(--primary-color);
+      border-bottom-color: var(--primary-light);
+    }
+
+    .dashboard-tabs .nav-link.active {
+      color: var(--primary-color);
+      border-bottom-color: var(--primary-color);
+      background: transparent;
+    }
+
+    .tab-content {
+      background: var(--bg-light);
+      padding-top: 1.5rem;
+    }
+
+    /* Forecast Card Styling */
+    .forecast-card {
+      background: var(--bg-white);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      margin-bottom: 1.5rem;
+    }
+
+    .forecast-card h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    .forecast-day {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem;
+      border-bottom: 1px solid var(--primary-light);
+      transition: background 0.2s;
+    }
+
+    .forecast-day:last-child {
+      border-bottom: none;
+    }
+
+    .forecast-day:hover {
+      background: var(--primary-light);
+    }
+
+    .slot-indicator {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: white;
+      font-size: 1.1rem;
+    }
+
+    .slot-indicator.full { background: var(--danger-color); }
+    .slot-indicator.low { background: var(--warning-color); }
+    .slot-indicator.available { background: var(--success-color); }
+
+    /* Heatmap Styling */
+    .heatmap-container {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .heatmap-cell {
+      aspect-ratio: 1;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      padding: 4px;
+    }
+
+    .heatmap-cell:hover {
+      transform: scale(1.1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      z-index: 1;
+    }
+
+    .heatmap-legend {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    /* Analytics Tab Styling */
+    .analytics-card {
+      background: var(--bg-white);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      margin-bottom: 1.5rem;
+    }
+
+    .analytics-card h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    .date-range-picker {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .date-range-picker .form-group {
+      flex: 1;
+      min-width: 150px;
+    }
+
+    .date-range-picker label {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.25rem;
+      display: block;
+    }
+
+  </style>
+</head>
+<body>
+  <script>
+    window.sessionToken = "<?= sessionToken ?>";
+    window.baseUrl = "<?= webAppUrl ?>";
+  </script>
+  <?!= include('sharedLayout') ?>
+  <?!= include('PaymentRefundPrompt') ?>
+  <!-- Add alert container -->
+  <div class="alert-container" id="alertContainer"></div>
+
+  <div class="container">
+    <div class="dashboard-header">
+      <h1>Dashboard</h1>
+      <button class="btn btn-danger" onclick="logout()">
+        <i class="fas fa-sign-out-alt"></i> Logout
+      </button>
+    </div>
+
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs dashboard-tabs" id="dashboardTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="operations-tab" data-bs-toggle="tab"
+                data-bs-target="#operations" type="button" role="tab"
+                aria-controls="operations" aria-selected="true">
+          <i class="fas fa-cog me-2"></i>Operations
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="planning-tab" data-bs-toggle="tab"
+                data-bs-target="#planning" type="button" role="tab"
+                aria-controls="planning" aria-selected="false">
+          <i class="fas fa-calendar-alt me-2"></i>Planning
+        </button>
+      </li>
+      <li class="nav-item admin-only-tab" role="presentation" style="display: none;">
+        <button class="nav-link" id="analytics-tab" data-bs-toggle="tab"
+                data-bs-target="#analytics" type="button" role="tab"
+                aria-controls="analytics" aria-selected="false">
+          <i class="fas fa-chart-line me-2"></i>Analytics
+        </button>
+      </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="dashboardTabContent">
+      <!-- Operations Tab -->
+      <div class="tab-pane fade show active" id="operations" role="tabpanel" aria-labelledby="operations-tab">
+
+    <!-- Stats Cards -->
+    <div class="stats-container">
+      <div class="stat-card loading">
+        <div class="icon primary">
+          <i class="fas fa-calendar-check"></i>
+        </div>
+        <div class="value" id="todayAppointments">0</div>
+        <div class="label">Today's Appointments</div>
+        <div class="slot-stats-container" id="todayAppointmentsStatsContainer">
+          <!-- Dynamically populated with appointment type breakdown -->
+        </div>
+        <div class="slot-stats-container" id="todaySlotStatusContainer" style="margin-top: 0.75rem;">
+          <!-- Dynamically populated with Today's Slot Status -->
+        </div>
+      </div>
+       <div class="stat-card loading">
+        <div class="icon warning" id="pendingIcon">
+          <i class="fas fa-clock"></i>
+          <!-- will be replaced with ❗/⚠️/✅ via JS -->
+        </div>
+        <div class="value" id="pendingConfirmations">0</div>
+        <div class="label">Pending 4-Day Confirmation</div>
+        <div class="trend"></div>
+        <div class="slot-stats-container" id="pendingConfirmationStatsContainer" style="grid-template-columns: repeat(2, 1fr);">
+          <!-- Dynamically populated with 4 day cards -->
+        </div>
+      </div>
+      <div class="stat-card loading">
+        <div class="icon success">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="value" id="monthlyPatients">0</div>
+        <div class="label">Monthly Patients</div>
+        <div class="trend up">
+          <i class="fas fa-arrow-up"></i>
+          <span>8% from last month</span>
+        </div>
+        <div class="slot-stats-container" id="monthlyPatientsStatsContainer">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+      <div class="stat-card loading">
+        <div class="icon danger">
+          <i class="fas fa-calendar-check"></i>
+        </div>
+        <div class="value" id="nextDayAppointments">0</div>
+        <div class="label" id="nextDayLabel">Tomorrow's Appointments</div>
+        <div class="slot-stats-container" id="nextDayAppointmentsStatsContainer">
+          <!-- Dynamically populated with appointment type breakdown -->
+        </div>
+        <div class="slot-stats-container" id="nextDaySlotStatsContainer" style="margin-top: 0.75rem;">
+          <!-- Dynamically populated with Tomorrow's Slot Status -->
+        </div>
+      </div>
+    </div>
+
+
+
+    <!-- Charts Section -->
+    <div class="charts-container">
+      <div class="chart-card">
+        <h3>Today's Appointment Distribution</h3>
+        <canvas id="todayAppointmentDistribution"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Monthly Appointment Distribution</h3>
+        <canvas id="appointmentDistribution"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Weekly Trends</h3>
+        <canvas id="weeklyTrends"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Waiting List Distribution</h3>
+        <canvas id="waitingListDistribution"></canvas>
+      </div>
+    </div>
+
+    <!-- Upcoming Appointments -->
+    <div class="upcoming-appointments">
+      <h3>Upcoming Appointments</h3>
+      <div id="upcomingAppointmentsList">
+        <!-- Will be populated dynamically -->
+      </div>
+    </div>
+
+    <!-- Main Menu -->
+    <div class="menu-container">
+      <a class="menu-item" onclick="goToPage('dayOverview')">
+        <i class="fas fa-calendar-day"></i>
+        <span>Day Overview Calendar</span>
+      </a>
+      <a class="menu-item" onclick="goToPage('monthOverview')">
+        <i class="fas fa-calendar-alt"></i>
+        <span>Month Overview Calendar</span>
+      </a>
+      <a class="menu-item" onclick="goToPage('bookAppointment')">
+        <i class="fas fa-calendar-plus"></i>
+        <span>Book Appointment</span>
+      </a>
+        <a class="menu-item" onclick="goToPage('SlotOptimization')">
+        <i class="fas fa-cogs"></i>
+        <span>Slot Optimization</span>
+      </a>
+      <a class="menu-item" onclick="goToPage('Visualization')" id="visualizationMenuBtn" style="display: none;">
+        <i class="fas fa-chart-line"></i>
+        <span>Visualization Dashboard</span>
+      </a>
+      <a class="menu-item" onclick="goToPage('rescheduleAnalytics')" id="rescheduleAnalyticsMenuBtn" style="display: none;">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>Rescheduling Analytics</span>
+      </a>
+      <a class="menu-item" onclick="goToPage('appointmentList')">
+        <i class="fas fa-list"></i>
+        <span>Appointment List / Search</span>
+      </a>
+       <a class="menu-item" onclick="goToPage('cancelList')">
+        <i class="fas fa-calendar-times"></i>
+        <span>Cancelled Appointments</span>
+      </a>
+      <a class="menu-item" onclick="goToPage('archiveList')">
+        <i class="fas fa-archive"></i>
+        <span>Archived Appointments</span>
+      </a>
+      <a class="menu-item" onclick="goToPage('completedAppointments')">
+        <i class="fas fa-check-circle"></i>
+        <span>Completed Appointments</span>
+      </a>
+      <a class="menu-item" onclick="goToPage('patientMaster')">
+        <i class="fas fa-user-md"></i>
+        <span>Patient Master Data</span>
+      </a>
+      <a class="menu-item" onclick="goToPage('followupAppointment')">
+        <i class="fas fa-calendar-check"></i>
+        <span>Follow-up Appointments</span>
+      </a>
+      <a class="menu-item" onclick="goToPage('settings')" id="settingsMenuBtn" style="display: none;">
+        <i class="fas fa-cog"></i>
+        <span>Settings Configuration</span>
+      </a>
+      <a class="menu-item" onclick="goToPage('roleManagement')" id="roleManagementMenuBtn" style="display: none;">
+        <i class="fas fa-shield-alt"></i>
+        <span>Role Management</span>
+      </a>
+      <a class="menu-item" onclick="goToPage('auditLog')" id="auditLogMenuBtn" style="display: none;">
+        <i class="fas fa-clipboard-list"></i>
+        <span>Audit Logs</span>
+      </a>
+
+    </div>
+      </div><!-- End Operations Tab -->
+
+      <!-- Planning Tab -->
+      <div class="tab-pane fade" id="planning" role="tabpanel" aria-labelledby="planning-tab">
+
+        <!-- 7-Day Slot Forecast -->
+        <div class="forecast-card">
+          <h3><i class="fas fa-calendar-week text-primary me-2"></i>Next 7 Days Slot Forecast</h3>
+          <div id="sevenDayForecast">
+            <div class="text-center text-muted py-4">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2">Loading forecast...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="stats-container">
+          <div class="stat-card">
+            <div class="icon primary">
+              <i class="fas fa-calendar-plus"></i>
+            </div>
+            <div class="value" id="newPatientSlotsNext7">0</div>
+            <div class="label">New Patient Slots (7 Days)</div>
+          </div>
+          <div class="stat-card">
+            <div class="icon success">
+              <i class="fas fa-user-clock"></i>
+            </div>
+            <div class="value" id="oldPatientSlotsNext7">0</div>
+            <div class="label">Old Patient Slots (7 Days)</div>
+          </div>
+          <div class="stat-card">
+            <div class="icon warning">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="value" id="overbookedDays">0</div>
+            <div class="label">Overbooked Days Ahead</div>
+          </div>
+        </div>
+
+        <!-- Capacity Heatmap -->
+        <div class="forecast-card">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3><i class="fas fa-th text-warning me-2"></i>30-Day Capacity Heatmap</h3>
+            <div class="btn-group" role="group">
+              <button type="button" class="btn btn-outline-primary btn-sm" onclick="changeHeatmapMonth(-1)">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <span class="btn btn-outline-primary btn-sm disabled" id="heatmapMonthLabel">Loading...</span>
+              <button type="button" class="btn btn-outline-primary btn-sm" onclick="changeHeatmapMonth(1)">
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+          <div class="heatmap-legend mb-3">
+            <span><span class="badge bg-success">0-50%</span> Available</span>
+            <span><span class="badge bg-warning">51-80%</span> Filling Up</span>
+            <span><span class="badge bg-danger">81-100%</span> Full</span>
+          </div>
+          <div id="capacityHeatmap" class="heatmap-container">
+            <div class="text-center text-muted py-4" style="grid-column: span 7;">
+              <div class="spinner-border text-primary" role="status"></div>
+              <p class="mt-2">Loading heatmap...</p>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- End Planning Tab -->
+
+      <!-- Analytics Tab (Admin Only) -->
+      <div class="tab-pane fade" id="analytics" role="tabpanel" aria-labelledby="analytics-tab">
+
+        <!-- Access Denied Message (hidden by default, shown for non-admins) -->
+        <div id="analyticsAccessDenied" class="alert alert-warning" style="display: none;">
+          <i class="fas fa-lock me-2"></i>
+          Analytics tab requires administrator access.
+        </div>
+
+        <div id="analyticsContent">
+          <!-- Date Range Picker -->
+          <div class="analytics-card">
+            <div class="date-range-picker">
+              <div class="form-group">
+                <label for="analyticsFromDate">From Date</label>
+                <input type="date" class="form-control" id="analyticsFromDate">
+              </div>
+              <div class="form-group">
+                <label for="analyticsToDate">To Date</label>
+                <input type="date" class="form-control" id="analyticsToDate">
+              </div>
+              <div>
+                <button class="btn btn-primary" onclick="loadAnalyticsData()">
+                  <i class="fas fa-sync-alt me-2"></i>Refresh Data
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Analytics Summary Stats -->
+          <div class="stats-container">
+            <div class="stat-card">
+              <div class="icon danger">
+                <i class="fas fa-redo"></i>
+              </div>
+              <div class="value" id="totalReschedulesAnalytics">0</div>
+              <div class="label">Total Reschedules</div>
+            </div>
+            <div class="stat-card">
+              <div class="icon warning">
+                <i class="fas fa-exclamation-circle"></i>
+              </div>
+              <div class="value" id="highRiskCount">0</div>
+              <div class="label">High Risk (3+ Reschedules)</div>
+            </div>
+            <div class="stat-card">
+              <div class="icon primary">
+                <i class="fas fa-calculator"></i>
+              </div>
+              <div class="value" id="avgReschedulesPerAppt">0</div>
+              <div class="label">Avg Reschedules/Appt</div>
+            </div>
+            <div class="stat-card">
+              <div class="icon success">
+                <i class="fas fa-trophy"></i>
+              </div>
+              <div class="value" id="topBooker">-</div>
+              <div class="label">Top Booker This Month</div>
+            </div>
+          </div>
+
+          <!-- Staff Performance Charts -->
+          <div class="row">
+            <div class="col-md-6">
+              <div class="chart-card">
+                <h3><i class="fas fa-user-tie text-primary me-2"></i>Staff Booking Performance</h3>
+                <canvas id="staffBookingChart"></canvas>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="chart-card">
+                <h3><i class="fas fa-redo text-warning me-2"></i>Rescheduling by Staff</h3>
+                <canvas id="staffRescheduleChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reschedule Trends -->
+          <div class="chart-card mt-4">
+            <h3><i class="fas fa-chart-line text-success me-2"></i>Rescheduling Trends (12 Months)</h3>
+            <canvas id="rescheduleTrendChart"></canvas>
+          </div>
+        </div>
+
+      </div><!-- End Analytics Tab -->
+
+    </div><!-- End Tab Content -->
+  </div>
+
+  <script>
+    var baseUrl = "<?= webAppUrl ?>";
+    var sessionToken = "<?= sessionToken ?>";
+
+
+    // Check admin access for Level 1 restricted pages
+    function checkAdminAccess() {
+      google.script.run
+        .withSuccessHandler(function(hasAccess) {
+          if (hasAccess) {
+            // Show admin-only menu items
+            const visualizationBtn = document.getElementById('visualizationMenuBtn');
+            const rescheduleAnalyticsBtn = document.getElementById('rescheduleAnalyticsMenuBtn');
+            const settingsBtn = document.getElementById('settingsMenuBtn');
+            const roleManagementBtn = document.getElementById('roleManagementMenuBtn');
+            const auditLogBtn = document.getElementById('auditLogMenuBtn');
+            
+            if (visualizationBtn) visualizationBtn.style.display = 'flex';
+            if (rescheduleAnalyticsBtn) rescheduleAnalyticsBtn.style.display = 'flex';
+            if (settingsBtn) settingsBtn.style.display = 'flex';
+            if (roleManagementBtn) roleManagementBtn.style.display = 'flex';
+            if (auditLogBtn) auditLogBtn.style.display = 'flex';
+          }
+        })
+        .withFailureHandler(function(error) {
+        })
+        .hasAdminAccess(sessionToken);
+    }
+
+    // Initialize charts when the page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize chart instances as global variables
+      window.distributionChart = null;
+      window.todayDistributionChart = null;
+      window.trendsChart = null;
+      window.waitingListChart = null;
+      initializeCharts();
+      loadDashboardData();
+    });
+
+    function initializeCharts() {
+      // Define distinct color palette for appointment types
+      const appointmentColors = {
+        'WAITING LIST': '#6366f1',     // Indigo
+        'EMERGENCY': '#22c55e',         // Green
+        'HFA': '#f97316',               // Orange
+        'ROP': '#dc2626',               // Red
+        'PROCEDURE': '#a855f7',         // Purple
+        'LASER': '#3b82f6',             // Blue
+        'INVESTIGATION': '#0ea5e9',     // Sky blue
+        'DILATION': '#84cc16',          // Lime
+        'GENERAL': '#f59e0b',           // Amber
+        'FOLLOW UP': '#ec4899',         // Pink
+        'REVIEW': '#14b8a6'             // Teal
+      };
+
+      // Function to get color for a label
+      function getColorForLabel(label) {
+        const upperLabel = label.toUpperCase();
+        if (appointmentColors[upperLabel]) {
+          return appointmentColors[upperLabel];
+        }
+        // Generate a random distinct color if not in the predefined list
+        const hue = Math.floor(Math.random() * 360);
+        return `hsl(${hue}, 70%, 60%)`;
+      }
+
+      // Today's Appointment Distribution Chart
+      const todayDistributionCtx = document.getElementById('todayAppointmentDistribution').getContext('2d');
+      window.todayDistributionChart = new Chart(todayDistributionCtx, {
+        type: 'pie',
+        data: {
+          labels: [],
+          datasets: [{
+            data: [],
+            backgroundColor: []
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
+                  return `${context.label}: ${context.raw} (${percentage}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+
+      // Monthly Appointment Distribution Chart
+      const distributionCtx = document.getElementById('appointmentDistribution').getContext('2d');
+      window.distributionChart = new Chart(distributionCtx, {
+        type: 'pie',
+        data: {
+          labels: [],
+          datasets: [{
+            data: [],
+            backgroundColor: []
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
+                  return `${context.label}: ${context.raw} (${percentage}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+
+      // Weekly Trends Chart
+      const trendsCtx = document.getElementById('weeklyTrends').getContext('2d');
+      window.trendsChart = new Chart(trendsCtx, {
+        type: 'line',
+        data: {
+          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          datasets: [{
+            label: 'Appointments',
+            data: [12, 19, 15, 17, 14, 8, 5],
+            borderColor: '#4a90e2',
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+
+      // Waiting List Distribution Chart
+      const waitingListCtx = document.getElementById('waitingListDistribution').getContext('2d');
+      
+      window.waitingListChart = new Chart(waitingListCtx, {
+        type: 'pie',
+        data: {
+          labels: ['Red', 'Yellow', 'Green'],
+          datasets: [{
+            data: [0, 0, 0],
+            backgroundColor: [
+              '#ed3636', // Red
+              '#ede736', // Yellow
+              '#39ed36'  // Green
+            ]
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              display: true
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
+                  return `${context.label}: ${context.raw} (${percentage}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function loadDashboardData() {
+      // Check admin access for role management
+      checkAdminAccess();
+      
+      // Show loading state
+      document.querySelectorAll('.stat-card').forEach(card => {
+        card.classList.add('loading');
+      });
+      
+      // Load today's appointments count
+      google.script.run
+        .withSuccessHandler(function(data) {
+          document.getElementById('todayAppointments').textContent = data.count;
+          document.querySelector('#todayAppointments').closest('.stat-card').classList.remove('loading');
+        })
+        .withFailureHandler(function(error) {
+          showAlert('Error loading today\'s appointments', 'error');
+          document.querySelector('#todayAppointments').closest('.stat-card').classList.remove('loading');
+        })
+        .getTodayAppointmentsCount();
+
+      // Load today's appointment type breakdown
+      google.script.run
+        .withSuccessHandler(function(data) {
+          const container = document.getElementById('todayAppointmentsStatsContainer');
+
+          if (!data.types || Object.keys(data.types).length === 0) {
+            container.innerHTML = '<div class="text-muted small text-center">No appointments</div>';
+            return;
+          }
+
+          // Get top 6 types sorted by count
+          const sortedTypes = Object.entries(data.types)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 6);
+
+          const statsHtml = sortedTypes.map(([type, count]) => `
+            <div class="slot-stat-item stat-appt-type">
+              <span class="slot-stat-label">${type || 'Not Specified'}</span>
+              <span class="slot-stat-value">${count}</span>
+            </div>
+          `).join('');
+
+          container.innerHTML = statsHtml;
+        })
+        .withFailureHandler(function(error) {
+          console.error('Error loading today\'s appointment types:', error);
+        })
+        .getTodayAppointmentTypeBreakdown();
+
+      // Load today's slot status
+      google.script.run
+        .withSuccessHandler(function(data) {
+          const container = document.getElementById('todaySlotStatusContainer');
+          
+          if (!data) {
+            data = { maxSlots: 0, naa: 0, oaa: 0, taa: 0, raa: 0 };
+          }
+          
+          // Build slot stats HTML
+          const raaClass = data.raa > 0 ? 'available' : '';
+          const statsHtml = `
+            <div class="slot-stat-item stat-maxslots">
+              <span class="slot-stat-label">Max Slots</span>
+              <span class="slot-stat-value">${data.maxSlots || 0}</span>
+            </div>
+            <div class="slot-stat-item stat-naa">
+              <span class="slot-stat-label">NAA</span>
+              <span class="slot-stat-value">${data.naa || 0}</span>
+            </div>
+            <div class="slot-stat-item stat-oaa">
+              <span class="slot-stat-label">OAA</span>
+              <span class="slot-stat-value">${data.oaa || 0}</span>
+            </div>
+            <div class="slot-stat-item stat-taa">
+              <span class="slot-stat-label">TAA</span>
+              <span class="slot-stat-value">${data.taa || 0}</span>
+            </div>
+            <div class="slot-stat-item stat-raa ${raaClass}">
+              <span class="slot-stat-label">RAA</span>
+              <span class="slot-stat-value">${data.raa || 0}</span>
+            </div>
+          `;
+          
+          container.innerHTML = statsHtml;
+        })
+        .withFailureHandler(function(error) {
+          console.error('Error loading today\'s slot status:', error);
+        })
+        .getTodaySlotStatus();
+
+      // Load pending confirmations
+          google.script.run
+        .withSuccessHandler(function(data) {
+          const card   = document.getElementById('pendingConfirmations').closest('.stat-card');
+          const count  = document.getElementById('pendingConfirmations');
+          const trend  = card.querySelector('.trend');
+          const sinceMap = {
+            danger:  '1–2 days out',
+            warning: '3 days out',
+            success: '4 days out'
+          };
+          const emojiMap = {
+            danger:  '❗',
+            warning: '⚠️',
+            success: '✅'
+          };
+
+          // 1) Number
+          count.textContent = data.count;
+
+          // 2) Colour-class on the top icon (clock stays)
+          card.querySelector('.icon')
+              .className = `icon ${data.urgency}`;
+
+          // 3) Fill trend: “⚠️ 26.3% pending (3 days out)”
+          trend.className = 'trend';
+          trend.innerHTML = `
+            <span class="urgency-icon">${ emojiMap[data.urgency] }</span>
+            ${ data.trend.toFixed(1) }% pending (${ sinceMap[data.urgency] })
+          `;
+
+          // 4) Remove shimmer
+          card.classList.remove('loading');
+        })
+        .withFailureHandler(function(error) {
+          showAlert('Error loading pending confirmations', 'error');
+          document.querySelector('#pendingConfirmations').closest('.stat-card').classList.remove('loading');
+        })
+         .getPending4DayConfirmationsCount();
+
+      // Load pending confirmation breakdown
+      google.script.run
+        .withSuccessHandler(function(data) {
+          const container = document.getElementById('pendingConfirmationStatsContainer');
+
+          if (!data.days || data.days.length === 0) {
+            container.innerHTML = '<div class="text-muted small text-center" style="grid-column: span 2;">No upcoming appointments</div>';
+            return;
+          }
+
+          const statsHtml = data.days.map(day => `
+            <div class="slot-stat-item stat-pending-day">
+              <div class="day-header">${day.dayName} ${formatDisplayDayMonth(day.date)}</div>
+              <div class="pending-counts">
+                <div class="pending-item">
+                  <span class="pending-value pending-4day">${day.fourDayPending}</span>
+                  <span class="pending-label">4-Day</span>
+                </div>
+                <div class="pending-item">
+                  <span class="pending-value pending-1day">${day.oneDayPending}</span>
+                  <span class="pending-label">1-Day</span>
+                </div>
+              </div>
+            </div>
+          `).join('');
+
+          container.innerHTML = statsHtml;
+        })
+        .withFailureHandler(function(error) {
+          console.error('Error loading pending confirmation breakdown:', error);
+        })
+        .getPendingConfirmationBreakdown();
+
+      // Load monthly patients
+      google.script.run
+        .withSuccessHandler(function(data) {
+          document.getElementById('monthlyPatients').textContent = data.count;
+          updateTrend('monthlyPatients', data.trend);
+          document.querySelector('#monthlyPatients').closest('.stat-card').classList.remove('loading');
+        })
+        .withFailureHandler(function(error) {
+          showAlert('Error loading monthly patients', 'error');
+          document.querySelector('#monthlyPatients').closest('.stat-card').classList.remove('loading');
+        })
+        .getMonthlyPatientsCount();
+
+      // Load monthly patients breakdown
+      google.script.run
+        .withSuccessHandler(function(data) {
+          const container = document.getElementById('monthlyPatientsStatsContainer');
+          const statsHtml = `
+            <div class="slot-stat-item stat-wl">
+              <span class="slot-stat-label">Waiting List</span>
+              <span class="slot-stat-value">${data.waitingList || 0}</span>
+            </div>
+            <div class="slot-stat-item stat-dc">
+              <span class="slot-stat-label">Direct Call</span>
+              <span class="slot-stat-value">${data.directCall || 0}</span>
+            </div>
+            <div class="slot-stat-item stat-followup">
+              <span class="slot-stat-label">Follow-up</span>
+              <span class="slot-stat-value">${data.followup || 0}</span>
+            </div>
+            <div class="slot-stat-item stat-cancelled">
+              <span class="slot-stat-label">Cancelled</span>
+              <span class="slot-stat-value">${data.cancelled || 0}</span>
+            </div>
+          `;
+          container.innerHTML = statsHtml;
+        })
+        .withFailureHandler(function(error) {
+          console.error('Error loading monthly patients breakdown:', error);
+        })
+        .getMonthlyPatientsBreakdown();
+
+      // Load next day's appointments count, type breakdown, and slot status
+      google.script.run
+        .withSuccessHandler(function(apptData) {
+          const card = document.querySelector('#nextDayAppointments').closest('.stat-card');
+          const valueElement = document.getElementById('nextDayAppointments');
+          const labelElement = document.getElementById('nextDayLabel');
+          
+          // Update appointment count and label
+          valueElement.textContent = apptData.count || 0;
+          labelElement.textContent = apptData.label ? apptData.label + "'s Appointments" : "Tomorrow's Appointments";
+          
+          // Load appointment type breakdown
+          google.script.run
+            .withSuccessHandler(function(typeData) {
+              const typeContainer = document.getElementById('nextDayAppointmentsStatsContainer');
+
+              if (!typeData.types || Object.keys(typeData.types).length === 0) {
+                typeContainer.innerHTML = '<div class="text-muted small text-center">No appointments</div>';
+              } else {
+                // Get top 6 types sorted by count
+                const sortedTypes = Object.entries(typeData.types)
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 6);
+
+                const statsHtml = sortedTypes.map(([type, count]) => `
+                  <div class="slot-stat-item stat-appt-type">
+                    <span class="slot-stat-label">${type || 'Not Specified'}</span>
+                    <span class="slot-stat-value">${count}</span>
+                  </div>
+                `).join('');
+
+                typeContainer.innerHTML = statsHtml;
+              }
+              
+              // Now load slot status for the same day
+              google.script.run
+                .withSuccessHandler(function(slotData) {
+                  const container = document.getElementById('nextDaySlotStatsContainer');
+                  
+                  if (!slotData) {
+                    slotData = { maxSlots: 0, naa: 0, oaa: 0, taa: 0, raa: 0 };
+                  }
+                  
+                  // Build slot stats HTML
+                  const raaClass = slotData.raa > 0 ? 'available' : '';
+                  const statsHtml = `
+                    <div class="slot-stat-item stat-maxslots">
+                      <span class="slot-stat-label">Max Slots</span>
+                      <span class="slot-stat-value">${slotData.maxSlots || 0}</span>
+                    </div>
+                    <div class="slot-stat-item stat-naa">
+                      <span class="slot-stat-label">NAA</span>
+                      <span class="slot-stat-value">${slotData.naa || 0}</span>
+                    </div>
+                    <div class="slot-stat-item stat-oaa">
+                      <span class="slot-stat-label">OAA</span>
+                      <span class="slot-stat-value">${slotData.oaa || 0}</span>
+                    </div>
+                    <div class="slot-stat-item stat-taa">
+                      <span class="slot-stat-label">TAA</span>
+                      <span class="slot-stat-value">${slotData.taa || 0}</span>
+                    </div>
+                    <div class="slot-stat-item stat-raa ${raaClass}">
+                      <span class="slot-stat-label">RAA</span>
+                      <span class="slot-stat-value">${slotData.raa || 0}</span>
+                    </div>
+                  `;
+                  
+                  container.innerHTML = statsHtml;
+                  card.classList.remove('loading');
+                })
+                .withFailureHandler(function(error) {
+                  console.error('Error loading next day slot status:', error);
+                  const container = document.getElementById('nextDaySlotStatsContainer');
+                  container.innerHTML = '<div class="text-muted small text-center">Error loading slot status</div>';
+                  card.classList.remove('loading');
+                })
+                .getNextDaySlotStatus();
+            })
+            .withFailureHandler(function(error) {
+              console.error('Error loading next day appointment types:', error);
+              // Continue to load slot status even if type breakdown fails
+              google.script.run
+                .withSuccessHandler(function(slotData) {
+                  const container = document.getElementById('nextDaySlotStatsContainer');
+                  if (!slotData) {
+                    slotData = { maxSlots: 0, naa: 0, oaa: 0, taa: 0, raa: 0 };
+                  }
+                  const raaClass = slotData.raa > 0 ? 'available' : '';
+                  const statsHtml = `
+                    <div class="slot-stat-item stat-maxslots">
+                      <span class="slot-stat-label">Max Slots</span>
+                      <span class="slot-stat-value">${slotData.maxSlots || 0}</span>
+                    </div>
+                    <div class="slot-stat-item stat-naa">
+                      <span class="slot-stat-label">NAA</span>
+                      <span class="slot-stat-value">${slotData.naa || 0}</span>
+                    </div>
+                    <div class="slot-stat-item stat-oaa">
+                      <span class="slot-stat-label">OAA</span>
+                      <span class="slot-stat-value">${slotData.oaa || 0}</span>
+                    </div>
+                    <div class="slot-stat-item stat-taa">
+                      <span class="slot-stat-label">TAA</span>
+                      <span class="slot-stat-value">${slotData.taa || 0}</span>
+                    </div>
+                    <div class="slot-stat-item stat-raa ${raaClass}">
+                      <span class="slot-stat-label">RAA</span>
+                      <span class="slot-stat-value">${slotData.raa || 0}</span>
+                    </div>
+                  `;
+                  container.innerHTML = statsHtml;
+                  card.classList.remove('loading');
+                })
+                .getNextDaySlotStatus();
+            })
+            .getNextDayAppointmentTypeBreakdown();
+        })
+        .withFailureHandler(function(error) {
+          showAlert('Error loading next day\'s appointments', 'error');
+          document.querySelector('#nextDayAppointments').closest('.stat-card').classList.remove('loading');
+        })
+        .getNextDayAppointmentsCount();
+
+      // Load today's appointment distribution
+      google.script.run
+        .withSuccessHandler(function(distribution) {
+          updateTodayDistributionChart(distribution);
+        })
+        .withFailureHandler(function(error) {
+          showAlert('Error loading today\'s appointment distribution', 'error');
+        })
+        .getTodayAppointmentDistribution();
+
+      // Load monthly appointment distribution
+      google.script.run
+        .withSuccessHandler(function(distribution) {
+          updateDistributionChart(distribution);
+        })
+        .withFailureHandler(function(error) {
+          showAlert('Error loading monthly appointment distribution', 'error');
+        })
+        .getAppointmentDistribution();
+
+      // Load weekly trends
+      google.script.run
+        .withSuccessHandler(function(weeklyData) {
+          updateWeeklyTrendsChart(weeklyData);
+        })
+        .withFailureHandler(function(error) {
+          showAlert('Error loading weekly trends', 'error');
+        })
+        .getWeeklyTrends();
+
+      // Load waiting list distribution
+      google.script.run
+        .withSuccessHandler(function(data) {
+          updateWaitingListChart(data);
+        })
+        .withFailureHandler(function(error) {
+          showAlert('Error loading waiting list distribution', 'error');
+        })
+        .getWaitingListDistribution();
+
+
+
+      // Load upcoming appointments
+      google.script.run
+        .withSuccessHandler(function(response) {
+          try {
+            const container = document.getElementById('upcomingAppointmentsList');
+            
+            container.innerHTML = '';
+
+            if (!response || !response.success) {
+              container.innerHTML = `
+                <div class="text-center text-danger py-4">
+                  <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                  <p>${response?.message || "Error loading appointments"}</p>
+                </div>
+              `;
+              return;
+            }
+
+            const appointments = response.appointments;
+
+            if (!appointments || appointments.length === 0) {
+              container.innerHTML = `
+                <div class="text-center text-muted py-4">
+                  <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                  <p>No upcoming appointments</p>
+                </div>
+              `;
+              return;
+            }
+
+            appointments.forEach(function(appt, index) {
+              if (!appt) {
+                return;
+              }
+              
+              const div = document.createElement('div');
+              div.className = 'appointment-item';
+              
+              // Determine which confirmation buttons to show
+              let confirmButtonsHTML = '';
+              
+              if (!appt.fourDayConfirmDate && !appt.oneDayConfirmDate) {
+                confirmButtonsHTML = `
+                  <div id="confirm4DayContainer_${appt.id}">
+                    <button id="confirm4Day_${appt.id}" class="btn btn-sm btn-outline-primary" onclick="confirm4Day('${appt.id}')">4-Day Confirm</button>
+                  </div>
+                  <div id="confirm1DayContainer_${appt.id}">
+                    <button id="confirm1Day_${appt.id}" class="btn btn-sm btn-outline-primary" onclick="confirm1Day('${appt.id}')">1-Day Confirm</button>
+                  </div>
+                `;
+              } else if (appt.fourDayConfirmDate && !appt.oneDayConfirmDate) {
+                confirmButtonsHTML = `
+                  <div id="confirm4DayContainer_${appt.id}">
+                    <div class="confirmation-status confirmed">✓ 4-Day Confirmed: ${formatDisplayDateTime(appt.fourDayConfirmDate)} by ${appt.fourDayConfirmBy}</div>
+                  </div>
+                  <div id="confirm1DayContainer_${appt.id}">
+                    <button id="confirm1Day_${appt.id}" class="btn btn-sm btn-outline-primary" onclick="confirm1Day('${appt.id}')">1-Day Confirm</button>
+                  </div>
+                `;
+              } else if (!appt.fourDayConfirmDate && appt.oneDayConfirmDate) {
+                confirmButtonsHTML = `
+                  <div id="confirm4DayContainer_${appt.id}">
+                    <button id="confirm4Day_${appt.id}" class="btn btn-sm btn-outline-primary" onclick="confirm4Day('${appt.id}')">4-Day Confirm</button>
+                  </div>
+                  <div id="confirm1DayContainer_${appt.id}">
+                    <div class="confirmation-status confirmed">✓ 1-Day Confirmed: ${formatDisplayDateTime(appt.oneDayConfirmDate)} by ${appt.oneDayConfirmBy}</div>
+                  </div>
+                `;
+              }
+
+              div.innerHTML = `
+                <div class="appointment-info">
+                  <div class="appointment-time" data-tooltip="Date: ${formatDisplayDate(appt.date) || 'N/A'}">${appt.time || 'N/A'}</div>
+                  <div class="appointment-details">
+                    <div><span class="patientName" data-tooltip="MRD: ${appt.mrdNo || 'N/A'} • Ph: ${appt.phone || 'N/A'}">${appt.patientName || 'N/A'}</span></div>
+                    <div>${(appt.type || 'N/A')} - ${appt.doctor || 'N/A'}</div>
+                  </div>
+                </div>
+                <div class="appointment-actions">
+                  <div class="confirmation-buttons">
+                    ${confirmButtonsHTML}
+                  </div>
+                  <div class="action-buttons">
+                    <button class="btn btn-sm btn-outline-warning" data-appointment-id="${appt.id}" onclick="rescheduleAppointment(event)">
+                      <i class="fas fa-clock"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="cancelAppointment('${appt.id}')">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                </div>
+              `;
+              container.appendChild(div);
+            });
+          } catch (error) {
+            showAlert('Error processing appointments data', 'error');
+            
+            const container = document.getElementById('upcomingAppointmentsList');
+            container.innerHTML = `
+              <div class="text-center text-danger py-4">
+                <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                <p>Error processing appointments data: ${error.message}</p>
+              </div>
+            `;
+          }
+        })
+        .withFailureHandler(function(error) {
+          showAlert('Error loading upcoming appointments', 'error');
+          const container = document.getElementById('upcomingAppointmentsList');
+          container.innerHTML = `
+            <div class="text-center text-danger py-4">
+              <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+              <p>Error loading appointments</p>
+            </div>
+          `;
+        })
+        .getUpcomingAppointments();
+    }
+
+    function updateTrend(elementId, trend) {
+      const trendElement = document.querySelector(`#${elementId}`).nextElementSibling.nextElementSibling;
+      const trendValue = parseFloat(trend);
+      
+      if (trendValue > 0) {
+        trendElement.className = 'trend up';
+        trendElement.innerHTML = `
+          <i class="fas fa-arrow-up"></i>
+          <span>${Math.abs(trendValue).toFixed(1)}% from previous period</span>
+        `;
+      } else if (trendValue < 0) {
+        trendElement.className = 'trend down';
+        trendElement.innerHTML = `
+          <i class="fas fa-arrow-down"></i>
+          <span>${Math.abs(trendValue).toFixed(1)}% from previous period</span>
+        `;
+      } else {
+        trendElement.className = 'trend';
+        trendElement.innerHTML = `
+          <i class="fas fa-minus"></i>
+          <span>No change</span>
+        `;
+      }
+    }
+
+    // Define distinct color palette for appointment types (shared function)
+    function getAppointmentColors() {
+      return {
+        'WAITING LIST': '#6366f1',     // Indigo
+        'EMERGENCY': '#22c55e',         // Green
+        'HFA': '#f97316',               // Orange
+        'ROP': '#dc2626',               // Red
+        'PROCEDURE': '#a855f7',         // Purple
+        'LASER': '#3b82f6',             // Blue
+        'INVESTIGATION': '#0ea5e9',     // Sky blue
+        'DILATION': '#84cc16',          // Lime
+        'GENERAL': '#f59e0b',           // Amber
+        'FOLLOW UP': '#ec4899',         // Pink
+        'REVIEW': '#14b8a6',            // Teal
+        'CONSULTATION': '#ef4444',      // Rose
+        'SCREENING': '#10b981',         // Emerald
+        'POST-OP': '#8b5cf6'            // Violet
+      };
+    }
+
+    // Function to get color for a label
+    function getColorForLabel(label) {
+      const colors = getAppointmentColors();
+      const upperLabel = label.toUpperCase();
+      if (colors[upperLabel]) {
+        return colors[upperLabel];
+      }
+      // Generate a distinct color using a hash of the label
+      let hash = 0;
+      for (let i = 0; i < label.length; i++) {
+        hash = label.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const hue = Math.abs(hash) % 360;
+      return `hsl(${hue}, 70%, 60%)`;
+    }
+
+    function updateTodayDistributionChart(distribution) {
+      if (!window.todayDistributionChart) {
+        return;
+      }
+
+      const labels = Object.keys(distribution);
+      const data = Object.values(distribution);
+      const colors = labels.map(label => getColorForLabel(label));
+
+      window.todayDistributionChart.data.labels = labels;
+      window.todayDistributionChart.data.datasets[0].data = data;
+      window.todayDistributionChart.data.datasets[0].backgroundColor = colors;
+      window.todayDistributionChart.update();
+    }
+
+    function updateDistributionChart(distribution) {
+      if (!window.distributionChart) {
+        return;
+      }
+
+      const labels = Object.keys(distribution);
+      const data = Object.values(distribution);
+      const colors = labels.map(label => getColorForLabel(label));
+
+      window.distributionChart.data.labels = labels;
+      window.distributionChart.data.datasets[0].data = data;
+      window.distributionChart.data.datasets[0].backgroundColor = colors;
+      window.distributionChart.update();
+    }
+
+    function updateWeeklyTrendsChart(weeklyData) {
+      const ctx = document.getElementById('weeklyTrends').getContext('2d');
+      const labels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      
+         // Destroy existing chart if it exists
+      if (window.trendsChart) {
+        window.trendsChart.destroy();
+      }
+      
+      window.trendsChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Appointments',
+            data: weeklyData,
+            borderColor: '#4a90e2',
+            backgroundColor: 'rgba(74, 144, 226, 0.1)',
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `${context.raw} appointments`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                stepSize: 1
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function updateWaitingListChart(data) {
+      if (!window.waitingListChart) {
+        return;
+      }
+
+      const total = data.red + data.yellow + data.green;
+      
+      window.waitingListChart.data.datasets[0].data = [data.red, data.yellow, data.green];
+      window.waitingListChart.update();
+    }
+
+    function logout() {
+      showAlert("Logging out...", "info");
+      google.script.run
+        .withSuccessHandler(function() {
+          window.top.location.href = baseUrl;
+        })
+        .withFailureHandler(function(error) {
+          showAlert("Error during logout: " + error, "error");
+        })
+        .clearSession(sessionToken);
+    }
+
+    function goToPage(pageName) {
+      showAlert("Navigating to " + pageName + "...", "info");
+      var newUrl = baseUrl + "?page=" + pageName + "&sessionToken=" + encodeURIComponent(sessionToken);
+      window.top.location.href = newUrl;
+    }
+
+    function showAlert(message, type = 'info', title = null) {
+      const container = document.getElementById('alertContainer');
+      const alert = document.createElement('div');
+      alert.className = `custom-alert ${type}`;
+      
+      let icon = '';
+      switch(type) {
+        case 'success':
+          icon = '✓';
+          title = title || 'Success';
+          break;
+        case 'error':
+          icon = '✕';
+          title = title || 'Error';
+          break;
+        case 'warning':
+          icon = '⚠';
+          title = title || 'Warning';
+          break;
+        default:
+          icon = 'ℹ';
+          title = title || 'Information';
+      }
+
+      alert.innerHTML = `
+        <div class="alert-icon ${type}">${icon}</div>
+        <div class="alert-content">
+          <div class="alert-title">${title}</div>
+          <div class="alert-message">${message}</div>
+        </div>
+        <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+      `;
+
+      container.appendChild(alert);
+
+      setTimeout(() => {
+        alert.classList.add('closing');
+        setTimeout(() => alert.remove(), 300);
+      }, 5000);
+    }
+
+    // Appointment action functions
+    function confirm4Day(appointmentId) {
+      var button = document.getElementById("confirm4Day_" + appointmentId);
+      button.disabled = true;
+      button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Confirming...';
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          if (response.success) {
+            showAlert(response.message, "success");
+            refreshAppointmentRow(appointmentId, response.confirmationDate, response.confirmedBy, '4-Day');
+            // Refresh dashboard data if both confirmations are now done
+            if (document.getElementById("confirm1DayContainer_" + appointmentId).querySelector(".confirmation-status.confirmed")) {
+              loadDashboardData(); // Refresh the dashboard to remove fully confirmed appointments
+            }
+          } else {
+            showAlert(response.message, "error");
+            button.disabled = false;
+            button.innerHTML = "4-Day Confirm";
+          }
+        })
+        .confirmAppointment4Day(appointmentId, sessionToken);
+    }
+
+    function confirm1Day(appointmentId) {
+      var button = document.getElementById("confirm1Day_" + appointmentId);
+      button.disabled = true;
+      button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Confirming...';
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          if (response.success) {
+            showAlert(response.message, "success");
+            refreshAppointmentRow(appointmentId, response.confirmationDate, response.confirmedBy, '1-Day');
+            // Refresh dashboard data if both confirmations are now done
+            if (document.getElementById("confirm4DayContainer_" + appointmentId).querySelector(".confirmation-status.confirmed")) {
+              loadDashboardData(); // Refresh the dashboard to remove fully confirmed appointments
+            }
+          } else {
+            showAlert(response.message, "error");
+            button.disabled = false;
+            button.innerHTML = "1-Day Confirm";
+          }
+        })
+        .confirmAppointment1Day(appointmentId, sessionToken);
+    }
+
+    function rescheduleAppointment(event) {
+      event.preventDefault();
+      const button = event.target.closest('button');
+      const appointmentId = button.getAttribute('data-appointment-id');
+      
+      if (!appointmentId) {
+        showAlert('Error: Appointment ID not found. Please try again.', 'error');
+        return;
+      }
+      
+      
+      const url = new URL(baseUrl);
+      url.searchParams.append('page', 'rescheduleAppointment');
+      url.searchParams.append('sessionToken', sessionToken);
+      url.searchParams.append('appointmentId', encodeURIComponent(appointmentId));
+      
+      window.top.location.href = url.toString();
+    }
+
+    function cancelAppointment(appointmentId) {
+      if (!confirm('Are you sure you want to cancel this appointment?')) {
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          if (response.success) {
+            showAlert(response.message, "success");
+            // Refresh the appointments list
+            loadUpcomingAppointments();
+            // Offer the refund if this appointment was paid for. Silent when
+            // there is no payment, so every cancellation can call it.
+            typeof PaymentRefundPrompt !== "undefined" &&
+                PaymentRefundPrompt.handle(response, { onDone: loadUpcomingAppointments });
+          } else {
+            showAlert(response.message, "error");
+          }
+        })
+        .withFailureHandler(function(error) {
+          showAlert('Error canceling appointment: ' + error, 'error');
+        })
+        .cancelAppointmentWithPaymentCheck(appointmentId, sessionToken, false);
+    }
+
+    function refreshAppointmentRow(appointmentId, confirmationDate, confirmedBy, confirmationType) {
+      let containerId;
+      let buttonId;
+
+      if (confirmationType === '4-Day') {
+        containerId = "confirm4DayContainer_" + appointmentId;
+        buttonId = "confirm4Day_" + appointmentId;
+      } else if (confirmationType === '1-Day') {
+        containerId = "confirm1DayContainer_" + appointmentId;
+        buttonId = "confirm1Day_" + appointmentId;
+      }
+
+      if (containerId && buttonId) {
+        const container = document.getElementById(containerId);
+        if (container) {
+          container.innerHTML = `<div class="confirmation-status confirmed">✓ ${confirmationType} Confirmed: ${formatDisplayDateTime(confirmationDate)} by ${confirmedBy}</div>`;
+        }
+      }
+    }
+
+    // =============================================
+    // TAB MANAGEMENT AND LAZY LOADING
+    // =============================================
+
+    // Track which tabs have been loaded
+    var tabsLoaded = {
+      operations: false,
+      planning: false,
+      analytics: false
+    };
+
+    // Global chart instances for Analytics tab
+    var staffBookingChartInstance = null;
+    var staffRescheduleChartInstance = null;
+    var rescheduleTrendChartInstance = null;
+
+    // Heatmap state
+    var currentHeatmapYear = new Date().getFullYear();
+    var currentHeatmapMonth = new Date().getMonth();
+
+    // Initialize tabs on page load
+    function initializeTabs() {
+      var tabElements = document.querySelectorAll('[data-bs-toggle="tab"]');
+
+      tabElements.forEach(function(tab) {
+        tab.addEventListener('shown.bs.tab', function(event) {
+          var targetId = event.target.getAttribute('data-bs-target').replace('#', '');
+
+          switch(targetId) {
+            case 'operations':
+              if (!tabsLoaded.operations) loadOperationsTab();
+              break;
+            case 'planning':
+              if (!tabsLoaded.planning) loadPlanningTab();
+              break;
+            case 'analytics':
+              if (!tabsLoaded.analytics) loadAnalyticsTab();
+              break;
+          }
+        });
+      });
+
+      // Check admin access for Analytics tab visibility
+      checkAdminAccessForTabs();
+
+      // Load operations tab by default (it's already active)
+      loadOperationsTab();
+    }
+
+    function checkAdminAccessForTabs() {
+      google.script.run
+        .withSuccessHandler(function(hasAccess) {
+          if (hasAccess) {
+            document.querySelector('.admin-only-tab').style.display = 'block';
+          }
+        })
+        .hasAdminAccess(sessionToken);
+    }
+
+    function loadOperationsTab() {
+      // This is handled by existing loadDashboardData()
+      tabsLoaded.operations = true;
+    }
+
+    function loadPlanningTab() {
+      loadSevenDayForecast();
+      loadCapacityHeatmap(currentHeatmapYear, currentHeatmapMonth);
+      tabsLoaded.planning = true;
+    }
+
+    function loadAnalyticsTab() {
+      // Set default date range (last 30 days)
+      var today = new Date();
+      var thirtyDaysAgo = new Date(today);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      document.getElementById('analyticsFromDate').value = formatDateForInput(thirtyDaysAgo);
+      document.getElementById('analyticsToDate').value = formatDateForInput(today);
+
+      loadAnalyticsData();
+      tabsLoaded.analytics = true;
+    }
+
+    // =============================================
+    // PLANNING TAB FUNCTIONS
+    // =============================================
+
+    function loadSevenDayForecast() {
+      var container = document.getElementById('sevenDayForecast');
+      container.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div><p class="mt-2">Loading forecast...</p></div>';
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            renderForecast(result.forecast, result.summary);
+          } else {
+            container.innerHTML = '<div class="alert alert-danger">Error loading forecast: ' + (result.error || 'Unknown error') + '</div>';
+          }
+        })
+        .withFailureHandler(function(error) {
+          container.innerHTML = '<div class="alert alert-danger">Error: ' + error + '</div>';
+        })
+        .getSevenDayForecast();
+    }
+
+    function renderForecast(forecast, summary) {
+      var container = document.getElementById('sevenDayForecast');
+
+      var html = '';
+      forecast.forEach(function(day) {
+        var statusClass = day.status === 'full' ? 'full' :
+                         (day.status === 'low' ? 'low' : 'available');
+
+        html += '<div class="forecast-day">' +
+          '<div class="d-flex align-items-center">' +
+            '<div class="slot-indicator ' + statusClass + ' me-3">' + day.raa + '</div>' +
+            '<div>' +
+              '<strong>' + day.dayName + '</strong>' +
+              '<div class="text-muted small">' + formatDisplayDate(day.date, true) + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="d-flex gap-3 text-center">' +
+            '<div>' +
+              '<div class="text-success fw-bold">' + day.naa + '</div>' +
+              '<div class="small text-muted">NAA</div>' +
+            '</div>' +
+            '<div>' +
+              '<div class="text-primary fw-bold">' + day.oaa + '</div>' +
+              '<div class="small text-muted">OAA</div>' +
+            '</div>' +
+            '<div>' +
+              '<div class="text-warning fw-bold">' + day.taa + '</div>' +
+              '<div class="small text-muted">TAA</div>' +
+            '</div>' +
+            '<div>' +
+              '<div class="text-info fw-bold">' + (day.wl || 0) + '</div>' +
+              '<div class="small text-muted">WL</div>' +
+            '</div>' +
+            '<div>' +
+              '<div class="fw-bold">' + day.maxSlots + '</div>' +
+              '<div class="small text-muted">Max</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="progress" style="width: 120px; height: 8px;">' +
+            '<div class="progress-bar bg-' + (day.status === 'full' ? 'danger' : (day.status === 'low' ? 'warning' : 'success')) + '" style="width: ' + day.utilization + '%"></div>' +
+          '</div>' +
+        '</div>';
+      });
+
+      container.innerHTML = html;
+
+      // Update summary stats
+      document.getElementById('newPatientSlotsNext7').textContent = summary.totalNewPatientSlots || 0;
+      document.getElementById('oldPatientSlotsNext7').textContent = summary.totalOldPatientSlots || 0;
+      document.getElementById('overbookedDays').textContent = summary.overbookedDays || 0;
+    }
+
+    function loadCapacityHeatmap(year, month) {
+      currentHeatmapYear = year;
+      currentHeatmapMonth = month;
+
+      var monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+      document.getElementById('heatmapMonthLabel').textContent = monthNames[month] + ' ' + year;
+
+      google.script.run
+        .withSuccessHandler(renderHeatmap)
+        .withFailureHandler(function(error) {
+          document.getElementById('capacityHeatmap').innerHTML = '<div class="alert alert-danger" style="grid-column: span 7;">Error loading heatmap</div>';
+        })
+        .getCapacityHeatmapData(year, month);
+    }
+
+    function changeHeatmapMonth(delta) {
+      var newMonth = currentHeatmapMonth + delta;
+      var newYear = currentHeatmapYear;
+
+      if (newMonth > 11) {
+        newMonth = 0;
+        newYear++;
+      } else if (newMonth < 0) {
+        newMonth = 11;
+        newYear--;
+      }
+
+      loadCapacityHeatmap(newYear, newMonth);
+    }
+
+    function renderHeatmap(result) {
+      if (!result || !result.success) {
+        document.getElementById('capacityHeatmap').innerHTML = '<div class="alert alert-warning" style="grid-column: span 7;">No data available</div>';
+        return;
+      }
+
+      var container = document.getElementById('capacityHeatmap');
+      var html = '';
+
+      // Add day headers
+      var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      days.forEach(function(day) {
+        html += '<div class="text-center small text-muted fw-bold py-2">' + day + '</div>';
+      });
+
+      // Get first day of month
+      var firstDay = new Date(result.year, result.month, 1).getDay();
+
+      // Add empty cells for days before month starts
+      for (var i = 0; i < firstDay; i++) {
+        html += '<div></div>';
+      }
+
+      // Get current date for comparison
+      var today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Add day cells
+      result.data.forEach(function(day) {
+        // Create date object for this day
+        var cellDate = new Date(result.year, result.month, day.day);
+        cellDate.setHours(0, 0, 0, 0);
+
+        // Check if this date is in the past
+        var isPast = cellDate < today;
+
+        // Determine background color
+        var bgColor;
+        var textColor;
+        var showUtilization = false;
+
+        if (isPast) {
+          // Past dates are grey
+          bgColor = '#f0f0f0';
+          textColor = '#999';
+        } else if (day.isSunday) {
+          // Sunday: show color if it has appointments, otherwise grey
+          if (day.booked > 0 || day.maxSlots > 0) {
+            bgColor = day.utilization >= 81 ? '#fed7d7' :
+                     (day.utilization >= 51 ? '#fefcbf' : '#c6f6d5');
+            textColor = '#333';
+            showUtilization = true;
+          } else {
+            bgColor = '#f0f0f0';
+            textColor = '#999';
+          }
+        } else {
+          // Current/future weekdays: normal utilization colors
+          bgColor = day.utilization >= 81 ? '#fed7d7' :
+                   (day.utilization >= 51 ? '#fefcbf' : '#c6f6d5');
+          textColor = '#333';
+          showUtilization = true;
+        }
+
+        html += '<div class="heatmap-cell" style="background: ' + bgColor + '; color: ' + textColor + '; display: flex; flex-direction: column; font-size: 0.75rem;" ' +
+                'title="' + day.day + ': ' + day.booked + '/' + day.maxSlots + ' slots (' + day.utilization + '%)" ' +
+                'onclick="showDayDetails(' + result.year + ', ' + result.month + ', ' + day.day + ')">' +
+                '<div style="font-weight: 600;">' + day.day + '</div>' +
+                (showUtilization ? '<div style="font-size: 0.65rem; opacity: 0.8;">' + day.utilization + '%</div>' : '') +
+                '</div>';
+      });
+
+      container.innerHTML = html;
+    }
+
+    function showDayDetails(year, month, day) {
+      var dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+
+      // Navigate to Day Overview with the selected date
+      var newUrl = baseUrl + "?page=dayOverview&sessionToken=" + encodeURIComponent(sessionToken) +
+                   "&date=" + encodeURIComponent(dateStr);
+      window.top.location.href = newUrl;
+    }
+
+    // =============================================
+    // ANALYTICS TAB FUNCTIONS
+    // =============================================
+
+    function loadAnalyticsData() {
+      var fromDate = document.getElementById('analyticsFromDate').value;
+      var toDate = document.getElementById('analyticsToDate').value;
+
+      if (!fromDate || !toDate) {
+        showAlert('Please select both from and to dates', 'warning');
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(renderAnalytics)
+        .withFailureHandler(function(error) {
+          showAlert('Error loading analytics: ' + error, 'error');
+        })
+        .getStaffAnalytics(sessionToken, fromDate, toDate);
+    }
+
+    function renderAnalytics(result) {
+      if (!result || !result.success) {
+        if (result && result.error && result.error.includes('Access denied')) {
+          document.getElementById('analyticsAccessDenied').style.display = 'block';
+          document.getElementById('analyticsContent').style.display = 'none';
+        } else {
+          showAlert('Error loading analytics: ' + (result ? result.error : 'Unknown error'), 'error');
+        }
+        return;
+      }
+
+      // Update summary stats
+      if (result.rescheduleStats) {
+        document.getElementById('totalReschedulesAnalytics').textContent = result.rescheduleStats.totalReschedules || 0;
+        document.getElementById('highRiskCount').textContent = result.rescheduleStats.highRiskAppointments || 0;
+
+        // Safely handle averageReschedulesPerAppointment (convert to number first)
+        const avgReschedules = parseFloat(result.rescheduleStats.averageReschedulesPerAppointment) || 0;
+        document.getElementById('avgReschedulesPerAppt').textContent = avgReschedules.toFixed(2);
+      } else {
+        // Set defaults if rescheduleStats is missing
+        document.getElementById('totalReschedulesAnalytics').textContent = 0;
+        document.getElementById('highRiskCount').textContent = 0;
+        document.getElementById('avgReschedulesPerAppt').textContent = '0.00';
+      }
+
+      document.getElementById('topBooker').textContent = result.topBooker || '-';
+
+      // Render charts
+      renderStaffBookingChart(result.bookingData);
+      renderStaffRescheduleChart(result.rescheduleAnalytics ? result.rescheduleAnalytics.reschedulesByStaff : {});
+      renderRescheduleTrendChart(result.rescheduleAnalytics ? result.rescheduleAnalytics.reschedulesByMonth : {});
+    }
+
+    function renderStaffBookingChart(bookingData) {
+      var ctx = document.getElementById('staffBookingChart').getContext('2d');
+
+      if (staffBookingChartInstance) {
+        staffBookingChartInstance.destroy();
+      }
+
+      var data = bookingData && bookingData.data ? bookingData.data : {};
+      var labels = Object.keys(data);
+      var values = Object.values(data);
+
+      staffBookingChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Bookings',
+            data: values,
+            backgroundColor: '#4a90e2'
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    function renderStaffRescheduleChart(reschedulesByStaff) {
+      var ctx = document.getElementById('staffRescheduleChart').getContext('2d');
+
+      if (staffRescheduleChartInstance) {
+        staffRescheduleChartInstance.destroy();
+      }
+
+      var entries = Object.entries(reschedulesByStaff || {})
+        .sort(function(a, b) { return b[1] - a[1]; })
+        .slice(0, 10);
+
+      staffRescheduleChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: entries.map(function(e) { return e[0]; }),
+          datasets: [{
+            label: 'Reschedules',
+            data: entries.map(function(e) { return e[1]; }),
+            backgroundColor: '#ed8936'
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    function renderRescheduleTrendChart(reschedulesByMonth) {
+      var ctx = document.getElementById('rescheduleTrendChart').getContext('2d');
+
+      if (rescheduleTrendChartInstance) {
+        rescheduleTrendChartInstance.destroy();
+      }
+
+      var sortedMonths = Object.keys(reschedulesByMonth || {}).sort();
+
+      rescheduleTrendChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: sortedMonths.map(function(m) { return m.replace('-', '/'); }),
+          datasets: [{
+            label: 'Monthly Reschedules',
+            data: sortedMonths.map(function(m) { return reschedulesByMonth[m]; }),
+            borderColor: '#48bb78',
+            backgroundColor: 'rgba(72, 187, 120, 0.1)',
+            fill: true,
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    // =============================================
+    // UTILITY FUNCTIONS
+    // =============================================
+
+    function formatDateForInput(date) {
+      return date.toISOString().split('T')[0];
+    }
+
+    // Initialize tabs after DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', function() {
+      initializeTabs();
+    });
+
+
+  </script>
+</body>
+</html>
