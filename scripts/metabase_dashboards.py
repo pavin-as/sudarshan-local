@@ -286,10 +286,10 @@ GROUP BY date_trunc('week', booked_date), 2 ORDER BY date_trunc('week', booked_d
 
 PHARMACY = {
     "name": "Pharmacy",
-    "description": "Medicine sales, manufacturers and the wholesalers we buy from (Yarago pharmacy; optical not included).",
+    "description": "Medicine sales, manufacturers, the wholesalers we buy from and what we owe them (Yarago pharmacy; optical not included).",
     "cards": [
         note("**Pharmacy.** Sales = what patients paid for medicines, after discount and returns, including GST. Purchases = wholesaler "
-             "invoice lines. Yarago does not store a manufacturer on the medicine: it is the company most often named on that medicine's "
+             "invoice amounts (what we pay), spread over each invoice's medicines. Yarago does not store a manufacturer on the medicine: it is the company most often named on that medicine's "
              "purchase invoices. Last month = the last full calendar month; 12 months = the last 365 days.", 0),
         card("Pharmacy sales last month", f"SELECT round(sum(amount)) AS \"Sales\" FROM analytics.fact_pharmacy_sale WHERE sale_date {LAST_MONTH}",
              "scalar", 2, 0, 6, 3, lakh("Sales")),
@@ -345,7 +345,7 @@ FULL JOIN (SELECT m.manufacturer, sum(f.amount) AS sold, count(DISTINCT f.produc
             WHERE f.sale_date >= current_date - 365 GROUP BY 1) s ON s.manufacturer = b.manufacturer
 ORDER BY 3 DESC
 """, "table", 29, 12, 12, 9, money("Purchased", "Sold"),
-             "Purchased at the wholesaler's price, sold at the patient's price: the gap is not profit, as stock carries over."),
+             "Purchased = invoice amounts; sold = what patients paid. The gap is not profit: stock carries over from month to month."),
         card("Bought in the last 6 months, not sold in the last 90 days", """
 SELECT m.medicine AS "Medicine", m.manufacturer AS "Manufacturer", max(p.invoice_date) AS "Last bought", sum(p.quantity) AS "Quantity bought",
        round(sum(p.amount)) AS "Bought for", (SELECT max(s.sale_date) FROM analytics.fact_pharmacy_sale s WHERE s.product_id = p.product_id) AS "Last sold"
@@ -357,5 +357,33 @@ GROUP BY p.product_id, 1, 2 ORDER BY 5 DESC
     ],
 }
 
+# What we owe wholesalers (D-033): live views, as of the last sync (purchase and payment tables sync every 150 s)
+WHOLESALER_BALANCE = [
+    note("**What we owe wholesalers, now.** Invoiced minus paid, adjusted and credit notes, per wholesaler (Yarago records a settlement "
+         "as one adjustment covering many invoices, so the balance is per wholesaler). Open invoices assume the oldest are paid first. "
+         "Minutes old, not a day: it reads Sudarshan's copy of Yarago, refreshed every 150 seconds.", 5),
+    card("Owed to wholesalers now", "SELECT round(sum(pending)) AS \"Owed\" FROM analytics.wholesaler_balance WHERE pending > 0",
+         "scalar", 7, 0, 6, 3, lakh("Owed")),
+    card("Open invoices now", "SELECT count(*) AS \"Open invoices\" FROM analytics.wholesaler_open_invoice", "scalar", 7, 6, 6, 3),
+    card("Oldest open invoice, days", "SELECT max(days_open) AS \"Days\" FROM analytics.wholesaler_open_invoice WHERE invoice_date >= current_date - 365",
+         "scalar", 7, 12, 6, 3, None, "Within the last year; older leftovers are listed in the table below."),
+    card("Settled in the last 30 days", """
+SELECT round(sum(settled)) AS "Settled" FROM analytics.wholesaler_invoice WHERE settlement_entered_at >= current_date - 30
+""", "scalar", 7, 18, 6, 3, lakh("Settled"), "Payments, adjustments and credit notes entered in the last 30 days (by entry date)."),
+    card("Balance per wholesaler", """
+SELECT b.wholesaler AS "Wholesaler", round(b.pending) AS "Owed now", coalesce(o.n, 0) AS "Open invoices", o.oldest AS "Oldest open",
+       b.last_invoice AS "Last invoice", b.last_settlement_entered AS "Last settlement entered", round(b.invoiced) AS "Invoiced, all time"
+FROM analytics.wholesaler_balance b
+LEFT JOIN (SELECT wholesaler, count(*) AS n, min(invoice_date) AS oldest FROM analytics.wholesaler_open_invoice GROUP BY 1) o USING (wholesaler)
+WHERE b.pending <> 0 OR b.last_invoice >= current_date - 365
+ORDER BY b.pending DESC
+""", "table", 10, 0, 12, 8, money("Owed now", "Invoiced, all time"), "A negative amount means we have paid ahead."),
+    card("Open invoices, oldest first", """
+SELECT wholesaler AS "Wholesaler", invoice_no AS "Invoice", invoice_date AS "Date", days_open AS "Days open",
+       round(invoiced) AS "Invoice amount", round(open_amount) AS "Still open"
+FROM analytics.wholesaler_open_invoice ORDER BY invoice_date
+""", "table", 10, 12, 12, 8, money("Invoice amount", "Still open"), "Worked out oldest-paid-first from each wholesaler's balance."),
+]
+PHARMACY["cards"] = [c if c["row"] < 5 else {**c, "row": c["row"] + 13} for c in PHARMACY["cards"]] + WHOLESALER_BALANCE
 
 DASHBOARDS = [CLINIC_WEEK, RETINA, MONEY, FRONT_DESK, PHARMACY]

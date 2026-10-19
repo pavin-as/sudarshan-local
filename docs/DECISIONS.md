@@ -257,6 +257,19 @@ manufacturer on the medicine (99% of sales value covered). Sales are what patien
 with GST); purchases are invoice line totals, so "bought vs sold" is not profit. Patients only as the random analytics key.
 Definitions in METRICS.md.
 
+### D-033 · 2026-10-19 · Accepted · Pavin asked; Claude chose the method
+**What we owe each wholesaler, live, and purchases at invoice value.** Yarago keeps one payment row per purchase invoice
+(invoice amount, paid, adjustment, credit note) and staff record a settlement as one lump adjustment against a single
+invoice that covers many (302 invoices look "overpaid" by Rs 1.88 crore in all). So the balance is **per wholesaler**:
+invoiced minus paid, adjusted and credited; open invoices are worked out **oldest-paid-first**. These are views
+(`analytics.wholesaler_invoice`, `wholesaler_balance`, `wholesaler_open_invoice`) over the Yarago mirror, not nightly
+tables, and the three purchase and payment tables moved to the 150-second sync, so the balance is minutes old. This
+departs from D-020 (analytics rebuilt nightly) for these figures only. **Correction to D-032:** the purchase line total
+in Yarago is the *selling* value (unit selling price x quantity); purchases are now the invoice amount spread over the
+invoice's lines by selling value (12 months on 19 Oct: Rs 30.1 lakh, not Rs 53.1 lakh). Balances on 19 Oct: KP KC Rs 3.72
+lakh, SRM Associates Rs 1.12 lakh, Central Agencies Rs 1.00 lakh; leftovers from 2021-22: Malabar Drugs Rs 8,274 and two
+invoices with no wholesaler Rs 48,505 (to check in Yarago).
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

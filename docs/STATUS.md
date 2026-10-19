@@ -75,6 +75,8 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
 - [x] Early booking limit with manager override (19 Oct, D-030).
 - [x] Waiting list size with manager override (19 Oct, D-031).
 - [x] Metabase Pharmacy dashboard: medicine sales, manufacturers, wholesalers (19 Oct, D-032).
+- [x] What we owe wholesalers, live (19 Oct, D-033); purchases corrected to invoice value.
+- [ ] Pharmacy: check in Yarago the 2021-22 leftovers (Malabar Drugs Rs 8,274; two invoices without a wholesaler, Rs 48,505).
 - [ ] Pavin: test logins per role (see RUNBOOK 10); Google-app passwords were pasted into a chat on 19 Oct and are
       not used by Sudarshan, but should be changed in the Google app too.
 - [ ] Pavin: share the EMR completeness report with the clinical staff (https://claude.ai/artifact/EfVt9jujDutkEzYGTxsqCa,

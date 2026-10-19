@@ -5,6 +5,13 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **What we owe wholesalers, on the Pharmacy dashboard** (D-033): amount owed now, open invoices, oldest open invoice,
+  amount settled in the last 30 days, balance per wholesaler and the list of open invoices (oldest paid first). Live as
+  of the last sync: the pharmacy purchase and payment tables now sync every 150 seconds.
+- **Fix: pharmacy purchases were shown at selling value.** Yarago's purchase line total is unit selling price x
+  quantity; purchases are now the invoice amount (12 months: Rs 30.1 lakh, not Rs 53.1 lakh).
+  Technical: migration 0014 (views `analytics.wholesaler_invoice`, `wholesaler_balance`, `wholesaler_open_invoice`;
+  `fact_pharmacy_purchase.selling_value`; `refresh_pharmacy()` at invoice value); three tables added to `HOT_TABLES`.
 - **Metabase "Pharmacy" dashboard** (D-032): pharmacy sales last month, purchases, bills and average bill; sales per month
   by category; sales and purchases per month; sales by manufacturer; purchases by wholesaler; top 25 medicines (with
   manufacturer, quantity, share and patients); which wholesaler supplies which manufacturer; manufacturers bought vs

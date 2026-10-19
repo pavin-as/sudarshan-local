@@ -72,11 +72,14 @@ Dates are clinic dates (Asia/Kolkata).
 | Measure | Definition | Notes |
 |---|---|---|
 | Pharmacy sales | Yarago pharmacy sale lines (`tblopticalpatientorderdetails`, categories Eye Drops, Tablets, Ointments, Others, Pharmacy Stationary): line total minus returned amount, after discount, including GST. Cancelled orders left out. | Optical (lens, frame, contact lens) not included; it is under Money. Last 12 months on 19 Oct: Rs 52.6 lakh. |
-| Purchases | Wholesaler invoice lines (`tblopticalpharmacypurchasedetails`), same categories, dated by the delivery-challan date, else the order date, else entry. Quantity after returns to the wholesaler. | Last 12 months on 19 Oct: Rs 53.1 lakh from 5 wholesalers. |
+| Purchases | Wholesaler invoice amount (`tblpurchasepaymentdetails.atotalinvoiceamount`, what we pay), spread over the invoice's lines by their selling value; same categories; dated by the delivery-challan date, else the order date, else entry. Quantity after returns to the wholesaler. | Last 12 months on 19 Oct: Rs 30.1 lakh from 5 wholesalers. Yarago's line total is the selling value (Rs 53.1 lakh), not cost (D-033). |
 | Manufacturer | The company most often named on a medicine's purchase invoices (Yarago keeps none on the medicine). "Not recorded" when no invoice names one. | Covers 85 of the 87 medicines sold in the last year, 99% of sales value. |
 | Wholesaler | `tbl_mst_vendor` of the purchase invoice (purchases) or of the batch sold (sales). | Names as in Yarago. |
 | Pharmacy bill | One Yarago pharmacy order. Average bill = sales / bills. | |
 | Slow-moving | Bought in the last 6 months, not sold in the last 90 days. | |
+| Owed to a wholesaler | All its invoices minus everything paid, adjusted and credited (`analytics.wholesaler_balance`), live as of the last sync (150 s). | Per wholesaler only: settlements are lump adjustments against one invoice (D-033). Negative = paid ahead. |
+| Open invoices | The newest invoices whose total reaches the wholesaler's balance (oldest paid first). Days open = today minus invoice date. | |
+| Settled in the last 30 days | Paid + adjusted + credit notes on payment rows changed in the last 30 days. | By entry date in Yarago, not by the payment's own date (Yarago keeps none). |
 
 ## Not available from Yarago (noted 19 Oct 2026)
 

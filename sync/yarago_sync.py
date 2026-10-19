@@ -51,6 +51,8 @@ HOT_TABLES = [
     "tbltimerpatientwaiting", "tbldilatationpatientslist",
     "tblpatientsappointmentbillingdetails", "tbl_patient_payment_duedetails", "tbl_payment_receptionist_new",
     "tblopticalpatientpayment", "tbl_payment_injectionorlaser_procedure_for_billing",
+    # pharmacy purchases and what is paid to wholesalers (D-033): small tables, so the balance is minutes old, not a day
+    "tblopticalpharmacypurchase", "tblopticalpharmacypurchasedetails", "tblpurchasepaymentdetails",
 ]
 # Visit tables whose changes trigger a re-copy of that visit's child rows.
 VISIT_TABLES = ["tblappointments", "tbl_patient_appointment_history", "tbl_opto_patient_appointment_history"]
