@@ -67,6 +67,10 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       follow-up calls, activity log, clinic calendar, users. Font bundled (no internet needed).
 - [ ] Code-modernization plugin: preflight and assess done (analysis/sudarshan/); map, extract-rules to do.
 - [ ] Phase B: doctor summary (layout draft in the plan doc, Dr. Sameera to review), follow-up board.
+- [ ] Dr. Sameera: review the doctor summary layout (made-up patient): https://claude.ai/artifact/GR7iVVwY1QUr5Rcq3ggxNm
+      (shared by Pavin). Data checked 19 Oct, last 12 months of completed visits: BCVA 77%, IOP 70%, exam findings 86%,
+      systemic illness 52%, drug allergies 3% (shown as "not recorded"), advice 9%; injection drug only in the procedure
+      name (e.g. "INTRA VITREAL RAZUMAB(13000)"); no planned next-dose date (follow-up date used).
 
 - [x] Backups: Sudarshan nightly 02:00 to QNAP (scripts/backup.ps1, install-backup.ps1), restore test every 4 weeks; Yarago has its own backup (F:\EMR_AUTO_BACKUP).
 - [ ] Off-site copy of backups (decision P-4).
