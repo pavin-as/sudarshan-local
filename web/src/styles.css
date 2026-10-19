@@ -342,3 +342,14 @@ b.warn-text { color: #8a5a00; }
 .row.actions { flex-wrap: nowrap; justify-content: flex-end; gap: 0.35rem; }
 @media (max-width: 760px) { .row.actions { flex-wrap: wrap; } }
 .row.actions button { white-space: nowrap; }
+
+/* ---------- Triage ---------- */
+.triage-q { border: 1px solid var(--line); border-radius: var(--radius-m); padding: 0.6rem 0.8rem 0.7rem; margin: 0; }
+.triage-q legend { font-weight: 700; padding: 0 0.3rem; display: flex; align-items: center; gap: 0.4rem; }
+.q-num { display: inline-grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: var(--choroid); color: #fff; font-size: 0.8rem; }
+.triage-options { display: flex; flex-direction: column; gap: 0.3rem; }
+.triage-option { display: flex; gap: 0.6rem; align-items: center; padding: 0.4rem 0.6rem; border: 1px solid var(--line-soft); border-radius: var(--radius-s); cursor: pointer; }
+.triage-option:hover { border-color: var(--choroid-2); }
+.triage-option.on.s3 { background: var(--vessel-soft); border-color: var(--vessel); }
+.triage-option.on.s2 { background: var(--disc-soft); border-color: var(--disc); }
+.triage-option.on.s1 { background: var(--action-soft); border-color: var(--action); }

@@ -5,6 +5,13 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Triage** (`/triage`): the Google app's seven urgency questions, word for word, with the result shown as the
+  answers are picked (any serious answer = Emergency, else any moderate = Urgent, else Not urgent). Save, then book
+  straight away (the booking dialog opens with the urgency set; the decision "Booked: today / tomorrow / later date"
+  is recorded by itself) or record another decision. Pending assessments are listed first, emergencies at the top; the
+  menu shows how many wait. All 212 imported assessments score exactly as the Google app scored them.
+  Technical: `services/triage.ts` (questions, scoring), `routes/triage.ts`, `test/triage.test.ts` (7 checks, in
+  `npm run test:rules`), API test steps.
 - **Direct calls** (`/calls`): log a phone call (Yarago patient or new patient, appointment or enquiry, referral,
   urgency, what they said), then book it straight from the call (the booking dialog opens with the caller's details)
   or close it with a reason (enquiry answered / did not want an appointment); closed calls can be opened again.

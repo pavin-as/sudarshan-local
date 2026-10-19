@@ -33,6 +33,7 @@ async function cleanup() {
     DELETE FROM app.followup_actions WHERE actor_id IN (SELECT id FROM app.users WHERE username LIKE 'zz_test%');
     DELETE FROM app.appointment_events WHERE appointment_id IN (SELECT id FROM app.appointments WHERE patient_name LIKE 'ZZ Test%');
     DELETE FROM app.direct_calls WHERE patient_name LIKE 'ZZ Test%';
+    DELETE FROM app.triage WHERE patient_name LIKE 'ZZ Test%';
     DELETE FROM app.appointments WHERE patient_name LIKE 'ZZ Test%';
     DELETE FROM app.doctor_exceptions WHERE doctor_id IN (SELECT id FROM app.doctors WHERE name LIKE 'Dr ZZ Test%');
     DELETE FROM app.doctor_schedule WHERE doctor_id IN (SELECT id FROM app.doctors WHERE name LIKE 'Dr ZZ Test%');
@@ -351,6 +352,28 @@ try {
     assert.equal(restored.status, 200);
     const all = await call("GET", "/api/cancel-list?view=all", staff);
     assert.ok(!all.body.appointments.some((a: any) => a.id === cl), "rebooked: off the list");
+  });
+
+  console.log("triage");
+  let triageId = 0;
+  const answers = { onset: 1, vision: 2, pain: 1, floaters: 1, redness: 1, injury: 1, symptoms: 1 };
+  await step("every question must be answered", async () => {
+    const r = await call("POST", "/api/triage", staff, { patientName: "ZZ Test Triage", phone: "9000000111", answers: { onset: 3 } });
+    assert.equal(r.status, 400); assert.match(r.body.message, /Answer every question/);
+  });
+  await step("the server scores the answers (one moderate = Urgent; a category sent by the browser is ignored)", async () => {
+    const r = await call("POST", "/api/triage", staff, { patientName: "ZZ Test Triage", phone: "9000000111", answers, category: "Emergency" });
+    assert.equal(r.status, 200); triageId = r.body.assessment.id;
+    assert.equal(r.body.assessment.category, "Urgent"); assert.equal(r.body.assessment.maxScore, 2);
+    assert.equal(r.body.assessment.decision, "Pending Action");
+    assert.equal((await call("POST", "/api/triage", doctor, { patientName: "ZZ Test Triage", answers })).status, 403);
+  });
+  await step("a booking made for the patient records 'Booked: later date' by itself", async () => {
+    const r = await call("POST", `/api/triage/${triageId}/decision`, staff, { bookedFor: D2 });
+    assert.equal(r.status, 200); assert.equal(r.body.assessment.decision, "Booked: Later Date");
+    assert.equal((await call("POST", `/api/triage/${triageId}/decision`, staff, { decision: "Other Action (See Remarks)" })).status, 400);
+    const pending = await call("GET", "/api/triage?view=pending", staff);
+    assert.ok(!pending.body.assessments.some((a: any) => a.id === triageId));
   });
 
   console.log("patients, follow-ups (empty Yarago mirror in the test DB)");
