@@ -5,6 +5,17 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- Management dashboards: Metabase at `http://shichika:3000` (clinic network only) with four dashboards - Clinic week,
+  Retina care, Money, Front desk - built on a new reporting schema rebuilt every night at 02:30. Patients appear there
+  only as a random number and an age band. "Clinic week" is emailed to Pavin every Monday 07:00 (from
+  admin@gs.sampadavr.com through Gmail). September's visits, billing, optical and collections match Yarago exactly.
+  Found on the way: Yarago records no usable diagnosis (both "final diagnosis" fields hold the visit plan), so clinical
+  groups come from the coded examination findings by rules for Dr. Sameera to approve; no patient PIN/area; no surgery advice.
+  Technical: migration 0006 (`analytics` schema, `analytics.refresh()`, `app.analytics_patient_key`,
+  `app.analytics_unmatched`), sync mode `analytics` + nightly schedule, `scripts/install-metabase.ps1` (Java 21 + Metabase
+  v0.63.19, SHA-256 pinned, NSSM service `SudarshanMetabase`, roles `sudarshan_bi` / `metabase`, firewall),
+  `scripts/metabase_setup.py` + `metabase_dashboards.py` (API, idempotent), `scripts/check_smtp.py`, backup includes the
+  `metabase` database. Docs: METRICS.md (definitions, source checks), SCHEMA, RUNBOOK, COMPLIANCE, D-023.
 - Scheduling rules: the Google app's 16 rules now show as warnings. The booking dialog and the reschedule panel say,
   before you book, if a time goes against a rule (e.g. "Check: new patient at 09:40, before 10:00"); the day board lists
   the day's findings and marks the cards; the appointment panel shows its own. Nothing is blocked: Pavin and

@@ -127,6 +127,20 @@ Which rules block: P-1.
 (`docs/RULES_FOR_REVIEW.md`) and decided that, for the present, every rule only warns. Which rules become blocks will be
 decided later (P-1 stays open for that); until then do not build blocking.
 
+### D-023 · 2026-10-19 · Accepted · Claude (Pavin approved the phase)
+**Analytics built as planned (D-020), with what Yarago actually holds.**
+(1) **Clinical group from coded examination findings**, not diagnosis: Yarago's coded diagnosis link is empty and both
+"final diagnosis" fields hold the visit plan ("ref+dil", "re ivr"). Findings are grouped by editable regex rules
+(`analytics.category_rule`), the plan note likewise into a visit purpose; rules stay unapproved until Dr. Sameera
+approves them. (2) **Injection adherence = back for the first planned follow-up after an injection within 7 days**,
+because Yarago stores no planned date for the next dose. (3) **Patient key is random** (`app.analytics_patient_key`),
+not a hash, so it cannot be recomputed from a patient id. (4) **Staff-typed text is never copied to analytics**
+(cancel reasons grouped by keyword). (5) **Metabase v0.63.19 on its own Java 21 runtime**, both pinned with SHA-256,
+with its settings in its own PostgreSQL database; dashboards are defined in code (`scripts/metabase_dashboards.py`) so
+they can be rebuilt. (6) **Weekly email via Gmail (admin@gs.sampadavr.com)**: the sampadavr.com Zoho mail is on the
+free plan, which does not allow SMTP. (7) Large money totals shown in lakh, as Metabase cannot group digits the Indian way.
+Not built: patient geography (no PIN/area in Yarago), surgery advised-not-done (no surgery advice recorded).
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

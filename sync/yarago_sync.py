@@ -3,7 +3,9 @@ Yarago (MySQL 5.6) -> PostgreSQL mirror for Sudarshan.
 
   python sync/yarago_sync.py full [--force]   full copy of every Yarago table into yarago_staging, then into yarago
   python sync/yarago_sync.py incremental      one cycle: new/changed rows of the hot tables + child rows of changed visits
-  python sync/yarago_sync.py service          runs forever: incremental every 150 s, full copy nightly at 01:00
+  python sync/yarago_sync.py service          runs forever: incremental every 150 s, full copy nightly at 01:00,
+                                              analytics rebuild nightly at 02:30 (after the 02:00 backup)
+  python sync/yarago_sync.py analytics        rebuild the analytics schema now (analytics.refresh())
   python sync/yarago_sync.py verify [--all]   compare row counts Yarago vs mirror (hot tables, or all tables)
   python sync/yarago_sync.py status           show what was last synced
 
@@ -596,15 +598,40 @@ def status():
     pg.close()
 
 
+# ------------------------------------------------------------------ analytics
+def analytics():
+    """Rebuild the analytics schema (reporting tables read by Metabase). Postgres only; never touches Yarago."""
+    t0 = time.time()
+    with pg_conn() as pg:
+        rid = run_start(pg.cursor(), "analytics")
+        pg.commit()
+        try:
+            counts = pg.execute("SELECT analytics.refresh()").fetchone()[0]
+            pg.commit()
+            run_end(pg.cursor(), rid, "ok", len(counts), sum(counts.values()))
+            pg.commit()
+            log.info("ANALYTICS rebuilt in %.1f s: %s", time.time() - t0, counts)
+            return 0
+        except Exception as e:
+            pg.rollback()
+            run_end(pg.cursor(), rid, "error", 0, 0, str(e)[:4000])
+            pg.commit()
+            log.exception("analytics rebuild failed")
+            return 1
+
+
 def service():
-    log.info("service started: incremental every %ds, full copy nightly at 01:00", INCREMENTAL_EVERY_S)
-    last_full = None
+    log.info("service started: incremental every %ds, full copy nightly at 01:00, analytics at 02:30", INCREMENTAL_EVERY_S)
+    last_full = last_analytics = None
     while True:
         now = dt.datetime.now()
         try:
             if now.hour == 1 and last_full != now.date():
                 full()
                 last_full = now.date()
+            elif now.hour == 2 and now.minute >= 30 and last_analytics != now.date():
+                analytics()
+                last_analytics = now.date()
             else:
                 incremental()
         except Exception:
@@ -615,7 +642,7 @@ def service():
 def main():
     setup_logging()
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("mode", choices=["full", "incremental", "service", "verify", "status"])
+    ap.add_argument("mode", choices=["full", "incremental", "service", "verify", "status", "analytics"])
     ap.add_argument("--force", action="store_true", help="allow a full copy during clinic hours")
     ap.add_argument("--all", action="store_true", help="verify every table, not just the hot ones")
     a = ap.parse_args()
@@ -627,6 +654,8 @@ def main():
         return verify(a.all)
     if a.mode == "status":
         return status()
+    if a.mode == "analytics":
+        return analytics()
     return service()
 
 

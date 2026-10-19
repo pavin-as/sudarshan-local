@@ -12,6 +12,7 @@ schema, update this file in the same commit (Testing.md, "Definition of done").
 | `yarago_staging` | Target of the nightly full copy; swapped into `yarago` when complete. Empty between runs. | sync only |
 | `clinical` | Decoded, readable **views** over the mirror (vision as text, coded lists as words, Malayalam repaired). The app and the AI read these, never raw codes. | `db/views/*.sql` |
 | `app` | Sudarshan's own data (bookings, calendar, users, audit). | the API server, the importer |
+| `analytics` | Reporting tables, rebuilt nightly from scratch (patients only as a random key). The only schema the reporting login `sudarshan_bi` can read. | `analytics.refresh()` (sync service, 02:30) |
 
 `yarago.sync_state` records, per mirrored table: last id, last modified date, last run, row count, status, column hash.
 
@@ -31,7 +32,7 @@ schema, update this file in the same commit (Testing.md, "Definition of done").
    The server's connections run with `TimeZone=Asia/Kolkata`.
 6. **No secrets in tables.** `app.settings` holds no keys; secrets are in `.env`.
 
-Applied so far: `0001_schemas`, `0002_sync_runs`, `0003_app_core`, `0004_server`, `0005_backup_runs`.
+Applied so far: `0001_schemas`, `0002_sync_runs`, `0003_app_core`, `0004_server`, `0005_backup_runs`, `0006_analytics`.
 Views: `10_clinical.sql`, `20_clinical_flow_followup.sql`, `30_app_audit.sql`.
 
 ## Yarago facts the views depend on
@@ -73,6 +74,31 @@ Helper functions: `clinical.clean`, `id_list`, `list_items`, `num`, `eye`, `va_l
 `minutes_between`; `app.audit_value_text`, `audit_field_text`, `audit_changes_text`.
 
 Full column lists: `\d+ clinical.<view>` in psql, or the `CREATE VIEW` in `db/views/`.
+
+## analytics (0006, D-020)
+
+Rebuilt by `analytics.refresh()` (TRUNCATE + INSERT in one transaction, about 7 s), called nightly at 02:30 by the
+sync service and on demand: `python sync\yarago_sync.py analytics`. Each run is in `app.sync_runs` (mode `analytics`)
+and `analytics.refresh_log`. Never edit these tables: change `refresh()` in a new migration. Definitions: METRICS.md.
+
+| Table | One row per | Notes |
+|---|---|---|
+| `dim_date` | day, 2015 to today + 180 | weekday, week, month, financial year (Apr-Mar), holiday, max slots, open for booking |
+| `dim_doctor` | doctor name | in Yarago / in Sudarshan |
+| `dim_patient` | patient key | age band, sex, first visit, completed visits, injections; no name, phone, MRD, address |
+| `fact_visit` | Yarago visit | completed, new patient, dilated, clinical group, visit purpose, check-in hour, minutes per station, billed |
+| `fact_appointment` | Sudarshan booking | lead days, timed, source, status, attended, did not come, cancel reason group (not the text), reschedules, confirmation calls; TEST / ZZ Test bookings left out |
+| `fact_followup` | Yarago follow-up | due, came back, days late / overdue, back within 14 days, state, calls made, last call outcome |
+| `fact_treatment` | injection or laser (per eye) | advised, scheduled, treated, done, item, dose number, next planned follow-up and whether the patient came by then + 7 days, advised not done |
+| `fact_bill` / `fact_billing` | bill / bill line (+ optical order) | totals, paid by mode, due after bill / service group, item, amount |
+| `fact_due` | patient owing now | amount, age band |
+| `category_rule` | rule | kind `diagnosis` (over coded exam findings) or `purpose` (over the plan note); regex, priority, `approved` |
+| `metric_definitions`, `refresh_log` | KPI / rebuild | |
+
+Outside the schema: `app.analytics_patient_key` (patient id -> random key; not readable by `sudarshan_bi`) and the view
+`app.analytics_unmatched` (findings and plan notes no rule groups, for Dr. Sameera).
+Logins: `sudarshan_bi` (read-only, `analytics` only, 120 s statement limit), `metabase` (owns database `metabase`,
+Metabase's own settings). Both created by `scripts/install-metabase.ps1`.
 
 ## The audit log (how it works)
 

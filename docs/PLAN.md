@@ -143,7 +143,7 @@ everything reads from here.
 |---|---|---|
 | `analytics.dim_date` | calendar day | weekday, week, month, financial year (Apr-Mar), clinic holiday, open for booking, max slots |
 | `analytics.dim_doctor` | doctor | name, active |
-| `analytics.dim_patient` | patient (pseudonymous) | patient key, age band, sex, district/PIN area, first visit date, new/returning; **no name, phone or MRD** |
+| `analytics.dim_patient` | patient (pseudonymous) | patient key, age band, sex, first visit date, new/returning; **no name, phone or MRD** (Yarago holds no PIN/area, 19 Oct) |
 | `analytics.fact_visit` | Yarago visit | date, doctor, visit type, new/old, diagnosis category per eye, dilated, minutes per station, total time |
 | `analytics.fact_appointment` | Sudarshan booking | booked date, appointment date, lead days, source, status, attended / did not come, rescheduled count, cancel reason, confirmation calls done |
 | `analytics.fact_followup` | Yarago follow-up | due date, came back, days late, last call outcome |
@@ -190,7 +190,10 @@ it ran; optionally a read-only connector for Claude over the de-identified table
 
 **First Metabase dashboards:** Clinic week (volume, utilisation, did-not-come, waits), Retina care (injection
 adherence, follow-up leakage, advised-not-done by diagnosis), Money (revenue, collections, dues), Front desk
-(confirmations, reschedules). Weekly email of "Clinic week" to Pavin on Monday 07:00.
+(confirmations, reschedules). Weekly email of "Clinic week" to Pavin on Monday 07:00, sent from admin@gs.sampadavr.com
+(Google Workspace, `smtp.gmail.com`, app password; replies go back to admin@gs.sampadavr.com) to pavin@sampadavr.com. Zoho Mail is
+on the free plan, which does not allow SMTP. Credentials in `.env` (`METABASE_SMTP_USER`, `METABASE_SMTP_PASSWORD`,
+optional `METABASE_SMTP_HOST`/`PORT`); check with `scripts/check_smtp.py`.
 
 **When:** the `analytics` schema, KPIs and Metabase are built right after the scheduling rules (one session,
 read-only, low risk), so the numbers are available during the trial. In-app staff dashboards come with the screens

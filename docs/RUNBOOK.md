@@ -15,13 +15,16 @@ App folder `D:\Sudarshan\app` · Python `C:\Users\Admin\AppData\Local\Programs\P
 | `postgresql-16` | Sudarshan database `sudarshan` (data `D:\PostgreSQL\16\data`) | 5432, localhost only | Postgres log dir |
 | `SudarshanYaragoSync` | Mirrors Yarago into Postgres: every 150 s, full copy at 01:00 | none | `logs\yarago_sync.log`, `logs\service-*.log` |
 | `SudarshanServer` | API + web app, `http://shichika:8484` (LAN only) | 8484 | `logs\server-out.log`, `logs\server-err.log` |
+| `SudarshanMetabase` | Management dashboards, `http://shichika:3000` (LAN only); Java 21 and Metabase in `D:\Sudarshan\metabase` | 3000 | `logs\metabase-out.log`, `logs\metabase-err.log` |
+
+The sync service also rebuilds the reporting tables (`analytics`) at 02:30, after the 02:00 backup.
 
 Start order after a reboot is automatic (delayed start; the sync waits for MySQL and Postgres, the server for Postgres).
 
 ## 2. Daily health check (1 minute)
 
 ```
-Get-Service MySQL56, postgresql-16, SudarshanYaragoSync, SudarshanServer | Format-Table Name, Status
+Get-Service MySQL56, postgresql-16, SudarshanYaragoSync, SudarshanServer, SudarshanMetabase | Format-Table Name, Status
 Invoke-RestMethod http://127.0.0.1:8484/api/health
 & $py D:\Sudarshan\app\sync\yarago_sync.py status
 ```
@@ -50,6 +53,19 @@ First-time install of the server only: `scripts\install-server.ps1` (already don
 | No admin can log in | *(Command Prompt)* `cd /d D:\Sudarshan\app\server` then `node dist\cli.js list-users` then `node dist\cli.js temp-password <username>` |
 
 Never type a password into a command line; the CLI generates one.
+
+**Metabase** (`http://shichika:3000`) has its own logins. First login: `pavin@sampadavr.com` with the temporary
+password `METABASE_ADMIN_PASSWORD` from `.env`; change it at once (profile > Account settings). Add other managers in
+Metabase > Admin > People. `scripts\metabase_setup.py` uses its own API key (`METABASE_API_KEY`), so password changes do
+not affect it.
+
+| Metabase task | How |
+|---|---|
+| Change a dashboard | Edit the question's SQL or place in `scripts\metabase_dashboards.py`, then `& $py scripts\metabase_setup.py`. Dashboards and questions with the managed names are replaced; to keep your own changes, save a copy under another name. |
+| Rebuild the numbers now | `& $py sync\yarago_sync.py analytics` (about 7 s) |
+| Weekly email | Monday 07:00, "Clinic week" to pavin@sampadavr.com, sent as admin@gs.sampadavr.com via Gmail (`METABASE_SMTP_*` in `.env`; check with `scripts\check_smtp.py`). |
+| Reinstall / upgrade | `scripts\install-metabase.ps1` (version and checksums pinned at the top). |
+| Approve diagnosis groups | Dr. Sameera reviews `analytics.category_rule` and sets `approved = true` per rule; text no rule groups: `app.analytics_unmatched`. |
 
 ## 5. Common problems
 
@@ -147,5 +163,5 @@ Review the counts and warnings. Run outside clinic hours.
 
 ## 9. Ports and paths quick reference
 
-`http://shichika:8484` web app · `D:\Sudarshan\app\.env` settings and secrets (admins only) · `D:\Sudarshan\app\logs`
+`http://shichika:8484` web app · `http://shichika:3000` Metabase · `D:\Sudarshan\app\.env` settings and secrets (admins only) · `D:\Sudarshan\app\logs`
 logs · `D:\PostgreSQL\16\data` database files · MySQL 3306 (Yarago) · Postgres 5432 (localhost).

@@ -8,6 +8,7 @@
                                            definition. The Yarago mirror's DATA is left out (it is a copy of Yarago,
                                            which has its own backup, and is rebuilt by one full sync after a restore).
     daily\code_YYYY-MM-DD_HHMM.bundle      the git repository (all code and history; it is not on GitHub)
+    daily\metabase_YYYY-MM-DD_HHMM.dump    Metabase's own database (dashboards, logins, subscriptions), once installed
     monthly\                               first backup of each month, kept 12 months
   Daily files are kept 14 days. Every dump is checked readable (pg_restore --list) before it counts.
   Each run is recorded in app.backup_runs and logs\backup.log. Exit code 1 on failure.
@@ -75,6 +76,15 @@ try {
   $bytes = (Get-Item $dump -ErrorAction Stop).Length
   Log ("database dump ok: {0:N1} MB, {1} entries" -f ($bytes / 1MB), $entries)
 
+  # 1b. Metabase's own database, if Metabase is installed (dashboards, logins, the weekly email)
+  $mbDump = Join-Path $daily "metabase_$stamp.dump"; $mbOk = $false
+  $hasMb = (& $psql -d postgres -tA -c "SELECT 1 FROM pg_database WHERE datname = 'metabase'" 2>&1) -join ''
+  if ($hasMb.Trim() -eq '1') {
+    $out = & $pgDump -d metabase -Fc -Z 6 -f "$mbDump.partial" 2>&1
+    if ($LASTEXITCODE) { Log "WARNING: Metabase dump failed: $out" }
+    else { Move-Item -Force "$mbDump.partial" $mbDump; $mbOk = $true; Log ("metabase dump ok: {0:N1} MB" -f ((Get-Item $mbDump).Length / 1MB)) }
+  }
+
   # 2. code (git bundle of every branch and its history)
   $codeOk = $false
   if (Get-Command git -ErrorAction SilentlyContinue) {
@@ -91,17 +101,18 @@ try {
   if (-not (Get-ChildItem $monthly -Filter "sudarshan_$monthTag-*.dump" -ErrorAction SilentlyContinue)) {
     Copy-Item $dump $monthly -ErrorAction Stop
     if ($codeOk) { Copy-Item $bundle $monthly }
+    if ($mbOk) { Copy-Item $mbDump $monthly }
     Log "monthly copy kept for $monthTag"
   }
 
   # 5. retention
   $cut = $started.AddDays(-$KeepDays)
-  Get-ChildItem $daily -File | Where-Object { $_.LastWriteTime -lt $cut -and $_.Name -match '^(sudarshan_|code_)' } | Remove-Item -Force
+  Get-ChildItem $daily -File | Where-Object { $_.LastWriteTime -lt $cut -and $_.Name -match '^(sudarshan_|code_|metabase_)' } | Remove-Item -Force
   Get-ChildItem $daily -File -Filter '*.partial' | Where-Object { $_.LastWriteTime -lt $started.AddHours(-6) } | Remove-Item -Force
   $mcut = $started.AddMonths(-$KeepMonths)
   Get-ChildItem $monthly -File | Where-Object { $_.LastWriteTime -lt $mcut } | Remove-Item -Force
 
-  $details = '{"entries":' + $entries + ',"code_bundle":' + ($codeOk.ToString().ToLower()) + ',"counts":' + ($counts -join '') + '}'
+  $details = '{"entries":' + $entries + ',"code_bundle":' + ($codeOk.ToString().ToLower()) + ',"metabase":' + ($mbOk.ToString().ToLower()) + ',"counts":' + ($counts -join '') + '}'
   Record 'ok' $dump $bytes $details '' $started
   Log ("backup finished in {0:N0} s" -f ((Get-Date) - $started).TotalSeconds)
   exit 0

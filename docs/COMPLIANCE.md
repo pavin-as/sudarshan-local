@@ -92,7 +92,9 @@ Sudarshan never changes Yarago. Corrections to patient details are made in Yarag
 | Google app's Gemini rule check sends patient names to Google | Ends when the Google app is retired |
 | Privacy notice for patients covering appointment messages (WhatsApp/SMS) | To check with the clinic |
 | Monthly access review (who has which role) | To start at go-live |
-| `sudarshan_bi` read-only login limited to `analytics`; Metabase LAN only | With the analytics build |
+| `sudarshan_bi` read-only login limited to `analytics`; Metabase LAN only | Done 19 Oct: access checked by `install-metabase.ps1` (no `app`, `yarago`, `clinical`); read-only transactions, 120 s limit; firewall port 3000 local subnet only |
+| Analytics free of identity | Done 19 Oct: random patient key (mapping in `app`), age band only; staff-typed text (cancel reasons, remarks, diagnosis notes) not copied |
+| Weekly email content | Aggregate dashboard figures only, to pavin@sampadavr.com via Gmail (Google Workspace) |
 
 ## 5. If something goes wrong (possible breach)
 
