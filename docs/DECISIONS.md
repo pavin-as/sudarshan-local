@@ -200,6 +200,18 @@ raw injection table: every injection in the last 6 months is Urgent, no Urgent r
 **Imported roles:** the Login sheet's "Opto" is optometrist and "reception" is front desk; the sheet sets a role only
 until the person has a Sudarshan password, after which the Users screen owns it.
 
+### D-028 · 2026-10-19 · Accepted · Claude (Pavin asked for the page)
+**EMR completeness per month, in Sudarshan, for the clinical SOP.** `analytics.emr_completeness` holds, per month and
+visit group (all, new, review), the share of consultations with each of 19 items recorded (8 on the optometry screen,
+11 on the doctor screen), and per injection the drug and next date; rebuilt nightly after the analytics
+(`analytics.refresh_emr_completeness()`, under a second; its own step, so a failure never undoes the analytics).
+Definitions as in the shared report, with one change: **injection and laser appointments are left out of the visit
+counts** (none of the 665 in a year has any consultation content), so the page reads 1-7 points higher than the report,
+which now says so. "Recorded" = not empty, not "0", not the word "null"; diagnosis counts a choice from Yarago's list
+(`tbldiagnosis`) or the coded diagnosis fields. Targets in the setting `emr.targets` (95% for vision, pressure,
+diagnosis, systemic illness, allergies, follow-up). Page `/emr-completeness` for clinical access (not front desk);
+counts only. Metabase can read the same table.
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

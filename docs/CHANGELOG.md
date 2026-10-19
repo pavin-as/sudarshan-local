@@ -5,6 +5,11 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **EMR completeness page** (`/emr-completeness`, menu "EMR completeness", D-028): for each item on Yarago's optometry
+  and doctor screens and the injection record, the share of consultations where it was recorded, for each of the last
+  6 months and the last 12 months, against the SOP targets; all visits, new patients or review visits. Rebuilt nightly.
+  Technical: migration 0011 (`analytics.emr_completeness`, `analytics.filled()`, `analytics.refresh_emr_completeness()`,
+  setting `emr.targets`), nightly step in `sync/yarago_sync.py`, `routes/emr.ts`, `web/src/pages/EmrCompleteness.tsx`.
 - **Follow-up board ranked by clinical risk** (D-027): Urgent (injection in the last 6 months, ROP, detachment), High
   (recent laser, retinal disease under care), Monitor (diabetes, conditions to watch), Routine. Counts per tier at the
   top (click to filter), the reasons beside each patient, a filled-in call script in the call dialog, and how many came

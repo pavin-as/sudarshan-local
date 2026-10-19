@@ -611,6 +611,14 @@ def analytics():
             run_end(pg.cursor(), rid, "ok", len(counts), sum(counts.values()))
             pg.commit()
             log.info("ANALYTICS rebuilt in %.1f s: %s", time.time() - t0, counts)
+            # EMR completeness per month (D-028): its own step, so a failure here never undoes the rebuild above
+            try:
+                n = pg.execute("SELECT analytics.refresh_emr_completeness()").fetchone()[0]
+                pg.commit()
+                log.info("EMR completeness rebuilt: %s rows", n)
+            except Exception:
+                pg.rollback()
+                log.exception("EMR completeness rebuild failed")
             return 0
         except Exception as e:
             pg.rollback()

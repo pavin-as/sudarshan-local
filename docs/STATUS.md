@@ -70,7 +70,7 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       with a number check; verified on 3 real patients (12/12 facts match Yarago raw tables each).
 - [x] Phase B: follow-up board ranked by clinical risk with call scripts (19 Oct, D-027); ranking checked on 500 real rows.
 - [ ] Staff: rewrite the four call scripts in Malayalam on Settings > Follow-up call scripts, and set the clinic name.
-- [ ] Phase B: monthly EMR-completeness page in Sudarshan (the figures of the shared report, per month).
+- [x] Phase B: EMR completeness page per month (19 Oct, D-028). Phase B is complete.
 - [ ] Pavin: test logins per role (see RUNBOOK 10); Google-app passwords were pasted into a chat on 19 Oct and are
       not used by Sudarshan, but should be changed in the Google app too.
 - [ ] Pavin: share the EMR completeness report with the clinical staff (https://claude.ai/artifact/EfVt9jujDutkEzYGTxsqCa,
@@ -122,6 +122,6 @@ Trial running on live Google data (D-025). Remaining, in order:
    direct calls, rule warnings and huddle sheet; staff practise on TEST bookings. Before it ends: Caddy + HTTPS, MySQL
    3306 closed to the LAN, the second-pass patient linking (P-2), which rules block (P-1).
 2. **Cut-over** (RUNBOOK 8): evening switch, `trial.google_master` false, Google app read-only for 3 months (P-3).
-3. **Phase B**: doctor summary (D-026) and follow-up board (D-027) done; next a monthly EMR-completeness page.
+3. **Phase B** done: doctor summary (D-026), follow-up board (D-027), EMR completeness page (D-028).
 4. **After cut-over:** WhatsApp confirmations and broadcast, Razorpay (polling, D-017), no-show risk score,
    ask-the-data for Pavin, off-site backup copy (P-4).

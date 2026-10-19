@@ -408,6 +408,12 @@ try {
     assert.equal((await call("GET", "/api/patients/2147483000/summary", doctor)).status, 404);
   });
 
+  await step("EMR completeness needs clinical access and returns the item list", async () => {
+    assert.equal((await call("GET", "/api/emr-completeness", staff)).status, 403);
+    const r = await call("GET", "/api/emr-completeness?group=new&months=3", doctor);
+    assert.equal(r.status, 200); assert.equal(r.body.months.length, 3); assert.ok(Array.isArray(r.body.items));
+  });
+
   console.log("trial: the Google app is the master (D-025)");
   await step("imported records and the calendar are read-only while trial.google_master is on; practice bookings are not", async () => {
     const own = await call("POST", "/api/appointments", staff, { date: D2, slotTime: "12:30", patientName: "ZZ Test Trial Own", phone: "9000000131" });

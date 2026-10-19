@@ -416,3 +416,10 @@ table.list.compact td, table.list.compact th { padding: 0.3rem 0.55rem; }
 .fu-badge.t3 { background: var(--action-soft); color: #0a4f53; } .fu-badge.t4 { background: var(--line-soft); color: var(--ink-soft); }
 .fu-script { background: var(--action-soft); border-radius: var(--radius-s); padding: 0.6rem 0.8rem; line-height: 1.5; }
 .fu-row td:first-child { width: 80px; }
+
+/* EMR completeness (D-028) */
+.emr td, .emr th { white-space: nowrap; }
+.emr .emr-group th { background: var(--paper); color: var(--choroid); font-size: 0.9rem; padding-top: 0.7rem; }
+.emr-cell.good { background: var(--done-soft); color: #1f5a3a; }
+.emr-cell.mid { background: var(--disc-soft); color: #5a3e00; }
+.emr-cell.low { background: var(--vessel-soft); color: #7a2414; }

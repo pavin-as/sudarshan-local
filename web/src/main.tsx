@@ -11,6 +11,7 @@ import { LoginPage, ChangePasswordPage } from "./pages/Login";
 import { BoardPage } from "./pages/Board";
 import { PatientPage, PatientsPage } from "./pages/Patient";
 import { DoctorSummaryPage } from "./pages/DoctorSummary";
+import { EmrCompletenessPage } from "./pages/EmrCompleteness";
 import { FollowupsPage } from "./pages/Followups";
 import { ActivityPage } from "./pages/Activity";
 import { UsersPage } from "./pages/Users";
@@ -83,6 +84,7 @@ function Shell() {
         <NavLink to="/triage">Triage {!!triagePending && <span className="count">{triagePending}</span>}</NavLink>
         <NavLink to="/patients">Patients</NavLink>
         <NavLink to="/followups">Follow-up calls</NavLink>
+        {can("clinical.read") && <NavLink to="/emr-completeness">EMR completeness</NavLink>}
         {can("audit.read") && <NavLink to="/activity">Activity log</NavLink>}
         {can("settings.manage") && <NavLink to="/calendar">Clinic calendar</NavLink>}
         {can("settings.manage") && <NavLink to="/settings">Settings</NavLink>}
@@ -108,6 +110,7 @@ function Shell() {
           <Route path="/patients" element={<PatientsPage />} />
           <Route path="/patients/:id" element={<PatientPage />} />
           <Route path="/patients/:id/summary" element={<DoctorSummaryPage />} />
+          <Route path="/emr-completeness" element={<EmrCompletenessPage />} />
           <Route path="/followups" element={<FollowupsPage />} />
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
