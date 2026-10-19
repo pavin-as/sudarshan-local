@@ -61,6 +61,10 @@ Sudarshan never changes Yarago. Corrections to patient details are made in Yarag
 11. No patient data in git: exports (`*.xlsx`, `*.csv`, dumps) are git-ignored. Test data is synthetic and named
     `ZZ Test ...` or `TEST ...`.
 
+**Analytics**
+14. Reporting tools (Metabase, any BI) connect only as `sudarshan_bi`, which can read only the `analytics` schema.
+    That schema never holds names, phone numbers or MRDs. Exports from Metabase stay on clinic computers.
+
 **Network**
 12. Clinic LAN only. The server port is open to the local subnet only. Nothing on shichika is reachable from the internet
     (Razorpay is polled, not called back).
@@ -88,6 +92,7 @@ Sudarshan never changes Yarago. Corrections to patient details are made in Yarag
 | Google app's Gemini rule check sends patient names to Google | Ends when the Google app is retired |
 | Privacy notice for patients covering appointment messages (WhatsApp/SMS) | To check with the clinic |
 | Monthly access review (who has which role) | To start at go-live |
+| `sudarshan_bi` read-only login limited to `analytics`; Metabase LAN only | With the analytics build |
 
 ## 5. If something goes wrong (possible breach)
 

@@ -5,6 +5,7 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- Plan: analytics and business intelligence added (analytics schema, first KPIs, Metabase), D-020.
 - Nightly backup of Sudarshan to the QNAP at 02:00 (database without the Yarago copy, plus the code), 14 daily and
   12 monthly kept, restore test every 4 weeks; the menu shows managers and admins when the last backup ran and warns
   if it failed or is over a day old. Technical: `scripts/backup.ps1`, `restore-test.ps1`, `install-backup.ps1`,

@@ -72,6 +72,9 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
 - [ ] Off-site copy of backups (decision P-4).
 - [ ] Caddy / HTTPS; close MySQL 3306 to LAN.
 
+- [ ] Scheduling rules (16) as booking warnings, each with a test; rule list to Pavin and Dr. Sameera.
+- [ ] Analytics schema + first KPIs + Metabase (plan section "Analytics and business intelligence", D-020).
+
 ## Next step
-Staff trial of the web app next to the Google app; then the 16 scheduling rules as booking warnings. Phase B starts with the doctor summary built on clinical.visit / va_iop_trend / injection / laser /
+Scheduling rules, then analytics schema + Metabase, then the remaining front-desk lists (direct calls, triage, cancel list, month view, settings). Phase B starts with the doctor summary built on clinical.visit / va_iop_trend / injection / laser /
 visit_exam_finding / followup_current / patient_due, generated locally (Ollama) from 07:00 for booked patients.

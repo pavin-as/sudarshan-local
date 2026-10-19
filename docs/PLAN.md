@@ -130,6 +130,72 @@ Dr. Sameera: comment directly on any box to reorder, rename, add or drop items. 
 | 6 | No-show risk score (statistical model, not an LLM) | Front desk | 19k past appointments + arrivals |
 | 7 | Ask-the-data: plain-English questions over read-only views, also as a connector for Claude | Pavin | `clinical` views |
 
+## Analytics and business intelligence
+
+Decided 19 Oct 2026 (D-020). Three layers, nothing patient-identifiable in any cloud tool.
+
+**1. `analytics` schema in PostgreSQL: one source for every number**
+
+Rebuilt nightly at about 02:30 (after the 01:00 Yarago full copy and the 02:00 backup) by a job in the sync service;
+everything reads from here.
+
+| Table | One row per | Main fields |
+|---|---|---|
+| `analytics.dim_date` | calendar day | weekday, week, month, financial year (Apr-Mar), clinic holiday, open for booking, max slots |
+| `analytics.dim_doctor` | doctor | name, active |
+| `analytics.dim_patient` | patient (pseudonymous) | patient key, age band, sex, district/PIN area, first visit date, new/returning; **no name, phone or MRD** |
+| `analytics.fact_visit` | Yarago visit | date, doctor, visit type, new/old, diagnosis category per eye, dilated, minutes per station, total time |
+| `analytics.fact_appointment` | Sudarshan booking | booked date, appointment date, lead days, source, status, attended / did not come, rescheduled count, cancel reason, confirmation calls done |
+| `analytics.fact_followup` | Yarago follow-up | due date, came back, days late, last call outcome |
+| `analytics.fact_treatment` | injection / laser / surgery | advised date, done date, drug, eye, dose number, days since previous dose, on time |
+| `analytics.fact_billing` | bill / payment | date, service group, amount, collected, due, age of due |
+| `analytics.metric_definitions` | KPI | name, plain definition, formula (SQL), owner, target |
+
+- Patients appear only as a key and an age band. A read-only login `sudarshan_bi` can read `analytics` and nothing else.
+- **Diagnosis categories:** Yarago diagnosis is free text. A mapping table (`analytics.diagnosis_map`) turns spellings
+  into categories (diabetic retinopathy, AMD, RVO, glaucoma, cataract, ...). The local AI proposes mappings;
+  Dr. Sameera approves them; unmapped text shows as "Unclassified" and is counted.
+- **Metric definitions are written once** (`metric_definitions` and `docs/METRICS.md`); every screen uses the same SQL.
+
+**2. Two audiences**
+
+| Who | What | Where |
+|---|---|---|
+| Front desk, doctors | Tomorrow's load, confirmations due, follow-up leakage, live waits, morning huddle sheet | Inside Sudarshan (figures lead to an action; logins and roles already exist) |
+| Pavin, management | Trends, comparisons, revenue, capacity, free exploration, weekly email, alerts | **Metabase** (open source), Windows service on shichika, LAN only, `sudarshan_bi` login, about 1-1.5 GB RAM |
+
+Metabase's own settings live in its own PostgreSQL database (`metabase`), included in the nightly backup.
+Power BI only, if ever, on de-identified tables on Pavin's laptop; never Power BI Service with clinic data.
+
+**3. Ask-the-data (later):** plain-English questions over `analytics` answered by the local model, showing the SQL
+it ran; optionally a read-only connector for Claude over the de-identified tables.
+
+**First KPIs (build and check against known figures, e.g. last month's injections)**
+
+| Area | KPI | Definition (short) |
+|---|---|---|
+| Volume | Visits per day / week / month | Completed Yarago visits, by new vs returning, doctor, visit type |
+| Volume | Slot utilisation | Timed bookings / max slots per open day |
+| Leakage | Follow-up overdue rate | Follow-ups due in the period not returned within 14 days of due |
+| Leakage | Injection adherence | Next dose given within planned interval + 7 days; missed and late doses |
+| Leakage | Advised not done | Surgery / laser advised with no procedure within 60 days |
+| Leakage | Did-not-come rate | Past bookings without a Yarago visit, by lead days and weekday |
+| Flow | Time per station | Median and 90th percentile minutes check-in > optometry > doctor > check-out, by hour of day |
+| Front desk | Confirmation calls done | 4-day and 1-day calls made / due |
+| Front desk | Reschedules and cancellations | Count and reasons, by days before the appointment |
+| Money | Revenue per visit and per service | From Yarago billing, by service group |
+| Money | Collections and dues ageing | Due amounts by age band (0-30, 31-90, over 90 days) |
+| Later | Profit by service | Zoho Books costs alongside clinic activity |
+| Later | Patient geography | Visits and new patients by PIN area (marketing) |
+
+**First Metabase dashboards:** Clinic week (volume, utilisation, did-not-come, waits), Retina care (injection
+adherence, follow-up leakage, advised-not-done by diagnosis), Money (revenue, collections, dues), Front desk
+(confirmations, reschedules). Weekly email of "Clinic week" to Pavin on Monday 07:00.
+
+**When:** the `analytics` schema, KPIs and Metabase are built right after the scheduling rules (one session,
+read-only, low risk), so the numbers are available during the trial. In-app staff dashboards come with the screens
+they belong to.
+
 ## Privacy and security
 
 Patient-identifiable data stays on shichika; this follows the DPDP Act 2023 and closes gaps the current setup has.
@@ -203,5 +269,6 @@ Each phase ends at a gate that must pass before the next starts. Phases A and B 
 - The old Google AuditLog is **not** imported; the new audit log starts clean (D-007).
 - Frontend uses hand-written CSS with design tokens, not Tailwind (D-014).
 - Served on `http://shichika:8484` for now; Caddy and `https://sudarshan.local` come before go-live (D-012).
+- Analytics and BI added 19 Oct (section above, D-020).
 - Order changed: the booking screens were built before the doctor summary, on Pavin's direction to put full effort
   into the local system (D-015). The doctor summary is the next big feature after the scheduling rules.

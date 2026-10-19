@@ -103,6 +103,14 @@ QNAP; 14 daily and 12 monthly kept; restore test every 4 weeks. Why leave out th
 backup and is refilled by one full sync (minutes), keeping each backup small. `.env` is not backed up with the data
 (secrets); a copy is kept offline.
 
+### D-020 · 2026-10-19 · Accepted · Pavin
+**Analytics: `analytics` schema + Metabase.** Nightly-rebuilt fact and dimension tables in PostgreSQL are the single
+source for every report; patients pseudonymous there (key, age band, area; no name, phone, MRD); read-only login
+`sudarshan_bi` limited to that schema. Management BI is **Metabase** self-hosted on shichika (LAN only); staff-facing
+figures live inside Sudarshan. Why: one definition per number, no clinic data in cloud BI, low cost and resources.
+Rejected: Superset (heavier), Grafana (monitoring tool), Power BI Service (cloud). Plan section "Analytics and
+business intelligence"; first KPIs listed there.
+
 ## Proposed (not yet decided)
 
 - **P-1** Which of the 16 scheduling rules should *block* a booking rather than warn. Owner: Pavin, Dr. Sameera.
