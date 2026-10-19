@@ -1,7 +1,7 @@
 # Sudarshan (local)
 
 Sampada VR's appointment system, moving from Google Apps Script to a local app on **shichika**.
-Plan: "Sudarshan Local Migration Plan" (Claude Docs).
+Plan and project documents: `docs/` (start with `docs/STATUS.md`).
 
 | Folder | What lives there |
 |---|---|
@@ -13,7 +13,7 @@ Plan: "Sudarshan Local Migration Plan" (Claude Docs).
 | `web/` | React + Vite frontend. |
 | `db/migrations/` | PostgreSQL schema changes, applied in order. |
 | `scripts/` | Setup and admin scripts for shichika. |
-| `docs/` | Runbooks (recovery, backups, cut-over). |
+| `docs/` | PLAN, STATUS, DECISIONS, COMPLIANCE, SCHEMA, DESIGN, TESTING, RUNBOOK, CHANGELOG. |
 
 ## Services on shichika
 - Yarago MySQL 5.6 (`MySQL56`), read through user `sudarshan_ro` (SELECT only)

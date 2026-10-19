@@ -1,5 +1,5 @@
 # Sudarshan - status and handoff
-Last updated: 2026-10-18 (night). Plan: "Sudarshan Local Migration Plan" (Claude Docs). Read CLAUDE.md first.
+Last updated: 2026-10-18 (night). Plan: docs/PLAN.md (exported from the Claude Docs plan). Read CLAUDE.md first; the other docs are listed there.
 
 ## Done (Phase A)
 - Read-only MySQL user `sudarshan_ro` on Yarago (MySQL 5.6, db `yghealthcarecombined`, 127.0.0.1:3306).
@@ -67,6 +67,9 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       follow-up calls, activity log, clinic calendar, users. Font bundled (no internet needed).
 - [ ] Code-modernization plugin: preflight, assess, map, extract-rules on `legacy/sudarshan`.
 - [ ] Phase B: doctor summary (layout draft in the plan doc, Dr. Sameera to review), follow-up board.
+
+- [ ] Backups (nightly pg_dump + Yarago dump to QNAP, restore test) - top priority before go-live.
+- [ ] Caddy / HTTPS; close MySQL 3306 to LAN.
 
 ## Next step
 Staff trial of the web app next to the Google app; then the 16 scheduling rules as booking warnings. Phase B starts with the doctor summary built on clinical.visit / va_iop_trend / injection / laser /
