@@ -8,7 +8,7 @@ import { one, q, setAuditSummary, withTx } from "../db.js";
 import { badRequest, conflict, notFound } from "../lib/errors.js";
 import { timeStr, toMin } from "../lib/time.js";
 import { bookingSettings, slotGrid } from "../services/calendar.js";
-import { DEFAULT_THRESHOLDS, loadThresholds, SETTING_KEY as EARLY_KEY, validateThresholds } from "../services/earlyBooking.js";
+import { DEFAULT_THRESHOLDS, DEFAULT_WAITLIST_PERCENT, loadThresholds, loadWaitlistPercent, SETTING_KEY as EARLY_KEY, validateThresholds, WAITLIST_KEY } from "../services/earlyBooking.js";
 import { DEFAULT_RULE_SETTINGS, parseRuleSettings, RULE_FIELDS, RULE_SWITCH_LABELS, RULE_SWITCHES } from "../services/rules.js";
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
@@ -39,7 +39,8 @@ export async function settingsRoutes(app: FastifyInstance) {
     };
     return {
       booking: await bookingSettings(),
-      earlyBooking: { thresholds: await loadThresholds(), defaults: DEFAULT_THRESHOLDS },
+      earlyBooking: { thresholds: await loadThresholds(), defaults: DEFAULT_THRESHOLDS,
+                      waitlistPercent: await loadWaitlistPercent(), waitlistDefault: DEFAULT_WAITLIST_PERCENT },
       rules: {
         switches: Object.keys(RULE_SWITCHES).map((k) => ({ key: k, label: RULE_SWITCH_LABELS[k] ?? k, on: rules.on[k] }))
           .sort((a, b) => parseFloat(a.label) - parseFloat(b.label) || a.label.localeCompare(b.label)),
@@ -84,6 +85,16 @@ export async function settingsRoutes(app: FastifyInstance) {
     await withTx(auditCtx(req, `Early booking limits set to ${sorted.map((t) => `${t.days === 0 ? "same day" : `${t.days}+ days`} ${t.percentage}%`).join(", ")}`), (c) =>
       putSetting(c, EARLY_KEY, sorted, "Early booking limits: share of the day's slots that may be booked, by days ahead"));
     return { thresholds: sorted };
+  });
+
+  // waiting list size (D-031): admins only, as in the Google app
+  app.put("/api/settings/waitlist", async (req) => {
+    const me = need(req, "settings.manage");
+    if (me.role !== "admin") throw badRequest("Only an admin can change the waiting list size");
+    const b = z.object({ percent: z.number().int().min(0).max(100) }).parse(req.body);
+    await withTx(auditCtx(req, `Waiting list size set to ${b.percent}% of the day's maximum slots`), (c) =>
+      putSetting(c, WAITLIST_KEY, b.percent, "Waiting list size: % of the day's maximum slots, rounded up"));
+    return { percent: b.percent };
   });
 
   app.put("/api/settings/rules", async (req) => {

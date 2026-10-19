@@ -202,14 +202,21 @@ function ScriptsSection() {
 }
 
 // Early booking limits (D-030): admins change them, as in the Google app; managers see them
-function EarlySection({ data }: { data: { thresholds: { days: number; percentage: number }[]; defaults: { days: number; percentage: number }[] } }) {
+function EarlySection({ data }: { data: { thresholds: { days: number; percentage: number }[]; defaults: { days: number; percentage: number }[];
+                                         waitlistPercent: number; waitlistDefault: number } }) {
   const { user } = useAuth();
   const toast = useToast();
   const qc = useQueryClient();
   const admin = user?.role === "admin";
   const [rows, setRows] = useState(data.thresholds.map((t) => ({ days: String(t.days), percentage: String(t.percentage) })));
   const [error, setError] = useState<unknown>(null);
-  useEffect(() => setRows(data.thresholds.map((t) => ({ days: String(t.days), percentage: String(t.percentage) }))), [data]);
+  const [wl, setWl] = useState(String(data.waitlistPercent));
+  useEffect(() => { setRows(data.thresholds.map((t) => ({ days: String(t.days), percentage: String(t.percentage) }))); setWl(String(data.waitlistPercent)); }, [data]);
+  const saveWl = async () => {
+    setError(null);
+    try { await api("/settings/waitlist", { method: "PUT", body: { percent: Number(wl) } }); toast("Waiting list size saved"); await qc.invalidateQueries(); }
+    catch (e) { setError(e); }
+  };
   const save = async (list: { days: string; percentage: string }[]) => {
     setError(null);
     try {
@@ -220,7 +227,7 @@ function EarlySection({ data }: { data: { thresholds: { days: number; percentage
   const label = (d: string) => (d === "0" ? "Same day" : `${d} or more days ahead`);
   return (
     <section className="panel">
-      <div className="panel-head"><h2 className="grow">Early booking limits</h2><span className="muted small">{admin ? "admin" : "only an admin can change these"}</span></div>
+      <div className="panel-head"><h2 className="grow">Early booking limits and waiting list size</h2><span className="muted small">{admin ? "admin" : "only an admin can change these"}</span></div>
       <div className="panel-pad stack">
         <p className="small muted" style={{ margin: 0 }}>The further away a day is, the smaller the share of its maximum slots that can be booked, so places stay for
           patients who need to book close to the date. Waitlist and cancelled bookings do not count. Over the limit a booking is refused; a manager can
@@ -241,6 +248,15 @@ function EarlySection({ data }: { data: { thresholds: { days: number; percentage
           <button onClick={() => setRows([...rows, { days: "", percentage: "" }])}>Add a band</button>
           <button onClick={() => void save(data.defaults.map((t) => ({ days: String(t.days), percentage: String(t.percentage) })))}>Back to the Google app's values</button>
           <button className="btn-primary" onClick={() => void save(rows)}>Save limits</button></div>}
+        <div className="row">
+          <label className="field"><span>Waiting list size: % of the day's maximum slots, rounded up (Google app: {data.waitlistDefault}%)</span>
+            {admin ? <input className="narrow-input" inputMode="numeric" value={wl} onChange={(e) => setWl(e.target.value.replace(/\D/g, ""))} />
+                   : <b>{data.waitlistPercent}%</b>}</label>
+          {admin && <button onClick={() => void saveWl()}>Save waiting list size</button>}
+        </div>
+        <p className="small muted" style={{ margin: 0 }}>A 38-slot day then holds {Math.ceil(38 * Number(wl || 0) / 100)} on its waiting list, a 15-slot day
+          {" "}{Math.ceil(15 * Number(wl || 0) / 100)}. When it is full a booking without a time is refused; a manager can add one with a reason. A patient already
+          waiting keeps their place.</p>
       </div>
     </section>
   );

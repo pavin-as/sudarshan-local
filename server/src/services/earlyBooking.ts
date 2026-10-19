@@ -64,3 +64,13 @@ export async function loadThresholds(db?: Db): Promise<Threshold[]> {
   const v = r[0]?.value;
   return Array.isArray(v) && !validateThresholds(v as Threshold[]) ? (v as Threshold[]) : DEFAULT_THRESHOLDS;
 }
+
+// ---------- waiting list size (D-031), as the Google app's checkWaitingListLimit: at most ceil(max slots x 15%) ----------
+export const WAITLIST_KEY = "booking.waitlist_percent";
+export const DEFAULT_WAITLIST_PERCENT = 15;
+export const waitlistLimit = (maxSlots: number, percent: number) => Math.ceil((maxSlots * percent) / 100);
+export async function loadWaitlistPercent(db?: Db): Promise<number> {
+  const r = await q<{ value: unknown }>(`SELECT value FROM app.settings WHERE key = $1`, [WAITLIST_KEY], db);
+  const v = Number(r[0]?.value);
+  return Number.isInteger(v) && v >= 0 && v <= 100 ? v : DEFAULT_WAITLIST_PERCENT;
+}

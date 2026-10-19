@@ -469,3 +469,4 @@ table.list.compact td, table.list.compact th { padding: 0.3rem 0.55rem; }
 .date-chip.held { box-shadow: inset 0 -3px 0 var(--disc); }
 .date-chip.held::after { content: "held"; display: block; font-size: 0.65rem; color: #6b4a00; font-weight: 700; }
 .date-chip.held[aria-pressed="true"]::after { color: #fde68a; }
+.slots-pick button.wl-full { background: var(--disc-soft); border-color: var(--disc); color: #5a3e00; }

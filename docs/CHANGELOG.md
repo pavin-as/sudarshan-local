@@ -5,6 +5,10 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Waiting list size** (D-031), as in the Google app: a day's waitlist holds at most 15% of its slots, rounded up
+  (6 on a 38-slot day, 3 on a 15-slot day). The Waitlist button shows "5/6" and turns amber when full, with a notice;
+  a booking without a time on a full list is refused, a manager can add anyway with a reason, a patient already waiting
+  keeps their place. The day board's waitlist shows "n of 6 places". Admins change the percentage on Settings.
 - **Early booking limit** (D-030), as in the Google app: far-ahead days can only be filled to a share of their slots
   (10+ days 51%, 5-9 days 79%, 4 days 85%, 1-3 days 95%, same day 100%). An amber notice with the unlock table appears as
   soon as a held day is chosen when booking or rescheduling; held days show "held" on the date strips. A booking over

@@ -1,7 +1,7 @@
 // Early booking limit (D-030), as the Google app applied it. No database needed.
 //   npm run test:rules   (runs this file too)
 import assert from "node:assert/strict";
-import { customRound, DEFAULT_THRESHOLDS as T, earlyStatus, selectThreshold, validateThresholds } from "../src/services/earlyBooking.js";
+import { customRound, DEFAULT_THRESHOLDS as T, earlyStatus, selectThreshold, validateThresholds, waitlistLimit } from "../src/services/earlyBooking.js";
 
 let passed = 0;
 function test(name: string, fn: () => void) {
@@ -39,4 +39,7 @@ test("settings: 10-100%, rising as the day gets closer, one band per day count, 
   assert.match(validateThresholds([{ days: 10, percentage: 5 }, { days: 0, percentage: 100 }])!, /between 10 and 100/);
   assert.match(validateThresholds([{ days: 10, percentage: 50 }])!, /same-day/);
 });
-console.log(`${passed} early booking checks passed`);
+test("waiting list size: max slots x 15%, rounded up (38 -> 6, 15 -> 3, 0 -> 0)", () => {
+  assert.deepEqual([38, 15, 20, 0].map((m) => waitlistLimit(m, 15)), [6, 3, 3, 0]);
+});
+console.log(`${passed} early booking and waiting list checks passed`);

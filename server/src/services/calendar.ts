@@ -3,7 +3,7 @@
 // slots run on a fixed grid (default 09:00-17:50 every 10 minutes), one patient per slot,
 // and bookings without a time are the waitlist.
 import type { Db } from "../db.js";
-import { loadThresholds, earlyStatus, type EarlyStatus } from "./earlyBooking.js";
+import { loadThresholds, earlyStatus, loadWaitlistPercent, waitlistLimit, type EarlyStatus } from "./earlyBooking.js";
 import { q, one } from "../db.js";
 import { fromMin, isoWeekday, todayIST, toMin } from "../lib/time.js";
 
@@ -66,6 +66,7 @@ export interface DayInfo {
   date: string; weekday: number; holiday: string | null; maxSlots: number;
   booked: number; remaining: number; waitlist: number; open: boolean; closedReason: string | null;
   early: EarlyStatus | null;          // early booking limit (D-030), for open days from today on
+  waitlistLimit: number;              // waiting list size (D-031)
 }
 
 export async function daysInfo(from: string, to: string, db?: Db): Promise<DayInfo[]> {
@@ -77,12 +78,13 @@ export async function daysInfo(from: string, to: string, db?: Db): Promise<DayIn
        LEFT JOIN app.holidays h ON h.on_date = d::date
        LEFT JOIN app.day_capacity c ON c.on_date = d::date
       ORDER BY d`, [from, to], db);
-  const thresholds = await loadThresholds(db), today = todayIST();
+  const thresholds = await loadThresholds(db), today = todayIST(), wlPercent = await loadWaitlistPercent(db);
   return rows.map((r) => {
     const closedReason = r.holiday ? `Holiday: ${r.holiday}` : r.max_slots <= 0 ? "Not open for booking (maximum slots not set)" : null;
     return { date: r.date, weekday: isoWeekday(r.date), holiday: r.holiday, maxSlots: r.max_slots, booked: r.booked,
              remaining: Math.max(0, r.max_slots - r.booked), waitlist: r.waitlist, open: !closedReason, closedReason,
-             early: !closedReason && r.date >= today ? earlyStatus(r.date, today, r.booked, r.max_slots, thresholds) : null };
+             early: !closedReason && r.date >= today ? earlyStatus(r.date, today, r.booked, r.max_slots, thresholds) : null,
+             waitlistLimit: r.max_slots > 0 ? waitlistLimit(r.max_slots, wlPercent) : 0 };
   });
 }
 

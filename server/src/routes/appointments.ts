@@ -148,7 +148,7 @@ async function lockRow(c: PoolClient, id: number) {
 
 function overrideFor(req: FastifyRequest, o: { reason: string } | null | undefined): Override | null {
   if (!o) return null;
-  if (!can(req.user!.role, "settings.manage")) throw badRequest("Only a manager or admin can book over a full day, a taken slot, a held HFA slot or the early booking limit");
+  if (!can(req.user!.role, "settings.manage")) throw badRequest("Only a manager or admin can book over a full day, a taken slot, a held HFA slot, the early booking limit or a full waiting list");
   return o;
 }
 

@@ -7,7 +7,7 @@ import { addDays, niceDate, todayIST, toMin } from "../lib/time.js";
 import { bookingSettings, doctorsOnDate, maxSlotsFor, slotGrid } from "./calendar.js";
 import { blocksAt, HFA_OPEN_DAYS_BEFORE, loadBlocks } from "./reserved.js";
 import { isKind } from "./rules.js";
-import { earlyStatus, loadThresholds } from "./earlyBooking.js";
+import { earlyStatus, loadThresholds, loadWaitlistPercent, waitlistLimit } from "./earlyBooking.js";
 
 const ACTIVE_SQL = `('booked','confirmed','checked_in','completed','no_show')`;
 const HOLDING_SQL = `('booked','confirmed','checked_in','completed','no_show','waitlist')`;   // includes waitlist
@@ -115,6 +115,23 @@ export async function checkPlacement(c: PoolClient, p: Placement, who: PatientKe
       if (blocksAt(hfaBlocks, p.date, p.slotTime).length)
         soft.push(`${p.slotTime} is kept for HFA patients; other plans can book it from ${niceDate(opensOn)} (${HFA_OPEN_DAYS_BEFORE} days before)`);
       freeSlots = freeSlots.filter((t) => !blocksAt(hfaBlocks, p.date, t).length);      // do not suggest held slots
+    }
+  }
+
+  // waiting list size (D-031): a new place on a day's waitlist only while it holds fewer than ceil(max x 15%); a booking
+  // already on that day's waitlist may stay. No waitlist on a day that is not open (as in the Google app).
+  if (!p.slotTime && !holiday) {
+    const max = await maxSlotsFor(p.date, c);
+    if (max <= 0) problems.push(`${niceDate(p.date)} is not open for booking yet (set the maximum slots for the day first)`);
+    else {
+      const prevWl = excludeId ? await one<{ d: string; status: string }>(
+        `SELECT to_char(appointment_date,'YYYY-MM-DD') AS d, status FROM app.appointments WHERE id = $1`, [excludeId], c) : null;
+      if (!(prevWl && prevWl.d === p.date && prevWl.status === "waitlist")) {
+        const limit = waitlistLimit(max, await loadWaitlistPercent(c));
+        const wl = await one<{ n: number }>(`SELECT count(*)::int AS n FROM app.appointments WHERE appointment_date = $1 AND status = 'waitlist'
+                                               AND ($2::bigint IS NULL OR id <> $2)`, [p.date, excludeId], c);
+        if ((wl?.n ?? 0) >= limit) soft.push(`The waiting list for ${niceDate(p.date)} is full (${wl!.n} of ${limit})`);
+      }
     }
   }
 

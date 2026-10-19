@@ -237,6 +237,16 @@ direct-call bookings all use the same dialog and check), with the unlock table (
 held days are marked on the date strips. Bands are changed by an admin on Settings (10-100%, rising as the day gets
 closer, a same-day band). On 19 Oct, 7 of the next 16 open days were already over their limit.
 
+### D-031 · 2026-10-19 · Accepted · Claude (Pavin asked for the Google app's rule; handled as D-030)
+**Waiting list size, as in the Google app, refused when full with a manager override.** A day's waiting list holds at
+most ceil(maximum slots x 15%) (38 slots -> 6, 15 slots -> 3; Google app checkWaitingListLimit). A booking without a time,
+a move to the waitlist, or a cancelled booking restored to the waitlist is refused when that day's list is full; a
+patient already on that day's waitlist keeps their place. No waitlist on a day without maximum slots. A manager or
+admin may add anyway with a written reason, as for the early booking limit (D-030); the Google app allowed no override.
+Giving a waitlist patient a slot on a full day was already refused ("the day is full", manager override), matching the
+Google app's locked type box. The percentage is changed by an admin on Settings. On 19 Oct two days were already over:
+22 Oct (7 of 6) and 31 Oct (6 of 6).
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

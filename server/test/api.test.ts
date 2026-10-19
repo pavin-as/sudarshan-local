@@ -449,6 +449,24 @@ try {
     }
   });
 
+  await step("waiting list size: ceil(max x 15%), then refused; a manager may add with a reason; one already waiting may stay", async () => {
+    const W = addDays(todayIST(), 21);
+    await pool.query(`INSERT INTO app.day_capacity (on_date, max_slots) VALUES ($1, 6) ON CONFLICT (on_date) DO UPDATE SET max_slots = 6`, [W]);
+    try {
+      // 6 slots -> ceil(0.9) = 1 waitlist place
+      const w1 = await call("POST", "/api/appointments", staff, { date: W, slotTime: null, patientName: "ZZ Test Wait One", phone: "9000000151" });
+      assert.equal(w1.status, 200);
+      const w2 = await call("POST", "/api/appointments", staff, { date: W, slotTime: null, patientName: "ZZ Test Wait Two", phone: "9000000152" });
+      assert.equal(w2.status, 409); assert.match(w2.body.message, /waiting list .* is full \(1 of 1\)/);
+      const keep = await call("POST", `/api/appointments/${w1.body.appointment.id}/move`, staff, { date: W, slotTime: null, reason: "still waiting" });
+      assert.ok(!(keep.body?.message ?? "").includes("waiting list"), "one already on the waitlist may stay");
+      const over = await call("POST", "/api/appointments", admin, { date: W, slotTime: null, patientName: "ZZ Test Wait Two", phone: "9000000152", override: { reason: "doctor asked" } });
+      assert.equal(over.status, 200);
+    } finally {
+      await pool.query(`DELETE FROM app.day_capacity WHERE on_date = $1`, [W]);
+    }
+  });
+
   console.log("trial: the Google app is the master (D-025)");
   await step("imported records and the calendar are read-only while trial.google_master is on; practice bookings are not", async () => {
     const own = await call("POST", "/api/appointments", staff, { date: D2, slotTime: "12:30", patientName: "ZZ Test Trial Own", phone: "9000000131" });

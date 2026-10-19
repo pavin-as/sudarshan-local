@@ -55,10 +55,12 @@ export function DateStrip({ value, onChange, from, count = 21 }: { value: string
 }
 
 /** Pick a slot on a day: taken slots crossed out, times outside the chosen doctor's hours dimmed. */
-export function SlotPicker({ date, value, onChange, doctorId, ignoreAppointmentId, movingWithinDay }: {
+export function SlotPicker({ date, value, onChange, doctorId, ignoreAppointmentId, movingWithinDay, keepsWaitlistPlace }: {
   date: string; value: string | null; onChange: (t: string | null) => void; doctorId?: number | null; ignoreAppointmentId?: number;
   /** a booking that already has a time on this date: changing the time adds no place, so the early limit does not apply */
   movingWithinDay?: string | null;
+  /** the booking is already on this day's waiting list: it keeps its place, so a full list does not apply */
+  keepsWaitlistPlace?: boolean;
 }) {
   const day = useDay(date);
   if (day.isLoading) return <div className="muted small">Loading slots…</div>;
@@ -71,13 +73,18 @@ export function SlotPicker({ date, value, onChange, doctorId, ignoreAppointmentI
     <div className="stack">
       <div className="row small">
         <b>{dayLabel(date)}{date !== todayIST() && ` (${weekdayName(date, true)} ${niceDate(date)})`}</b>
-        {info.open ? <span className="muted">{info.booked} of {info.maxSlots} booked, {info.remaining} left{info.waitlist ? `, ${info.waitlist} on waitlist` : ""}</span>
+        {info.open ? <span className="muted">{info.booked} of {info.maxSlots} booked, {info.remaining} left, waitlist {info.waitlist} of {info.waitlistLimit}</span>
                    : <span className="overdue">{info.closedReason}</span>}
         {doc && <span className="muted">· {doc.name}: {doc.onLeave ? "on leave" : doc.sessions.length ? doc.sessions.map((s) => `${s.start}-${s.end}`).join(", ") : "no session this weekday"}</span>}
       </div>
       {info.early?.restricted && movingWithinDay !== date && <EarlyNotice e={info.early} />}
+      {info.open && info.waitlist >= info.waitlistLimit && value === null && !keepsWaitlistPlace && (
+        <div className="early-notice" role="status"><b>Waiting list full:</b> {info.waitlist} of {info.waitlistLimit} places are taken for this day
+          (15% of its {info.maxSlots} slots, rounded up). Choose a time, another day, or a manager can add to the waiting list with a reason.</div>)}
       <div className="slots-pick" role="group" aria-label="Time slot">
-        <button type="button" aria-pressed={value === null} onClick={() => onChange(null)} title="Book without a time">Waitlist</button>
+        <button type="button" aria-pressed={value === null} onClick={() => onChange(null)}
+          className={info.open && info.waitlist >= info.waitlistLimit && !keepsWaitlistPlace ? "wl-full" : ""}
+          title={`Book without a time: waiting list ${info.waitlist} of ${info.waitlistLimit}`}>Waitlist {info.waitlist}/{info.waitlistLimit}</button>
         {slots.map((s) => {
           const taken = s.appointments.some((a) => a.id !== ignoreAppointmentId);
           const past = toMin(s.time) <= now;

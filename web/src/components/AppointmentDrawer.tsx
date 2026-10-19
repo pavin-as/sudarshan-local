@@ -128,7 +128,8 @@ export function AppointmentDrawer({ id, onClose }: { id: number; onClose: () => 
             <h3>{a.status === "cancelled" ? "Restore to" : "Move to"}</h3>
             <DateStrip value={moveDate} onChange={(d) => { setMoveDate(d); setMoveSlot(null); }} />
             <SlotPicker date={moveDate} value={moveSlot} onChange={setMoveSlot} doctorId={a.doctorId} ignoreAppointmentId={a.id}
-              movingWithinDay={a.slotTime && a.status !== "cancelled" ? a.date : null} />
+              movingWithinDay={a.slotTime && a.status !== "cancelled" ? a.date : null}
+              keepsWaitlistPlace={a.status === "waitlist" && moveDate === a.date} />
             <input placeholder="Reason (optional)" value={text} onChange={(e) => setText(e.target.value)} />
             <RuleCheckPanel body={moveDate ? { date: moveDate, slotTime: moveSlot, appointmentId: a.id } : null} />
           </>}
@@ -159,7 +160,7 @@ export function AppointmentDrawer({ id, onClose }: { id: number; onClose: () => 
           </div>}
           <ErrorNotice error={error} />
           {mode === "move" && can("settings.manage") && error instanceof ApiError && error.code === "booking_refused"
-            && ((error.details as any)?.problems ?? []).some((p: string) => /full|already booked for|kept for HFA|limited to/.test(p)) && (
+            && ((error.details as any)?.problems ?? []).some((p: string) => /full|already booked for|kept for HFA|limited to|waiting list/.test(p)) && (
             <label className="field"><span>Move anyway (manager): reason</span>
               <input value={override} onChange={(e) => setOverride(e.target.value)} placeholder="e.g. post-op review, doctor agreed" /></label>)}
           <div className="row">

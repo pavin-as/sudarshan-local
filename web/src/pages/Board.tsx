@@ -156,7 +156,7 @@ export function BoardPage() {
           )}
 
           <div className="panel">
-            <div className="panel-head"><h3 className="grow">Waitlist</h3><span className="muted small">{waitlist.length} without a time</span></div>
+            <div className="panel-head"><h3 className="grow">Waitlist</h3><span className="muted small">{waitlist.length} of {info?.waitlistLimit ?? "-"} places</span></div>
             <div className="panel-pad stack">
               {waitlist.length === 0 ? <span className="muted small">Nobody waiting for a slot on this day.</span>
                 : waitlist.map((a) => <ApptCard key={a.id} a={a} rules={cardRules.get(a.id)} onOpen={() => setOpenId(a.id)} />)}
