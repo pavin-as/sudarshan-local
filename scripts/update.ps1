@@ -16,11 +16,14 @@ Write-Host "`n=== 2. Restart sync service ===" -ForegroundColor Cyan
 if (Get-Service SudarshanYaragoSync -ErrorAction SilentlyContinue) { Restart-Service SudarshanYaragoSync; Start-Sleep 3; (Get-Service SudarshanYaragoSync).Status }
 Write-Host "`n=== 3. API server ===" -ForegroundColor Cyan
 if (Get-Service SudarshanServer -ErrorAction SilentlyContinue) {
-  Set-Location "$App\server"
   $ErrorActionPreference = 'Continue'
-  & npm ci --no-audit --no-fund 2>&1 | Select-Object -Last 2
-  & npm run build 2>&1 | Select-Object -Last 3
-  $built = ($LASTEXITCODE -eq 0)
+  $built = $true
+  foreach ($part in 'server', 'web') {
+    Set-Location "$App\$part"
+    & npm ci --no-audit --no-fund 2>&1 | Select-Object -Last 2
+    & npm run build 2>&1 | Select-Object -Last 3
+    if ($LASTEXITCODE) { $built = $false; break }
+  }
   $ErrorActionPreference = 'Stop'
   Set-Location $App
   if (-not $built) { throw 'server build failed - the running server was left as it was' }

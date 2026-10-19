@@ -25,13 +25,17 @@ Set-Location $App
 & $py scripts\migrate.py; if ($LASTEXITCODE) { throw 'migrate failed' }
 
 Write-Host "`n=== 3. Install packages and build ===" -ForegroundColor Cyan
-Set-Location "$App\server"
 $ErrorActionPreference = 'Continue'          # npm writes progress to stderr
-& npm ci --no-audit --no-fund 2>&1 | Select-Object -Last 3
-if ($LASTEXITCODE) { throw 'npm ci failed' }
-& npm run build 2>&1 | Select-Object -Last 5
-if ($LASTEXITCODE) { throw 'build failed' }
+foreach ($part in 'server', 'web') {
+  Write-Host "  $part"
+  Set-Location "$App\$part"
+  & npm ci --no-audit --no-fund 2>&1 | Select-Object -Last 2
+  if ($LASTEXITCODE) { throw "npm ci failed in $part" }
+  & npm run build 2>&1 | Select-Object -Last 3
+  if ($LASTEXITCODE) { throw "build failed in $part" }
+}
 $ErrorActionPreference = 'Stop'
+Set-Location "$App\server"
 
 Write-Host "`n=== 4. Windows service ===" -ForegroundColor Cyan
 $nssm = (Get-Command nssm -ErrorAction SilentlyContinue).Source
@@ -82,8 +86,11 @@ $ErrorActionPreference = 'Stop'
 Write-Host "`n=== 8. Git ===" -ForegroundColor Cyan
 Set-Location $App
 git add -A
-if (git status --porcelain) { git commit -q -m 'API server: login, users, calendar, appointments, patients, follow-ups, activity log'; Write-Host '  git commit created' } else { Write-Host '  nothing to commit' }
+if (git status --porcelain) { git commit -q -m 'Sudarshan server and web app'; Write-Host '  git commit created' } else { Write-Host '  nothing to commit' }
 
-Write-Host "`nNext: give yourself a login (prints a one-time password):" -ForegroundColor Yellow
-Write-Host "  cd /d $App\server  &&  node dist\cli.js list-users"
-Write-Host "  node dist\cli.js temp-password <your username>"
+Write-Host "`n=== 9. Your login ===" -ForegroundColor Cyan
+Set-Location "$App\server"
+& $node dist\cli.js list-users
+$u = Read-Host "Type your username from the list for a one-time password (or press Enter to skip)"
+if ($u.Trim()) { & $node dist\cli.js temp-password $u.Trim() }
+Write-Host "Open http://shichika:$port (or http://localhost:$port on this computer) and log in." -ForegroundColor Yellow

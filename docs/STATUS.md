@@ -61,11 +61,13 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       activity log. 38-check API test passes on the test database. Service `SudarshanServer`, port 8484,
       installer `scripts/install-server.ps1`.
 - [ ] Port the 16 scheduling rules (legacy RuleEngine.js / checks.md) as booking warnings.
-- [ ] Web UI (`web/`, React + Vite), served by the API server.
+- [x] Web UI (`web/`, React + Vite + TypeScript), served by the API server at http://shichika:8484:
+      login, day board (slots, live Yarago stage, waitlist), booking dialog, appointment drawer (story, confirm,
+      reschedule, cancel, link new patient to Yarago), confirmation calls (day-before, 4-day), patients,
+      follow-up calls, activity log, clinic calendar, users. Font bundled (no internet needed).
 - [ ] Code-modernization plugin: preflight, assess, map, extract-rules on `legacy/sudarshan`.
 - [ ] Phase B: doctor summary (layout draft in the plan doc, Dr. Sameera to review), follow-up board.
 
 ## Next step
-Web UI on top of the API (login, day board, booking, patient page, follow-up board, activity log), then
-the scheduling rules. Phase B starts with the doctor summary built on clinical.visit / va_iop_trend / injection / laser /
+Staff trial of the web app next to the Google app; then the 16 scheduling rules as booking warnings. Phase B starts with the doctor summary built on clinical.visit / va_iop_trend / injection / laser /
 visit_exam_finding / followup_current / patient_due, generated locally (Ollama) from 07:00 for booked patients.

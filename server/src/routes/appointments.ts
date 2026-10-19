@@ -45,6 +45,15 @@ const APPT_COLS = `
 const FROM = `FROM app.appointments a
   LEFT JOIN app.doctors d ON d.id = a.doctor_id
   LEFT JOIN app.users bu ON bu.id = a.booked_by ${LIVE_JOIN}`;
+// Lists spanning many days skip the per-booking Yarago lookup (the live stage only matters on the day).
+const FROM_LIGHT = `FROM app.appointments a
+  LEFT JOIN app.doctors d ON d.id = a.doctor_id
+  LEFT JOIN app.users bu ON bu.id = a.booked_by
+  LEFT JOIN (SELECT NULL::int AS visit_id, NULL::int AS status_id) yv ON false
+  LEFT JOIN app.code_labels yl ON false
+  LEFT JOIN (SELECT NULL::timestamp AS check_in_at, NULL::timestamp AS check_out_at, NULL::timestamp AS exam_start_at,
+                    NULL::timestamp AS exam_after_dilatation_at, NULL::timestamp AS room_in_at, NULL::timestamp AS optometry_end_at,
+                    NULL::timestamp AS optometry_start_at) tl ON false`;
 
 const idParam = z.object({ id: z.coerce.number().int().positive() });
 // absent stays undefined (not changed); "" or null clears the field
@@ -151,7 +160,8 @@ export async function appointmentRoutes(app: FastifyInstance) {
     if (!where.length) throw badRequest("Give a date, a date range, a patient or a search");
     p.push(f.limit);
     const order = f.date ? "a.slot_time NULLS LAST, a.id" : "a.appointment_date DESC, a.slot_time NULLS LAST";
-    return { appointments: await q(`SELECT ${APPT_COLS} ${FROM} WHERE ${where.join(" AND ")} ORDER BY ${order} LIMIT $${p.length}`, p) };
+    const live = !!f.date || !!f.patientId;
+    return { appointments: await q(`SELECT ${APPT_COLS} ${live ? FROM : FROM_LIGHT} WHERE ${where.join(" AND ")} ORDER BY ${order} LIMIT $${p.length}`, p) };
   });
 
   // ---- one appointment with its story ----
@@ -310,6 +320,24 @@ export async function appointmentRoutes(app: FastifyInstance) {
       await setAuditSummary(c, `Remark on ${describe(cur)}'s appointment: ${note.slice(0, 120)}`);
       await addEvent(c, id, me.id, "remark", null, null, note);
       return { ok: true };
+    });
+  });
+
+  // ---- link a booking made for a new patient to their Yarago record (once registered) ----
+  app.post("/api/appointments/:id/link", async (req) => {
+    const me = need(req, "appointments.write");
+    const { id } = idParam.parse(req.params);
+    const { patientId } = z.object({ patientId: z.number().int().positive() }).parse(req.body);
+    const yp = await one<any>(`SELECT patient_id, mrd, name, mobile, age_years, sex FROM clinical.patient WHERE patient_id = $1`, [patientId]);
+    if (!yp) throw notFound("Yarago patient");
+    return withTx(auditCtx(req), async (c) => {
+      const cur = await lockRow(c, id);
+      await setAuditSummary(c, `Linked ${describe(cur)}'s appointment on ${niceDate(cur.appointment_date)} to Yarago patient ${yp.name} (${yp.mrd})`);
+      await c.query(`UPDATE app.appointments SET patient_id = $2, mrd = $3, phone = coalesce(phone, $4),
+                       age_years = coalesce(age_years, $5), gender = coalesce(gender, $6) WHERE id = $1`,
+                    [id, yp.patient_id, yp.mrd, yp.mobile, yp.age_years, yp.sex]);
+      await addEvent(c, id, me.id, "remark", null, null, `Linked to Yarago patient ${yp.name} (${yp.mrd})`);
+      return { appointment: await loadOne(id, c) };
     });
   });
 

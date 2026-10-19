@@ -1,8 +1,11 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import cookie from "@fastify/cookie";
+import fastifyStatic from "@fastify/static";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { ZodError } from "zod";
-import { config } from "./config.js";
+import { APP_ROOT, config } from "./config.js";
 import { pool } from "./db.js";
 import { authPlugin } from "./auth.js";
 import { HttpError } from "./lib/errors.js";
@@ -45,7 +48,26 @@ export async function buildApp(opts: { logger?: boolean } = {}): Promise<Fastify
     return reply.status(500).send({ error: "server_error", message: "Something went wrong on the server. It has been logged.", requestId: req.id });
   });
 
-  app.setNotFoundHandler((req, reply) => reply.status(404).send({ error: "not_found", message: `No such address: ${req.method} ${req.url}` }));
+  // The web app (web/dist) is served from the same address; unknown non-API pages get index.html (client routing).
+  const webRoot = process.env.SUDARSHAN_WEB ?? path.join(APP_ROOT, "web", "dist");
+  const hasWeb = existsSync(path.join(webRoot, "index.html"));
+  if (hasWeb) {
+    await app.register(fastifyStatic, {
+      root: webRoot, wildcard: true, index: ["index.html"],      // wildcard: files are looked up per request, so a rebuild needs no restart
+      setHeaders: (res, file) => res.setHeader("Cache-Control", file.includes(`${path.sep}assets${path.sep}`) ? "public, max-age=31536000, immutable" : "no-cache"),
+    });
+  }
+  app.setNotFoundHandler((req, reply) => {
+    if (hasWeb && req.method === "GET" && !req.url.startsWith("/api/") && !req.url.startsWith("/assets/")) return reply.header("Cache-Control", "no-cache").sendFile("index.html");
+    return reply.status(404).send({ error: "not_found", message: `No such address: ${req.method} ${req.url}` });
+  });
+
+  app.addHook("onSend", async (_req, reply) => {
+    reply.header("X-Content-Type-Options", "nosniff");
+    reply.header("X-Frame-Options", "DENY");
+    reply.header("Referrer-Policy", "same-origin");
+    reply.header("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'");
+  });
 
   app.get("/api/health", { config: { public: true } }, async () => {
     const r = await pool.query(`SELECT now() AS db_time,
