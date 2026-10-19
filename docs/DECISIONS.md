@@ -96,8 +96,16 @@ that day become `no_show`.
 **Project documents in `docs/`** (PLAN, STATUS, SCHEMA, DESIGN, TESTING, RUNBOOK, COMPLIANCE, DECISIONS, CHANGELOG);
 agents read them before working (CLAUDE.md). Supersedes the Claude Docs plan as the working copy.
 
+### D-019 · 2026-10-19 · Accepted · Pavin / Claude
+**Backups:** Yarago keeps its own backup (`F:\EMR_AUTO_BACKUP`). Sudarshan's nightly backup (02:00, after the full
+copy) is a `pg_dump` of the whole database **without the Yarago mirror's data**, plus a git bundle of the code, to the
+QNAP; 14 daily and 12 monthly kept; restore test every 4 weeks. Why leave out the mirror: it duplicates Yarago's own
+backup and is refilled by one full sync (minutes), keeping each backup small. `.env` is not backed up with the data
+(secrets); a copy is kept offline.
+
 ## Proposed (not yet decided)
 
 - **P-1** Which of the 16 scheduling rules should *block* a booking rather than warn. Owner: Pavin, Dr. Sameera.
 - **P-2** Second-pass linking of ~4,400 imported bookings without a Yarago patient (phone + name, confirmed by a person).
+- **P-4** Off-site copy of the Sudarshan backups (encrypted cloud or a drive taken home weekly).
 - **P-3** Keep the Google app read-only for 3 months after cut-over (plan), then archive the spreadsheet.

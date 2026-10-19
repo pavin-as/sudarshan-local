@@ -54,7 +54,7 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       Warnings: 393 duplicate AppointmentIDs across sheets (kept the most current), 66 orphan remarks.
 - [ ] ~4,400 imported bookings have no Yarago link (booked before an MRD existed): second pass by phone + name,
       flagged for a person to confirm.
-- [ ] Delete D:\Sudarshan\sudershanWebsite.xlsx (plaintext passwords, patient data).
+- [x] sudershanWebsite.xlsx deleted (19 Oct).
 - [x] API server `server/` (Fastify + TypeScript), see server/README.md: login/sessions/roles, users admin,
       calendar (capacity, holidays, doctor hours/leave), appointments (book/move/cancel/confirm/remarks, per-day
       lock, Yarago live stage on the board), patients (search, page, visit detail), follow-up board + call log,
@@ -68,7 +68,8 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
 - [ ] Code-modernization plugin: preflight, assess, map, extract-rules on `legacy/sudarshan`.
 - [ ] Phase B: doctor summary (layout draft in the plan doc, Dr. Sameera to review), follow-up board.
 
-- [ ] Backups (nightly pg_dump + Yarago dump to QNAP, restore test) - top priority before go-live.
+- [x] Backups: Sudarshan nightly 02:00 to QNAP (scripts/backup.ps1, install-backup.ps1), restore test every 4 weeks; Yarago has its own backup (F:\EMR_AUTO_BACKUP).
+- [ ] Off-site copy of backups (decision P-4).
 - [ ] Caddy / HTTPS; close MySQL 3306 to LAN.
 
 ## Next step

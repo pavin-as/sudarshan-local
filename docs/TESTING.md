@@ -24,6 +24,7 @@ Point tests at a test database with an env file: `SUDARSHAN_ENV=<path to test .e
 | Real-data read check: each screen's query, time and row count, no patient details printed | `cd server && npx tsx test/real-data.ts` (also step 7 of `install-server.ps1`) | After deploying to shichika |
 | View sanity on real data | `scripts\check_views.py` (step 4 of `update.ps1`) | After every update |
 | Importer | `scripts\import_sheets.py --dry-run` | Before any real import |
+| Backup and restore | `scripts\backup.ps1` then `scripts\restore-test.ps1` (restore counts must match the backup) | After changes to the schema or backup scripts; automatically every 4 weeks |
 | PowerShell scripts parse | PowerShell `Parser.ParseFile` | Every script change |
 
 ## 3. Rules for writing tests

@@ -1,7 +1,9 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, NavLink, Route, Routes } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { api } from "./api";
+import { stamp } from "./format";
 import "./styles.css";
 import { AuthProvider, useAuth } from "./auth";
 import { ToastProvider } from "./components/ui";
@@ -17,6 +19,22 @@ import { ConfirmationsPage, useConfirmationList } from "./pages/Confirmations";
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 20_000, refetchOnWindowFocus: true, retry: (n, e: any) => n < 2 && !(e?.status >= 400 && e?.status < 500) } },
 });
+
+// Managers and admins see whether last night's backup worked (scripts/backup.ps1 records it).
+function BackupStatus() {
+  const h = useQuery({ queryKey: ["health"], refetchInterval: 10 * 60_000,
+    queryFn: () => api<{ lastBackup: string | null; lastBackupStatus: string | null }>("/health") });
+  if (!h.data) return null;
+  const { lastBackup, lastBackupStatus } = h.data;
+  const ageH = lastBackup ? (Date.now() - new Date(lastBackup).getTime()) / 3_600_000 : Infinity;
+  const bad = lastBackupStatus === "failed" || ageH > 36;
+  return (
+    <div className={`backup-status${bad ? " bad" : ""}`} title="Nightly backup of Sudarshan to the QNAP">
+      {lastBackupStatus === "failed" ? "Last backup failed" : lastBackup ? `Backup ${stamp(lastBackup)}` : "No backup yet"}
+      {bad && lastBackupStatus !== "failed" && lastBackup ? " (over a day old)" : ""}
+    </div>
+  );
+}
 
 const ROLE_WORDS: Record<string, string> = { admin: "Admin", manager: "Manager", staff: "Front desk", doctor: "Doctor", optometrist: "Optometrist", counsellor: "Counsellor" };
 
@@ -38,6 +56,7 @@ function Shell() {
         {can("users.manage") && <NavLink to="/users">Users</NavLink>}
         <div className="nav-foot">
           <b>{user!.fullName}</b>{ROLE_WORDS[user!.role]}
+          {can("settings.manage") && <BackupStatus />}
           <div><button className="btn-quiet" onClick={() => void logout()}>Log out</button></div>
         </div>
       </nav>

@@ -79,10 +79,11 @@ Sudarshan never changes Yarago. Corrections to patient details are made in Yarag
 | Trigger audit log with readable feed | Done |
 | Web security headers (CSP, no framing, nosniff) | Done |
 | Server port limited to LAN subnet (firewall rule) | Done |
-| **Nightly backup of PostgreSQL (and Yarago MySQL) to QNAP, monthly restore test** | **Not yet. Highest priority before go-live** |
+| Nightly backup of Sudarshan to QNAP, 14 daily + 12 monthly, restore test every 4 weeks | Done 19 Oct (scripts/backup.ps1); Yarago has its own backup to `F:\EMR_AUTO_BACKUP` |
+| Off-site copy of backups (fire/theft at the clinic) | Not yet: decide where (encrypted cloud or a drive taken home weekly) |
 | HTTPS on the LAN (Caddy, `https://sudarshan.local`), `COOKIE_SECURE=true` | Not yet (before go-live) |
 | MySQL 3306 closed to the LAN; root password rotated | Not yet (check no LAN client uses 3306 first) |
-| Delete `D:\Sudarshan\sudershanWebsite.xlsx` (plaintext passwords, patient data) | Pavin to confirm |
+| Delete `D:\Sudarshan\sudershanWebsite.xlsx` (plaintext passwords, patient data) | Done 19 Oct |
 | Git history cleaned of legacy keys; keys rotated | Not yet (before any remote push) |
 | Google app's Gemini rule check sends patient names to Google | Ends when the Google app is retired |
 | Privacy notice for patients covering appointment messages (WhatsApp/SMS) | To check with the clinic |

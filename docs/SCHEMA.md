@@ -31,7 +31,7 @@ schema, update this file in the same commit (Testing.md, "Definition of done").
    The server's connections run with `TimeZone=Asia/Kolkata`.
 6. **No secrets in tables.** `app.settings` holds no keys; secrets are in `.env`.
 
-Applied so far: `0001_schemas`, `0002_sync_runs`, `0003_app_core`, `0004_server`.
+Applied so far: `0001_schemas`, `0002_sync_runs`, `0003_app_core`, `0004_server`, `0005_backup_runs`.
 Views: `10_clinical.sql`, `20_clinical_flow_followup.sql`, `30_app_audit.sql`.
 
 ## Yarago facts the views depend on
@@ -91,6 +91,22 @@ nothing. `password_hash` is stored as `"(changed)"`. Bulk imports set `app.skip_
 `app.import_runs` row instead. Never write to `app` tables outside `withTx()` (or an equivalent that sets these).
 
 ## app tables (generated from the test database, 19 Oct 2026)
+
+### app.backup_runs (0005)
+Each backup and restore test (scripts/backup.ps1, restore-test.ps1). Not audited.
+
+| Column | Type | Null | Default |
+|---|---|---|---|
+| id | bigint | no | identity |
+| kind | text (backup / restore_test) | no | |
+| started_at | timestamp with time zone | no | now() |
+| finished_at | timestamp with time zone | yes | |
+| status | text (ok / failed) | no | |
+| file | text | yes | |
+| bytes | bigint | yes | |
+| details | jsonb (entries, counts of main tables) | yes | |
+| message | text (failure reason) | yes | |
+
 
 ### app.ai_summaries
 Doctor summaries: facts (jsonb, each with its Yarago source), the AI overview, model, prompt version.

@@ -83,12 +83,49 @@ are re-applied automatically. If a view fails, the log line `view file ...` name
 
 ## 6. Backups and restore
 
-**Not set up yet. This is the top task before go-live** (COMPLIANCE.md section 4). Planned:
-- Nightly 02:00 `pg_dump -Fc sudarshan` to the QNAP share, keep 30 days, weekly copy off-site.
-- Nightly dump of Yarago MySQL too (the clinic's EMR is on the same machine).
-- Monthly restore test into a scratch database, written up here.
+**Yarago** is backed up by its own job to the QNAP (`F:\EMR_AUTO_BACKUP`). **Sudarshan** is backed up by
+`scripts\backup.ps1` (set up by `scripts\install-backup.ps1`):
 
-Until then, the Google app is the fallback for bookings, and Yarago's own backup (Tomcat9_AutoDB) covers the EMR.
+| What | When | Where |
+|---|---|---|
+| Database dump (all Sudarshan data, all table/view definitions; Yarago mirror data left out, a full sync refills it) + git bundle of the code | Daily 02:00, task "Sudarshan backup" | `BACKUP_DIR` in .env (default `F:\SUDARSHAN_BACKUP\daily`), kept 14 days |
+| Monthly copy (first backup of each month) | automatic | `...\monthly`, kept 12 months |
+| Restore test into a scratch database, counts compared | Every 4 weeks, Sunday 03:00, task "Sudarshan restore test" | result in `logs\backup.log` |
+
+Every run is recorded in `app.backup_runs`; the menu shows managers and admins "Backup <date>" and turns amber if
+the last backup failed or is more than a day old. `Invoke-RestMethod http://127.0.0.1:8484/api/health` shows
+`lastBackup`, `lastBackupStatus`, `lastRestoreTest`.
+
+Backup by hand: `powershell -ExecutionPolicy Bypass -File D:\Sudarshan\app\scripts\backup.ps1`
+Restore test by hand: `powershell -ExecutionPolicy Bypass -File D:\Sudarshan\app\scripts\restore-test.ps1`
+
+**Not in the backup: `.env`** (passwords). Keep a copy on a USB stick in a locked drawer, updated whenever it changes.
+Without it you can still restore: set new passwords for `postgres`, `sudarshan_app` and `sudarshan_ro` and write a new
+.env from `.env.example`.
+
+**If the backup fails:** read `logs\backup.log`. "not reachable" = QNAP off or the share login is missing
+(`cmdkey /add:<QNAP> /user:<user> /pass`, then rerun `install-backup.ps1`). Anything else: run `backup.ps1` by hand
+and send the log lines.
+
+### Real restore (the database is lost or damaged)
+
+Outside clinic hours if at all possible. Staff use the Google app (until cut-over) or paper meanwhile.
+```
+Stop-Service SudarshanServer, SudarshanYaragoSync
+$pg = "C:\Program Files\PostgreSQL\16\bin"
+& "$pg\psql.exe" -U postgres -h 127.0.0.1 -c "ALTER DATABASE sudarshan RENAME TO sudarshan_damaged"
+& "$pg\psql.exe" -U postgres -h 127.0.0.1 -c "CREATE DATABASE sudarshan OWNER sudarshan_app ENCODING 'UTF8' TEMPLATE template0"
+& "$pg\pg_restore.exe" -U postgres -h 127.0.0.1 -d sudarshan --no-owner --role=sudarshan_app "F:\SUDARSHAN_BACKUP\daily\<newest>.dump"
+& $py D:\Sudarshan\app\sync\yarago_sync.py full --force
+Start-Service SudarshanYaragoSync, SudarshanServer
+```
+(If the old database is gone completely, skip the RENAME.) Then check: health, the day board, and
+`cd D:\Sudarshan\app\server; npx tsx test\real-data.ts`. Bookings made after the backup time are lost; rebuild them
+from the activity log of the damaged database if it can be read, otherwise from staff notes. When all is well:
+`DROP DATABASE sudarshan_damaged`.
+
+**Code lost** (folder deleted): `git clone F:\SUDARSHAN_BACKUP\daily\<newest code bundle> D:\Sudarshan\app`, put back
+`.env`, run `scripts\install-server.ps1`.
 
 ## 7. Re-importing from Google Sheets
 
