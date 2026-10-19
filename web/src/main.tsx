@@ -12,6 +12,7 @@ import { BoardPage } from "./pages/Board";
 import { PatientPage, PatientsPage } from "./pages/Patient";
 import { DoctorSummaryPage } from "./pages/DoctorSummary";
 import { EmrCompletenessPage } from "./pages/EmrCompleteness";
+import { DayPrintPage } from "./pages/DayPrint";
 import { FollowupsPage } from "./pages/Followups";
 import { ActivityPage } from "./pages/Activity";
 import { UsersPage } from "./pages/Users";
@@ -111,6 +112,7 @@ function Shell() {
           <Route path="/patients/:id" element={<PatientPage />} />
           <Route path="/patients/:id/summary" element={<DoctorSummaryPage />} />
           <Route path="/emr-completeness" element={<EmrCompletenessPage />} />
+          <Route path="/print" element={<DayPrintPage />} />
           <Route path="/followups" element={<FollowupsPage />} />
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/calendar" element={<CalendarPage />} />

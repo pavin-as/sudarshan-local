@@ -5,6 +5,12 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Print and Print POA on the day board** (D-029), as in the Google app's Day Overview: the day list sorted by consult
+  start or check-in time, with "adjust for doctor's late arrival" (enter the doctor's actual start; every consult
+  start moves by the delay, planned time struck through), and the list grouped by plan of action. Counts and the
+  plan-of-action breakdown at the top; rule notes after the day list. A4 landscape; every print is recorded.
+  Technical: migration 0012 (`app.print_log`), `POST /api/print/day` (`preview` is not logged), `web/src/pages/DayPrint.tsx`
+  (`/print?date=&kind=day_consult|day_checkin|poa[&start=HH:MM][&noprint=1]`); trial banner hidden in print.
 - **EMR completeness page** (`/emr-completeness`, menu "EMR completeness", D-028): for each item on Yarago's optometry
   and doctor screens and the injection record, the share of consultations where it was recorded, for each of the last
   6 months and the last 12 months, against the SOP targets; all visits, new patients or review visits. Rebuilt nightly.

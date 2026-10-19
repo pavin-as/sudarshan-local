@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { api, type Appointment } from "../api";
 import { useAuth } from "../auth";
 import { dayLabel, niceDate, todayIST, weekdayName, planText } from "../format";
@@ -10,6 +10,7 @@ import { BookDialog, type BookPreset } from "../components/BookDialog";
 import { AppointmentDrawer } from "../components/AppointmentDrawer";
 import { LEVEL_WORDS, RuleNotes, useDayRules } from "../components/RuleNotes";
 import type { RuleLevel } from "../api";
+import { PrintDialog } from "./DayPrint";
 
 const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
 const nowMin = () => toMin(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date()));
@@ -44,6 +45,8 @@ export function BoardPage() {
   const [showCancelled, setShowCancelled] = useState(false);
   const [booking, setBooking] = useState<BookPreset | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
+  const [printing, setPrinting] = useState(false);
+  const nav = useNavigate();
   const isToday = date === todayIST();
 
   const day = useDay(date);
@@ -109,6 +112,8 @@ export function BoardPage() {
           <button aria-pressed={view === "list"} onClick={() => setView("list")}>List</button>
         </div>
         <input type="date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} aria-label="Go to date" />
+        <button onClick={() => setPrinting(true)}>Print</button>
+        <button onClick={() => nav(`/print?date=${date}&kind=poa`)}>Print POA</button>
         {can("appointments.write") && <button className="btn-primary" onClick={() => setBooking({ date })}>Book patient</button>}
       </div>
       <div style={{ marginBottom: "1rem" }}><DateStrip value={date} onChange={setDate} from={todayIST()} count={28} /></div>
@@ -219,6 +224,7 @@ export function BoardPage() {
       </div>
 
       {booking && <BookDialog preset={booking} onClose={() => setBooking(null)} />}
+      {printing && <PrintDialog date={date} onClose={() => setPrinting(false)} />}
       {openId && <AppointmentDrawer id={openId} onClose={() => setOpenId(null)} />}
     </>
   );

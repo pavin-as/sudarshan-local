@@ -333,7 +333,7 @@ b.warn-text { color: #8a5a00; }
 .huddle-summary b { font-size: 1.15rem; color: var(--choroid); margin-right: 0.2rem; }
 .huddle-table { background: var(--surface); border: 1px solid var(--line); }
 @media print {
-  .nav, .no-print, .toasts { display: none !important; }
+  .nav, .no-print, .toasts, .trial-banner { display: none !important; }
   .shell { display: block; }
   .main { padding: 0; }
   body { background: #fff; font-size: 11pt; }
@@ -423,3 +423,27 @@ table.list.compact td, table.list.compact th { padding: 0.3rem 0.55rem; }
 .emr-cell.good { background: var(--done-soft); color: #1f5a3a; }
 .emr-cell.mid { background: var(--disc-soft); color: #5a3e00; }
 .emr-cell.low { background: var(--vessel-soft); color: #7a2414; }
+
+/* day prints (D-029) */
+.day-print { color: #222; }
+.print-head { text-align: center; border-bottom: 2px solid var(--line); padding-bottom: 0.6rem; margin-bottom: 0.8rem; }
+.print-head h1 { margin: 0; font-size: 1.4rem; }
+.print-head p { margin: 0.15rem 0; color: var(--ink-soft); }
+.print-warn { color: #8a5a00 !important; font-weight: 700; }
+.print-stats { display: flex; justify-content: space-around; background: var(--paper); border-radius: var(--radius-m); padding: 0.6rem; margin-bottom: 0.8rem; }
+.print-stats div { display: flex; flex-direction: column; align-items: center; font-weight: 700; color: var(--choroid); }
+.print-stats b { font-size: 1.5rem; color: var(--action); }
+.day-print h2 { font-size: 1.05rem; border-bottom: 1px solid var(--line); margin: 0.8rem 0 0.4rem; }
+.day-print h3 { font-size: 0.95rem; margin: 0.9rem 0 0.3rem; }
+.print-plans { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0.3rem 0.6rem; margin-bottom: 0.6rem; }
+.print-plans div { display: flex; justify-content: space-between; gap: 0.5rem; background: var(--paper); padding: 0.2rem 0.5rem; border-radius: var(--radius-s); }
+.print-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+.print-table th, .print-table td { border: 1px solid #ccc; padding: 0.25rem 0.35rem; text-align: left; vertical-align: top; }
+.print-table th { background: var(--paper); }
+.print-table tr { break-inside: avoid; }
+.print-table td.moved { background: #fef3c7; font-weight: 700; }
+.print-table td.struck { text-decoration: line-through; color: #888; }
+.print-rules { margin-top: 1rem; border-top: 3px solid var(--vessel); padding-top: 0.4rem; break-before: page; }
+.print-rule-group ul { margin: 0.2rem 0; padding-left: 1.1rem; font-size: 0.8rem; }
+.print-rule-group.error h3 { color: var(--vessel); }
+@media print { .day-print .print-stats, .day-print .print-plans div, .print-table th { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }

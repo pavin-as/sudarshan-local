@@ -414,6 +414,16 @@ try {
     assert.equal(r.status, 200); assert.equal(r.body.months.length, 3); assert.ok(Array.isArray(r.body.items));
   });
 
+  await step("day print: a preview is not logged, a print is; waitlist rows carry no consult start", async () => {
+    const n = async () => (await pool.query(`SELECT count(*)::int n FROM app.print_log`)).rows[0].n;
+    const before = await n();
+    const pv = await call("POST", "/api/print/day", staff, { date: D2, kind: "day_consult", preview: true });
+    assert.equal(pv.status, 200); assert.equal(await n(), before);
+    const pr = await call("POST", "/api/print/day", staff, { date: D2, kind: "poa" });
+    assert.equal(pr.status, 200); assert.equal(await n(), before + 1);
+    assert.ok(pr.body.appointments.filter((a: any) => !a.slotTime).every((a: any) => a.consultStart === null));
+  });
+
   console.log("trial: the Google app is the master (D-025)");
   await step("imported records and the calendar are read-only while trial.google_master is on; practice bookings are not", async () => {
     const own = await call("POST", "/api/appointments", staff, { date: D2, slotTime: "12:30", patientName: "ZZ Test Trial Own", phone: "9000000131" });

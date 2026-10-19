@@ -212,6 +212,18 @@ which now says so. "Recorded" = not empty, not "0", not the word "null"; diagnos
 diagnosis, systemic illness, allergies, follow-up). Page `/emr-completeness` for clinical access (not front desk);
 counts only. Metabase can read the same table.
 
+### D-029 · 2026-10-19 · Accepted · Pavin
+**Day prints as in the Google app's Day Overview.** On the day board: **Print** (sort by consult start or by check-in
+time; optional "adjust for doctor's late arrival": every consult start moves by the actual doctor start minus the
+earliest consult start, the planned time shown struck through) and **Print POA** (one table per plan of action, eye
+left out, groups by earliest check-in). Both carry the header, total / confirmed / waiting list / new / old counts
+(new = MRD starting N, old = starting S, as the Google app counted) and the plan-of-action breakdown; the day print
+adds the scheduling rule notes and special cases. Differences: consult start is the stored one, else slot + longest
+preparation (as the rules work it out); **waitlist rows have no consult start** (the import carries stray times such as
+00:05, and the Google app left the waiting list out of the delay); the Gemini summary is not printed (D-006); A4
+landscape. **Every print is recorded** in `app.print_log` (who, when, which day, kind, rows, doctor start), as the
+Google app logged prints; the dialog's "work out delay" preview is not a print.
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.
