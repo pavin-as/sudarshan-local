@@ -1,0 +1,272 @@
+{
+  "meta": {
+    "today": "2026-10-20",
+    "dx_refreshed": "2026-10-19T02:56:24.886Z",
+    "unapproved_rules": 16
+  },
+  "top50": {
+    "n": 50,
+    "median_visits": 39.5,
+    "median_age": 66,
+    "any_injection": 50,
+    "two_plus_injections": 49,
+    "any_laser": 29,
+    "both_eyes_injection": 28,
+    "seen_last_180d": 26,
+    "median_years_observed": 3.3305954825462014,
+    "median_injection_records": 7,
+    "diagnoses": [
+      [
+        "No findings recorded",
+        50
+      ],
+      [
+        "Diabetic retinopathy / DME",
+        23
+      ],
+      [
+        "Age-related macular degeneration",
+        18
+      ],
+      [
+        "Normal",
+        17
+      ],
+      [
+        "No specific finding",
+        16
+      ],
+      [
+        "Retinal vein occlusion",
+        11
+      ],
+      [
+        "Cataract",
+        9
+      ],
+      [
+        "After cataract surgery",
+        6
+      ],
+      [
+        "Glaucoma / suspect",
+        1
+      ],
+      [
+        "Macular hole / ERM / VMT",
+        1
+      ],
+      [
+        "Retinal detachment",
+        1
+      ]
+    ]
+  },
+  "others": {
+    "n": 12926,
+    "median_visits": 2,
+    "median_age": 48,
+    "any_injection": 744,
+    "two_plus_injections": 326,
+    "any_laser": 1145,
+    "both_eyes_injection": 141,
+    "seen_last_180d": 2167,
+    "median_years_observed": 0.038329911019849415,
+    "median_injection_records": 0,
+    "diagnoses": [
+      [
+        "No specific finding",
+        4478
+      ],
+      [
+        "No findings recorded",
+        3741
+      ],
+      [
+        "Diabetic retinopathy / DME",
+        1718
+      ],
+      [
+        "Normal",
+        1019
+      ],
+      [
+        "Glaucoma / suspect",
+        934
+      ],
+      [
+        "Cataract",
+        866
+      ],
+      [
+        "ROP / ROP screening",
+        812
+      ],
+      [
+        "Age-related macular degeneration",
+        596
+      ],
+      [
+        "Squint / amblyopia",
+        510
+      ],
+      [
+        "Myopic fundus / degeneration",
+        500
+      ],
+      [
+        "After cataract surgery",
+        433
+      ],
+      [
+        "Retinal vein occlusion",
+        376
+      ],
+      [
+        "Retinal detachment",
+        197
+      ],
+      [
+        "Macular hole / ERM / VMT",
+        188
+      ],
+      [
+        "Hypertensive retinopathy",
+        135
+      ],
+      [
+        "Vitreous haemorrhage",
+        126
+      ],
+      [
+        "Uveitis",
+        98
+      ]
+    ]
+  },
+  "top_spend": {
+    "min": 115333,
+    "max": 685458.7,
+    "clinic": 8754720,
+    "pharmacy": 975976.01
+  },
+  "top_first90": {
+    "n": 50,
+    "two_injections": 29,
+    "three_visits": 45,
+    "retina": 42
+  },
+  "early_test": {
+    "n": 9828,
+    "positive_count": 493,
+    "cutoff_future_spend": 7196.3,
+    "baseline_rate": 0.05016280016280016,
+    "definitions": "First recorded completed visit 2021-07-01 or later; at least 365 days before today. Features days 0-90; outcome spend days 91-365. Top 5% outcome threshold within this cohort. Same cohort calibration only; no independent validation.",
+    "evaluation": [
+      {
+        "rule": "two_injections_90d",
+        "flagged": 214,
+        "hits": 107,
+        "precision": 0.5,
+        "recall": 0.21703853955375255,
+        "median_future_spend": 7151.525000000001
+      },
+      {
+        "rule": "one_injection_90d",
+        "flagged": 537,
+        "hits": 174,
+        "precision": 0.3240223463687151,
+        "recall": 0.35294117647058826,
+        "median_future_spend": 1900
+      },
+      {
+        "rule": "three_visits_90d",
+        "flagged": 2245,
+        "hits": 323,
+        "precision": 0.14387527839643652,
+        "recall": 0.6551724137931034,
+        "median_future_spend": 825
+      },
+      {
+        "rule": "retina_finding_90d",
+        "flagged": 1931,
+        "hits": 266,
+        "precision": 0.13775245986535473,
+        "recall": 0.539553752535497,
+        "median_future_spend": 0
+      },
+      {
+        "rule": "diabetic_retinopathy_90d",
+        "flagged": 1208,
+        "hits": 174,
+        "precision": 0.14403973509933773,
+        "recall": 0.35294117647058826,
+        "median_future_spend": 0
+      },
+      {
+        "rule": "rvo_90d",
+        "flagged": 278,
+        "hits": 48,
+        "precision": 0.17266187050359713,
+        "recall": 0.0973630831643002,
+        "median_future_spend": 0
+      },
+      {
+        "rule": "amd_90d",
+        "flagged": 448,
+        "hits": 45,
+        "precision": 0.10044642857142858,
+        "recall": 0.09127789046653144,
+        "median_future_spend": 0
+      },
+      {
+        "rule": "spend_10000_90d",
+        "flagged": 833,
+        "hits": 258,
+        "precision": 0.3097238895558223,
+        "recall": 0.5233265720081136,
+        "median_future_spend": 2350
+      },
+      {
+        "rule": "spend_20000_90d",
+        "flagged": 318,
+        "hits": 148,
+        "precision": 0.46540880503144655,
+        "recall": 0.3002028397565923,
+        "median_future_spend": 5824.85
+      },
+      {
+        "rule": "retina_plus_3_visits",
+        "flagged": 816,
+        "hits": 205,
+        "precision": 0.2512254901960784,
+        "recall": 0.4158215010141988,
+        "median_future_spend": 1358
+      },
+      {
+        "rule": "two_injections_or_retina_3_visits",
+        "flagged": 851,
+        "hits": 223,
+        "precision": 0.2620446533490012,
+        "recall": 0.45233265720081134,
+        "median_future_spend": 1459.5700000000002
+      },
+      {
+        "rule": "two_injection_dates_90d",
+        "flagged": 203,
+        "hits": 106,
+        "precision": 0.5221674876847291,
+        "recall": 0.2150101419878296,
+        "median_future_spend": 8049.6900000000005
+      },
+      {
+        "rule": "two_injection_dates_or_20000",
+        "flagged": 327,
+        "hits": 149,
+        "precision": 0.45565749235474007,
+        "recall": 0.3022312373225152,
+        "median_future_spend": 5185.5
+      }
+    ]
+  }
+}
