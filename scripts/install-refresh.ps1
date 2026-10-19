@@ -15,7 +15,9 @@ $day.Repetition = (New-ScheduledTaskTrigger -Once -At 7:00am -RepetitionInterval
 $night = New-ScheduledTaskTrigger -Daily -At 11:30pm
 $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Minutes 10) -MultipleInstances IgnoreNew
 # runs as this Windows account whether or not it is logged in (S4U: no password stored); it only needs local files and the internet
-$principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType S4U -RunLevel Limited
+# the account's real name (SHICHIKA\Admin): $env:USERDOMAIN says WORKGROUP on this machine, which Windows cannot map
+$me = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+$principal = New-ScheduledTaskPrincipal -UserId $me -LogonType S4U -RunLevel Limited
 Unregister-ScheduledTask -TaskName $name -Confirm:$false -ErrorAction SilentlyContinue
 Register-ScheduledTask -TaskName $name -Action $action -Trigger @($day, $night) -Settings $settings -Principal $principal | Out-Null
 Write-Host "$name registered; first run now..."
