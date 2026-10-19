@@ -58,8 +58,13 @@ Sudarshan never changes Yarago. Corrections to patient details are made in Yarag
 
 **Secrets and code**
 9. Secrets live only in `D:\Sudarshan\app\.env` (administrators only, git-ignored). Never print, log or commit them.
-10. Do not push this repository to GitHub or any remote until the history is cleaned: commit `5bae4d8` (legacy
-    snapshot) contains keys found by the assessment. Rotate those keys when the Google app is retired.
+10. History cleaned 19 Oct 2026 before the first push to the private GitHub repo: the Gemini API key
+    (`legacy/sudarshan/RuleEngine.js`) and the AiSensy token (`legacy/sudarshan/broadcast.js`) were replaced by
+    `***REDACTED-...***` in every commit (git-filter-repo), and one real patient MRD mentioned in the changelog was removed.
+    Both keys stay valid until rotated: **rotate them now** (they were in this history and are live in the Google app).
+    A backup of the history as it was is kept offline at `D:\Sudarshan\backups\app-before-redaction-2026-10-19.bundle`
+    (it still holds the keys; never upload it; delete it once the keys are rotated). Nightly code bundles on the QNAP
+    from before 19 Oct also hold them. Never commit secrets (`.env` only) or patient data (names, MRDs with a story).
 11. No patient data in git: exports (`*.xlsx`, `*.csv`, dumps) are git-ignored. Test data is synthetic and named
     `ZZ Test ...` or `TEST ...`.
 
@@ -90,7 +95,7 @@ Sudarshan never changes Yarago. Corrections to patient details are made in Yarag
 | HTTPS on the LAN (Caddy, `https://sudarshan.local`), `COOKIE_SECURE=true` | Not yet (before go-live) |
 | MySQL 3306 closed to the LAN; root password rotated | Not yet (check no LAN client uses 3306 first) |
 | Delete `D:\Sudarshan\sudershanWebsite.xlsx` (plaintext passwords, patient data) | Done 19 Oct |
-| Git history cleaned of legacy keys; keys rotated | Not yet (before any remote push) |
+| Git history cleaned of legacy keys; keys rotated | History cleaned 19 Oct (Gemini key, AiSensy token). Keys **not yet rotated** |
 | Google app's Gemini rule check sends patient names to Google | Ends when the Google app is retired |
 | Privacy notice for patients covering appointment messages (WhatsApp/SMS) | To check with the clinic |
 | Monthly access review (who has which role) | To start at go-live |
