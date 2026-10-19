@@ -89,7 +89,7 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
 - [x] Today page (`/today`) and printable huddle sheet (`/huddle`, next open day by default), 19 Oct: live in-clinic list
       from Yarago's station timer (longest first), arrivals without a Sudarshan booking, next 7 days against capacity, to-do
       counts (confirmation calls, follow-ups, waitlist, rule warnings), today's median waits. API `GET /api/today`,
-      `GET /api/huddle`. During the trial the booking figures are those imported on 18 Oct; live in-clinic data is real.
+      `GET /api/huddle`. During the trial the booking figures come from the Google app, refreshed every 15 minutes (D-025).
 - [x] Direct calls (`/calls`) and cancel list (`/cancelled`), 19 Oct (migration 0007).
 - [x] Month view (`/month`), 19 Oct.
 - [x] Reserved slot blocks (Pavin, 19 Oct; D-024): HFA held until 2 days before (manager override); other blocks are
@@ -97,10 +97,23 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
 - [x] Triage (`/triage`), 19 Oct: same questions and scoring as the Google app (checked on all 212 imported assessments).
 - [x] Direct calls for old patients allowed for every role (Pavin, 19 Oct; D-024).
 - [x] Google-app bookings without a time are waitlist (Pavin, 19 Oct): importer fixed, 27 corrected (migration 0008).
+- [x] Trial refresh from the Google app every 15 minutes (19 Oct, D-025): importer updates in place by Google ID, imported
+      records and the calendar read-only in Sudarshan while `trial.google_master` is true, trial banner. Run by hand 19 Oct
+      (24 s, 66 new bookings since 18 Oct, ids unchanged across runs).
+- [ ] Pavin: register the refresh task once, in an administrator PowerShell: `scripts\install-refresh.ps1`.
+- [ ] Pavin (optional): in the Google sheet's Share dialog, reduce the service account to Viewer (it can edit today;
+      the importer already uses a read-only token).
 - [ ] Importer: 1,828 imported bookings had no BookingDate and were stamped with the import day; store NULL instead
       (analytics already treats them as "booking date not known").
 - [ ] Not in Yarago: patient PIN/area (geography KPI), coded diagnoses, surgery advice. Raise with the clinic if wanted.
 
 ## Next step
-Front-desk screens are done (Today, direct calls, cancel list, triage, month view, settings); next: decisions on the open items above, a shadow-run plan, then Phase B starts with the doctor summary built on clinical.visit / va_iop_trend / injection / laser /
-visit_exam_finding / followup_current / patient_due, generated locally (Ollama) from 07:00 for booked patients.
+Trial running on live Google data (D-025). Remaining, in order:
+1. **Shadow run** (Phase C gate): staff keep booking in the Google app; daily comparison of the day board, cancel list,
+   direct calls, rule warnings and huddle sheet; staff practise on TEST bookings. Before it ends: Caddy + HTTPS, MySQL
+   3306 closed to the LAN, the second-pass patient linking (P-2), which rules block (P-1).
+2. **Cut-over** (RUNBOOK 8): evening switch, `trial.google_master` false, Google app read-only for 3 months (P-3).
+3. **Phase B, doctor-facing** (can start now; it changes nothing staff use): doctor summary (Dr. Sameera's layout
+   review), follow-up leakage board, generated locally (Ollama) from 07:00.
+4. **After cut-over:** WhatsApp confirmations and broadcast, Razorpay (polling, D-017), no-show risk score,
+   ask-the-data for Pavin, off-site backup copy (P-4).

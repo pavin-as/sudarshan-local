@@ -6,6 +6,7 @@ import { badRequest, notFound } from "../lib/errors.js";
 import { addDays, dateStr, niceDate, timeStr, todayIST } from "../lib/time.js";
 import { daysInfo, doctorsOnDate, slotsOnDate } from "../services/calendar.js";
 import { listItems } from "./settings.js";
+import { guardCalendar } from "../lib/trial.js";
 
 const WEEKDAYS = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -48,6 +49,7 @@ export async function calendarRoutes(app: FastifyInstance) {
   // ---- clinic calendar management (manager/admin) ----
   app.put("/api/days/:date/capacity", async (req) => {
     need(req, "settings.manage");
+    await guardCalendar();
     const { date } = z.object({ date: dateStr }).parse(req.params);
     const { maxSlots, notes } = z.object({ maxSlots: z.number().int().min(0).max(200), notes: z.string().trim().max(300).optional() }).parse(req.body);
     const [day] = await daysInfo(date, date);
@@ -62,6 +64,7 @@ export async function calendarRoutes(app: FastifyInstance) {
 
   app.put("/api/holidays/:date", async (req) => {
     need(req, "settings.manage");
+    await guardCalendar();
     const { date } = z.object({ date: dateStr }).parse(req.params);
     const { reason, remarks } = z.object({ reason: z.string().trim().min(2).max(100), remarks: z.string().trim().max(300).optional() }).parse(req.body);
     const [day] = await daysInfo(date, date);
@@ -73,6 +76,7 @@ export async function calendarRoutes(app: FastifyInstance) {
 
   app.delete("/api/holidays/:date", async (req) => {
     need(req, "settings.manage");
+    await guardCalendar();
     const { date } = z.object({ date: dateStr }).parse(req.params);
     await withTx(auditCtx(req, `Removed the holiday on ${niceDate(date)}`), (c) => c.query("DELETE FROM app.holidays WHERE on_date = $1", [date]));
     return { ok: true };
@@ -86,6 +90,7 @@ export async function calendarRoutes(app: FastifyInstance) {
   // doctor leave / partial day / extra session
   app.post("/api/doctors/:id/exceptions", async (req) => {
     need(req, "settings.manage");
+    await guardCalendar();
     const { id } = z.object({ id: z.coerce.number().int().positive() }).parse(req.params);
     const b = z.object({
       date: dateStr, kind: z.enum(["leave", "partial", "extra"]),
@@ -105,6 +110,7 @@ export async function calendarRoutes(app: FastifyInstance) {
 
   app.delete("/api/doctors/:id/exceptions/:exceptionId", async (req) => {
     need(req, "settings.manage");
+    await guardCalendar();
     const p = z.object({ id: z.coerce.number().int(), exceptionId: z.coerce.number().int() }).parse(req.params);
     const ex = await one<any>(`SELECT e.kind, to_char(e.on_date,'YYYY-MM-DD') AS d, doc.name FROM app.doctor_exceptions e
                                  JOIN app.doctors doc ON doc.id = e.doctor_id WHERE e.id = $1 AND e.doctor_id = $2`, [p.exceptionId, p.id]);
@@ -129,6 +135,7 @@ export async function calendarRoutes(app: FastifyInstance) {
   // Replace a doctor's weekly hours. Old rows end yesterday so past bookings keep their context.
   app.put("/api/doctors/:id/schedule", async (req) => {
     need(req, "settings.manage");
+    await guardCalendar();
     const { id } = z.object({ id: z.coerce.number().int().positive() }).parse(req.params);
     const { sessions } = z.object({
       sessions: z.array(z.object({ weekday: z.number().int().min(1).max(7), start: timeStr, end: timeStr })

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { auditCtx, need } from "../auth.js";
 import { one, q, setAuditSummary, withTx } from "../db.js";
 import { badRequest, conflict, notFound } from "../lib/errors.js";
+import { guardImported } from "../lib/trial.js";
 
 export const CALL_TYPES = ["Appointment", "Enquiry"] as const;
 export const CASE_TYPES = ["Referral", "Non referral"] as const;
@@ -14,7 +15,7 @@ const COLS = `
   c.id, c.patient_id AS "patientId", c.mrd, c.patient_name AS "patientName", c.phone, c.age_years AS "ageYears", c.gender,
   c.patient_type AS "patientType", c.call_type AS "callType", c.case_type AS "caseType", c.urgency, c.remarks, c.status,
   c.doctor_id AS "doctorId", d.name AS "doctorName",
-  c.created_at AS "createdAt", coalesce(u.full_name, '') AS "createdBy",
+  (c.legacy_id IS NOT NULL) AS "fromGoogle", c.created_at AS "createdAt", coalesce(u.full_name, '') AS "createdBy",
   c.closed_at AS "closedAt", cu.full_name AS "closedBy", c.close_reason AS "closeReason",
   c.appointment_id AS "appointmentId", to_char(a.appointment_date,'YYYY-MM-DD') AS "appointmentDate",
   to_char(a.slot_time,'HH24:MI') AS "appointmentTime", a.status AS "appointmentStatus"`;
@@ -44,8 +45,9 @@ const EDIT_COLUMNS: Record<string, string> = {
 const who = (c: { patient_name: string; mrd: string | null }) => (c.mrd ? `${c.patient_name} (${c.mrd})` : c.patient_name);
 
 async function lockCall(c: any, id: number) {
-  const r = (await c.query(`SELECT id, patient_name, mrd, status FROM app.direct_calls WHERE id = $1 FOR UPDATE`, [id])).rows[0];
+  const r = (await c.query(`SELECT id, patient_name, mrd, status, legacy_id FROM app.direct_calls WHERE id = $1 FOR UPDATE`, [id])).rows[0];
   if (!r) throw notFound("Direct call");
+  await guardImported(r, "This direct call");
   return r;
 }
 

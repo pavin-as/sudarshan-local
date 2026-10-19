@@ -5,6 +5,14 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Trial refresh from the Google app** (D-025): every 15 minutes 07:00-21:00 and at 23:30, Sudarshan copies the Google
+  app's bookings, cancel list, direct calls, triage and clinic calendar (`scripts/refresh-from-google.ps1`, about 25 s;
+  log `logs/import.log`). Records keep their Sudarshan id from one copy to the next. While the trial lasts these are
+  read-only in Sudarshan (a plain message says to change them in the Google app) and a banner at the top shows when
+  they were last copied. Settings, rules and plans of action are no longer overwritten by the import.
+  Technical: importer updates by Google ID (no delete and re-insert), `--scheduled`, read-only Google scopes; migration
+  0009 (`trial.google_master`); `lib/trial.ts` guards on appointment, cancel-list, direct-call, triage and calendar
+  writes; `fromGoogle` on list rows; `/api/health` gives `googleMaster`, `lastImport`; API test step for the guard.
 - **HFA slots are held** for HFA patients until 2 days before the day: a booking with another plan is refused before
   then (the booking dialog says so in red and does not suggest those slots); a manager can book with a reason.
 - **Reserved slot blocks as warnings** (rule 17): a booking whose visit type is ROP, injection, laser, dilation, urgent

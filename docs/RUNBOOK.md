@@ -143,21 +143,31 @@ from the activity log of the damaged database if it can be read, otherwise from 
 **Code lost** (folder deleted): `git clone F:\SUDARSHAN_BACKUP\daily\<newest code bundle> D:\Sudarshan\app`, put back
 `.env`, run `scripts\install-server.ps1`.
 
-## 7. Re-importing from Google Sheets
+## 7. Refresh from Google Sheets (trial, D-025)
 
-Repeatable; replaces the previous import (bookings made in Sudarshan itself are kept):
+The scheduled task **Sudarshan refresh from Google** runs `scripts\refresh-from-google.ps1` every 15 minutes
+07:00-21:00 and at 23:30 (about 25 s; reads the sheet only). Install once, in an administrator PowerShell:
+`powershell -ExecutionPolicy Bypass -File D:\Sudarshan\app\scripts\install-refresh.ps1`.
+Check: `Get-Content D:\Sudarshan\app\logs\import.log -Tail 5`, or the banner time in the app (amber after an hour).
+By hand, any time:
 ```
-& $py D:\Sudarshan\app\scripts\import_sheets.py --dry-run
-& $py D:\Sudarshan\app\scripts\import_sheets.py
+& $py D:\Sudarshan\app\scripts\import_sheets.py --dry-run     # read and map, roll back
+& $py D:\Sudarshan\app\scripts\import_sheets.py               # copy now
 ```
-Review the counts and warnings. Run outside clinic hours.
+Records keep their Sudarshan id; ones deleted in the sheet are removed. Bookings made in Sudarshan are never touched.
+Settings, rules and plans of action are only filled when missing (Sudarshan's Settings page owns them).
+If it fails, the log shows the last lines of the error; most often the internet or the Google key file
+(`GSHEET_CREDS` in `.env`, default `C:\scripts\gsheet_creds.json`).
 
 ## 8. Cut-over (draft, to be rehearsed)
 
 1. Backups working and a restore tested.
 2. Caddy / HTTPS in place.
-3. Shadow run: staff book in both systems for an agreed period; differences reviewed daily.
-4. Evening before: stop booking in the Google app, final import, remove TEST bookings, check counts.
+3. Shadow run: staff book in the Google app; Sudarshan follows every 15 minutes. For an agreed period, compare daily
+   (day board, cancel list, direct calls, rule warnings, huddle sheet) and practise in Sudarshan on TEST bookings.
+4. Evening before: stop booking in the Google app, run the refresh once more by hand and check the counts, then
+   `UPDATE app.settings SET value = 'false' WHERE key = 'trial.google_master';` (as `sudarshan_app`), remove the task
+   (`Unregister-ScheduledTask -TaskName 'Sudarshan refresh from Google' -Confirm:$false`), remove TEST bookings.
 5. Morning: staff use Sudarshan only. Google app kept read-only for 3 months.
 6. Delete the exported spreadsheet copies; rotate the old Google app keys.
 

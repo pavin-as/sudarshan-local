@@ -75,6 +75,8 @@ a { color: var(--action); }
 .backup-status { margin-top: 0.45rem; font-size: 0.8rem; color: #9fb6c3; }
 .backup-status.bad { color: #1d1300; background: var(--disc); padding: 0.2rem 0.4rem; border-radius: var(--radius-s); font-weight: 700; }
 .main { padding: 1.2rem 1.6rem 3rem; min-width: 0; }
+.trial-banner { background: var(--action-soft); border-left: 4px solid var(--action); padding: 0.45rem 0.8rem; margin-bottom: 1rem; border-radius: var(--radius-s); font-size: 0.9rem; }
+.trial-banner.old { background: var(--disc-soft); border-left-color: var(--disc); }
 .page-head { display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
 .page-head .grow { min-width: 1rem; }
 

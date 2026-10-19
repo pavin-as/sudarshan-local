@@ -43,6 +43,22 @@ function BackupStatus() {
   );
 }
 
+// Trial (D-025): the Google app is still the master; its records are copied here every 15 minutes and are read-only.
+function TrialBanner() {
+  const h = useQuery({ queryKey: ["health"], refetchInterval: 10 * 60_000,
+    queryFn: () => api<{ googleMaster?: boolean; lastImport?: string | null; lastImportStatus?: string | null }>("/health") });
+  if (!h.data?.googleMaster) return null;
+  const { lastImport } = h.data;
+  const old = !lastImport || Date.now() - new Date(lastImport).getTime() > 60 * 60_000;
+  return (
+    <div className={`trial-banner${old ? " old" : ""}`} role="status">
+      <b>Trial.</b> Bookings, the cancel list, direct calls, triage and the clinic calendar come from the Google app
+      ({lastImport ? `copied ${stamp(lastImport)}` : "not copied yet"}{old && lastImport ? ", over an hour ago" : ""}):
+      change them there. New bookings here are for practice; name them TEST.
+    </div>
+  );
+}
+
 const ROLE_WORDS: Record<string, string> = { admin: "Admin", manager: "Manager", staff: "Front desk", doctor: "Doctor", optometrist: "Optometrist", counsellor: "Counsellor" };
 
 function Shell() {
@@ -77,6 +93,7 @@ function Shell() {
         </div>
       </nav>
       <main className="main">
+        <TrialBanner />
         <Routes>
           <Route path="/" element={<BoardPage />} />
           <Route path="/today" element={<TodayPage />} />

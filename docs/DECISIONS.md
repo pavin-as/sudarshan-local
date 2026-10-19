@@ -84,7 +84,7 @@ effort in the development of the code in the local system." Consequence: booking
 were built early; they stay in **trial** (TEST-named bookings only) until cut-over. The doctor summary follows the
 scheduling rules.
 
-### D-016 · 2026-10-18 · Accepted · Claude
+### D-016 · 2026-10-18 · Superseded by D-025 · Claude
 **Sheets importer is repeatable** (`scripts/import_sheets.py`): it deletes what it imported before and imports again,
 so every rehearsal uses fresh data and cut-over is one more run. Past bookings with a known patient but no Yarago visit
 that day become `no_show`.
@@ -154,6 +154,20 @@ may use those slots. A first reading that warned every booking inside a block ga
 logged as direct calls** by every role (the Google app's front-desk restriction is not carried over). (5) Plans of action
 are shown as words ("REF, DIL, OCT (left eye)"), never as the stored JSON. (6) Patient search takes the MRD number with
 or without "SPD".
+
+### D-025 · 2026-10-19 · Accepted · Pavin
+**Until cut-over, Sudarshan is refreshed from the Google app every 15 minutes, and the Google app is the master.**
+`scripts/refresh-from-google.ps1` (task "Sudarshan refresh from Google", 07:00-21:00 every 15 min and 23:30, ~25 s a
+run) runs the importer, which now **updates records in place by their Google ID** (Sudarshan ids never change; records
+deleted in the sheet are removed). While the setting `trial.google_master` is true, Sudarshan refuses changes to
+imported bookings, the cancel list, direct calls, triage and the clinic calendar (they would be overwritten), and shows
+a trial banner with the time of the last copy; practice bookings made in Sudarshan (named TEST) work as before.
+Settings, rules, lists and plans of action are only filled when missing: **Sudarshan's Settings page is their master
+from now on**. The importer reads the sheet with a read-only token (the service account itself can edit the sheet;
+Pavin may reduce it to Viewer). Cut-over: stop booking in the Google app, one last refresh, set `trial.google_master` to
+false, remove the task (RUNBOOK 8). Why: staff and the dashboards see current figures during the trial, the daily
+comparison with the Google app becomes possible, and import problems show up now rather than on cut-over night.
+Supersedes D-016 (delete and re-import).
 
 ## Proposed (not yet decided)
 

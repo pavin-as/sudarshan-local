@@ -7,6 +7,7 @@ import { badRequest, conflict, notFound } from "../lib/errors.js";
 import { can } from "../lib/permissions.js";
 import { dateStr, niceDate, timeStr } from "../lib/time.js";
 import { doctorsOnDate } from "../services/calendar.js";
+import { FromGoogle, googleIsMaster, guardImported } from "../lib/trial.js";
 import { addEvent, checkPlacement, describe, setAuditSummary, whenText, type Override } from "../services/booking.js";
 
 // Live state from Yarago for a booking on its day: has the patient arrived, where are they now.
@@ -30,7 +31,7 @@ const APPT_COLS = `
   a.tags, a.remarks, a.status, a.source, a.source_ref AS "sourceRef",
   a.confirmed_4day_at AS "confirmed4dayAt", a.confirmed_1day_at AS "confirmed1dayAt",
   a.cancelled_at AS "cancelledAt", a.cancel_reason AS "cancelReason",
-  bu.full_name AS "bookedBy", a.booked_at AS "bookedAt", a.legacy_id AS "legacyId",
+  bu.full_name AS "bookedBy", a.booked_at AS "bookedAt", a.legacy_id AS "legacyId", (a.legacy_id IS NOT NULL) AS "fromGoogle",
   yv.visit_id AS "yaragoVisitId", regexp_replace(yl.label, ' \\(to confirm\\)$', '') AS "yaragoStatus",
   tl.check_in_at AS "checkInAt", tl.check_out_at AS "checkOutAt",
   CASE WHEN tl.check_out_at IS NOT NULL OR yv.status_id = 3 THEN 'done'
@@ -126,9 +127,10 @@ async function loadOne(id: number, db?: PoolClient) {
 async function lockRow(c: PoolClient, id: number) {
   const r = await one<any>(
     `SELECT id, to_char(appointment_date,'YYYY-MM-DD') AS appointment_date, to_char(slot_time,'HH24:MI') AS slot_time,
-            doctor_id, patient_id, mrd, phone, patient_name, status, tags, plan_of_action, appointment_type, urgency
+            doctor_id, patient_id, mrd, phone, patient_name, status, tags, plan_of_action, appointment_type, urgency, legacy_id
        FROM app.appointments WHERE id = $1 FOR UPDATE`, [id], c);
   if (!r) throw notFound("Appointment");
+  await guardImported(r);
   return r;
 }
 
@@ -196,6 +198,10 @@ export async function appointmentRoutes(app: FastifyInstance) {
     const phone = b.phone ?? yp?.mobile ?? null;
     const slot = b.slotTime ?? null;
     const status = slot ? "booked" : "waitlist";
+    if (b.source === "direct_call" && b.sourceRef && /^\d+$/.test(b.sourceRef) && (await googleIsMaster())) {
+      const dc = await one<any>(`SELECT legacy_id FROM app.direct_calls WHERE id = $1`, [Number(b.sourceRef)]);
+      if (dc?.legacy_id) throw new FromGoogle("This direct call");
+    }
     const who = describe({ patient_name: name, mrd });
 
     return withTx(auditCtx(req), async (c) => {

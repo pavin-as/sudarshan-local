@@ -82,10 +82,14 @@ export async function buildApp(opts: { logger?: boolean } = {}): Promise<Fastify
         (SELECT max(last_run_at) FROM yarago.sync_state) AS last_table_sync,
         (SELECT max(finished_at) FROM app.backup_runs WHERE kind = 'backup' AND status = 'ok') AS last_backup,
         (SELECT status FROM app.backup_runs WHERE kind = 'backup' ORDER BY id DESC LIMIT 1) AS last_backup_status,
-        (SELECT max(finished_at) FROM app.backup_runs WHERE kind = 'restore_test' AND status = 'ok') AS last_restore_test`);
+        (SELECT max(finished_at) FROM app.backup_runs WHERE kind = 'restore_test' AND status = 'ok') AS last_restore_test,
+        (SELECT value FROM app.settings WHERE key = 'trial.google_master') AS google_master,
+        (SELECT max(finished_at) FROM app.import_runs WHERE status = 'ok') AS last_import,
+        (SELECT status FROM app.import_runs ORDER BY id DESC LIMIT 1) AS last_import_status`);
     const h = r.rows[0];
     return { ok: true, dbTime: h.db_time, lastSync: h.last_sync, lastTableSync: h.last_table_sync,
-             lastBackup: h.last_backup, lastBackupStatus: h.last_backup_status, lastRestoreTest: h.last_restore_test };
+             lastBackup: h.last_backup, lastBackupStatus: h.last_backup_status, lastRestoreTest: h.last_restore_test,
+             googleMaster: h.google_master === true, lastImport: h.last_import, lastImportStatus: h.last_import_status };
   });
 
   await app.register(authRoutes);

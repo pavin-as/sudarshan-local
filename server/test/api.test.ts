@@ -59,6 +59,9 @@ const hash = await hashPassword(pw);
 const doc = (await pool.query(`INSERT INTO app.doctors (name) VALUES ('Dr ZZ Test') RETURNING id`)).rows[0].id;
 await pool.query(`INSERT INTO app.doctor_schedule (doctor_id, weekday, start_time, end_time) VALUES ($1,$2,'09:00','13:00')`, [doc, isoWeekday(D1)]);
 await pool.query(`INSERT INTO app.day_capacity (on_date, max_slots) VALUES ($1, 3), ($2, 20)`, [D1, D2]);
+// the trial switch (D-025) is off for these tests, except in its own step
+await pool.query(`INSERT INTO app.settings (key, value) VALUES ('trial.google_master', 'false'::jsonb)
+                  ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`);
 
 let admin = "", staff = "", doctor = "";
 try {
@@ -396,6 +399,29 @@ try {
     } finally {
       if (prev) await pool.query(`UPDATE app.settings SET value = $1 WHERE key = 'general.HFA Slot'`, [prev]);
       else await pool.query(`DELETE FROM app.settings WHERE key = 'general.HFA Slot'`);
+    }
+  });
+
+  console.log("trial: the Google app is the master (D-025)");
+  await step("imported records and the calendar are read-only while trial.google_master is on; practice bookings are not", async () => {
+    const own = await call("POST", "/api/appointments", staff, { date: D2, slotTime: "12:30", patientName: "ZZ Test Trial Own", phone: "9000000131" });
+    assert.equal(own.status, 200);
+    const imp = (await pool.query(`INSERT INTO app.appointments (appointment_date, slot_time, patient_name, status, source, legacy_id)
+                                   VALUES ($1, '12:40', 'ZZ Test Trial Imported', 'booked', 'import', 'zz_test_legacy_1') RETURNING id`, [D2])).rows[0].id;
+    await pool.query(`UPDATE app.settings SET value = 'true'::jsonb WHERE key = 'trial.google_master'`);
+    await new Promise((r) => setTimeout(r, 31_000));          // the server caches the switch for 30 s
+    try {
+      const r1 = await call("POST", `/api/appointments/${imp}/cancel`, staff, { reason: "test" });
+      assert.equal(r1.status, 409); assert.match(r1.body.message, /Google app/);
+      const r2 = await call("PUT", `/api/holidays/${HOL}`, admin, { reason: "ZZ test" });
+      assert.equal(r2.status, 409); assert.match(r2.body.message, /clinic calendar/);
+      const r3 = await call("POST", `/api/appointments/${own.body.appointment.id}/cancel`, staff, { reason: "test" });
+      assert.equal(r3.status, 200, "a booking made in Sudarshan can still be changed");
+      assert.equal((await call("GET", "/api/health")).body.googleMaster, true);
+    } finally {
+      await pool.query(`UPDATE app.settings SET value = 'false'::jsonb WHERE key = 'trial.google_master'`);
+      await pool.query(`BEGIN; SET LOCAL app.skip_audit = 'on'; DELETE FROM app.appointments WHERE legacy_id = 'zz_test_legacy_1'; COMMIT`);
+      await new Promise((r) => setTimeout(r, 31_000));
     }
   });
 

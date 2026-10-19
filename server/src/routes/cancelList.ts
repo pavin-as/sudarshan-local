@@ -7,12 +7,13 @@ import { one, q, setAuditSummary, withTx } from "../db.js";
 import { conflict, notFound } from "../lib/errors.js";
 import { dateStr, niceDate } from "../lib/time.js";
 import { addEvent, describe } from "../services/booking.js";
+import { guardImported } from "../lib/trial.js";
 
 const COLS = `
   a.id, to_char(a.appointment_date,'YYYY-MM-DD') AS date, to_char(a.slot_time,'HH24:MI') AS "slotTime",
   a.patient_id AS "patientId", a.mrd, a.patient_name AS "patientName", a.phone, a.age_years AS "ageYears",
   a.plan_of_action AS "planOfAction", a.urgency, a.tags, d.name AS "doctorName",
-  a.cancelled_at AS "cancelledAt", coalesce(cu.full_name, '') AS "cancelledBy", a.cancel_reason AS "cancelReason",
+  (a.legacy_id IS NOT NULL) AS "fromGoogle", a.cancelled_at AS "cancelledAt", coalesce(cu.full_name, '') AS "cancelledBy", a.cancel_reason AS "cancelReason",
   to_char(a.callback_on,'YYYY-MM-DD') AS "callbackOn",
   a.cancel_list_done_at AS "doneAt", du.full_name AS "doneBy", a.cancel_list_note AS "doneNote",
   lc.note AS "lastCallNote", lc.at AS "lastCallAt", coalesce(lc.by, '') AS "lastCallBy",
@@ -59,8 +60,9 @@ export async function cancelListRoutes(app: FastifyInstance) {
     const { id } = z.object({ id: z.coerce.number().int().positive() }).parse(req.params);
     const b = z.object({ note: z.string().trim().min(2).max(500), callbackOn: dateStr.nullable().optional() }).parse(req.body);
     return withTx(auditCtx(req), async (c) => {
-      const cur = (await c.query(`SELECT id, patient_name, mrd, status, to_char(callback_on,'YYYY-MM-DD') AS callback_on FROM app.appointments WHERE id = $1 FOR UPDATE`, [id])).rows[0];
+      const cur = (await c.query(`SELECT id, patient_name, mrd, status, legacy_id, to_char(callback_on,'YYYY-MM-DD') AS callback_on FROM app.appointments WHERE id = $1 FOR UPDATE`, [id])).rows[0];
       if (!cur) throw notFound("Appointment");
+      await guardImported(cur);
       if (cur.status !== "cancelled") throw conflict("Only a cancelled booking is on the cancel list");
       await setAuditSummary(c, `Cancel list call to ${describe(cur)}: ${b.note.slice(0, 120)}${b.callbackOn ? `; call again ${niceDate(b.callbackOn)}` : ""}`);
       if (b.callbackOn !== undefined) await c.query(`UPDATE app.appointments SET callback_on = $2 WHERE id = $1`, [id, b.callbackOn]);
@@ -75,8 +77,9 @@ export async function cancelListRoutes(app: FastifyInstance) {
     const { id } = z.object({ id: z.coerce.number().int().positive() }).parse(req.params);
     const b = z.object({ onList: z.boolean(), note: z.string().trim().min(2).max(300).optional() }).parse(req.body);
     return withTx(auditCtx(req), async (c) => {
-      const cur = (await c.query(`SELECT id, patient_name, mrd, status, cancel_list_done_at FROM app.appointments WHERE id = $1 FOR UPDATE`, [id])).rows[0];
+      const cur = (await c.query(`SELECT id, patient_name, mrd, status, legacy_id, cancel_list_done_at FROM app.appointments WHERE id = $1 FOR UPDATE`, [id])).rows[0];
       if (!cur) throw notFound("Appointment");
+      await guardImported(cur);
       if (cur.status !== "cancelled") throw conflict("Only a cancelled booking is on the cancel list");
       if (!b.onList && !b.note) throw conflict("Say why no rebooking is needed");
       await setAuditSummary(c, b.onList ? `Put ${describe(cur)} back on the cancel list` : `Took ${describe(cur)} off the cancel list: ${b.note}`);

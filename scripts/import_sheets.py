@@ -1,6 +1,10 @@
 """
-Import the Google Apps Script Sudarshan data into PostgreSQL (schema app). Repeatable: every run replaces
-the previously imported rows, so the final cut-over is just one more run. The old AuditLog is NOT imported.
+Import the Google Apps Script Sudarshan data into PostgreSQL (schema app). Repeatable, and run every 15 minutes
+during the trial (scripts/refresh-from-google.ps1): imported bookings, direct calls and triage are updated in place
+by their Google ID (their Sudarshan ids never change) and removed when gone from the sheet; the clinic calendar is
+replaced (the Google app is its master until cut-over, D-025). Settings, rules, lists and plans of action are only
+filled when missing: Sudarshan's Settings page is their master. The final cut-over is one more run.
+The old AuditLog is NOT imported.
 
   python scripts/import_sheets.py                 # live Google Sheet (service account C:\\scripts\\gsheet_creds.json)
   python scripts/import_sheets.py --xlsx FILE     # from an .xlsx export instead
@@ -48,7 +52,9 @@ def read_xlsx(path):
 
 def read_gsheet():
     import gspread
-    gc = gspread.service_account(filename=CREDS)
+    # read-only token: the importer never writes to the Google sheet, whatever the account may share
+    gc = gspread.service_account(filename=CREDS, scopes=["https://www.googleapis.com/auth/spreadsheets.readonly",
+                                                          "https://www.googleapis.com/auth/drive.readonly"])
     sh = gc.open_by_key(SHEET_ID)
     have = {ws.title: ws for ws in sh.worksheets()}
     out = {}
@@ -170,6 +176,13 @@ ROLE_MAP = {"director": "admin", "admin": "admin", "administrator": "admin", "do
 
 
 # ------------------------------------------------------------------ import
+APPT_COLS = ["appointment_date", "slot_time", "doctor_id", "mrd", "patient_name", "phone", "age_years", "gender",
+             "patient_type", "appointment_type", "plan_of_action", "urgency", "family_group", "fixed_slot", "consult_start",
+             "tags", "remarks", "status", "source_ref", "confirmed_4day_at", "confirmed_4day_by", "confirmed_1day_at",
+             "confirmed_1day_by", "cancelled_at", "cancelled_by", "booked_by", "booked_at", "legacy_id", "callback_on",
+             "cancel_list_done_at", "cancel_list_note"]
+
+
 def run(data, conn, dry_run=False):
     cur = conn.cursor()
     cur.execute("SET LOCAL app.skip_audit = 'on'")
@@ -280,15 +293,14 @@ def run(data, conn, dry_run=False):
         n = txt(r.get("Plan of action"))
         if n:
             cur.execute("""INSERT INTO app.plan_of_action (name, eye, prep_min, consult_min, priority) VALUES (%s,%s,%s,%s,%s)
-                           ON CONFLICT (name) DO UPDATE SET eye = EXCLUDED.eye, prep_min = EXCLUDED.prep_min,
-                             consult_min = EXCLUDED.consult_min, priority = EXCLUDED.priority""",
+                           ON CONFLICT (name) DO NOTHING""",              # Sudarshan's Settings page owns plans
                         (n, txt(r.get("Eye")), to_int(r.get("PrepMin")), to_int(r.get("ConsultMin")), to_int(r.get("Priority"))))
             counts["plan_of_action"] += 1
 
-    # ---- settings
+    # ---- settings: only filled when missing; Sudarshan's Settings page owns them (D-025)
     def put_setting(key, value, desc=None):
         cur.execute("""INSERT INTO app.settings (key, value, description) VALUES (%s, %s::jsonb, %s)
-                       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, description = coalesce(EXCLUDED.description, app.settings.description)""",
+                       ON CONFLICT (key) DO NOTHING""",
                     (key, json.dumps(value, default=str), desc))
         counts["settings"] += 1
     gs = data.get("generalSettings") or []
@@ -308,10 +320,12 @@ def run(data, conn, dry_run=False):
             if k != "_row" and txt(v):
                 put_setting("system." + k, txt(v), "Imported from SystemSettings")
 
-    # ---- appointments: one row per AppointmentID across all appointment sheets
-    cur.execute("DELETE FROM app.appointment_events WHERE appointment_id IN (SELECT id FROM app.appointments WHERE legacy_id IS NOT NULL)")
-    cur.execute("UPDATE app.direct_calls SET appointment_id = NULL WHERE appointment_id IN (SELECT id FROM app.appointments WHERE legacy_id IS NOT NULL)")
-    cur.execute("DELETE FROM app.appointments WHERE legacy_id IS NOT NULL")
+    # ---- appointments: one row per AppointmentID across all appointment sheets, updated in place by that id.
+    # The import's own history events (actor_id empty) are rewritten; anything a Sudarshan user added is kept.
+    cur.execute("""DELETE FROM app.appointment_events WHERE actor_id IS NULL
+                     AND appointment_id IN (SELECT id FROM app.appointments WHERE legacy_id IS NOT NULL)""")
+    cur.execute("SELECT legacy_id, id FROM app.appointments WHERE legacy_id IS NOT NULL")
+    appt_ids = dict(cur.fetchall())
     seen, events = set(), []
     order = [("appointment", "active"), ("cancel", "cancelled"), ("old_cancel", "old_cancel"),
              ("Archive", "archived_cancel"), ("appointment_archive", "past")]
@@ -345,14 +359,7 @@ def run(data, conn, dry_run=False):
             if call_back:
                 tags.append("call back: " + call_back)
             src_ref = txt(r.get("aFollowID")) or txt(r.get("aFollowID / directCallID"))
-            cur.execute("""
-              INSERT INTO app.appointments (appointment_date, slot_time, doctor_id, mrd, patient_name, phone, age_years, gender,
-                patient_type, appointment_type, plan_of_action, urgency, family_group, fixed_slot, consult_start, tags, remarks,
-                status, source, source_ref, confirmed_4day_at, confirmed_4day_by, confirmed_1day_at, confirmed_1day_by,
-                cancelled_at, cancelled_by, booked_by, booked_at, legacy_id, callback_on, cancel_list_done_at, cancel_list_note)
-              VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'import',%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-              RETURNING id""",
-              (day, slot, doctor_id(r.get("Doctor")), (txt(r.get("MRDNo")) or "").upper() or None, name,
+            vals = dict(zip(APPT_COLS, (day, slot, doctor_id(r.get("Doctor")), (txt(r.get("MRDNo")) or "").upper() or None, name,
                txt(r.get("Phone")), to_int(r.get("Age")), txt(r.get("Gender")),
                txt(r.get("PatientType")) or txt(r.get("Patient Type")), txt(r.get("AppointmentType")), txt(r.get("PlanOfAction")),
                txt(r.get("Urgency Level")) or txt(r.get("Urgency level (waiting List)")), txt(r.get("Family Identifier")),
@@ -367,7 +374,24 @@ def run(data, conn, dry_run=False):
                (to_ts(r.get("Archive date")) or to_ts(r.get("Archived on")) or to_ts(r.get("Deleted On")) or dt.datetime.now())
                if kind in ("archived_cancel", "old_cancel") else None,
                {"archived_cancel": "Archived from the cancel list in the Google app",
-                "old_cancel": "Old cancellation (old_cancel sheet in the Google app)"}.get(kind)))
+                "old_cancel": "Old cancellation (old_cancel sheet in the Google app)"}.get(kind))))
+            # update a booking already copied (same Sudarshan id, no id number used up); insert only new ones.
+            # When the sheet has no booking/archive time, keep the one stored rather than "now" on every run.
+            if lid in appt_ids:
+                sets = [f"{c} = %({c})s" for c in APPT_COLS if c not in ("booked_at", "cancel_list_done_at", "legacy_id")]
+                sets.append("booked_at = " + ("%(booked_at)s" if to_ts(r.get("BookingDate")) else "coalesce(booked_at, %(booked_at)s)"))
+                sets.append("cancel_list_done_at = CASE WHEN %(cancel_list_done_at)s::timestamptz IS NULL THEN NULL "
+                            "ELSE coalesce(cancel_list_done_at, %(cancel_list_done_at)s) END")
+                cur.execute(f"""UPDATE app.appointments SET
+                                  patient_id = CASE WHEN mrd IS DISTINCT FROM %(mrd)s THEN NULL ELSE patient_id END,
+                                  yarago_visit_id = CASE WHEN mrd IS DISTINCT FROM %(mrd)s
+                                                           OR appointment_date IS DISTINCT FROM %(appointment_date)s
+                                                         THEN NULL ELSE yarago_visit_id END,
+                                  {", ".join(sets)}
+                                WHERE id = %(id)s RETURNING id""", {**vals, "id": appt_ids[lid]})
+            else:
+                cur.execute(f"""INSERT INTO app.appointments (source, {", ".join(APPT_COLS)})
+                                VALUES ('import', {", ".join(f"%({c})s" for c in APPT_COLS)}) RETURNING id""", vals)
             new_id = cur.fetchone()[0]
             counts[f"appointments ({sheet})"] += 1
             history = {k: txt(r.get(k)) for k in ("RescheduleHistory", "AppointmentJourney", "Call back date",
@@ -379,6 +403,15 @@ def run(data, conn, dry_run=False):
                 f"cancelled by {txt(r.get('Deleted by'))}" if status == "cancelled" and txt(r.get("Deleted by")) else None) if x)
             events.append((new_id, to_ts(r.get("BookingDate")) or dt.datetime.now(), "imported", json.dumps(history, default=str),
                            f"Imported from Google Sheets ({sheet})" + (f": {note}" if note else "")))
+
+    # bookings no longer in the sheet (deleted in the Google app) go here too
+    cur.execute("SELECT id FROM app.appointments WHERE legacy_id IS NOT NULL AND NOT (legacy_id = ANY(%s))", (list(seen),))
+    gone = [r[0] for r in cur.fetchall()]
+    if gone:
+        cur.execute("UPDATE app.direct_calls SET appointment_id = NULL WHERE appointment_id = ANY(%s)", (gone,))
+        cur.execute("DELETE FROM app.appointment_events WHERE appointment_id = ANY(%s)", (gone,))
+        cur.execute("DELETE FROM app.appointments WHERE id = ANY(%s)", (gone,))
+    counts["bookings removed (no longer in the sheet)"] = len(gone)
 
     cur.execute("SELECT id, legacy_id FROM app.appointments WHERE legacy_id IS NOT NULL")
     appt_by = dict((l, i) for i, l in cur.fetchall())
@@ -395,33 +428,48 @@ def run(data, conn, dry_run=False):
     counts["appointment_events"] = len(events)
 
     # ---- direct calls, triage
-    cur.execute("DELETE FROM app.direct_calls WHERE legacy_id IS NOT NULL")
+    seen_calls = []
     for r in R.get("directCall", []):
         st = (txt(r.get("Status")) or "").lower()
         status = "booked" if ("book" in st or "appoint" in st) else "cancelled" if "cancel" in st else "archived" if "archiv" in st else "open"
         cur.execute("""INSERT INTO app.direct_calls (mrd, patient_name, phone, age_years, gender, patient_type, call_type, case_type,
                          urgency, remarks, status, created_by, created_at, legacy_id)
-                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (legacy_id) DO NOTHING""",
+                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                       ON CONFLICT (legacy_id) DO UPDATE SET mrd = EXCLUDED.mrd, patient_name = EXCLUDED.patient_name,
+                         phone = EXCLUDED.phone, age_years = EXCLUDED.age_years, gender = EXCLUDED.gender, patient_type = EXCLUDED.patient_type,
+                         call_type = EXCLUDED.call_type, case_type = EXCLUDED.case_type, urgency = EXCLUDED.urgency,
+                         remarks = EXCLUDED.remarks, status = EXCLUDED.status, created_by = EXCLUDED.created_by, created_at = EXCLUDED.created_at""",
                     ((txt(r.get("MRDNo")) or "").upper() or None, txt(r.get("PatientName")), txt(r.get("Phone")), to_int(r.get("Age")),
                      txt(r.get("Gender")), txt(r.get("PatientType")), txt(r.get("CallType")), txt(r.get("CaseType")),
                      txt(r.get("Urgency")), txt(r.get("Remarks")), status, user_id(r.get("CreatedBy")),
                      to_ts(r.get("CreatedOn")) or dt.datetime.now(), txt(r.get("DirectCallID")) or f"noid:directCall:{r['_row']}"))
+        seen_calls.append(txt(r.get("DirectCallID")) or f"noid:directCall:{r['_row']}")
         counts["direct_calls"] += 1
-    cur.execute("DELETE FROM app.triage WHERE legacy_id IS NOT NULL")
+    cur.execute("DELETE FROM app.direct_calls WHERE legacy_id IS NOT NULL AND NOT (legacy_id = ANY(%s))", (seen_calls,))
+    counts["direct calls removed (no longer in the sheet)"] = cur.rowcount
+    seen_triage = []
     qmap = {"Q1_Onset": "onset", "Q2_Vision": "vision", "Q3_Pain": "pain", "Q4_Floaters": "floaters",
             "Q5_Redness": "redness", "Q6_Injury": "injury", "Q7_Symptoms": "symptoms"}
     for r in R.get("urgencyIdentification", []):
         answers = {v: txt(r.get(k)) for k, v in qmap.items() if txt(r.get(k)) is not None}
         cur.execute("""INSERT INTO app.triage (mrd, patient_name, phone, age_years, gender, patient_type, assessed_at, answers,
                          max_score, category, decision_status, decision_remarks, decision_by, decision_at, created_by, created_at, legacy_id)
-                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (legacy_id) DO NOTHING""",
+                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                       ON CONFLICT (legacy_id) DO UPDATE SET mrd = EXCLUDED.mrd, patient_name = EXCLUDED.patient_name, phone = EXCLUDED.phone,
+                         age_years = EXCLUDED.age_years, gender = EXCLUDED.gender, patient_type = EXCLUDED.patient_type,
+                         assessed_at = EXCLUDED.assessed_at, answers = EXCLUDED.answers, max_score = EXCLUDED.max_score,
+                         category = EXCLUDED.category, decision_status = EXCLUDED.decision_status, decision_remarks = EXCLUDED.decision_remarks,
+                         decision_by = EXCLUDED.decision_by, decision_at = EXCLUDED.decision_at, created_by = EXCLUDED.created_by""",
                     ((txt(r.get("MRDNo")) or "").upper() or None, txt(r.get("PatientName")), txt(r.get("Phone")), to_int(r.get("Age")),
                      txt(r.get("Gender")), txt(r.get("PatientType")), to_ts(r.get("AssessmentDate")) or to_ts(r.get("CreatedOn")) or dt.datetime.now(),
                      json.dumps(answers), to_int(r.get("MaxScore")), txt(r.get("Category")), txt(r.get("DecisionStatus")),
                      txt(r.get("DecisionRemarks")), user_id(r.get("DecisionBy")), to_ts(r.get("DecisionDate")),
                      user_id(r.get("CreatedBy")), to_ts(r.get("CreatedOn")) or dt.datetime.now(),
                      txt(r.get("TriageID")) or f"noid:triage:{r['_row']}"))
+        seen_triage.append(txt(r.get("TriageID")) or f"noid:triage:{r['_row']}")
         counts["triage"] += 1
+    cur.execute("DELETE FROM app.triage WHERE legacy_id IS NOT NULL AND NOT (legacy_id = ANY(%s))", (seen_triage,))
+    counts["triage removed (no longer in the sheet)"] = cur.rowcount
 
     # ---- follow-up work history
     cur.execute("DELETE FROM app.followup_actions WHERE legacy_ref IS NOT NULL")
@@ -499,7 +547,16 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--xlsx", help="read an .xlsx export instead of the live sheet")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--scheduled", action="store_true",
+                    help="trial refresh: does nothing once the setting trial.google_master is false (after cut-over)")
     a = ap.parse_args()
+    if a.scheduled:
+        with psycopg.connect(host=CFG["PG_HOST"], port=int(CFG["PG_PORT"]), dbname=CFG["PG_DB"],
+                             user=CFG["PG_APP_USER"], password=CFG["PG_APP_PASSWORD"]) as conn:
+            row = conn.execute("SELECT value FROM app.settings WHERE key = 'trial.google_master'").fetchone()
+        if not row or row[0] is not True:
+            print("trial.google_master is not true: Sudarshan is the master now, nothing imported")
+            return 0
     data = read_xlsx(a.xlsx) if a.xlsx else read_gsheet()
     print("sheets read:", ", ".join(f"{k} ({max(len(v) - 1, 0)})" for k, v in data.items()))
     missing = [s for s in SHEETS if s not in data]

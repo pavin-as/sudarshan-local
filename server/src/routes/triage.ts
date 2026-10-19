@@ -6,11 +6,12 @@ import { auditCtx, need } from "../auth.js";
 import { one, q, setAuditSummary, withTx } from "../db.js";
 import { badRequest, notFound } from "../lib/errors.js";
 import { todayIST } from "../lib/time.js";
+import { guardImported } from "../lib/trial.js";
 import { bookedDecision, scoreTriage, TRIAGE_DECISIONS, TRIAGE_QUESTIONS } from "../services/triage.js";
 
 const COLS = `
   t.id, t.patient_id AS "patientId", t.mrd, t.patient_name AS "patientName", t.phone, t.age_years AS "ageYears", t.gender,
-  t.patient_type AS "patientType", t.assessed_at AS "assessedAt", t.answers, t.max_score AS "maxScore", t.category,
+  t.patient_type AS "patientType", (t.legacy_id IS NOT NULL) AS "fromGoogle", t.assessed_at AS "assessedAt", t.answers, t.max_score AS "maxScore", t.category,
   coalesce(t.decision_status, 'Pending Action') AS decision, t.decision_remarks AS "decisionRemarks",
   du.full_name AS "decisionBy", t.decision_at AS "decisionAt", coalesce(cu.full_name, '') AS "assessedBy"`;
 const FROM = `FROM app.triage t LEFT JOIN app.users du ON du.id = t.decision_by LEFT JOIN app.users cu ON cu.id = t.created_by`;
@@ -88,8 +89,9 @@ export async function triageRoutes(app: FastifyInstance) {
       remarks: z.string().trim().max(500).nullable().optional(),
     }).parse(req.body);
     return withTx(auditCtx(req), async (c) => {
-      const cur = (await c.query(`SELECT id, patient_name, mrd, to_char(assessed_at AT TIME ZONE 'Asia/Kolkata','YYYY-MM-DD') AS day FROM app.triage WHERE id = $1 FOR UPDATE`, [id])).rows[0];
+      const cur = (await c.query(`SELECT id, patient_name, mrd, legacy_id, to_char(assessed_at AT TIME ZONE 'Asia/Kolkata','YYYY-MM-DD') AS day FROM app.triage WHERE id = $1 FOR UPDATE`, [id])).rows[0];
       if (!cur) throw notFound("Assessment");
+      await guardImported(cur, "This assessment");
       const decision = b.bookedFor ? bookedDecision(b.bookedFor, cur.day ?? todayIST()) : b.decision;
       if (!decision) throw badRequest("Choose what was decided");
       if (decision === "Other Action (See Remarks)" && !b.remarks) throw badRequest("Write what was done in the remarks");
