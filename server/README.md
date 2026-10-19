@@ -46,6 +46,8 @@ SUDARSHAN_ENV=<test .env> npm test   # full API test - TEST DATABASE ONLY (write
 | `POST appointments/:id/move` | reschedule, restore a cancelled one, give a waitlisted patient a slot |
 | `PATCH appointments/:id` | edit details (plan, remarks, tags ...) |
 | `GET rules/day?date` | every scheduling-rule finding for a day, and its special cases |
+| `GET today` | Today page: patients in the clinic now (station timer), today's median waits, arrivals without a booking, rule-warning counts for today and the next open day |
+| `GET huddle?date` | huddle sheet: a day's bookings (default: next open day) with rule findings and a summary (new patients, unconfirmed, procedures) |
 | `POST rules/check` | findings for one booking before it is made or moved (saves nothing) |
 | `POST appointments/:id/cancel`, `/confirm`, `/remarks`, `/status` | |
 | `GET patients/search?q`, `GET patients/:id`, `GET patients/:id/visits/:visitId` | Yarago patient, visits, trend, injections, dues |

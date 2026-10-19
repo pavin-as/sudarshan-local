@@ -125,6 +125,11 @@ Names come from the eye (choroid, optic disc, vessel), so the palette stays spec
 - **Panels:** title, then facts as a two-column list, then actions at the bottom (primary on the right).
 - **Tables** for lists that are scanned (confirmations, follow-ups, users).
 - **Toasts** confirm what was done, bottom centre, a few seconds.
+- **Today page:** stat tiles on top (a number and what it counts; tiles that lead somewhere are links), then the
+  live list on the left and "To do" on the right. Every to-do line is a link to the screen where it is done; the page
+  itself changes nothing. Live figures refresh every minute.
+- **Printed sheets** (huddle): `@media print` hides the menu and buttons; a closing line reminds that the paper holds
+  patient names.
 - **Rule findings:** a word for the level ("Against rule", "Check", "Note") then the sentence and what to do, with a red,
   amber or plain left edge. Shown before booking (dialog, reschedule), in the board's side panel (notes folded away) and
   as the worst level's word on the card. Never a pop-up.

@@ -15,6 +15,8 @@ import { ActivityPage } from "./pages/Activity";
 import { UsersPage } from "./pages/Users";
 import { CalendarPage } from "./pages/Calendar";
 import { ConfirmationsPage, useConfirmationList } from "./pages/Confirmations";
+import { TodayPage } from "./pages/Today";
+import { HuddlePage } from "./pages/Huddle";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 20_000, refetchOnWindowFocus: true, retry: (n, e: any) => n < 2 && !(e?.status >= 400 && e?.status < 500) } },
@@ -47,6 +49,7 @@ function Shell() {
     <div className="shell">
       <nav className="nav" aria-label="Main">
         <div className="brand"><span className="brand-mark" aria-hidden="true" /><div><b>Sudarshan</b><span>Sampada VR</span></div></div>
+        <NavLink to="/today">Today</NavLink>
         <NavLink to="/" end>Day board</NavLink>
         {can("appointments.write") && <NavLink to="/confirm">Confirmation calls {!!due.data && <span className="count">{due.data}</span>}</NavLink>}
         <NavLink to="/patients">Patients</NavLink>
@@ -63,6 +66,8 @@ function Shell() {
       <main className="main">
         <Routes>
           <Route path="/" element={<BoardPage />} />
+          <Route path="/today" element={<TodayPage />} />
+          <Route path="/huddle" element={<HuddlePage />} />
           <Route path="/confirm" element={<ConfirmationsPage />} />
           <Route path="/patients" element={<PatientsPage />} />
           <Route path="/patients/:id" element={<PatientPage />} />

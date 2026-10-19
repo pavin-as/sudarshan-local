@@ -271,6 +271,21 @@ try {
     assert.ok(at10.body.findings.every((f: any) => f.ids.includes(ruleAppt)));
   });
 
+  console.log("today page and huddle sheet");
+  await step("today page needs login and answers for any role that reads appointments", async () => {
+    assert.equal((await call("GET", "/api/today")).status, 401);
+    const r = await call("GET", "/api/today", doctor);
+    assert.equal(r.status, 200);
+    assert.ok(Array.isArray(r.body.inClinic) && typeof r.body.walkIns === "number" && r.body.rules.length === 2);
+  });
+  await step("huddle sheet lists the day's bookings with rule flags and a summary", async () => {
+    const r = await call("GET", `/api/huddle?date=${D2}`, staff);
+    assert.equal(r.status, 200);
+    assert.ok(r.body.appointments.some((a: any) => a.id === ruleAppt));
+    assert.ok(r.body.findings.some((f: any) => f.code === "NEW_PATIENT_BEFORE_TIME"));
+    assert.ok(r.body.summary.booked >= 1);
+  });
+
   console.log("patients, follow-ups (empty Yarago mirror in the test DB)");
   await step("patient search runs", async () => {
     const r = await call("GET", "/api/patients/search?q=SPD", staff);

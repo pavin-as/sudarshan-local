@@ -86,6 +86,12 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
 - [ ] Pavin: confirm September's injection count (analytics says 16 given) and the other September figures in METRICS.md.
 - [ ] Dr. Sameera: approve the diagnosis-group and visit-purpose rules (`analytics.category_rule`); review
       `app.analytics_unmatched`. Confirm the injection-adherence definition (post-injection follow-up within 7 days).
+- [x] Today page (`/today`) and printable huddle sheet (`/huddle`, next open day by default), 19 Oct: live in-clinic list
+      from Yarago's station timer (longest first), arrivals without a Sudarshan booking, next 7 days against capacity, to-do
+      counts (confirmation calls, follow-ups, waitlist, rule warnings), today's median waits. API `GET /api/today`,
+      `GET /api/huddle`. During the trial the booking figures are those imported on 18 Oct; live in-clinic data is real.
+- [ ] Importer: 27 imported bookings have the time 00:00 (4 upcoming), probably bookings without a time in the Google app;
+      import them as waitlist instead (confirm with Pavin).
 - [ ] Importer: 1,828 imported bookings had no BookingDate and were stamped with the import day; store NULL instead
       (analytics already treats them as "booking date not known").
 - [ ] Not in Yarago: patient PIN/area (geography KPI), coded diagnoses, surgery advice. Raise with the clinic if wanted.

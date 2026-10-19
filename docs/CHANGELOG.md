@@ -5,6 +5,13 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Today** page (first menu item): who is in the clinic right now and for how long (longest first, live from Yarago's
+  station timer), patients who arrived without a Sudarshan booking, the next 7 days against maximum slots, and the work
+  waiting (confirmation calls, follow-up calls, waitlists, scheduling-rule warnings) with links to where it is done.
+  **Huddle sheet** (`/huddle`): the next open day on one printable page - summary (booked, new, not confirmed,
+  dilation, injections, lasers, AT/Gonio, HFA, ROP), rule warnings, every booking with plan, doctor, confirmation and
+  rule flag; the printout reminds staff it contains patient names. Technical: `server/src/routes/today.ts`,
+  `web/src/pages/Today.tsx`, `Huddle.tsx`, print styles; API test and real-data steps.
 - Management dashboards: Metabase at `http://shichika:3000` (clinic network only) with four dashboards - Clinic week,
   Retina care, Money, Front desk - built on a new reporting schema rebuilt every night at 02:30. Patients appear there
   only as a random number and an age band. "Clinic week" is emailed to Pavin every Monday 07:00 (from

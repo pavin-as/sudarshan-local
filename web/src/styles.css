@@ -299,3 +299,43 @@ table.list tr:last-child td { border-bottom: 0; }
   .main { padding: 1rem; }
   .feed li { grid-template-columns: 1fr; gap: 0.2rem; }
 }
+
+/* ---------- Today page ---------- */
+.stat-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.6rem; margin-bottom: 1rem; }
+.stat { display: flex; flex-direction: column; gap: 0.1rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m);
+  padding: 0.7rem 0.9rem; color: var(--ink); text-decoration: none; }
+a.stat:hover { border-color: var(--choroid-2); }
+.stat b { font-size: 1.7rem; color: var(--choroid); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 0.87rem; color: var(--ink-soft); }
+.today-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 1rem; align-items: start; }
+.day-row { display: grid; grid-template-columns: 9rem minmax(0, 1fr) auto; gap: 0.7rem; align-items: center; color: var(--ink); text-decoration: none;
+  padding: 0.2rem 0.3rem; border-radius: var(--radius-s); }
+.day-row:hover { background: var(--action-soft); }
+.day-row .meter { height: 10px; border-radius: 5px; overflow: hidden; }
+.day-name { font-weight: 700; }
+.todo { gap: 0.2rem; }
+.todo-item { display: grid; grid-template-columns: 3rem 1fr; gap: 0.6rem; align-items: baseline; padding: 0.45rem 0.3rem; border-radius: var(--radius-s);
+  color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--line-soft); }
+.todo-item:last-child { border-bottom: 0; }
+.todo-item:hover { background: var(--action-soft); }
+.todo-item b { font-size: 1.3rem; color: var(--choroid); text-align: right; font-variant-numeric: tabular-nums; }
+.warn-text { color: #8a5a00; font-weight: 700; }
+b.warn-text { color: #8a5a00; }
+@media (max-width: 1100px) { .today-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .day-row { grid-template-columns: 6.5rem minmax(0, 1fr); } .day-row .nowrap { grid-column: 2; } }
+
+/* ---------- Huddle sheet (printable) ---------- */
+.huddle { display: flex; flex-direction: column; gap: 1rem; }
+.huddle-summary { display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius-m); padding: 0.7rem 1rem; }
+.huddle-summary b { font-size: 1.15rem; color: var(--choroid); margin-right: 0.2rem; }
+.huddle-table { background: var(--surface); border: 1px solid var(--line); }
+@media print {
+  .nav, .no-print, .toasts { display: none !important; }
+  .shell { display: block; }
+  .main { padding: 0; }
+  body { background: #fff; font-size: 11pt; }
+  .huddle-table td, .huddle-table th { padding: 0.25rem 0.4rem; }
+  .huddle-table tr { break-inside: avoid; }
+  .rule-note { background: none !important; }
+}

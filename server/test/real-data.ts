@@ -41,6 +41,10 @@ try {
   const ruleCount = (b: any) => `${b.findings.filter((f: any) => f.level !== "info").length} to check, ${b.findings.filter((f: any) => f.level === "info").length} notes`;
   await get("today's scheduling rules", `/api/rules/day?date=${today}`, ruleCount);
   await get("tomorrow's scheduling rules", `/api/rules/day?date=${addDays(today, 1)}`, ruleCount);
+  await get("Today page (live from the station timer)", "/api/today",
+    (b) => `${b.inClinicCount} in clinic, ${b.checkedOut} checked out, ${b.walkIns} without a booking, median total ${b.waits.total ?? "-"} min`);
+  await get("huddle sheet, next working day", "/api/huddle",
+    (b) => `${b.date}: ${b.summary.booked} booked, ${b.summary.newPatients} new, ${b.summary.notConfirmed} not confirmed, ${b.findings.length} rule findings`);
   const s = await get("patient search 'SPD'", "/api/patients/search?q=SPD", (b) => `${b.patients.length} found`);
   await get("patient search by phone digits", "/api/patients/search?q=9846", (b) => `${b.patients.length} found`);
   // a patient with many visits makes the heaviest patient page
