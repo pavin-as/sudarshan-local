@@ -10,6 +10,7 @@ import { ToastProvider } from "./components/ui";
 import { LoginPage, ChangePasswordPage } from "./pages/Login";
 import { BoardPage } from "./pages/Board";
 import { PatientPage, PatientsPage } from "./pages/Patient";
+import { DoctorSummaryPage } from "./pages/DoctorSummary";
 import { FollowupsPage } from "./pages/Followups";
 import { ActivityPage } from "./pages/Activity";
 import { UsersPage } from "./pages/Users";
@@ -106,6 +107,7 @@ function Shell() {
           <Route path="/confirm" element={<ConfirmationsPage />} />
           <Route path="/patients" element={<PatientsPage />} />
           <Route path="/patients/:id" element={<PatientPage />} />
+          <Route path="/patients/:id/summary" element={<DoctorSummaryPage />} />
           <Route path="/followups" element={<FollowupsPage />} />
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/calendar" element={<CalendarPage />} />

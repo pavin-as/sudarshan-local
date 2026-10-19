@@ -13,7 +13,7 @@
     "dev": "tsx watch src/index.ts",
     "cli": "node dist/cli.js",
     "test": "tsx test/api.test.ts",
-    "test:rules": "tsx test/rules.test.ts && tsx test/triage.test.ts"
+    "test:rules": "tsx test/rules.test.ts && tsx test/triage.test.ts && tsx test/summary.test.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",

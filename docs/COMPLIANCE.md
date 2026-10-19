@@ -40,7 +40,9 @@ Sudarshan never changes Yarago. Corrections to patient details are made in Yarag
    tickets. Cloud models get only de-identified or aggregate data.
 2. AI drafts, a person acts. AI never writes to clinical records, never books or cancels, never sends a message by
    itself. Every AI-written sentence is labelled "AI-generated - verify" and every fact beside it shows its Yarago source.
-3. Every AI summary shown to a doctor is logged in `app.ai_summary_views`.
+3. Every AI summary shown to a doctor is logged in `app.ai_summary_views` (built 19 Oct, D-026; a user who has viewed
+   summaries is deactivated, never deleted, so the log stays whole). The doctor summary's overview is written by the
+   local model only, from facts without name, MRD or ids, and is shown only when every number in it is in the facts.
 
 **Access**
 4. Every API route checks a permission (`need(req, "...")`; table in `server/src/lib/permissions.ts`). Front-desk

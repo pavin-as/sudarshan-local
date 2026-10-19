@@ -169,6 +169,23 @@ false, remove the task (RUNBOOK 8). Why: staff and the dashboards see current fi
 comparison with the Google app becomes possible, and import problems show up now rather than on cut-over night.
 Supersedes D-016 (delete and re-import).
 
+### D-026 · 2026-10-19 · Accepted · Pavin, Dr. Sameera
+**Doctor summary built in the agreed layout; overview by the local model, shown only when its numbers check out.**
+Layout (Dr. Sameera, 19 Oct): header with today's booking, AI overview labelled "AI-generated · verify", alerts
+(systemic illness, drug allergies, late/missed follow-ups, dues), findings by eye, vision and pressure (last 5 visits,
+trend in logMAR lines), treatment (injections and lasers, next follow-up), last visit. Choices from the data:
+(1) **Findings by eye instead of diagnosis**: no coded diagnosis is ever entered, although Yarago's list of 196 with ICD
+codes is ready (EMR completeness report). (2) **Allergies and systemic illness say "not recorded", never "none"**
+(Yarago often stores the word "null"). (3) **Injection drug from the billing name** ("INTRA VITREAL RAZUMAB(13000)"):
+the drug field is never filled. (4) **Next = the follow-up date written at the last visit**: no next-dose date is kept.
+(5) **Last visit = the last consultation**: an injection or laser is its own Yarago appointment with an empty history.
+Overview: Ollama `qwen3.5:9b` on shichika (setting `ai.overview_model`), sees the facts without name, MRD or ids,
+two sentences; shown only when every number in it appears in the facts (`checked`), else "not shown". Prepared
+07:00-09:00 for the day's patients (Sudarshan bookings linked to Yarago + Yarago appointments), later only when opened
+(booked later or Yarago data changed); one at a time. Facts are always built fresh; every view of an overview is
+logged in `app.ai_summary_views`; `app.ai_summaries` is audited (migration 0010). Checked 19 Oct on 3 real patients
+(injections, laser, other): 12 of 12 facts match Yarago's raw tables for each.
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

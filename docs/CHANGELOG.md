@@ -5,6 +5,16 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Doctor summary** (`/patients/<id>/summary`, D-026), in the layout Dr. Sameera agreed: today's booking, a two-line
+  overview written by the local model (labelled "AI-generated · verify", shown only when every number in it is in the
+  facts), alerts, findings by eye, vision and pressure, treatment, last visit; every date opens that Yarago visit.
+  Prepared for the day's patients from 07:00; opened from the patient page or the appointment panel ("Doctor summary").
+  Doctors, optometrists, counsellors and managers see it (clinical access). Every view is logged.
+  Technical: `services/summary.ts` (facts), `services/overview.ts` (Ollama, number check, 07:00-09:00 job, one-at-a-time
+  queue), `routes/summary.ts`, migration 0010 (audit on `ai_summaries`, `facts_hash`, `checked`, settings
+  `ai.overview_model`, `ai.overview_at`), `web/src/pages/DoctorSummary.tsx`; 4 new checks in `npm run test:rules`.
+- **EMR data completeness report** for the clinical staff SOP (shared page "EMR data completeness: what to record at
+  every visit"): what the optometry and doctor screens leave empty, from 9,118 completed visits.
 - **Trial refresh from the Google app** (D-025): every 15 minutes 07:00-21:00 and at 23:30, Sudarshan copies the Google
   app's bookings, cancel list, direct calls, triage and clinic calendar (`scripts/refresh-from-google.ps1`, about 25 s;
   log `logs/import.log`). Records keep their Sudarshan id from one copy to the next. While the trial lasts these are

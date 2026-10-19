@@ -74,6 +74,14 @@ From Yarago, for the booking's patient on that day: `registered_not_arrived` -> 
 `waiting_for_doctor` -> `with_doctor` -> `done` (or `cancelled_in_yarago`). Bookings for new patients have no stage until
 linked to their Yarago record from the appointment panel.
 
+### Doctor summary (D-026)
+`services/summary.ts` builds the facts (pure data, each with its Yarago visit) fresh on every request;
+`services/overview.ts` asks the local model for the two-line overview from those facts (no name, MRD or ids), keeps it
+only if every number in it is in the facts, and stores it in `app.ai_summaries` with the facts and their hash. A
+change in the facts (new Yarago data) queues a new overview; the queue runs one at a time. The automatic run is
+07:00-09:00 only (`startSummaryJob`, started by `index.ts`, never by tests). A shown overview is logged in
+`app.ai_summary_views`. The model is changed with the setting `ai.overview_model`; a prompt change bumps `PROMPT_VERSION`.
+
 ### Adding a feature (checklist)
 1. Read DECISIONS.md and COMPLIANCE.md; if the feature conflicts, ask first.
 2. Migration (if needed) + SCHEMA.md; audit triggers for new tables.

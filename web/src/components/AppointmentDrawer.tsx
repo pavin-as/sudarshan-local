@@ -101,7 +101,7 @@ export function AppointmentDrawer({ id, onClose }: { id: number; onClose: () => 
       </dl>
       {myRules.length > 0 && !mode && (
         <section className="stack"><h3>Scheduling rules</h3><RuleNotes findings={myRules} /></section>)}
-      {a.patientId ? <div><Link to={`/patients/${a.patientId}`} onClick={onClose}>Open patient record</Link></div>
+      {a.patientId ? <div><Link to={`/patients/${a.patientId}`} onClick={onClose}>Open patient record</Link>{can("clinical.read") && <> · <Link to={`/patients/${a.patientId}/summary?date=${a.date}`} onClick={onClose}>Doctor summary</Link></>}</div>
         : write && (
           <div className="notice stack" style={{ gap: "0.4rem" }}>
             <span>Not linked to a Yarago patient yet, so arrival is not tracked. Once registered in Yarago, link it here:</span>

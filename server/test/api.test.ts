@@ -402,6 +402,12 @@ try {
     }
   });
 
+  console.log("doctor summary (D-026)");
+  await step("the doctor summary needs clinical access, and answers 404 for an unknown patient", async () => {
+    assert.equal((await call("GET", "/api/patients/1/summary", staff)).status, 403, "front desk has no clinical access");
+    assert.equal((await call("GET", "/api/patients/2147483000/summary", doctor)).status, 404);
+  });
+
   console.log("trial: the Google app is the master (D-025)");
   await step("imported records and the calendar are read-only while trial.google_master is on; practice bookings are not", async () => {
     const own = await call("POST", "/api/appointments", staff, { date: D2, slotTime: "12:30", patientName: "ZZ Test Trial Own", phone: "9000000131" });

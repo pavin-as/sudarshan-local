@@ -66,11 +66,12 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       reschedule, cancel, link new patient to Yarago), confirmation calls (day-before, 4-day), patients,
       follow-up calls, activity log, clinic calendar, users. Font bundled (no internet needed).
 - [ ] Code-modernization plugin: preflight and assess done (analysis/sudarshan/); map, extract-rules to do.
-- [ ] Phase B: doctor summary (layout draft in the plan doc, Dr. Sameera to review), follow-up board.
-- [ ] Dr. Sameera: review the doctor summary layout (made-up patient): https://claude.ai/artifact/GR7iVVwY1QUr5Rcq3ggxNm
-      (shared by Pavin). Data checked 19 Oct, last 12 months of completed visits: BCVA 77%, IOP 70%, exam findings 86%,
-      systemic illness 52%, drug allergies 3% (shown as "not recorded"), advice 9%; injection drug only in the procedure
-      name (e.g. "INTRA VITREAL RAZUMAB(13000)"); no planned next-dose date (follow-up date used).
+- [x] Phase B: doctor summary built (19 Oct, D-026): layout approved by Dr. Sameera; local-model overview from 07:00
+      with a number check; verified on 3 real patients (12/12 facts match Yarago raw tables each).
+- [ ] Phase B: follow-up leakage board.
+- [ ] Pavin: share the EMR completeness report with the clinical staff (https://claude.ai/artifact/EfVt9jujDutkEzYGTxsqCa,
+      Share menu); agree targets; Dr. Sameera to check the 196-diagnosis list. Sudarshan to show the monthly percentages.
+- [x] Dr. Sameera approved the doctor summary layout (19 Oct).
 
 - [x] Backups: Sudarshan nightly 02:00 to QNAP (scripts/backup.ps1, install-backup.ps1), restore test every 4 weeks; Yarago has its own backup (F:\EMR_AUTO_BACKUP).
 - [ ] Off-site copy of backups (decision P-4).
@@ -117,7 +118,7 @@ Trial running on live Google data (D-025). Remaining, in order:
    direct calls, rule warnings and huddle sheet; staff practise on TEST bookings. Before it ends: Caddy + HTTPS, MySQL
    3306 closed to the LAN, the second-pass patient linking (P-2), which rules block (P-1).
 2. **Cut-over** (RUNBOOK 8): evening switch, `trial.google_master` false, Google app read-only for 3 months (P-3).
-3. **Phase B, doctor-facing** (can start now; it changes nothing staff use): doctor summary (Dr. Sameera's layout
-   review), follow-up leakage board, generated locally (Ollama) from 07:00.
+3. **Phase B, doctor-facing**: doctor summary done (D-026); next the follow-up leakage board, and a monthly
+   EMR-completeness page for the SOP.
 4. **After cut-over:** WhatsApp confirmations and broadcast, Razorpay (polling, D-017), no-show risk score,
    ask-the-data for Pavin, off-site backup copy (P-4).

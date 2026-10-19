@@ -32,7 +32,7 @@ schema, update this file in the same commit (Testing.md, "Definition of done").
    The server's connections run with `TimeZone=Asia/Kolkata`.
 6. **No secrets in tables.** `app.settings` holds no keys; secrets are in `.env`.
 
-Applied so far: `0001_schemas`, `0002_sync_runs`, `0003_app_core`, `0004_server`, `0005_backup_runs`, `0006_analytics`, `0009_trial_google_master` (setting `trial.google_master`, D-025), `0008_import_no_time` (imported bookings at 00:00 had no time: time cleared, upcoming ones waitlist), `0007_front_desk_lists` (direct-call close reason and doctor; cancelled bookings' call-back date and cancel-list status; imported archived and old_cancel rows taken off the list).
+Applied so far: `0001_schemas`, `0002_sync_runs`, `0003_app_core`, `0004_server`, `0005_backup_runs`, `0006_analytics`, `0010_doctor_summary` (audit on `ai_summaries`, `facts_hash`, `checked`, AI settings, D-026), `0009_trial_google_master` (setting `trial.google_master`, D-025), `0008_import_no_time` (imported bookings at 00:00 had no time: time cleared, upcoming ones waitlist), `0007_front_desk_lists` (direct-call close reason and doctor; cancelled bookings' call-back date and cancel-list status; imported archived and old_cancel rows taken off the list).
 Views: `10_clinical.sql`, `20_clinical_flow_followup.sql`, `30_app_audit.sql`.
 
 ## Yarago facts the views depend on

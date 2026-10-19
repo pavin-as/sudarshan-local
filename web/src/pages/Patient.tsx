@@ -26,7 +26,7 @@ const FOLLOWUP_WORDS: Record<string, string> = {
   wrong_number: "Wrong number", not_needed: "Not needed", moved_away: "Moved away", deceased: "Deceased", note: "Note",
 };
 
-function VisitDrawer({ patientId, visitId, onClose }: { patientId: number; visitId: number; onClose: () => void }) {
+export function VisitDrawer({ patientId, visitId, onClose }: { patientId: number; visitId: number; onClose: () => void }) {
   const q = useQuery({ queryKey: ["visit", visitId], queryFn: () => api(`/patients/${patientId}/visits/${visitId}`) });
   const v = q.data?.visit;
   const row = (label: string, re: any, le: any) => (re || le) && <tr><th>{label}</th><td>{re ?? "—"}</td><td>{le ?? "—"}</td></tr>;
@@ -88,6 +88,7 @@ export function PatientPage() {
             {p.mobile && <>, <a href={`tel:${p.mobile}`}>{p.mobile}</a></>}{p.vipCategory && <span className="tag vip" style={{ marginLeft: 6 }}>{p.vipCategory}</span>}</div>
         </div>
         <span className="grow" />
+        {can("clinical.read") && <Link className="btn" to={`/patients/${p.patientId}/summary`}>Doctor summary</Link>}
         {can("followups.write") && <button onClick={() => setLogging(true)}>Log a call</button>}
         {can("appointments.write") && <button className="btn-primary" onClick={() => setBooking(true)}>Book appointment</button>}
       </div>

@@ -376,3 +376,29 @@ a.month-cell:hover { border-color: var(--choroid-2); }
 .settings-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.2rem; align-items: start; }
 table.list.compact td, table.list.compact th { padding: 0.3rem 0.55rem; }
 .narrow-input { width: 6.5rem; }
+
+/* doctor summary (D-026) */
+.ds { max-width: 1180px; }
+.ds-head { background: var(--choroid); color: #fff; border-radius: var(--radius-m); padding: 1rem 1.3rem; display: flex; flex-wrap: wrap; gap: 0.8rem 2rem; align-items: flex-end; }
+.ds-head h1 { color: #fff; margin: 0 0 0.2rem; }
+.ds-id { flex: 1 1 320px; color: #e3ecf1; }
+.ds-today { color: #e3ecf1; }
+.ds-today .small { color: #c9d8e1; }
+.ds-big { font-size: 1.15rem; font-weight: 700; color: #fff; }
+.ds-box { padding: 1rem 1.2rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.ds-box h2 { margin: 0; font-size: 1.1rem; }
+.ds-title { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; align-items: baseline; }
+.ds-ai { font-size: 0.8rem; font-weight: 700; color: #6b4a00; background: var(--disc-soft); padding: 0.15rem 0.5rem; border-radius: var(--radius-s); }
+.ds-overview { margin: 0; font-size: 1.08rem; line-height: 1.5; }
+.ds-alerts { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.ds-alert { flex: 1 1 220px; border-radius: var(--radius-s); padding: 0.6rem 0.9rem; background: var(--line-soft); }
+.ds-alert.red { background: var(--vessel-soft); color: #7a2414; }
+.ds-alert.amber { background: var(--disc-soft); color: #5a3e00; }
+.ds-alert.teal { background: var(--action-soft); color: #0a4f53; }
+.ds-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 1rem; }
+.ds-note { background: var(--action-soft); border-radius: var(--radius-s); padding: 0.55rem 0.9rem; }
+.ds-dl { margin: 0; display: grid; grid-template-columns: minmax(0, 9rem) minmax(0, 1fr); gap: 0.45rem 0.9rem; }
+.ds-dl dt { font-weight: 700; color: var(--ink-soft); }
+.ds-dl dd { margin: 0; white-space: pre-wrap; }
+.scroll-x { overflow-x: auto; }
+.ds button.link { color: var(--action); text-decoration-color: currentColor; }
