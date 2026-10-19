@@ -54,7 +54,7 @@ First-time install of the server only: `scripts\install-server.ps1` (already don
 
 Never type a password into a command line; the CLI generates one.
 
-**Metabase** (`http://shichika:3000`) has its own logins. First login: `pavin@sampadavr.com` with the temporary
+**Metabase** (`http://shichika:3000`) has its own logins. First login: `admin@gs.sampadavr.com` with the temporary
 password `METABASE_ADMIN_PASSWORD` from `.env`; change it at once (profile > Account settings). Add other managers in
 Metabase > Admin > People. `scripts\metabase_setup.py` uses its own API key (`METABASE_API_KEY`), so password changes do
 not affect it.
@@ -63,7 +63,7 @@ not affect it.
 |---|---|
 | Change a dashboard | Edit the question's SQL or place in `scripts\metabase_dashboards.py`, then `& $py scripts\metabase_setup.py`. Dashboards and questions with the managed names are replaced; to keep your own changes, save a copy under another name. |
 | Rebuild the numbers now | `& $py sync\yarago_sync.py analytics` (about 7 s) |
-| Weekly email | Monday 07:00, "Clinic week" to pavin@sampadavr.com, sent as admin@gs.sampadavr.com via Gmail (`METABASE_SMTP_*` in `.env`; check with `scripts\check_smtp.py`). |
+| Weekly email | Monday 07:00, "Clinic week" to admin@gs.sampadavr.com, sent as admin@gs.sampadavr.com via Gmail (`METABASE_SMTP_*` in `.env`; check with `scripts\check_smtp.py`). |
 | Reinstall / upgrade | `scripts\install-metabase.ps1` (version and checksums pinned at the top). |
 | Approve diagnosis groups | Dr. Sameera reviews `analytics.category_rule` and sets `approved = true` per rule; text no rule groups: `app.analytics_unmatched`. |
 

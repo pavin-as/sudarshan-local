@@ -138,7 +138,8 @@ not a hash, so it cannot be recomputed from a patient id. (4) **Staff-typed text
 (cancel reasons grouped by keyword). (5) **Metabase v0.63.19 on its own Java 21 runtime**, both pinned with SHA-256,
 with its settings in its own PostgreSQL database; dashboards are defined in code (`scripts/metabase_dashboards.py`) so
 they can be rebuilt. (6) **Weekly email via Gmail (admin@gs.sampadavr.com)**: the sampadavr.com Zoho mail is on the
-free plan, which does not allow SMTP. (7) Large money totals shown in lakh, as Metabase cannot group digits the Indian way.
+free plan, which does not allow SMTP. Mail to pavin@sampadavr.com was blocked, so the Metabase login and the weekly
+email both use admin@gs.sampadavr.com (Pavin, 19 Oct). (7) Large money totals shown in lakh, as Metabase cannot group digits the Indian way.
 Not built: patient geography (no PIN/area in Yarago), surgery advised-not-done (no surgery advice recorded).
 
 ## Proposed (not yet decided)

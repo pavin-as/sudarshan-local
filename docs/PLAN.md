@@ -191,7 +191,7 @@ it ran; optionally a read-only connector for Claude over the de-identified table
 **First Metabase dashboards:** Clinic week (volume, utilisation, did-not-come, waits), Retina care (injection
 adherence, follow-up leakage, advised-not-done by diagnosis), Money (revenue, collections, dues), Front desk
 (confirmations, reschedules). Weekly email of "Clinic week" to Pavin on Monday 07:00, sent from admin@gs.sampadavr.com
-(Google Workspace, `smtp.gmail.com`, app password; replies go back to admin@gs.sampadavr.com) to pavin@sampadavr.com. Zoho Mail is
+(Google Workspace, `smtp.gmail.com`, app password; replies go back to admin@gs.sampadavr.com) to admin@gs.sampadavr.com. Zoho Mail is
 on the free plan, which does not allow SMTP. Credentials in `.env` (`METABASE_SMTP_USER`, `METABASE_SMTP_PASSWORD`,
 optional `METABASE_SMTP_HOST`/`PORT`); check with `scripts/check_smtp.py`.
 

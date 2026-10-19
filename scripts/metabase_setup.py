@@ -1,13 +1,13 @@
 """Configure Metabase for Sudarshan through its API (run by install-metabase.ps1; safe to run again).
     python scripts\\metabase_setup.py
-- first run: creates the admin login (pavin@sampadavr.com, temporary password METABASE_ADMIN_PASSWORD in .env) and an
+- first run: creates the admin login (admin@gs.sampadavr.com, temporary password METABASE_ADMIN_PASSWORD in .env) and an
   API key for this script (METABASE_API_KEY, added to .env); later runs use the key, so a changed password does not matter
 - the database connection "Sudarshan analytics" as sudarshan_bi (analytics schema only)
 - outgoing mail through Gmail (METABASE_SMTP_* in .env)
 - collection "Sudarshan", the questions and the four dashboards defined in scripts/metabase_dashboards.py
   (questions and dashboards with the same name are updated in place, so edits made in Metabase to those are replaced;
   copy a dashboard under another name to keep your own version)
-- the weekly email of "Clinic week" to pavin@sampadavr.com, Monday 07:00
+- the weekly email of "Clinic week" to admin@gs.sampadavr.com, Monday 07:00
 Never prints a password or key.
 """
 import json
@@ -23,9 +23,9 @@ from metabase_dashboards import COLLECTION, DASHBOARDS  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 ENV = ROOT / ".env"
 BASE = "http://127.0.0.1:3000"
-ADMIN_EMAIL = "pavin@sampadavr.com"
+ADMIN_EMAIL = "admin@gs.sampadavr.com"
 DB_NAME = "Sudarshan analytics"
-SUBSCRIBE = ("Clinic week", "pavin@sampadavr.com", "mon", 7)
+SUBSCRIBE = ("Clinic week", "admin@gs.sampadavr.com", "mon", 7)
 
 
 def read_env():

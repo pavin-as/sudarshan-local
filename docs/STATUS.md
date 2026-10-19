@@ -81,8 +81,8 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       02:30 by the sync service, 7 s), login `sudarshan_bi` (analytics only, checked), Metabase v0.63.19 service
       `SudarshanMetabase` at http://shichika:3000 (LAN only, Java 21 pinned, own database `metabase` in the nightly backup),
       dashboards Clinic week / Retina care / Money / Front desk (35 questions), weekly "Clinic week" email Monday 07:00 to
-      pavin@sampadavr.com from admin@gs.sampadavr.com via Gmail (test sent 19 Oct). Definitions and source checks: METRICS.md.
-- [ ] Pavin: first Metabase login (pavin@sampadavr.com, temporary password METABASE_ADMIN_PASSWORD in `.env`), change it.
+      admin@gs.sampadavr.com from admin@gs.sampadavr.com via Gmail (test sent 19 Oct). Definitions and source checks: METRICS.md.
+- [ ] Pavin: first Metabase login (admin@gs.sampadavr.com, temporary password METABASE_ADMIN_PASSWORD in `.env`), change it.
 - [ ] Pavin: confirm September's injection count (analytics says 16 given) and the other September figures in METRICS.md.
 - [ ] Dr. Sameera: approve the diagnosis-group and visit-purpose rules (`analytics.category_rule`); review
       `app.analytics_unmatched`. Confirm the injection-adherence definition (post-injection follow-up within 7 days).

@@ -150,4 +150,4 @@ Write-Host "  Metabase answering on http://shichika:$port"
 Write-Host "`n=== 7. Connection, mail, dashboards ===" -ForegroundColor Cyan
 Set-Location $App
 & $py scripts\metabase_setup.py; if ($LASTEXITCODE) { throw 'metabase_setup.py failed' }
-Write-Host "`nDone. Open http://shichika:$port - first login: pavin@sampadavr.com with the temporary password METABASE_ADMIN_PASSWORD in .env; change it at once." -ForegroundColor Green
+Write-Host "`nDone. Open http://shichika:$port - first login: admin@gs.sampadavr.com with the temporary password METABASE_ADMIN_PASSWORD in .env; change it at once." -ForegroundColor Green
