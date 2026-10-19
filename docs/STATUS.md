@@ -91,6 +91,7 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       counts (confirmation calls, follow-ups, waitlist, rule warnings), today's median waits. API `GET /api/today`,
       `GET /api/huddle`. During the trial the booking figures are those imported on 18 Oct; live in-clinic data is real.
 - [x] Direct calls (`/calls`) and cancel list (`/cancelled`), 19 Oct (migration 0007).
+- [x] Month view (`/month`), 19 Oct.
 - [x] Triage (`/triage`), 19 Oct: same questions and scoring as the Google app (checked on all 212 imported assessments).
 - [ ] Pavin: the Google app stopped front-desk (level 4) logins from logging direct calls for *old* patients. Not
       carried over; say if it is still wanted.

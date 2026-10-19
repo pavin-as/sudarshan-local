@@ -20,6 +20,7 @@ import { HuddlePage } from "./pages/Huddle";
 import { DirectCallsPage, useDirectCalls } from "./pages/DirectCalls";
 import { CancelListPage, useCancelList } from "./pages/CancelList";
 import { TriagePage, useTriage } from "./pages/Triage";
+import { MonthPage } from "./pages/Month";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 20_000, refetchOnWindowFocus: true, retry: (n, e: any) => n < 2 && !(e?.status >= 400 && e?.status < 500) } },
@@ -57,6 +58,7 @@ function Shell() {
         <div className="brand"><span className="brand-mark" aria-hidden="true" /><div><b>Sudarshan</b><span>Sampada VR</span></div></div>
         <NavLink to="/today">Today</NavLink>
         <NavLink to="/" end>Day board</NavLink>
+        <NavLink to="/month">Month</NavLink>
         {can("appointments.write") && <NavLink to="/confirm">Confirmation calls {!!due.data && <span className="count">{due.data}</span>}</NavLink>}
         <NavLink to="/calls">Direct calls {!!calls && <span className="count">{calls}</span>}</NavLink>
         <NavLink to="/cancelled">Cancel list {!!toCallBack && <span className="count">{toCallBack}</span>}</NavLink>
@@ -80,6 +82,7 @@ function Shell() {
           <Route path="/calls" element={<DirectCallsPage />} />
           <Route path="/cancelled" element={<CancelListPage />} />
           <Route path="/triage" element={<TriagePage />} />
+          <Route path="/month" element={<MonthPage />} />
           <Route path="/confirm" element={<ConfirmationsPage />} />
           <Route path="/patients" element={<PatientsPage />} />
           <Route path="/patients/:id" element={<PatientPage />} />

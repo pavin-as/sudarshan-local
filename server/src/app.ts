@@ -21,6 +21,7 @@ import { todayRoutes } from "./routes/today.js";
 import { directCallRoutes } from "./routes/directCalls.js";
 import { cancelListRoutes } from "./routes/cancelList.js";
 import { triageRoutes } from "./routes/triage.js";
+import { monthRoutes } from "./routes/month.js";
 
 export async function buildApp(opts: { logger?: boolean } = {}): Promise<FastifyInstance> {
   const app = Fastify({
@@ -98,5 +99,6 @@ export async function buildApp(opts: { logger?: boolean } = {}): Promise<Fastify
   await app.register(directCallRoutes);
   await app.register(cancelListRoutes);
   await app.register(triageRoutes);
+  await app.register(monthRoutes);
   return app;
 }

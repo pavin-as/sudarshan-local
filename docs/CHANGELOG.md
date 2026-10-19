@@ -5,6 +5,9 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Month view** (`/month`): the month as a Monday-Sunday calendar; each day shows booked of maximum slots (red when
+  over), waitlist, new patients, injections / lasers / ROP / HFA / AT-Gonio planned, and scheduling-rule warnings for
+  days still to come; month totals on top; a click opens the day board. Technical: `routes/month.ts`, `pages/Month.tsx`.
 - **Triage** (`/triage`): the Google app's seven urgency questions, word for word, with the result shown as the
   answers are picked (any serious answer = Emergency, else any moderate = Urgent, else Not urgent). Save, then book
   straight away (the booking dialog opens with the urgency set; the decision "Booked: today / tomorrow / later date"

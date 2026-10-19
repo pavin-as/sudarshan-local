@@ -44,6 +44,8 @@ try {
   await get("Today page (live from the station timer)", "/api/today",
     (b) => `${b.inClinicCount} in clinic, ${b.checkedOut} checked out, ${b.walkIns} without a booking, median total ${b.waits.total ?? "-"} min`);
   await get("direct calls, open", "/api/direct-calls", (b) => `${b.calls.length} open (${JSON.stringify(b.counts)})`);
+  await get("month view, this month", "/api/month", (b) => `${b.days.length} days, ${b.days.reduce((n: number, d: any) => n + d.booked, 0)} booked`);
+  await get("month view, next month", `/api/month?month=${addDays(today, 31).slice(0, 7)}`, (b) => `${b.days.length} days`);
   await get("triage, waiting for a decision", "/api/triage", (b) => `${b.assessments.length} pending`);
   await get("cancel list, to call", "/api/cancel-list", (b) => `${b.appointments.length} to call, ${b.counts.all} on the list`);
   await get("huddle sheet, next working day", "/api/huddle",
