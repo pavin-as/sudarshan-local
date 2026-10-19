@@ -11,16 +11,28 @@ import { FromGoogle, googleIsMaster, guardImported } from "../lib/trial.js";
 import { addEvent, checkPlacement, describe, setAuditSummary, whenText, type Override } from "../services/booking.js";
 
 // Live state from Yarago for a booking on its day: has the patient arrived, where are they now.
+// Yarago sometimes opens two appointments for one patient on one day (checked in on the first, checked out on the
+// second, 19 Oct): the live stage is the PATIENT's day, so the most advanced appointment and all of that day's timers.
 const LIVE_JOIN = `
   LEFT JOIN LATERAL (
     SELECT ya.aappoint_id AS visit_id, ya.nstatus_id AS status_id
       FROM yarago.tblappointments ya
      WHERE ya.npatient_id = a.patient_id
        AND ya.tappoint_date_time >= a.appointment_date AND ya.tappoint_date_time < a.appointment_date + 1
-     ORDER BY (ya.nstatus_id = 4), ya.tappoint_date_time
+     ORDER BY (ya.nstatus_id = 4), ya.nstatus_id DESC, ya.tappoint_date_time
      LIMIT 1) yv ON a.patient_id IS NOT NULL
   LEFT JOIN app.code_labels yl ON yl.kind = 'appointment_status' AND yl.code = yv.status_id
-  LEFT JOIN clinical.visit_timeline tl ON tl.visit_id = yv.visit_id`;
+  LEFT JOIN LATERAL (
+    SELECT min(w.startdatetime) FILTER (WHERE w.nmoduletimerid = 1) AS check_in_at,
+           min(w.startdatetime) FILTER (WHERE w.nmoduletimerid = 2) AS optometry_start_at,
+           max(w.enddatetime)   FILTER (WHERE w.nmoduletimerid = 2) AS optometry_end_at,
+           min(w.startdatetime) FILTER (WHERE w.nmoduletimerid = 3) AS room_in_at,
+           min(w.startdatetime) FILTER (WHERE w.nmoduletimerid = 4) AS exam_start_at,
+           min(w.startdatetime) FILTER (WHERE w.nmoduletimerid = 6) AS exam_after_dilatation_at,
+           max(w.enddatetime)   FILTER (WHERE w.nmoduletimerid = 8) AS check_out_at
+      FROM yarago.tbltimerpatientwaiting w
+     WHERE w.npatid = a.patient_id AND coalesce(w.isdeleted, 0) = 0
+       AND w.startdatetime >= a.appointment_date AND w.startdatetime < a.appointment_date + 1) tl ON a.patient_id IS NOT NULL`;
 
 const APPT_COLS = `
   a.id, to_char(a.appointment_date,'YYYY-MM-DD') AS "date", to_char(a.slot_time,'HH24:MI') AS "slotTime",

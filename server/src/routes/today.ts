@@ -30,10 +30,12 @@ export async function todayRoutes(app: FastifyInstance) {
     need(req, "appointments.read");
     const today = todayIST(), next = await nextOpenDay(today);
 
-    // patients in the clinic now: checked in today, not checked out (timers older than 10 hours are ignored)
+    // patients in the clinic now: checked in today, not checked out (timers older than 10 hours are ignored). Per PATIENT,
+    // not per Yarago appointment: Yarago sometimes opens a second appointment and checks the patient out on that one.
+    // Done = checked out on any of the day's appointments, or any of them completed in Yarago.
     const visits = await q<any>(
       `WITH t AS (
-         SELECT napptid AS visit_id, max(npatid) AS patient_id,
+         SELECT max(napptid) AS visit_id, npatid AS patient_id,
                 min(startdatetime) FILTER (WHERE nmoduletimerid = 1) AS check_in_at,
                 min(startdatetime) FILTER (WHERE nmoduletimerid = 2) AS optometry_start_at,
                 max(enddatetime)   FILTER (WHERE nmoduletimerid = 2) AS optometry_end_at,
@@ -43,10 +45,11 @@ export async function todayRoutes(app: FastifyInstance) {
                 max(startdatetime) AS last_move_at
            FROM yarago.tbltimerpatientwaiting
           WHERE coalesce(isdeleted, 0) = 0 AND startdatetime >= current_date AND startdatetime < current_date + 1
-          GROUP BY napptid)
+          GROUP BY npatid)
        SELECT t.visit_id AS "visitId", t.patient_id AS "patientId", p.name AS "patientName", p.mrd,
               to_char(t.check_in_at, 'HH24:MI') AS "checkIn", to_char(t.check_out_at, 'HH24:MI') AS "checkOut",
-              CASE WHEN t.check_out_at IS NOT NULL THEN 'done'
+              CASE WHEN t.check_out_at IS NOT NULL OR EXISTS (SELECT 1 FROM yarago.tblappointments y WHERE y.npatient_id = t.patient_id
+                     AND y.tappoint_date_time >= current_date AND y.tappoint_date_time < current_date + 1 AND y.nstatus_id = 3) THEN 'done'
                    WHEN t.exam_start_at IS NOT NULL THEN 'with_doctor'
                    WHEN t.room_in_at IS NOT NULL OR t.optometry_end_at IS NOT NULL THEN 'waiting_for_doctor'
                    WHEN t.optometry_start_at IS NOT NULL THEN 'optometry'

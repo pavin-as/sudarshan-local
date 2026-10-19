@@ -5,6 +5,11 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Fix: patients shown "in clinic" after Yarago checked them out.** Yarago can open two appointments for one patient on
+  one day (checked in on the first, checked out on the second; 8% of patient-days in the last 90 days have two or more,
+  many of them a same-day injection or laser). Today and the day board now follow the patient's day: the most advanced
+  Yarago appointment and all of that day's station timers; done once any of them is checked out or completed.
+  Reported by Pavin for a patient on 19 Oct. A patient who returns for a second visit after checking out shows as done.
 - **Print and Print POA on the day board** (D-029), as in the Google app's Day Overview: the day list sorted by consult
   start or check-in time, with "adjust for doctor's late arrival" (enter the doctor's actual start; every consult
   start moves by the delay, planned time struck through), and the list grouped by plan of action. Counts and the
