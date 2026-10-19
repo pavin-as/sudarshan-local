@@ -313,7 +313,7 @@ def run(data, conn, dry_run=False):
     cur.execute("UPDATE app.direct_calls SET appointment_id = NULL WHERE appointment_id IN (SELECT id FROM app.appointments WHERE legacy_id IS NOT NULL)")
     cur.execute("DELETE FROM app.appointments WHERE legacy_id IS NOT NULL")
     seen, events = set(), []
-    order = [("appointment", "active"), ("cancel", "cancelled"), ("old_cancel", "cancelled"),
+    order = [("appointment", "active"), ("cancel", "cancelled"), ("old_cancel", "old_cancel"),
              ("Archive", "archived_cancel"), ("appointment_archive", "past")]
     for sheet, kind in order:
         for r in R.get(sheet, []):
@@ -346,8 +346,8 @@ def run(data, conn, dry_run=False):
               INSERT INTO app.appointments (appointment_date, slot_time, doctor_id, mrd, patient_name, phone, age_years, gender,
                 patient_type, appointment_type, plan_of_action, urgency, family_group, fixed_slot, consult_start, tags, remarks,
                 status, source, source_ref, confirmed_4day_at, confirmed_4day_by, confirmed_1day_at, confirmed_1day_by,
-                cancelled_at, cancelled_by, booked_by, booked_at, legacy_id)
-              VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'import',%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                cancelled_at, cancelled_by, booked_by, booked_at, legacy_id, callback_on, cancel_list_done_at, cancel_list_note)
+              VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'import',%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
               RETURNING id""",
               (day, to_time(r.get("TimeSlot")), doctor_id(r.get("Doctor")), (txt(r.get("MRDNo")) or "").upper() or None, name,
                txt(r.get("Phone")), to_int(r.get("Age")), txt(r.get("Gender")),
@@ -358,7 +358,13 @@ def run(data, conn, dry_run=False):
                to_ts(r.get("OneDayConfirmDate")), user_id(r.get("OneDayConfirmBy")),
                to_ts(r.get("Deleted On")) if status == "cancelled" else None,
                user_id(r.get("Deleted by")) if status == "cancelled" else None,
-               user_id(r.get("BookedBy")), to_ts(r.get("BookingDate")) or dt.datetime.now(), lid))
+               user_id(r.get("BookedBy")), to_ts(r.get("BookingDate")) or dt.datetime.now(), lid,
+               # cancel list (0007): call-back date, and rows archived from the cancel list are off it
+               to_date(r.get("Call back date")) if status == "cancelled" else None,
+               (to_ts(r.get("Archive date")) or to_ts(r.get("Archived on")) or to_ts(r.get("Deleted On")) or dt.datetime.now())
+               if kind in ("archived_cancel", "old_cancel") else None,
+               {"archived_cancel": "Archived from the cancel list in the Google app",
+                "old_cancel": "Old cancellation (old_cancel sheet in the Google app)"}.get(kind)))
             new_id = cur.fetchone()[0]
             counts[f"appointments ({sheet})"] += 1
             history = {k: txt(r.get(k)) for k in ("RescheduleHistory", "AppointmentJourney", "Call back date",

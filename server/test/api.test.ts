@@ -32,6 +32,7 @@ async function cleanup() {
   await pool.query(`BEGIN; SET LOCAL app.skip_audit = 'on';
     DELETE FROM app.followup_actions WHERE actor_id IN (SELECT id FROM app.users WHERE username LIKE 'zz_test%');
     DELETE FROM app.appointment_events WHERE appointment_id IN (SELECT id FROM app.appointments WHERE patient_name LIKE 'ZZ Test%');
+    DELETE FROM app.direct_calls WHERE patient_name LIKE 'ZZ Test%';
     DELETE FROM app.appointments WHERE patient_name LIKE 'ZZ Test%';
     DELETE FROM app.doctor_exceptions WHERE doctor_id IN (SELECT id FROM app.doctors WHERE name LIKE 'Dr ZZ Test%');
     DELETE FROM app.doctor_schedule WHERE doctor_id IN (SELECT id FROM app.doctors WHERE name LIKE 'Dr ZZ Test%');
@@ -284,6 +285,72 @@ try {
     assert.ok(r.body.appointments.some((a: any) => a.id === ruleAppt));
     assert.ok(r.body.findings.some((f: any) => f.code === "NEW_PATIENT_BEFORE_TIME"));
     assert.ok(r.body.summary.booked >= 1);
+  });
+
+  console.log("direct calls");
+  let callId = 0;
+  await step("a direct call from a new patient needs a phone number", async () => {
+    const r = await call("POST", "/api/direct-calls", staff, { callType: "Appointment", patientName: "ZZ Test Caller" });
+    assert.equal(r.status, 400);
+  });
+  await step("staff log a direct call; doctors may read but not log", async () => {
+    assert.equal((await call("POST", "/api/direct-calls", doctor, { callType: "Enquiry", patientName: "ZZ Test Caller", phone: "9000000088" })).status, 403);
+    const r = await call("POST", "/api/direct-calls", staff, { callType: "Appointment", urgency: "Urgent", caseType: "Referral",
+      patientName: "ZZ Test Caller", phone: "9000000088", ageYears: 61, remarks: "Sudden blur, referred by Dr X" });
+    assert.equal(r.status, 200); callId = r.body.call.id;
+    assert.equal(r.body.call.status, "open"); assert.equal(r.body.call.patientType, "New");
+    const list = await call("GET", "/api/direct-calls?view=open", doctor);
+    assert.ok(list.body.calls.some((c: any) => c.id === callId));
+  });
+  await step("closing a call needs a reason; it can be opened again", async () => {
+    assert.equal((await call("POST", `/api/direct-calls/${callId}/close`, staff, { outcome: "answered", reason: "" })).status, 400);
+    const r = await call("POST", `/api/direct-calls/${callId}/close`, staff, { outcome: "not_booked", reason: "Will come next month" });
+    assert.equal(r.status, 200); assert.equal(r.body.call.status, "cancelled"); assert.equal(r.body.call.closeReason, "Will come next month");
+    assert.equal((await call("POST", `/api/direct-calls/${callId}/close`, staff, { outcome: "answered", reason: "again" })).status, 409);
+    const o = await call("POST", `/api/direct-calls/${callId}/reopen`, staff, {});
+    assert.equal(o.body.call.status, "open");
+  });
+  await step("booking from a call marks the call booked and links the booking", async () => {
+    const b = await call("POST", "/api/appointments", staff, { date: D2, slotTime: "13:30", patientName: "ZZ Test Caller", phone: "9000000088",
+      source: "direct_call", sourceRef: String(callId) });
+    assert.equal(b.status, 200);
+    const list = await call("GET", "/api/direct-calls?view=booked", staff);
+    const c = list.body.calls.find((x: any) => x.id === callId);
+    assert.equal(c.appointmentId, b.body.appointment.id); assert.equal(c.appointmentDate, D2);
+  });
+
+  console.log("cancel list");
+  let cl = 0;
+  await step("a cancelled booking is on the cancel list, with its call-back date", async () => {
+    const b = await call("POST", "/api/appointments", staff, { date: D2, slotTime: "13:40", patientName: "ZZ Test Cancelled", phone: "9000000099" });
+    cl = b.body.appointment.id;
+    const c = await call("POST", `/api/appointments/${cl}/cancel`, staff, { reason: "Travelling", callbackOn: addDays(todayIST(), 3) });
+    assert.equal(c.status, 200);
+    const all = await call("GET", "/api/cancel-list?view=all", staff);
+    const row = all.body.appointments.find((a: any) => a.id === cl);
+    assert.ok(row); assert.equal(row.callbackOn, addDays(todayIST(), 3));
+    const toCall = await call("GET", "/api/cancel-list?view=to_call", staff);
+    assert.ok(!toCall.body.appointments.some((a: any) => a.id === cl), "not due yet, so not in 'to call'");
+  });
+  await step("a call-back call is recorded in the booking's story", async () => {
+    const r = await call("POST", `/api/appointments/${cl}/callback`, staff, { note: "No answer", callbackOn: null });
+    assert.equal(r.status, 200); assert.equal(r.body.appointment.callbackOn, null);
+    assert.match(r.body.appointment.lastCallNote, /No answer/);
+    const toCall = await call("GET", "/api/cancel-list?view=to_call", staff);
+    assert.ok(toCall.body.appointments.some((a: any) => a.id === cl));
+  });
+  await step("taking a booking off the list needs a reason; it can be put back; cancelling again puts it back on", async () => {
+    assert.equal((await call("POST", `/api/appointments/${cl}/cancel-list`, staff, { onList: false })).status, 409);
+    const off = await call("POST", `/api/appointments/${cl}/cancel-list`, staff, { onList: false, note: "Treated elsewhere" });
+    assert.equal(off.status, 200); assert.ok(off.body.appointment.doneAt);
+    const done = await call("GET", "/api/cancel-list?view=done", staff);
+    assert.ok(done.body.appointments.some((a: any) => a.id === cl));
+    const back = await call("POST", `/api/appointments/${cl}/cancel-list`, staff, { onList: true });
+    assert.equal(back.body.appointment.doneAt, null);
+    const restored = await call("POST", `/api/appointments/${cl}/move`, staff, { date: D2, slotTime: "13:50" });
+    assert.equal(restored.status, 200);
+    const all = await call("GET", "/api/cancel-list?view=all", staff);
+    assert.ok(!all.body.appointments.some((a: any) => a.id === cl), "rebooked: off the list");
   });
 
   console.log("patients, follow-ups (empty Yarago mirror in the test DB)");

@@ -43,6 +43,8 @@ try {
   await get("tomorrow's scheduling rules", `/api/rules/day?date=${addDays(today, 1)}`, ruleCount);
   await get("Today page (live from the station timer)", "/api/today",
     (b) => `${b.inClinicCount} in clinic, ${b.checkedOut} checked out, ${b.walkIns} without a booking, median total ${b.waits.total ?? "-"} min`);
+  await get("direct calls, open", "/api/direct-calls", (b) => `${b.calls.length} open (${JSON.stringify(b.counts)})`);
+  await get("cancel list, to call", "/api/cancel-list", (b) => `${b.appointments.length} to call, ${b.counts.all} on the list`);
   await get("huddle sheet, next working day", "/api/huddle",
     (b) => `${b.date}: ${b.summary.booked} booked, ${b.summary.newPatients} new, ${b.summary.notConfirmed} not confirmed, ${b.findings.length} rule findings`);
   const s = await get("patient search 'SPD'", "/api/patients/search?q=SPD", (b) => `${b.patients.length} found`);

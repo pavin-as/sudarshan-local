@@ -90,6 +90,9 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       from Yarago's station timer (longest first), arrivals without a Sudarshan booking, next 7 days against capacity, to-do
       counts (confirmation calls, follow-ups, waitlist, rule warnings), today's median waits. API `GET /api/today`,
       `GET /api/huddle`. During the trial the booking figures are those imported on 18 Oct; live in-clinic data is real.
+- [x] Direct calls (`/calls`) and cancel list (`/cancelled`), 19 Oct (migration 0007).
+- [ ] Pavin: the Google app stopped front-desk (level 4) logins from logging direct calls for *old* patients. Not
+      carried over; say if it is still wanted.
 - [ ] Importer: 27 imported bookings have the time 00:00 (4 upcoming), probably bookings without a time in the Google app;
       import them as waitlist instead (confirm with Pavin).
 - [ ] Importer: 1,828 imported bookings had no BookingDate and were stamped with the import day; store NULL instead

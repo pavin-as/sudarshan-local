@@ -339,3 +339,6 @@ b.warn-text { color: #8a5a00; }
   .huddle-table tr { break-inside: avoid; }
   .rule-note { background: none !important; }
 }
+.row.actions { flex-wrap: nowrap; justify-content: flex-end; gap: 0.35rem; }
+@media (max-width: 760px) { .row.actions { flex-wrap: wrap; } }
+.row.actions button { white-space: nowrap; }

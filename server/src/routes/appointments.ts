@@ -282,13 +282,15 @@ export async function appointmentRoutes(app: FastifyInstance) {
   app.post("/api/appointments/:id/cancel", async (req) => {
     const me = need(req, "appointments.write");
     const { id } = idParam.parse(req.params);
-    const { reason } = z.object({ reason: z.string().trim().min(2).max(300) }).parse(req.body);
+    const { reason, callbackOn } = z.object({ reason: z.string().trim().min(2).max(300), callbackOn: dateStr.nullable().optional() }).parse(req.body);
     return withTx(auditCtx(req), async (c) => {
       const cur = await lockRow(c, id);
       if (["cancelled", "completed", "no_show"].includes(cur.status)) throw conflict(`This appointment is already ${cur.status.replace("_", " ")}`);
       await setAuditSummary(c, `Cancelled ${describe(cur)}'s appointment on ${whenText(cur.appointment_date, cur.slot_time)}: ${reason}`);
-      await c.query(`UPDATE app.appointments SET status = 'cancelled', cancelled_at = now(), cancelled_by = $2, cancel_reason = $3 WHERE id = $1`,
-                    [id, me.id, reason]);
+      // a cancelled booking goes on the cancel list (again), with a call-back date if one was given
+      await c.query(`UPDATE app.appointments SET status = 'cancelled', cancelled_at = now(), cancelled_by = $2, cancel_reason = $3,
+                       callback_on = $4, cancel_list_done_at = NULL, cancel_list_done_by = NULL, cancel_list_note = NULL WHERE id = $1`,
+                    [id, me.id, reason, callbackOn ?? null]);
       await addEvent(c, id, me.id, "cancelled", { status: cur.status, slot: cur.slot_time }, { status: "cancelled" }, reason);
       return { appointment: await loadOne(id, c) };
     });

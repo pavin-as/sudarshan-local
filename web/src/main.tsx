@@ -17,6 +17,8 @@ import { CalendarPage } from "./pages/Calendar";
 import { ConfirmationsPage, useConfirmationList } from "./pages/Confirmations";
 import { TodayPage } from "./pages/Today";
 import { HuddlePage } from "./pages/Huddle";
+import { DirectCallsPage, useDirectCalls } from "./pages/DirectCalls";
+import { CancelListPage, useCancelList } from "./pages/CancelList";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 20_000, refetchOnWindowFocus: true, retry: (n, e: any) => n < 2 && !(e?.status >= 400 && e?.status < 500) } },
@@ -45,6 +47,8 @@ function Shell() {
   // confirmation calls still to make (same list as the Confirmation calls page)
   const conf = useConfirmationList();
   const due = { data: can("appointments.write") && conf.data ? new Set([...conf.data.oneDay, ...conf.data.fourDay].map((a) => a.id)).size : 0 };
+  const calls = useDirectCalls("open").data?.counts.open ?? 0;
+  const toCallBack = useCancelList("to_call").data?.counts.toCall ?? 0;
   return (
     <div className="shell">
       <nav className="nav" aria-label="Main">
@@ -52,6 +56,8 @@ function Shell() {
         <NavLink to="/today">Today</NavLink>
         <NavLink to="/" end>Day board</NavLink>
         {can("appointments.write") && <NavLink to="/confirm">Confirmation calls {!!due.data && <span className="count">{due.data}</span>}</NavLink>}
+        <NavLink to="/calls">Direct calls {!!calls && <span className="count">{calls}</span>}</NavLink>
+        <NavLink to="/cancelled">Cancel list {!!toCallBack && <span className="count">{toCallBack}</span>}</NavLink>
         <NavLink to="/patients">Patients</NavLink>
         <NavLink to="/followups">Follow-up calls</NavLink>
         {can("audit.read") && <NavLink to="/activity">Activity log</NavLink>}
@@ -68,6 +74,8 @@ function Shell() {
           <Route path="/" element={<BoardPage />} />
           <Route path="/today" element={<TodayPage />} />
           <Route path="/huddle" element={<HuddlePage />} />
+          <Route path="/calls" element={<DirectCallsPage />} />
+          <Route path="/cancelled" element={<CancelListPage />} />
           <Route path="/confirm" element={<ConfirmationsPage />} />
           <Route path="/patients" element={<PatientsPage />} />
           <Route path="/patients/:id" element={<PatientPage />} />

@@ -18,7 +18,8 @@ export function listOf(meta: Meta | undefined, key: string): string[] {
   return Array.isArray(v) ? v.map(String).filter(Boolean) : [];
 }
 
-export interface BookPreset { date: string; slotTime?: string | null; patient?: PickedPatient; source?: "booking" | "direct_call" | "followup" | "cancel_list"; sourceRef?: string; remarks?: string }
+export interface NewPatientPreset { name: string; phone: string | null; ageYears: number | null; gender: string | null }
+export interface BookPreset { date: string; slotTime?: string | null; patient?: PickedPatient; newPatient?: NewPatientPreset; source?: "booking" | "direct_call" | "followup" | "cancel_list"; sourceRef?: string; remarks?: string; urgency?: string; doctorId?: number | null }
 
 export function BookDialog({ preset, onClose, onBooked }: { preset: BookPreset; onClose: () => void; onBooked?: (id: number) => void }) {
   const meta = useMeta();
@@ -26,12 +27,13 @@ export function BookDialog({ preset, onClose, onBooked }: { preset: BookPreset; 
   const toast = useToast();
   const qc = useQueryClient();
   const [patient, setPatient] = useState<PickedPatient | null>(preset.patient ?? null);
-  const [newPatient, setNewPatient] = useState(false);
-  const [np, setNp] = useState({ name: "", phone: "", age: "", gender: "" });
+  const [newPatient, setNewPatient] = useState(!!preset.newPatient);
+  const [np, setNp] = useState({ name: preset.newPatient?.name ?? "", phone: preset.newPatient?.phone ?? "",
+                                 age: preset.newPatient?.ageYears != null ? String(preset.newPatient.ageYears) : "", gender: preset.newPatient?.gender ?? "" });
   const [date, setDate] = useState(preset.date);
   const [slot, setSlot] = useState<string | null>(preset.slotTime ?? null);
-  const [doctorId, setDoctorId] = useState<number | null>(null);
-  const [f, setF] = useState({ appointmentType: "", patientType: "", planOfAction: "", urgency: "", familyGroup: "", remarks: preset.remarks ?? "" });
+  const [doctorId, setDoctorId] = useState<number | null>(preset.doctorId ?? null);
+  const [f, setF] = useState({ appointmentType: "", patientType: "", planOfAction: "", urgency: preset.urgency ?? "", familyGroup: "", remarks: preset.remarks ?? "" });
   const [tags, setTags] = useState<string[]>([]);
   const [error, setError] = useState<unknown>(null);
   const [override, setOverride] = useState("");

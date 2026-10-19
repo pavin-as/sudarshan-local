@@ -5,6 +5,16 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Direct calls** (`/calls`): log a phone call (Yarago patient or new patient, appointment or enquiry, referral,
+  urgency, what they said), then book it straight from the call (the booking dialog opens with the caller's details)
+  or close it with a reason (enquiry answered / did not want an appointment); closed calls can be opened again.
+  Open calls are listed emergencies first, then longest waiting. The 63 calls open in the Google app are there.
+- **Cancel list** (`/cancelled`): cancelled bookings to call back - log each call with a call-again date, rebook
+  (Restore), or take the booking off the list with a reason; cancelling can set a call-back date. Shows when a patient
+  already has a new booking. Holds the same 61 bookings as the Google app's cancel sheet (archived and old_cancel rows
+  are off the list). Menu shows how many calls and call-backs are waiting; the Today page counts them too.
+  Technical: migration 0007, `routes/directCalls.ts`, `routes/cancelList.ts`, cancel accepts `callbackOn`, importer
+  fills call-back date and cancel-list state; API test steps for both lists.
 - **Today** page (first menu item): who is in the clinic right now and for how long (longest first, live from Yarago's
   station timer), patients who arrived without a Sudarshan booking, the next 7 days against maximum slots, and the work
   waiting (confirmation calls, follow-up calls, waitlists, scheduling-rule warnings) with links to where it is done.

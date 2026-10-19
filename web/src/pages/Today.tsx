@@ -9,6 +9,8 @@ import { addDays, dayLabel, niceDate, todayIST, weekdayName } from "../format";
 import { ErrorNotice, Loading, StageTrack } from "../components/ui";
 import { AppointmentDrawer } from "../components/AppointmentDrawer";
 import { useConfirmationList } from "./Confirmations";
+import { useDirectCalls } from "./DirectCalls";
+import { useCancelList } from "./CancelList";
 
 interface InClinic {
   visitId: number; patientId: number; patientName: string | null; mrd: string | null; checkIn: string; stage: LiveStage;
@@ -41,6 +43,8 @@ export function TodayPage() {
   const fu = useQuery({ queryKey: ["followups", "to_call", "count"], enabled: can("patients.read"), staleTime: 5 * 60_000,
     queryFn: () => api<{ followups: unknown[] }>("/followups?view=to_call&limit=500").then((r) => r.followups.length) });
 
+  const calls = useDirectCalls("open").data?.counts.open;
+  const callBacks = useCancelList("to_call").data?.counts.toCall;
   const list = (appts.data ?? []).filter((a) => a.status !== "cancelled");
   const timed = list.filter((a) => a.slotTime && a.status !== "waitlist");
   const arrived = timed.filter((a) => a.liveStage && !["registered_not_arrived", "cancelled_in_yarago"].includes(a.liveStage) || ["checked_in", "completed"].includes(a.status));
@@ -110,6 +114,8 @@ export function TodayPage() {
             <div className="panel-pad stack todo">
               {can("appointments.write") && (
                 <Link to="/confirm" className="todo-item"><b>{confirmDue ?? "-"}</b><span>confirmation calls due</span></Link>)}
+              <Link to="/calls" className="todo-item"><b>{calls ?? "-"}</b><span>direct calls waiting for a booking or an answer</span></Link>
+              <Link to="/cancelled" className="todo-item"><b>{callBacks ?? "-"}</b><span>cancelled patients to call back</span></Link>
               {can("patients.read") && (
                 <Link to="/followups" className="todo-item"><b>{fu.data == null ? "-" : fu.data >= 500 ? "500+" : fu.data}</b><span>follow-up patients to call</span></Link>)}
               <Link to={waitDays.length ? `/?date=${waitDays[0].date}` : "/"} className="todo-item">
