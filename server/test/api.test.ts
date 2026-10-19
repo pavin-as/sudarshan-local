@@ -42,6 +42,7 @@ async function cleanup() {
     DELETE FROM app.holidays WHERE on_date IN ('${D1}','${D2}','${HOL}');
     DELETE FROM app.audit_log WHERE actor_id IN (SELECT id FROM app.users WHERE username LIKE 'zz_test%');
     DELETE FROM app.sessions WHERE user_id IN (SELECT id FROM app.users WHERE username LIKE 'zz_test%');
+    DELETE FROM app.print_log WHERE user_id IN (SELECT id FROM app.users WHERE username LIKE 'zz_test%');
     DELETE FROM app.users WHERE username LIKE 'zz_test%';
     COMMIT;`);
 }
@@ -61,6 +62,11 @@ await pool.query(`INSERT INTO app.doctor_schedule (doctor_id, weekday, start_tim
 await pool.query(`INSERT INTO app.day_capacity (on_date, max_slots) VALUES ($1, 3), ($2, 20)`, [D1, D2]);
 // the trial switch (D-025) is off for these tests, except in its own step
 await pool.query(`INSERT INTO app.settings (key, value) VALUES ('trial.google_master', 'false'::jsonb)
+                  ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`);
+// early booking limit (D-030): D1/D2 (10-11 days ahead) unlimited, so the capacity checks test capacity; the early
+// limit's own step books 20 days ahead (51%). The clinic's bands are put back afterwards.
+const earlyBefore = (await pool.query(`SELECT value FROM app.settings WHERE key = 'booking.early_thresholds'`)).rows[0]?.value ?? null;
+await pool.query(`INSERT INTO app.settings (key, value) VALUES ('booking.early_thresholds', '[{"days":15,"percentage":51},{"days":0,"percentage":100}]'::jsonb)
                   ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`);
 
 let admin = "", staff = "", doctor = "";
@@ -281,7 +287,7 @@ try {
     assert.equal((await call("GET", "/api/today")).status, 401);
     const r = await call("GET", "/api/today", doctor);
     assert.equal(r.status, 200);
-    assert.ok(Array.isArray(r.body.inClinic) && typeof r.body.walkIns === "number" && r.body.rules.length === 2);
+    assert.ok(Array.isArray(r.body.inClinic) && Array.isArray(r.body.came) && Array.isArray(r.body.booked) && r.body.rules.length === 2);
   });
   await step("huddle sheet lists the day's bookings with rule flags and a summary", async () => {
     const r = await call("GET", `/api/huddle?date=${D2}`, staff);
@@ -544,6 +550,8 @@ try {
   console.log(`\nall ${passed} checks passed`);
 } finally {
   await cleanup();
+  if (earlyBefore) await pool.query(`UPDATE app.settings SET value = $1 WHERE key = 'booking.early_thresholds'`, [JSON.stringify(earlyBefore)]);
+  else await pool.query(`DELETE FROM app.settings WHERE key = 'booking.early_thresholds'`);
   await app.close();
   await pool.end();
 }
