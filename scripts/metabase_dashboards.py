@@ -20,7 +20,8 @@ def lakh(*cols):
 
 
 def chart(dims, metrics, stacked=False, **extra):
-    v = {"graph.dimensions": dims, "graph.metrics": metrics, "graph.show_values": False}
+    v = {"graph.dimensions": dims, "graph.metrics": metrics, "graph.show_values": False,
+         "graph.x_axis.scale": "ordinal", "graph.x_axis.axis_enabled": "rotate-45"}
     if stacked:
         v["stackable.stack_type"] = "stacked"
     v.update(extra)
@@ -64,19 +65,19 @@ SELECT round(percentile_cont(0.5) WITHIN GROUP (ORDER BY total_min)::numeric) AS
 FROM analytics.fact_visit WHERE total_min IS NOT NULL AND {LAST_WEEK}
 """, "scalar", 2, 19, 5, 3),
         card("Completed visits per week", """
-SELECT date_trunc('week', visit_date)::date AS "Week",
+SELECT to_char(date_trunc('week', visit_date), 'FMDD Mon') AS "Week",
        count(*) FILTER (WHERE new_patient) AS "New patients", count(*) FILTER (WHERE NOT new_patient) AS "Returning patients"
 FROM analytics.fact_visit
 WHERE completed AND visit_date >= date_trunc('week', current_date)::date - 26 * 7 AND visit_date < date_trunc('week', current_date)::date
-GROUP BY 1 ORDER BY 1
+GROUP BY date_trunc('week', visit_date) ORDER BY date_trunc('week', visit_date)
 """, "bar", 5, 0, 12, 6, chart(["Week"], ["New patients", "Returning patients"], stacked=True)),
         card("Slots used per week", """
-SELECT d.week_start AS "Week", round(100.0 * sum(coalesce(b.n, 0)) / nullif(sum(d.max_slots), 0), 1) AS "Slots used %"
+SELECT to_char(d.week_start, 'FMDD Mon') AS "Week", round(100.0 * sum(coalesce(b.n, 0)) / nullif(sum(d.max_slots), 0), 1) AS "Slots used %"
 FROM analytics.dim_date d
 LEFT JOIN (SELECT appointment_date, count(*) AS n FROM analytics.fact_appointment WHERE timed AND NOT cancelled GROUP BY 1) b
        ON b.appointment_date = d.date
 WHERE d.open_for_booking AND d.date >= date_trunc('week', current_date)::date - 26 * 7 AND d.date < date_trunc('week', current_date)::date
-GROUP BY 1 HAVING sum(coalesce(b.n, 0)) > 0 ORDER BY 1
+GROUP BY d.week_start HAVING sum(coalesce(b.n, 0)) > 0 ORDER BY d.week_start
 """, "line", 5, 12, 12, 6, chart(["Week"], ["Slots used %"]), "Weeks with no bookings at all (clinic closed) are left out."),
         card("Did not come, by weekday (last 90 days)", """
 SELECT to_char(appointment_date, 'Dy') AS "Weekday", round(100.0 * avg(did_not_come::int), 1) AS "Did not come %", count(*) AS "Bookings"
@@ -97,14 +98,14 @@ FROM analytics.fact_visit WHERE completed AND visit_date >= date_trunc('week', c
 GROUP BY 1 ORDER BY 2 DESC
 """, "row", 11, 16, 8, 6, chart(["Doctor"], ["Completed visits"])),
         card("Typical patient journey per week (median minutes)", """
-SELECT date_trunc('week', visit_date)::date AS "Week",
+SELECT to_char(date_trunc('week', visit_date), 'FMDD Mon') AS "Week",
        round(percentile_cont(0.5) WITHIN GROUP (ORDER BY wait_for_optometry_min)::numeric) AS "Wait for optometry",
        round(percentile_cont(0.5) WITHIN GROUP (ORDER BY optometry_min)::numeric) AS "Optometry incl. dilation",
        round(percentile_cont(0.5) WITHIN GROUP (ORDER BY wait_for_doctor_min)::numeric) AS "Wait for doctor",
        round(percentile_cont(0.5) WITHIN GROUP (ORDER BY with_doctor_min)::numeric) AS "With doctor"
 FROM analytics.fact_visit
 WHERE total_min IS NOT NULL AND visit_date >= date_trunc('week', current_date)::date - 12 * 7 AND visit_date < date_trunc('week', current_date)::date
-GROUP BY 1 ORDER BY 1
+GROUP BY date_trunc('week', visit_date) ORDER BY date_trunc('week', visit_date)
 """, "bar", 17, 0, 12, 6, chart(["Week"], ["Wait for optometry", "Optometry incl. dilation", "Wait for doctor", "With doctor"], stacked=True),
              "Medians of each stage, stacked; the stages' medians do not add up exactly to the median total."),
         card("Time per station, last 4 weeks", """
@@ -134,33 +135,33 @@ RETINA = {
         note("**Retina care.** Yarago records no diagnosis, so the clinical group comes from each visit's coded examination findings "
              "and the purpose from the visit plan note, by rules Dr. Sameera is to approve. 'No specific finding' = only general findings entered.", 0),
         card("Injections given per month, by drug", """
-SELECT date_trunc('month', treated_date)::date AS "Month",
+SELECT to_char(date_trunc('month', treated_date), 'Mon YYYY') AS "Month",
        initcap(btrim(regexp_replace(regexp_replace(item, '\\s*\\(.*$', ''), '^intra ?vitreal\\s*', '', 'i'))) AS "Drug",
        count(*) AS "Injections"
 FROM analytics.fact_treatment
 WHERE kind = 'injection' AND done AND treated_date >= (date_trunc('month', current_date) - interval '12 months')::date
-GROUP BY 1, 2 ORDER BY 1
+GROUP BY date_trunc('month', treated_date), 2 ORDER BY date_trunc('month', treated_date)
 """, "bar", 2, 0, 12, 6, chart(["Month", "Drug"], ["Injections"], stacked=True)),
         card("Lasers done per month", """
-SELECT date_trunc('month', treated_date)::date AS "Month", count(*) AS "Laser sessions (per eye)"
+SELECT to_char(date_trunc('month', treated_date), 'Mon YYYY') AS "Month", count(*) AS "Laser sessions (per eye)"
 FROM analytics.fact_treatment
 WHERE kind = 'laser' AND done AND treated_date >= (date_trunc('month', current_date) - interval '12 months')::date
-GROUP BY 1 ORDER BY 1
+GROUP BY date_trunc('month', treated_date) ORDER BY date_trunc('month', treated_date)
 """, "bar", 2, 12, 12, 6, chart(["Month"], ["Laser sessions (per eye)"])),
         card("Back for the planned follow-up after an injection (within 7 days)", """
-SELECT date_trunc('month', next_due_date)::date AS "Month follow-up was due",
+SELECT to_char(date_trunc('month', next_due_date), 'Mon YYYY') AS "Month follow-up was due",
        round(100.0 * avg(next_on_time::int), 1) AS "On time %", count(*) AS "Follow-ups due"
 FROM analytics.fact_treatment
 WHERE kind = 'injection' AND next_on_time IS NOT NULL AND next_due_date >= current_date - 365
-GROUP BY 1 ORDER BY 1
+GROUP BY date_trunc('month', next_due_date) ORDER BY date_trunc('month', next_due_date)
 """, "line", 8, 0, 12, 6, chart(["Month follow-up was due"], ["On time %"]),
              "After each injection: did the patient come back for the first follow-up Yarago planned, by its due date + 7 days."),
         card("Follow-ups not back within 14 days, by month due", """
-SELECT date_trunc('month', due_date)::date AS "Month due",
+SELECT to_char(date_trunc('month', due_date), 'Mon YYYY') AS "Month due",
        round(100.0 * avg((NOT returned_within_14d)::int), 1) AS "Not back within 14 days %", count(*) AS "Follow-ups due"
 FROM analytics.fact_followup
 WHERE due_date >= current_date - 365 AND due_date <= current_date - 14
-GROUP BY 1 ORDER BY 1
+GROUP BY date_trunc('month', due_date) ORDER BY date_trunc('month', due_date)
 """, "line", 8, 12, 12, 6, chart(["Month due"], ["Not back within 14 days %"])),
         card("Follow-ups due in the last 12 months, by state now", """
 SELECT state AS "State", count(*) AS "Follow-ups"
@@ -206,23 +207,23 @@ SELECT round((SELECT sum(amount) FROM analytics.fact_billing WHERE service_group
             / nullif((SELECT count(*) FROM analytics.fact_visit WHERE completed AND visit_date {LAST_MONTH}), 0)) AS "Per visit"
 """, "scalar", 2, 18, 6, 3, money("Per visit")),
         card("Billed per month, by service", """
-SELECT date_trunc('month', bill_date)::date AS "Month", service_group AS "Service", round(sum(amount)) AS "Billed"
+SELECT to_char(date_trunc('month', bill_date), 'Mon YYYY') AS "Month", service_group AS "Service", round(sum(amount)) AS "Billed"
 FROM analytics.fact_billing
 WHERE bill_date >= (date_trunc('month', current_date) - interval '12 months')::date
-GROUP BY 1, 2 ORDER BY 1
+GROUP BY date_trunc('month', bill_date), 2 ORDER BY date_trunc('month', bill_date)
 """, "bar", 5, 0, 16, 7, {**chart(["Month", "Service"], ["Billed"], stacked=True), **money("Billed")}),
         card("Billed per completed visit, by month", """
-SELECT m.month AS "Month", round(b.billed / nullif(v.visits, 0)) AS "Per visit"
+SELECT to_char(m.month, 'Mon YYYY') AS "Month", round(b.billed / nullif(v.visits, 0)) AS "Per visit"
 FROM (SELECT generate_series((date_trunc('month', current_date) - interval '12 months')::date, date_trunc('month', current_date)::date, interval '1 month')::date AS month) m
 LEFT JOIN (SELECT date_trunc('month', bill_date)::date AS month, sum(amount) AS billed FROM analytics.fact_billing WHERE service_group <> 'Optical' GROUP BY 1) b USING (month)
 LEFT JOIN (SELECT date_trunc('month', visit_date)::date AS month, count(*) AS visits FROM analytics.fact_visit WHERE completed GROUP BY 1) v USING (month)
-ORDER BY 1
+ORDER BY m.month
 """, "line", 5, 16, 8, 7, {**chart(["Month"], ["Per visit"]), **money("Per visit")}),
         card("Collected per month, by payment mode", """
-SELECT date_trunc('month', bill_date)::date AS "Month", round(sum(paid_cash)) AS "Cash", round(sum(paid_card)) AS "Card",
+SELECT to_char(date_trunc('month', bill_date), 'Mon YYYY') AS "Month", round(sum(paid_cash)) AS "Cash", round(sum(paid_card)) AS "Card",
        round(sum(paid_other)) AS "Cheque / other"
 FROM analytics.fact_bill WHERE bill_date >= (date_trunc('month', current_date) - interval '12 months')::date
-GROUP BY 1 ORDER BY 1
+GROUP BY date_trunc('month', bill_date) ORDER BY date_trunc('month', bill_date)
 """, "bar", 12, 0, 12, 6, {**chart(["Month"], ["Cash", "Card", "Cheque / other"], stacked=True), **money("Cash", "Card", "Cheque / other")}),
         card("What patients owe now, by age", """
 SELECT age_band AS "Owed for", count(*) AS "Patients", round(sum(due_total)) AS "Amount owed"
@@ -245,18 +246,18 @@ FRONT_DESK = {
         note("**Front desk.** From Sudarshan bookings (including those imported from the Google app). Cancellation reasons are grouped; "
              "bookings cancelled in the Google app carry no reason.", 0),
         card("Confirmation calls done, by week", """
-SELECT date_trunc('week', appointment_date)::date AS "Week",
+SELECT to_char(date_trunc('week', appointment_date), 'FMDD Mon') AS "Week",
        round(100.0 * avg(confirmed_4day::int), 1) AS "4-day call done %", round(100.0 * avg(confirmed_1day::int), 1) AS "1-day call done %"
 FROM analytics.fact_appointment
 WHERE timed AND NOT cancelled AND appointment_date < current_date AND appointment_date >= date_trunc('week', current_date)::date - 12 * 7
-GROUP BY 1 ORDER BY 1
+GROUP BY date_trunc('week', appointment_date) ORDER BY date_trunc('week', appointment_date)
 """, "line", 2, 0, 12, 6, chart(["Week"], ["4-day call done %", "1-day call done %"])),
         card("Rescheduled and cancelled, by week of appointment", """
-SELECT date_trunc('week', appointment_date)::date AS "Week", sum(rescheduled_count) AS "Times rescheduled",
+SELECT to_char(date_trunc('week', appointment_date), 'FMDD Mon') AS "Week", sum(rescheduled_count) AS "Times rescheduled",
        count(*) FILTER (WHERE cancelled) AS "Cancelled"
 FROM analytics.fact_appointment
 WHERE appointment_date >= date_trunc('week', current_date)::date - 12 * 7 AND appointment_date < date_trunc('week', current_date)::date + 7
-GROUP BY 1 ORDER BY 1
+GROUP BY date_trunc('week', appointment_date) ORDER BY date_trunc('week', appointment_date)
 """, "bar", 2, 12, 12, 6, chart(["Week"], ["Times rescheduled", "Cancelled"], **{"graph.y_axis.auto_split": False})),
         card("Why bookings were cancelled, last 90 days", """
 SELECT coalesce(cancel_reason_group, 'No reason given') AS "Reason", count(*) AS "Cancelled"
@@ -272,13 +273,13 @@ FROM analytics.fact_appointment WHERE cancelled AND appointment_date >= current_
 GROUP BY 1 ORDER BY min(coalesce(cancelled_days_before, 999))
 """, "bar", 8, 8, 8, 6, chart(["Cancelled"], ["Bookings"])),
         card("Bookings by source, by week", """
-SELECT date_trunc('week', booked_date)::date AS "Week booked",
+SELECT to_char(date_trunc('week', booked_date), 'FMDD Mon') AS "Week booked",
        CASE source WHEN 'import' THEN 'Google app' WHEN 'booking' THEN 'Booking' WHEN 'direct_call' THEN 'Direct call'
                    WHEN 'followup' THEN 'Follow-up call' WHEN 'cancel_list' THEN 'Cancel list' ELSE coalesce(source, 'Other') END AS "Source",
        count(*) AS "Bookings"
 FROM analytics.fact_appointment
 WHERE booked_date >= date_trunc('week', current_date)::date - 12 * 7
-GROUP BY 1, 2 ORDER BY 1
+GROUP BY date_trunc('week', booked_date), 2 ORDER BY date_trunc('week', booked_date)
 """, "bar", 8, 16, 8, 6, chart(["Week booked", "Source"], ["Bookings"], stacked=True)),
     ],
 }
