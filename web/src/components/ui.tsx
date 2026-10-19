@@ -32,13 +32,13 @@ function useEscape(onClose: () => void) {
   }, [onClose]);
 }
 
-export function Drawer({ title, sub, onClose, children, foot }: { title: ReactNode; sub?: ReactNode; onClose: () => void; children: ReactNode; foot?: ReactNode }) {
+export function Drawer({ title, sub, onClose, children, foot, wide }: { title: ReactNode; sub?: ReactNode; onClose: () => void; children: ReactNode; foot?: ReactNode; wide?: boolean }) {
   useEscape(onClose);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => { ref.current?.focus(); }, []);
   return (
     <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <aside className="drawer" role="dialog" aria-modal="true" tabIndex={-1} ref={ref}>
+      <aside className={`drawer${wide ? " wide" : ""}`} role="dialog" aria-modal="true" tabIndex={-1} ref={ref}>
         <div className="sheet-head">
           <div className="grow"><h2>{title}</h2>{sub && <div className="muted small">{sub}</div>}</div>
           <button className="btn-quiet" onClick={onClose} aria-label="Close">Close</button>

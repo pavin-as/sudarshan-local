@@ -221,6 +221,7 @@ table.list tr:last-child td { border-bottom: 0; }
 /* ---------- dialogs and drawers ---------- */
 .overlay { position: fixed; inset: 0; background: rgba(23, 37, 47, 0.35); z-index: 50; display: flex; justify-content: flex-end; }
 .overlay.center { justify-content: center; align-items: flex-start; padding-top: 6vh; }
+.drawer.wide { width: min(1000px, 100%); }
 .drawer { width: min(560px, 100%); height: 100%; background: var(--paper); box-shadow: var(--shadow-pop); display: flex; flex-direction: column; animation: slidein 0.16s ease-out; }
 .dialog { width: min(720px, calc(100% - 2rem)); max-height: 88vh; background: var(--paper); border-radius: var(--radius-m); box-shadow: var(--shadow-pop); display: flex; flex-direction: column; }
 .dialog.narrow { width: min(440px, calc(100% - 2rem)); }
@@ -447,3 +448,17 @@ table.list.compact td, table.list.compact th { padding: 0.3rem 0.55rem; }
 .print-rule-group ul { margin: 0.2rem 0; padding-left: 1.1rem; font-size: 0.8rem; }
 .print-rule-group.error h3 { color: var(--vessel); }
 @media print { .day-print .print-stats, .day-print .print-plans div, .print-table th { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+
+/* Today: two boxes whose numbers add up; each number lists its patients */
+.today-boxes { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.8rem; margin-bottom: 1rem; }
+.tbox { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); padding: 0.7rem 1rem 0.8rem; }
+.tbox h2 { margin: 0 0 0.4rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); }
+.tsum { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.5rem; }
+.tsum + .tsum { margin-top: 0.4rem; padding-top: 0.4rem; border-top: 1px dashed var(--line-soft); }
+.tsum .op { font-size: 1.3rem; color: var(--ink-soft); }
+.tnum { display: inline-flex; align-items: baseline; gap: 0.35rem; border: 1px solid var(--line); border-radius: var(--radius-s); background: #fff; padding: 0.3rem 0.6rem; min-height: 44px; }
+.tnum b { font-size: 1.45rem; color: var(--choroid); }
+.tnum:hover:not(:disabled) { border-color: var(--action); }
+.tnum:disabled { opacity: 1; cursor: default; }
+.tnum.ghost { border-style: dashed; background: none; color: var(--ink-soft); }
+.tnum.ghost b { color: var(--ink-soft); }

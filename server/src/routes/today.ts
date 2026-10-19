@@ -30,12 +30,12 @@ export async function todayRoutes(app: FastifyInstance) {
     need(req, "appointments.read");
     const today = todayIST(), next = await nextOpenDay(today);
 
-    // patients in the clinic now: checked in today, not checked out (timers older than 10 hours are ignored). Per PATIENT,
-    // not per Yarago appointment: Yarago sometimes opens a second appointment and checks the patient out on that one.
-    // Done = checked out on any of the day's appointments, or any of them completed in Yarago.
-    const visits = await q<any>(
-      `WITH t AS (
-         SELECT max(napptid) AS visit_id, npatid AS patient_id,
+    // Everyone who came today, ONE ROW PER PATIENT (Yarago can open two appointments for one patient on one day):
+    // came = checked in on a station timer, or a Yarago appointment checked in / in examination / completed.
+    // Done = checked out on any of the day's timers, or any of the day's appointments completed in Yarago.
+    const came = await q<any>(
+      `WITH tm AS (
+         SELECT npatid AS patient_id,
                 min(startdatetime) FILTER (WHERE nmoduletimerid = 1) AS check_in_at,
                 min(startdatetime) FILTER (WHERE nmoduletimerid = 2) AS optometry_start_at,
                 max(enddatetime)   FILTER (WHERE nmoduletimerid = 2) AS optometry_end_at,
@@ -45,52 +45,71 @@ export async function todayRoutes(app: FastifyInstance) {
                 max(startdatetime) AS last_move_at
            FROM yarago.tbltimerpatientwaiting
           WHERE coalesce(isdeleted, 0) = 0 AND startdatetime >= current_date AND startdatetime < current_date + 1
-          GROUP BY npatid)
-       SELECT t.visit_id AS "visitId", t.patient_id AS "patientId", p.name AS "patientName", p.mrd,
-              to_char(t.check_in_at, 'HH24:MI') AS "checkIn", to_char(t.check_out_at, 'HH24:MI') AS "checkOut",
-              CASE WHEN t.check_out_at IS NOT NULL OR EXISTS (SELECT 1 FROM yarago.tblappointments y WHERE y.npatient_id = t.patient_id
-                     AND y.tappoint_date_time >= current_date AND y.tappoint_date_time < current_date + 1 AND y.nstatus_id = 3) THEN 'done'
-                   WHEN t.exam_start_at IS NOT NULL THEN 'with_doctor'
-                   WHEN t.room_in_at IS NOT NULL OR t.optometry_end_at IS NOT NULL THEN 'waiting_for_doctor'
-                   WHEN t.optometry_start_at IS NOT NULL THEN 'optometry'
+          GROUP BY npatid),
+       ys AS (
+         SELECT DISTINCT ON (y.npatient_id) y.npatient_id AS patient_id, y.aappoint_id AS visit_id, y.nstatus_id AS status_id,
+                min(y.tappoint_date_time) OVER (PARTITION BY y.npatient_id) AS first_at, clinical.clean(d.tdoctorname) AS doctor
+           FROM yarago.tblappointments y LEFT JOIN yarago.tbldoctor d ON d.adoctor_id = y.ndoctor_id
+          WHERE y.tappoint_date_time >= current_date AND y.tappoint_date_time < current_date + 1 AND y.nstatus_id <> 4
+          ORDER BY y.npatient_id, y.nstatus_id DESC, y.tappoint_date_time),
+       c AS (
+         SELECT coalesce(tm.patient_id, ys.patient_id) AS patient_id, tm.check_in_at, tm.optometry_start_at, tm.optometry_end_at,
+                tm.room_in_at, tm.exam_start_at, tm.check_out_at, tm.last_move_at, ys.visit_id, ys.status_id, ys.first_at, ys.doctor
+           FROM tm FULL JOIN ys ON ys.patient_id = tm.patient_id
+          WHERE tm.check_in_at IS NOT NULL OR ys.status_id IN (1, 2, 3))
+       SELECT c.patient_id AS "patientId", p.name AS "patientName", p.mrd, p.age_years AS "ageYears", p.mobile AS phone, c.doctor,
+              to_char(coalesce(c.check_in_at, c.first_at), 'HH24:MI') AS "checkIn", to_char(c.check_out_at, 'HH24:MI') AS "checkOut",
+              CASE WHEN c.check_out_at IS NOT NULL OR c.status_id = 3 THEN 'done'
+                   WHEN c.exam_start_at IS NOT NULL OR c.status_id = 2 THEN 'with_doctor'
+                   WHEN c.room_in_at IS NOT NULL OR c.optometry_end_at IS NOT NULL THEN 'waiting_for_doctor'
+                   WHEN c.optometry_start_at IS NOT NULL THEN 'optometry'
                    ELSE 'arrived' END AS stage,
-              round(extract(epoch FROM (localtimestamp - t.check_in_at)) / 60)::int AS "minutesIn",
-              round(extract(epoch FROM (localtimestamp - t.last_move_at)) / 60)::int AS "minutesAtStage",
-              clinical.minutes_between(t.check_in_at, t.optometry_start_at) AS "waitOptometry",
-              clinical.minutes_between(t.optometry_end_at, coalesce(t.room_in_at, t.exam_start_at)) AS "waitDoctor",
-              clinical.minutes_between(t.check_in_at, t.check_out_at) AS "totalMin",
-              a.id AS "appointmentId"
-         FROM t
-         LEFT JOIN clinical.patient p ON p.patient_id = t.patient_id
-         LEFT JOIN LATERAL (SELECT id FROM app.appointments x WHERE x.patient_id = t.patient_id AND x.appointment_date = current_date
-                             AND x.status <> 'cancelled' ORDER BY x.slot_time NULLS LAST LIMIT 1) a ON true
-        WHERE t.check_in_at IS NOT NULL`);
-    const inClinic = visits.filter((v) => v.stage !== "done" && v.minutesIn <= 600);
+              round(extract(epoch FROM (localtimestamp - coalesce(c.check_in_at, c.first_at))) / 60)::int AS "minutesIn",
+              round(extract(epoch FROM (localtimestamp - c.last_move_at)) / 60)::int AS "minutesAtStage",
+              clinical.minutes_between(c.check_in_at, c.optometry_start_at) AS "waitOptometry",
+              clinical.minutes_between(c.optometry_end_at, coalesce(c.room_in_at, c.exam_start_at)) AS "waitDoctor",
+              clinical.minutes_between(c.check_in_at, c.check_out_at) AS "totalMin",
+              b.id AS "appointmentId", b.slot AS "slotTime", b.plan AS "planOfAction"
+         FROM c
+         LEFT JOIN clinical.patient p ON p.patient_id = c.patient_id
+         LEFT JOIN LATERAL (SELECT x.id, to_char(x.slot_time,'HH24:MI') AS slot, x.plan_of_action AS plan FROM app.appointments x
+                             WHERE x.patient_id = c.patient_id AND x.appointment_date = current_date AND x.status <> 'cancelled'
+                             ORDER BY x.slot_time NULLS LAST LIMIT 1) b ON true
+        ORDER BY coalesce(c.check_in_at, c.first_at)`);
+    const arrivedIds = new Set(came.map((v) => v.patientId));
+
+    // today's Sudarshan bookings with a time, and whether each patient has come
+    const booked = (await q<any>(
+      `SELECT a.id AS "appointmentId", to_char(a.slot_time,'HH24:MI') AS "slotTime", a.patient_id AS "patientId", a.patient_name AS "patientName",
+              a.mrd, a.age_years AS "ageYears", a.phone, a.plan_of_action AS "planOfAction", d.name AS doctor, a.status,
+              (a.confirmed_1day_at IS NOT NULL OR a.confirmed_4day_at IS NOT NULL) AS confirmed
+         FROM app.appointments a LEFT JOIN app.doctors d ON d.id = a.doctor_id
+        WHERE a.appointment_date = current_date AND a.slot_time IS NOT NULL AND a.status IN ('booked','confirmed','completed','no_show')
+        ORDER BY a.slot_time, a.id`)).map((b) => ({ ...b,
+          arrival: b.patientId == null ? "unknown" : arrivedIds.has(b.patientId) ? "arrived" : "not_arrived" }));
+    for (const v of came) {
+      const bk = booked.find((b) => b.patientId === v.patientId);
+      if (bk) Object.assign(v, { appointmentId: bk.appointmentId, slotTime: bk.slotTime, planOfAction: bk.planOfAction });
+      v.hasBooking = !!bk;
+    }
+
+    const inClinic = came.filter((v) => v.stage !== "done");
     const median = (xs: number[]) => {
       const s = xs.filter((x) => x != null).map(Number).sort((a, b) => a - b);
       return s.length ? Math.round(s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : null;
     };
 
-    // arrived without a Sudarshan booking today (walk-ins, or booked straight in Yarago)
-    const walkIns = await q<{ n: number }>(
-      `SELECT count(DISTINCT y.npatient_id)::int AS n FROM yarago.tblappointments y
-        WHERE y.tappoint_date_time >= current_date AND y.tappoint_date_time < current_date + 1 AND y.nstatus_id IN (1, 2, 3)
-          AND NOT EXISTS (SELECT 1 FROM app.appointments a WHERE a.patient_id = y.npatient_id
-                            AND a.appointment_date = current_date AND a.status <> 'cancelled')`);
-
     return {
       date: today,
       nextWorkDay: next,
-      inClinic: inClinic.sort((a, b) => b.minutesIn - a.minutesIn).slice(0, 12),
-      inClinicCount: inClinic.length,
-      checkedOut: visits.filter((v) => v.stage === "done").length,
+      came, booked,
+      inClinic: [...inClinic].sort((a, b) => b.minutesIn - a.minutesIn),
       waits: {
-        optometry: median(visits.map((v) => v.waitOptometry)),
-        doctor: median(visits.map((v) => v.waitDoctor)),
-        total: median(visits.map((v) => v.totalMin)),
-        totalCount: visits.filter((v) => v.totalMin != null).length,
+        optometry: median(came.map((v) => v.waitOptometry)),
+        doctor: median(came.map((v) => v.waitDoctor)),
+        total: median(came.map((v) => v.totalMin)),
+        totalCount: came.filter((v) => v.totalMin != null).length,
       },
-      walkIns: walkIns[0]?.n ?? 0,
       rules: [await ruleCounts(today, today), await ruleCounts(next, today)],
     };
   });

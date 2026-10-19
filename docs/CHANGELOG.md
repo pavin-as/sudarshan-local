@@ -5,6 +5,13 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Today: two boxes whose numbers add up** (Pavin, 19 Oct: "11 arrived and 13 checked out is confusing"). Before, some
+  figures counted only booked patients and others everyone in Yarago. Now: *Booked for today* = arrived + not arrived
+  yet + can't tell (booking not linked to a Yarago patient); *Came to the clinic today* = with a booking + without a
+  booking, and = seen and gone + still in the clinic, one row per patient from Yarago. **Every number opens the list of
+  those patients** (MRD, age, booked slot, check-in, check-out or where they are now, time in clinic, doctor, plan;
+  booked lists add the phone and arrival). The in-clinic list matches the count (the 10-hour cut-off is gone).
+  Technical: `/api/today` returns `came` and `booked` lists; `Drawer` gains `wide`.
 - **Fix: patients shown "in clinic" after Yarago checked them out.** Yarago can open two appointments for one patient on
   one day (checked in on the first, checked out on the second; 8% of patient-days in the last 90 days have two or more,
   many of them a same-day injection or laser). Today and the day board now follow the patient's day: the most advanced
