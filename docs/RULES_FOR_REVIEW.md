@@ -24,7 +24,8 @@ can still book. **To decide:** for each rule, mark one:
 | 8a | AT or Gonio patients not one after another | 0.5 | Warn | |
 | 8b | **At most 3 AT/Gonio a day** (exceeded on 42 of 76 days: is 3 still right?) | 0.6 | Warn, and agree the number | |
 | 8c | Gonio and AT best after 14:30 | 2.2 | Warn | |
-| 9 | 09:20 and 09:40 kept for HFA patients until the day before | 0.7 | Warn | |
+| 9 | HFA slots kept for HFA patients until 2 days before | 0.7 | **Block** (decided 19 Oct, D-024; manager can override) | Block |
+| 17 | Visit types (ROP, injection, laser, dilation, urgent new, emergency) booked in their own times | 0.1 | Warn | Warn |
 | 10 | **ROP only on Wednesday** | 0.3 | **Block** | |
 | 11 | **Laser only on Tuesday and Friday, unless SVV advised** | 0.04 | **Block** (SVV advised still allowed) | |
 | 12 | Wheelchair patients before 10:00 or from 16:00 | 0.2 | Warn | |

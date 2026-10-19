@@ -329,8 +329,11 @@ def run(data, conn, dry_run=False):
             seen.add(lid)
             tags = [t.strip() for t in re.split(r"[,;]", txt(r.get("Tag")) or "") if t.strip()]
             slot_status = (txt(r.get("SlotStatus")) or "").lower()
+            slot = to_time(r.get("TimeSlot"))
+            if slot is not None and slot.hour == 0 and slot.minute == 0:
+                slot = None                     # the Google app's "no time" (an empty cell read as midnight): waitlist
             if kind == "active":
-                status = "waitlist" if "wait" in slot_status else (
+                status = "waitlist" if ("wait" in slot_status or slot is None) else (
                     "confirmed" if r.get("OneDayConfirmDate") or r.get("FourDayConfirmDate") else "booked")
             elif kind == "past":
                 status = "completed"            # refined below against Yarago arrivals
@@ -349,7 +352,7 @@ def run(data, conn, dry_run=False):
                 cancelled_at, cancelled_by, booked_by, booked_at, legacy_id, callback_on, cancel_list_done_at, cancel_list_note)
               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'import',%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
               RETURNING id""",
-              (day, to_time(r.get("TimeSlot")), doctor_id(r.get("Doctor")), (txt(r.get("MRDNo")) or "").upper() or None, name,
+              (day, slot, doctor_id(r.get("Doctor")), (txt(r.get("MRDNo")) or "").upper() or None, name,
                txt(r.get("Phone")), to_int(r.get("Age")), txt(r.get("Gender")),
                txt(r.get("PatientType")) or txt(r.get("Patient Type")), txt(r.get("AppointmentType")), txt(r.get("PlanOfAction")),
                txt(r.get("Urgency Level")) or txt(r.get("Urgency level (waiting List)")), txt(r.get("Family Identifier")),

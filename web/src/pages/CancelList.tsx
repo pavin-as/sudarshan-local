@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api";
 import { useAuth } from "../auth";
-import { addDays, dayLabel, niceDate, stamp, todayIST } from "../format";
+import { addDays, dayLabel, niceDate, stamp, todayIST, planText } from "../format";
 import { Dialog, ErrorNotice, Loading, Tags, useToast } from "../components/ui";
 import { AppointmentDrawer } from "../components/AppointmentDrawer";
 
@@ -26,7 +26,6 @@ export function useCancelList(view: View, search = "") {
 }
 
 const OUTCOMES = ["No answer", "Will decide and call back", "Asked to call later", "Wants to come, date to be fixed", "Number not reachable"];
-const plan = (p: string | null) => { if (!p) return ""; try { const v = JSON.parse(p); return Array.isArray(v) ? v.join(", ") : p; } catch { return p; } };
 
 function CallDialog({ a, onClose, onRebook }: { a: Cancelled; onClose: () => void; onRebook: () => void }) {
   const toast = useToast();
@@ -125,7 +124,7 @@ export function CancelListPage() {
                   {" "}<span className="muted small">{a.mrd ?? "new"}</span>
                   {a.phone && <div className="small"><a href={`tel:${a.phone}`}>{a.phone}</a></div>}
                   {a.newBookingId && <div className="small"><button className="btn-quiet btn-small" onClick={() => setOpenId(a.newBookingId!)}>Has a new booking: {dayLabel(a.newBookingDate!)}</button></div>}</td>
-                <td className="small">{plan(a.planOfAction)}{a.tags.length > 0 && <div><Tags tags={a.tags.filter((t) => !/^call back|archived from/.test(t))} /></div>}</td>
+                <td className="small">{planText(a.planOfAction)}{a.tags.length > 0 && <div><Tags tags={a.tags.filter((t) => !/^call back|archived from/.test(t))} /></div>}</td>
                 <td className="small">{a.cancelReason ?? <span className="muted">no reason recorded</span>}
                   <div className="muted">{[a.cancelledBy, a.cancelledAt && stamp(a.cancelledAt)].filter(Boolean).join(", ")}</div></td>
                 <td className="small">{view === "done"

@@ -86,6 +86,11 @@ had no data: "Family Identifier" is empty on all 20,072 imported bookings.
 - **Given** a non-HFA patient in 09:20/09:40 -> warning. **Given** an HFA patient in another slot **more than 1 day ahead** -> info "move to the HFA slot if free".
 - **Sudarshan:** identical (days counted in clinic time). Test: `rule 9` (2 tests). Fires: non-HFA 47, HFA elsewhere 4.
 
+**Changed 19 Oct (D-024):** HFA slots now come from the Google app's HFA block (days and times) when present; a non-HFA
+booking there more than 2 days ahead is *against the rule* (error) and the booking itself is refused unless a manager
+gives a reason. From 2 days before, other plans may have the slot, and the "HFA patient elsewhere" note stops (rule 16
+moves from "the day before" to "2 days before"). Tests: `rule 9` (4 checks), `rule 16`.
+
 ### Rule 10 - ROP on Wednesday
 - **Google app:** `checkROPDayRule` `:737`. `RULE_ROP_DAY`, `ROP_DAY` WED. **Error**. Waitlist counts.
 - **Sudarshan:** identical. Test: `rule 10`. Fires: 22 (on 7 days).
@@ -113,3 +118,11 @@ had no data: "Family Identifier" is empty on all 20,072 imported bookings.
 ### Rule 16 - HFA patients may take other slots from the day before
 - **Google app:** no separate code; it is the "more than 1 day ahead" condition of rule 9 (`:720`): from the day before, an HFA patient outside 09:20/09:40 gets no note, and a non-HFA patient in an HFA slot is still warned.
 - **Sudarshan:** same, inside rule 9. Test: `rule 16`.
+
+### Rule 17 - Visit types in their own times (added 19 Oct, D-024)
+- **Google app:** `getAllowedSlots` (`Code.js:7669`) offered a booking of visit type HFA / ROP / INJECTION / URGENT NEW /
+  EMERGENCY / DILATION / LASER only the slots in that type's generalSettings column (`getSpecializedIntervals`
+  `Code.js:8128`), e.g. INJECTION `W-09:00-12:20-0`. General bookings were kept out only of the General Block (the HFA times).
+- **Sudarshan:** a warning (never a block) when a booking's visit type is one of these and it is outside that type's time
+  that day, or the type has no time that day. Other bookings may use the slots. Switch `RULE_RESERVED_SLOTS`, on.
+  HFA is rule 9 plus the booking hold. Tests: `rule 17` (2 checks). Fires: 6 times in 76 days.

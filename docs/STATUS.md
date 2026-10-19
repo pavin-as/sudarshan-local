@@ -92,14 +92,11 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       `GET /api/huddle`. During the trial the booking figures are those imported on 18 Oct; live in-clinic data is real.
 - [x] Direct calls (`/calls`) and cancel list (`/cancelled`), 19 Oct (migration 0007).
 - [x] Month view (`/month`), 19 Oct.
-- [ ] Pavin: the Google app reserved slot blocks (HFA Mon/Thu/Sat 09:20-09:40, injections Wed 09:00-12:20, laser Tue
-      14:00-17:30, ROP Wed 13:50-17:00, dilation slots, emergency 17:30-17:50, urgent-new 14:30/15:30). Sudarshan books on a
-      plain grid (D-010). Decide whether these blocks should come back (as warnings or as held slots).
+- [x] Reserved slot blocks (Pavin, 19 Oct; D-024): HFA held until 2 days before (manager override); other blocks are
+      rule 17 warnings for bookings of that visit type outside their time.
 - [x] Triage (`/triage`), 19 Oct: same questions and scoring as the Google app (checked on all 212 imported assessments).
-- [ ] Pavin: the Google app stopped front-desk (level 4) logins from logging direct calls for *old* patients. Not
-      carried over; say if it is still wanted.
-- [ ] Importer: 27 imported bookings have the time 00:00 (4 upcoming), probably bookings without a time in the Google app;
-      import them as waitlist instead (confirm with Pavin).
+- [x] Direct calls for old patients allowed for every role (Pavin, 19 Oct; D-024).
+- [x] Google-app bookings without a time are waitlist (Pavin, 19 Oct): importer fixed, 27 corrected (migration 0008).
 - [ ] Importer: 1,828 imported bookings had no BookingDate and were stamped with the import day; store NULL instead
       (analytics already treats them as "booking date not known").
 - [ ] Not in Yarago: patient PIN/area (geography KPI), coded diagnoses, surgery advice. Raise with the clinic if wanted.

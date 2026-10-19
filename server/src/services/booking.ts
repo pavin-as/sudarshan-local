@@ -3,8 +3,10 @@
 import type { PoolClient } from "pg";
 import { one, q, setAuditSummary } from "../db.js";
 import { HttpError } from "../lib/errors.js";
-import { niceDate, todayIST, toMin } from "../lib/time.js";
+import { addDays, niceDate, todayIST, toMin } from "../lib/time.js";
 import { bookingSettings, doctorsOnDate, maxSlotsFor, slotGrid } from "./calendar.js";
+import { blocksAt, HFA_OPEN_DAYS_BEFORE, loadBlocks } from "./reserved.js";
+import { isKind } from "./rules.js";
 
 const ACTIVE_SQL = `('booked','confirmed','checked_in','completed','no_show')`;
 const HOLDING_SQL = `('booked','confirmed','checked_in','completed','no_show','waitlist')`;   // includes waitlist
@@ -13,6 +15,10 @@ export interface Placement {
   date: string;
   slotTime: string | null;        // null = waitlist
   doctorId: number | null;
+  // what is being booked: decides whether a held HFA slot may be used
+  planOfAction?: string | null;
+  appointmentType?: string | null;
+  urgency?: string | null;
 }
 
 export interface PatientKey { patientId: number | null; mrd: string | null; phone: string | null; name: string }
@@ -86,6 +92,17 @@ export async function checkPlacement(c: PoolClient, p: Placement, who: PatientKe
     const clash = taken.find((t) => t.t === p.slotTime);
     if (clash) soft.push(`${p.slotTime} is already booked for ${clash.patient_name}`);
     if (p.date === today && toMin(p.slotTime) <= nowMin) warnings.push(`${p.slotTime} has already passed today`);
+
+    // HFA slots are held for HFA patients until 2 days before the day (Pavin, 19 Oct; D-024); a manager can override
+    const opensOn = addDays(p.date, -HFA_OPEN_DAYS_BEFORE);
+    const isHfa = isKind("HFA", { planOfAction: p.planOfAction ?? null, appointmentType: p.appointmentType ?? null, urgency: p.urgency ?? null,
+                                  mrd: who.mrd, patientType: null });
+    if (today < opensOn && !isHfa) {
+      const hfaBlocks = (await loadBlocks(c)).filter((b) => b.kind === "HFA");
+      if (blocksAt(hfaBlocks, p.date, p.slotTime).length)
+        soft.push(`${p.slotTime} is kept for HFA patients; other plans can book it from ${niceDate(opensOn)} (${HFA_OPEN_DAYS_BEFORE} days before)`);
+      freeSlots = freeSlots.filter((t) => !blocksAt(hfaBlocks, p.date, t).length);      // do not suggest held slots
+    }
   }
 
   if (soft.length && override?.reason?.trim()) warnings.push(...soft.map((s) => `${s} - booked anyway: ${override.reason.trim()}`));

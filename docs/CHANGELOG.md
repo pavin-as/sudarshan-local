@@ -5,6 +5,17 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **HFA slots are held** for HFA patients until 2 days before the day: a booking with another plan is refused before
+  then (the booking dialog says so in red and does not suggest those slots); a manager can book with a reason.
+- **Reserved slot blocks as warnings** (rule 17): a booking whose visit type is ROP, injection, laser, dilation, urgent
+  new or emergency is warned when it is outside that type's time; other bookings may use those slots, as in the Google app.
+- **Plans of action in words** on the board list, cards, appointment panel, confirmations, patient page, cancel list and
+  huddle sheet ("REF, DIL, OCT (left eye)" instead of `["REF","DIL","OCT (LE)"]`); the edit box shows the plain list.
+- **Patient search by MRD number**: "12345", "spd12345" and "SPD 12345" all find SPD12345 first.
+- **Bookings without a time** in the Google app are now waitlist (27 imported at 00:00 corrected; importer fixed).
+- Direct calls: old patients can be logged by every role (confirmed).
+  Technical: `services/reserved.ts`, `isKind` + rule 17 in `services/rules.ts`, HFA hold in `services/booking.ts`,
+  migration 0008, `planText` in `web/src/format.ts`; 34 rule checks, API test step for the hold. D-024.
 - **Settings** (`/settings`, managers and admins): the scheduling rules (switch each on or off, change its numbers, with
   the Google app's default shown where it differs), the booking grid (slot length, first slot, end of day), the visit
   and patient type lists, and the plans of action (preparation and consultation minutes, priority, hide/show). Every

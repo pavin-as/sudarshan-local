@@ -5,6 +5,7 @@
 import type { Db } from "../db.js";
 import { q } from "../db.js";
 import { fromMin, toMin } from "../lib/time.js";
+import { blocksAt, BLOCK_WORDS, HFA_OPEN_DAYS_BEFORE, loadBlocks, type Block, type BlockKind } from "./reserved.js";
 
 export type Level = "error" | "warning" | "info";
 
@@ -20,6 +21,8 @@ export interface RuleAppt {
   remarks: string | null;
   tags: string[];
   familyGroup: string | null;
+  appointmentType?: string | null; // visit type (GENERAL, HFA, INJECTION...), for the reserved slot blocks
+  urgency?: string | null;
 }
 
 export interface Finding {
@@ -49,7 +52,7 @@ export const RULE_SWITCHES: Record<string, boolean> = {
   RULE_NEW_TIMING: true, RULE_FAMILY_TIMING: true, RULE_FAMILY_MORNING: true, RULE_NEW_CONSECUTIVE: true,
   RULE_NEW_AFTER_4PM: true, RULE_CONSULT_WINDOW: true, RULE_FAMILY_CONTINUOUS: true, RULE_GONIO_AT_CONSECUTIVE: true,
   RULE_GONIO_AT_CAP: true, RULE_GONIO_TIMING: true, RULE_AT_TIMING: true, RULE_HFA_SLOT: true, RULE_ROP_DAY: true,
-  RULE_LASER_DAY: true, RULE_LASER_DURATION: true, RULE_WHEELCHAIR: true, RULE_PLAN_DURATION: false,
+  RULE_LASER_DAY: true, RULE_LASER_DURATION: true, RULE_WHEELCHAIR: true, RULE_PLAN_DURATION: false, RULE_RESERVED_SLOTS: true,
 };
 
 /** What the settings screen shows: each switch in plain words, and each number with its kind and setting key. */
@@ -62,6 +65,7 @@ export const RULE_SWITCH_LABELS: Record<string, string> = {
   RULE_HFA_SLOT: "9. HFA slots kept for HFA patients", RULE_ROP_DAY: "10. ROP only on the ROP day", RULE_LASER_DAY: "11. Laser only on laser days",
   RULE_WHEELCHAIR: "12. Wheelchair patients early or late", RULE_LASER_DURATION: "13. Time after a laser",
   RULE_PLAN_DURATION: "14. Time for each plan of action (never used in the Google app)",
+  RULE_RESERVED_SLOTS: "17. Visit types booked in their own times (the Google app's reserved blocks)",
 };
 export type RuleFieldKind = "time" | "number" | "day" | "days";
 export const RULE_FIELDS: { key: string; label: string; kind: RuleFieldKind; setting: keyof RuleSettings; index?: number }[] = [
@@ -102,6 +106,7 @@ export interface DayContext {
   today: string;                  // YYYY-MM-DD in clinic time
   settings: RuleSettings;
   prepMinutes: Map<string, number>;   // plan of action name (upper case) -> PrepMin
+  blocks?: Block[];                   // reserved slot blocks (services/reserved.ts); none = rule 9 uses the HFA times
 }
 
 // ---------- helpers (same matching as RuleEngine.js, so a plan reads the same way it did) ----------
@@ -126,6 +131,21 @@ export function specialFlags(a: Pick<RuleAppt, "remarks" | "tags">) {
   const isVIP = t.includes("VIP"), isBNI = t.includes("BNI"), isSVV = t.includes("SVV");
   const isWheelchair = t.includes("WHEEL CHAIR") || t.includes("WHEELCHAIR");
   return { isVIP, isBNI, isWheelchair, isSVV, isSpecial: isVIP || isBNI || isWheelchair || isSVV };
+}
+
+/** Is this booking the kind a reserved block is kept for? Visit type, plan of action or urgency decide. */
+export function isKind(kind: BlockKind, a: Pick<RuleAppt, "planOfAction" | "appointmentType" | "urgency" | "mrd" | "patientType">): boolean {
+  const t = procTags(a.planOfAction), type = (a.appointmentType ?? "").toUpperCase(), urg = (a.urgency ?? "").toUpperCase();
+  const plan = (a.planOfAction ?? "").toUpperCase();
+  switch (kind) {
+    case "HFA": return t.HFA || type === "HFA";
+    case "ROP": return t.ROP || type === "ROP";
+    case "INJECTION": return t.IVR || t.IVTA || /\bINJ|OZURDEX|EYLEA|FARICIMAB|RAZUMAB|RANIBIZUMAB|AVASTIN/.test(plan) || type === "INJECTION";
+    case "LASER": return t.LASER || t.YAG || type === "LASER";
+    case "DILATION": return t.DIL || type === "DILATION";
+    case "EMERGENCY": return urg === "EMERGENCY" || type === "EMERGENCY";
+    case "URGENT NEW": return type === "URGENT NEW" || (urg === "URGENT" && isNewPatient(a));
+  }
 }
 
 /** RuleEngine.js:159: new = MRD starts with N; no MRD yet = patient type says New or Guest. */
@@ -173,6 +193,8 @@ const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 const DAY_WORDS: Record<string, string> = { SUN: "Sunday", MON: "Monday", TUE: "Tuesday", WED: "Wednesday", THU: "Thursday", FRI: "Friday", SAT: "Saturday" };
 export const dayCode = (d: string) => DAYS[new Date(d + "T00:00:00Z").getUTCDay()];
 const dayWords = (codes: string[]) => codes.map((c) => DAY_WORDS[c] ?? c).join(" or ");
+const DAY_NAMES: Record<string, string> = { M: "Mon", Tu: "Tue", W: "Wed", Th: "Thu", F: "Fri", Sa: "Sat", Su: "Sun" };
+const dayCodeMin = (d: string) => ["Su", "M", "Tu", "W", "Th", "F", "Sa"][new Date(d + "T00:00:00Z").getUTCDay()];
 const daysBetween = (from: string, to: string) => Math.round((Date.parse(to + "T00:00:00Z") - Date.parse(from + "T00:00:00Z")) / 86_400_000);
 const hourOf = (t: string) => Number(t.slice(0, 2));
 
@@ -297,15 +319,20 @@ export function checkDay(appts: RuleAppt[], ctx: DayContext): { findings: Findin
     }
   }
 
-  // 9 and 16. 09:20 and 09:40 are for HFA; an HFA patient elsewhere is told about them until the day before
+  // 9 and 16. HFA slots are for HFA patients until 2 days before (the Google app's HFA block days and times; without
+  // blocks, 09:20 and 09:40 every day). From then other plans may have them, and an HFA patient elsewhere is fine.
   if (on("RULE_HFA_SLOT")) {
     const daysAhead = daysBetween(ctx.today, ctx.date);
+    const hfaBlocks = (ctx.blocks ?? []).filter((b) => b.kind === "HFA");
+    const isHfaSlot = (t: string) => (hfaBlocks.length ? blocksAt(hfaBlocks, ctx.date, t).length > 0 : s.hfaSlots.includes(t));
+    const hfaTimes = hfaBlocks.length ? [...new Set(hfaBlocks.filter((b) => b.day === "D" || b.day === dayCodeMin(ctx.date)).map((b) => b.start))] : s.hfaSlots;
     for (const a of slotted) {
-      const inSlot = s.hfaSlots.includes(a.slotTime!), hfa = procTags(a.planOfAction).HFA;
-      if (inSlot && !hfa) add({ rule: 9, code: "HFA_SLOT_NON_HFA", level: "warning", id: a.id, ids: [a.id],
-        message: `${name(a)} is not an HFA patient but has the HFA slot ${a.slotTime}`, suggestion: `Keep ${s.hfaSlots.join(" and ")} for HFA patients until the day before` });
-      else if (!inSlot && hfa && daysAhead > 1) add({ rule: 9, code: "HFA_IN_NON_HFA_SLOT", level: "info", id: a.id, ids: [a.id],
-        message: `HFA patient ${name(a)} at ${a.slotTime}, not in an HFA slot (${daysAhead} days ahead)`, suggestion: `Move to ${s.hfaSlots.join(" or ")} if free` });
+      const inSlot = isHfaSlot(a.slotTime!), hfa = isKind("HFA", a);
+      if (inSlot && !hfa && daysAhead > HFA_OPEN_DAYS_BEFORE) add({ rule: 9, code: "HFA_SLOT_NON_HFA", level: "error", id: a.id, ids: [a.id],
+        message: `${a.slotTime} is kept for HFA patients until ${HFA_OPEN_DAYS_BEFORE} days before; ${name(a)} is not an HFA patient`,
+        suggestion: `Choose another time, or book it from ${HFA_OPEN_DAYS_BEFORE} days before the day (a manager can book now with a reason)` });
+      else if (!inSlot && hfa && daysAhead > HFA_OPEN_DAYS_BEFORE && hfaTimes.length) add({ rule: 9, code: "HFA_IN_NON_HFA_SLOT", level: "info", id: a.id, ids: [a.id],
+        message: `HFA patient ${name(a)} at ${a.slotTime}, not in an HFA slot (${daysAhead} days ahead)`, suggestion: `Move to ${hfaTimes.join(" or ")} if free` });
     }
   }
 
@@ -340,7 +367,28 @@ export function checkDay(appts: RuleAppt[], ctx: DayContext): { findings: Findin
   if (on("RULE_PLAN_DURATION")) for (let i = 0; i < bySlot.length - 1; i++) {
     const c = bySlot[i], n = bySlot[i + 1], need = planDuration(c.planOfAction), gap = toMin(n.slotTime!) - toMin(c.slotTime!);
     if (need > 0 && gap < need) add({ rule: 14, code: "PLAN_DURATION", level: "warning", id: n.id, ids: [c.id, n.id],
-      message: `${name(c)}'s plan (${c.planOfAction}) needs ${need} min but ${name(n)} is booked ${gap} min later`, suggestion: `Leave ${need} minutes after this patient` });
+      message: `${name(c)}'s plan (${planItems(c.planOfAction).join(", ")}) needs ${need} min but ${name(n)} is booked ${gap} min later`, suggestion: `Leave ${need} minutes after this patient` });
+  }
+
+  // 17. Reserved slot blocks, as the Google app used them (Code.js getAllowedSlots): a booking whose VISIT TYPE is ROP,
+  // INJECTION, LASER, DILATION, URGENT NEW or EMERGENCY belongs in that type's times. Other bookings may use those slots.
+  // Outside them is a warning that can be ignored (Pavin, 19 Oct). HFA is rule 9 and the booking hold.
+  if (on("RULE_RESERVED_SLOTS") && ctx.blocks?.length) {
+    const code = dayCodeMin(ctx.date);
+    for (const a of slotted) {
+      const kind = (a.appointmentType ?? "").trim().toUpperCase() as BlockKind;
+      if (!(kind in BLOCK_WORDS) || kind === "HFA") continue;
+      const all = ctx.blocks.filter((b) => b.kind === kind);
+      if (!all.length) continue;
+      const today = all.filter((b) => b.day === "D" || b.day === code);
+      if (blocksAt(today, ctx.date, a.slotTime!).length) continue;
+      const where = (bs: Block[]) => bs.map((b) => `${b.day === "D" ? "" : `${DAY_NAMES[b.day] ?? b.day} `}${b.start}-${b.end}`).join(", ");
+      add({ rule: 17, code: "OUTSIDE_RESERVED", level: "warning", id: a.id, ids: [a.id],
+        message: today.length
+          ? `${name(a)} is booked as ${BLOCK_WORDS[kind]} at ${a.slotTime}, outside the ${BLOCK_WORDS[kind]} time (${where(today)})`
+          : `${name(a)} is booked as ${BLOCK_WORDS[kind]}, but there is no ${BLOCK_WORDS[kind]} time on this day (${where(all)})`,
+        suggestion: "Book it anyway if the doctor agreed, or choose a time in the block" });
+    }
   }
 
   // 15. Special cases are marked on the list (not a warning)
@@ -404,7 +452,8 @@ export function parseRuleSettings(rows: { key: string; value: unknown }[]): Rule
 export async function loadRuleContext(date: string, today: string, db?: Db): Promise<DayContext> {
   const rows = await q<{ key: string; value: unknown }>(`SELECT key, value FROM app.settings WHERE key LIKE 'rule.%'`, [], db);
   const prep = await q<{ name: string; prep_min: number | null }>(`SELECT name, prep_min FROM app.plan_of_action WHERE is_active`, [], db);
-  return { date, today, settings: parseRuleSettings(rows), prepMinutes: new Map(prep.map((p) => [p.name.trim().toUpperCase(), p.prep_min ?? 0])) };
+  return { date, today, settings: parseRuleSettings(rows), prepMinutes: new Map(prep.map((p) => [p.name.trim().toUpperCase(), p.prep_min ?? 0])),
+           blocks: await loadBlocks(db) };
 }
 
 /** Everything that holds or waits for a place that day (cancelled bookings are not checked). */
@@ -412,7 +461,8 @@ export async function loadDayAppts(date: string, db?: Db, excludeId: number | nu
   return q<RuleAppt>(
     `SELECT id::int AS id, to_char(slot_time,'HH24:MI') AS "slotTime", to_char(consult_start,'HH24:MI') AS "consultStart",
             mrd, patient_type AS "patientType", patient_name AS "patientName", age_years AS "ageYears",
-            plan_of_action AS "planOfAction", remarks, tags, family_group AS "familyGroup"
+            plan_of_action AS "planOfAction", remarks, tags, family_group AS "familyGroup",
+            appointment_type AS "appointmentType", urgency
        FROM app.appointments
       WHERE appointment_date = $1 AND status <> 'cancelled' AND ($2::bigint IS NULL OR id <> $2)
       ORDER BY slot_time NULLS LAST, id`, [date, excludeId], db);

@@ -126,7 +126,7 @@ async function loadOne(id: number, db?: PoolClient) {
 async function lockRow(c: PoolClient, id: number) {
   const r = await one<any>(
     `SELECT id, to_char(appointment_date,'YYYY-MM-DD') AS appointment_date, to_char(slot_time,'HH24:MI') AS slot_time,
-            doctor_id, patient_id, mrd, phone, patient_name, status, tags
+            doctor_id, patient_id, mrd, phone, patient_name, status, tags, plan_of_action, appointment_type, urgency
        FROM app.appointments WHERE id = $1 FOR UPDATE`, [id], c);
   if (!r) throw notFound("Appointment");
   return r;
@@ -134,7 +134,7 @@ async function lockRow(c: PoolClient, id: number) {
 
 function overrideFor(req: FastifyRequest, o: { reason: string } | null | undefined): Override | null {
   if (!o) return null;
-  if (!can(req.user!.role, "settings.manage")) throw badRequest("Only a manager or admin can book over a full day or a taken slot");
+  if (!can(req.user!.role, "settings.manage")) throw badRequest("Only a manager or admin can book over a full day, a taken slot or a held HFA slot");
   return o;
 }
 
@@ -199,7 +199,8 @@ export async function appointmentRoutes(app: FastifyInstance) {
     const who = describe({ patient_name: name, mrd });
 
     return withTx(auditCtx(req), async (c) => {
-      const warnings = await checkPlacement(c, { date: b.date, slotTime: slot, doctorId: b.doctorId ?? null },
+      const warnings = await checkPlacement(c, { date: b.date, slotTime: slot, doctorId: b.doctorId ?? null,
+                                                 planOfAction: b.planOfAction, appointmentType: b.appointmentType, urgency: b.urgency },
         { patientId, mrd, phone, name }, null, override);
       const docName = b.doctorId ? (await one<any>("SELECT name FROM app.doctors WHERE id = $1", [b.doctorId], c))?.name : null;
       await setAuditSummary(c, `Booked ${who} for ${whenText(b.date, slot)}${docName ? ` with ${docName}` : ""}`);
@@ -230,7 +231,8 @@ export async function appointmentRoutes(app: FastifyInstance) {
       if (["completed", "no_show", "checked_in"].includes(cur.status)) throw conflict(`This appointment is already ${cur.status.replace("_", " ")}`);
       const slot = b.slotTime ?? null;
       const doctorId = b.doctorId === undefined ? cur.doctor_id : b.doctorId;
-      const warnings = await checkPlacement(c, { date: b.date, slotTime: slot, doctorId },
+      const warnings = await checkPlacement(c, { date: b.date, slotTime: slot, doctorId,
+                                                 planOfAction: cur.plan_of_action, appointmentType: cur.appointment_type, urgency: cur.urgency },
         { patientId: cur.patient_id, mrd: cur.mrd, phone: cur.phone, name: cur.patient_name }, id, override);
       const wasCancelled = cur.status === "cancelled";
       const newStatus = slot ? (cur.status === "confirmed" && cur.appointment_date === b.date ? "confirmed" : "booked") : "waitlist";

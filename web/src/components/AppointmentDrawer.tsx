@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type Appointment } from "../api";
 import { useAuth } from "../auth";
-import { clock, dayLabel, niceDate, stamp, todayIST } from "../format";
+import { clock, dayLabel, niceDate, stamp, todayIST, planText, planEditText } from "../format";
 import { Drawer, ErrorNotice, Loading, StageTrack, StatusPill, Tags, useToast } from "./ui";
 import { COMMON_TAGS, useMeta } from "./BookDialog";
 import { DateStrip, SlotPicker } from "./SlotPicker";
@@ -66,7 +66,7 @@ export function AppointmentDrawer({ id, onClose }: { id: number; onClose: () => 
   const open = (m: Mode) => {
     setError(null); setMode(m); setText("");
     if (m === "move") { setMoveDate(a.date); setMoveSlot(a.slotTime); }
-    if (m === "edit") setEdit({ planOfAction: a.planOfAction ?? "", remarks: a.remarks ?? "", appointmentType: a.appointmentType ?? "",
+    if (m === "edit") setEdit({ planOfAction: planEditText(a.planOfAction), remarks: a.remarks ?? "", appointmentType: a.appointmentType ?? "",
                                  urgency: a.urgency ?? "", familyGroup: a.familyGroup ?? "", phone: a.phone ?? "", doctorId: a.doctorId, tags: a.tags });
   };
   const active = ["booked", "confirmed", "waitlist"].includes(a.status);
@@ -87,7 +87,7 @@ export function AppointmentDrawer({ id, onClose }: { id: number; onClose: () => 
       )}>
       <dl className="facts">
         <dt>When</dt><dd><b>{dayLabel(a.date)}</b> {a.slotTime ?? "waitlist"}{a.doctorName && `, ${a.doctorName}`}</dd>
-        {a.planOfAction && <><dt>Plan</dt><dd>{a.planOfAction}</dd></>}
+        {a.planOfAction && <><dt>Plan</dt><dd>{planText(a.planOfAction)}</dd></>}
         {(a.appointmentType || a.patientType) && <><dt>Visit</dt><dd>{[a.appointmentType, a.patientType].filter(Boolean).join(", ")}</dd></>}
         {a.phone && <><dt>Phone</dt><dd><a href={`tel:${a.phone}`}>{a.phone}</a></dd></>}
         {(a.ageYears != null || a.gender) && <><dt>Patient</dt><dd>{[a.ageYears != null && `${a.ageYears} years`, a.gender].filter(Boolean).join(", ")}</dd></>}

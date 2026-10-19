@@ -43,7 +43,7 @@ export function BookDialog({ preset, onClose, onBooked }: { preset: BookPreset; 
   const ptypes = listOf(meta.data, "Patient Type");
   const refused = error instanceof ApiError && error.code === "booking_refused";
   const freeSlots: string[] = refused ? (error as ApiError).details?.freeSlots ?? [] : [];
-  const canOverride = can("settings.manage") && refused && ((error as ApiError).details?.problems ?? []).some((p: string) => /full|already booked for/.test(p));
+  const canOverride = can("settings.manage") && refused && ((error as ApiError).details?.problems ?? []).some((p: string) => /full|already booked for|kept for HFA/.test(p));
 
   const submit = async () => {
     setError(null);
@@ -133,6 +133,7 @@ export function BookDialog({ preset, onClose, onBooked }: { preset: BookPreset; 
         date, slotTime: slot, patientId: patient?.patientId ?? null, patientName: patient ? null : np.name.trim() || null,
         ageYears: patient ? null : np.age ? Number(np.age) : null, patientType: f.patientType.trim() || null,
         planOfAction: f.planOfAction.trim() || null, familyGroup: f.familyGroup.trim() || null, tags, remarks: f.remarks.trim() || null,
+        appointmentType: f.appointmentType.trim() || null, urgency: f.urgency || null,
       } : null} />
 
       {error && <ErrorNotice error={error} />}

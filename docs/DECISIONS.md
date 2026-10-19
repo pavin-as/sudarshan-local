@@ -142,6 +142,19 @@ free plan, which does not allow SMTP. Mail to pavin@sampadavr.com was blocked, s
 email both use admin@gs.sampadavr.com (Pavin, 19 Oct). (7) Large money totals shown in lakh, as Metabase cannot group digits the Indian way.
 Not built: patient geography (no PIN/area in Yarago), surgery advised-not-done (no surgery advice recorded).
 
+### D-024 · 2026-10-19 · Accepted · Pavin
+**HFA slots held; other reserved blocks as warnings; no-time bookings are waitlist; plans shown in words.**
+(1) **HFA slots** (the Google app's HFA block: Mon, Thu, Sat around 09:20-09:40) are refused to other plans until 2 days
+before the appointment date; from then anyone may book them. A manager can book earlier with a written reason (like a
+full day). Rule 9 shows it as "Against rule" in the booking dialog. (2) **The other reserved blocks** (injection Wed
+09:00-12:20, laser Tue 14:00-17:30, ROP Wed 13:50-17:00, dilation, urgent new, emergency) only warn: as in the Google app
+(getAllowedSlots), a booking whose *visit type* is one of these is warned when outside its time (rule 17); other bookings
+may use those slots. A first reading that warned every booking inside a block gave 10 warnings a day and was dropped.
+(3) A Google-app booking **without a time is the waiting list** (importer and migration 0008). (4) **Old patients may be
+logged as direct calls** by every role (the Google app's front-desk restriction is not carried over). (5) Plans of action
+are shown as words ("REF, DIL, OCT (left eye)"), never as the stored JSON. (6) Patient search takes the MRD number with
+or without "SPD".
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

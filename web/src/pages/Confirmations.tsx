@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type Appointment } from "../api";
-import { addDays, dayLabel, stamp, todayIST, weekdayName } from "../format";
+import { addDays, dayLabel, stamp, todayIST, weekdayName, planText } from "../format";
 import { ErrorNotice, Loading, Tags, useToast } from "../components/ui";
 import { AppointmentDrawer } from "../components/AppointmentDrawer";
 
@@ -56,7 +56,7 @@ function CallTable({ list, stage, onOpen, showDate }: { list: Appointment[]; sta
           <td><button className="btn-quiet" style={{ padding: 0, fontWeight: 700 }} onClick={() => onOpen(a.id)}>{a.patientName}</button> <span className="muted small">{a.mrd}</span>
             <div><Tags tags={a.tags} />{stage === "1day" && a.confirmed4dayAt && <span className="small muted">4-day confirmed {stamp(a.confirmed4dayAt)}</span>}</div></td>
           <td className="nowrap">{a.phone ? <a href={`tel:${a.phone}`}>{a.phone}</a> : <span className="muted">none</span>}</td>
-          <td>{a.planOfAction}</td>
+          <td>{planText(a.planOfAction)}</td>
           <td className="right nowrap">
             <button className="btn-small" disabled={busy === a.id} onClick={() => void act(a, "noanswer")}>No answer</button>{" "}
             <button className="btn-small" onClick={() => onOpen(a.id)}>Reschedule or cancel</button>{" "}

@@ -1,6 +1,7 @@
 // The 16 scheduling rules, one block of checks per rule (rule cards: analysis/sudarshan/rules/RULE_CARDS.md).
 // Pure functions only: no database needed.   npm run test:rules
 import assert from "node:assert/strict";
+import { parseBlock } from "../src/services/reserved.js";
 import {
   checkDay, consultStartOf, dayCode, DEFAULT_RULE_SETTINGS, findingsFor, isNewPatient, parseRuleSettings, planItems, procTags,
   type DayContext, type Finding, type RuleAppt, type RuleSettings,
@@ -185,18 +186,57 @@ test("rule 8C/8D: Gonio and AT before 14:30 are noted (AT+Gonio once, special ca
 });
 
 // ---------- rule 9 and 16 ----------
-test("rule 9: a non-HFA patient in 09:20 or 09:40 is warned", () => {
+test("rule 9: a non-HFA patient in 09:20 or 09:40 more than 2 days ahead is against the rule", () => {
   const a = appt({ slotTime: "09:20", planOfAction: "REF" }), b = appt({ slotTime: "09:40", planOfAction: '["HFA (BE)"]' });
-  assert.deepEqual(run([a, b], MON, onlyRule(9)).findings.map((x) => [x.code, x.level, x.id]), [["HFA_SLOT_NON_HFA", "warning", a.id]]);
+  assert.deepEqual(run([a, b], MON, onlyRule(9)).findings.map((x) => [x.code, x.level, x.id]), [["HFA_SLOT_NON_HFA", "error", a.id]]);
+});
+test("rule 9: from 2 days before, other plans may have the HFA slots (D-024)", () => {
+  const a = appt({ slotTime: "09:20", planOfAction: "REF" });
+  assert.equal(run([a], "2026-10-21", onlyRule(9), TODAY).findings.length, 0);     // 2 days ahead
+  assert.equal(run([a], "2026-10-22", onlyRule(9), TODAY).findings.length, 1);     // 3 days ahead
+});
+test("rule 9: with the Google app's HFA blocks, only those days and times are HFA slots", () => {
+  const blocks = ["M-09:20-09:30-0", "M-09:40-09:50-0", "Th-09:20-09:40-0"].map((x) => parseBlock("HFA", x)!);
+  const ctx = (date: string) => ({ ...onlyRule(9) });
+  const mon = appt({ slotTime: "09:20", planOfAction: "REF" }), wed = appt({ slotTime: "09:20", planOfAction: "REF" }),
+        thu930 = appt({ slotTime: "09:30", planOfAction: "REF" });
+  const withBlocks = (as: RuleAppt[], date: string) => checkDay(as, { date, today: TODAY, prepMinutes: PREP, blocks,
+    settings: { ...DEFAULT_RULE_SETTINGS, on: { ...DEFAULT_RULE_SETTINGS.on, ...ctx(date).on } } }).findings;
+  assert.equal(withBlocks([mon], MON).length, 1);
+  assert.equal(withBlocks([wed], WED).length, 0, "no HFA block on Wednesday");
+  assert.equal(withBlocks([thu930], THU).length, 1, "Thursday's block runs 09:20-09:40");
 });
 test("rule 9: an HFA patient outside the HFA slots is told about them more than a day ahead", () => {
   const a = appt({ slotTime: "10:00", planOfAction: "HFA" });
   assert.deepEqual(codes(run([a], MON, onlyRule(9), TODAY).findings), ["HFA_IN_NON_HFA_SLOT"]);   // 7 days ahead
 });
-test("rule 16: from the day before, an HFA patient may take another slot without a note", () => {
+test("rule 16: from 2 days before, an HFA patient may take another slot without a note", () => {
   const a = appt({ slotTime: "10:00", planOfAction: "HFA" });
+  assert.equal(run([a], "2026-10-21", onlyRule(9), TODAY).findings.length, 0);                    // 2 days ahead
   assert.equal(run([a], "2026-10-20", onlyRule(9), TODAY).findings.length, 0);                    // tomorrow
   assert.equal(run([a], TODAY, onlyRule(9), TODAY).findings.length, 0);                           // today
+});
+
+// ---------- rule 17 ----------
+test("rule 17: a visit type booked outside its own times is warned; other bookings may use those slots", () => {
+  const blocks = [parseBlock("INJECTION", "W-09:00-12:20-0")!, parseBlock("ROP", "W-13:50-17:00-0")!, parseBlock("LASER", "Tu-14:00-17:30-0")!];
+  const on = { on: { ...Object.fromEntries(Object.keys(DEFAULT_RULE_SETTINGS.on).map((k) => [k, false])), RULE_RESERVED_SLOTS: true } };
+  const run17 = (as: RuleAppt[], date = WED) => checkDay(as, { date, today: TODAY, prepMinutes: PREP, blocks,
+    settings: { ...DEFAULT_RULE_SETTINGS, ...on } }).findings;
+  const general = appt({ slotTime: "10:00", appointmentType: "GENERAL", planOfAction: "REF" }),
+        injIn = appt({ slotTime: "10:10", appointmentType: "INJECTION" }), injOut = appt({ slotTime: "15:00", appointmentType: "INJECTION" }),
+        ropIn = appt({ slotTime: "14:00", appointmentType: "ROP" }), ropOut = appt({ slotTime: "11:00", appointmentType: "ROP" }),
+        laserWed = appt({ slotTime: "14:10", appointmentType: "LASER" });
+  const f = run17([general, injIn, injOut, ropIn, ropOut, laserWed]);
+  assert.deepEqual(f.map((x) => x.id).sort(), [injOut.id, ropOut.id, laserWed.id].sort());
+  assert.ok(f.every((x) => x.code === "OUTSIDE_RESERVED" && x.level === "warning"), "warnings only, booking can go ahead");
+  assert.match(f.find((x) => x.id === laserWed.id)!.message, /no laser time on this day \(Tue 14:00-17:30\)/);
+  assert.equal(run17([appt({ slotTime: "15:00", appointmentType: "LASER" })], TUE).length, 0);
+});
+test("rule 17: reserved block strings are read like the Google app's (day-from-to-days)", () => {
+  assert.deepEqual(parseBlock("EMERGENCY", "D-17:30-17:40--1"), { kind: "EMERGENCY", day: "D", start: "17:30", end: "17:40", days: -1 });
+  assert.deepEqual(parseBlock("LASER", "Tu-14:00-17:30-0"), { kind: "LASER", day: "Tu", start: "14:00", end: "17:30", days: 0 });
+  assert.equal(parseBlock("HFA", "Monday, Tuesday"), null);
 });
 
 // ---------- rule 10 ----------

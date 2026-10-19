@@ -183,10 +183,12 @@ export function SettingsPage() {
         <div className="panel-pad settings-cols">{d.lists.map((l) => <ListSection key={l.id} list={l} />)}</div></section>
       <PlansSection plans={d.plans} />
       <section className="panel">
-        <div className="panel-head"><h2 className="grow">Reserved slot blocks from the Google app</h2><span className="muted small">for reference: not used by Sudarshan yet</span></div>
+        <div className="panel-head"><h2 className="grow">Reserved slot blocks (from the Google app)</h2><span className="muted small">rule 17 and the HFA hold</span></div>
         <div className="panel-pad stack small">
-          <p className="muted" style={{ margin: 0 }}>The Google app held some slots for one kind of patient (format day-from-to-count, e.g. W-09:00-12:20 = Wednesday 09:00-12:20).
-            Sudarshan books on a plain grid for now; whether to bring these blocks back is an open question.</p>
+          <p className="muted" style={{ margin: 0 }}>Each entry is day-from-to-days (D = every day; W-09:00-12:20 = Wednesday 09:00-12:20).
+            HFA slots are held for HFA patients until 2 days before the day (others refused; a manager can book with a reason).
+            For the other blocks, a booking whose visit type is ROP, injection, laser, dilation, urgent new or emergency gets a warning
+            when it is outside its time; other bookings may use these slots. The list itself is changed in a later version.</p>
           <table className="list compact"><tbody>{d.reservedSlots.map((r) => (
             <tr key={r.name}><td className="nowrap"><b>{r.name}</b></td><td>{r.entries.join(" · ")}</td></tr>))}</tbody></table>
         </div>

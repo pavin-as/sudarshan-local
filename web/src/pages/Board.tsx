@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { api, type Appointment } from "../api";
 import { useAuth } from "../auth";
-import { dayLabel, niceDate, todayIST, weekdayName } from "../format";
+import { dayLabel, niceDate, todayIST, weekdayName, planText } from "../format";
 import { ErrorNotice, Loading, StageTrack, StatusPill, Tags } from "../components/ui";
 import { DateStrip, useDay } from "../components/SlotPicker";
 import { BookDialog, type BookPreset } from "../components/BookDialog";
@@ -22,7 +22,7 @@ function ApptCard({ a, onOpen, rules }: { a: Appointment; onOpen: () => void; ru
     <button className={`appt ${a.status}`} onClick={onOpen}>
       <div style={{ minWidth: 0 }}>
         <div className="appt-name">{a.patientName} <span className="muted small" style={{ fontWeight: 400 }}>{a.mrd ?? "new"}</span></div>
-        <div className="appt-sub">{[a.planOfAction, a.doctorName, a.ageYears != null ? `${a.ageYears} y` : null].filter(Boolean).join(", ") || " "}
+        <div className="appt-sub">{[planText(a.planOfAction), a.doctorName, a.ageYears != null ? `${a.ageYears} y` : null].filter(Boolean).join(", ") || " "}
           {(a.tags.length > 0 || extra.length > 0) && <> <Tags tags={[...a.tags, ...extra]} /></>}</div>
       </div>
       <div className="appt-side">
@@ -143,7 +143,7 @@ export function BoardPage() {
                     <tr key={a.id} className="clickable" onClick={() => setOpenId(a.id)}>
                       <td className="nowrap"><b>{a.slotTime}</b></td>
                       <td><b>{a.patientName}</b> <span className="muted small">{a.mrd}</span><div><Tags tags={a.tags} /></div></td>
-                      <td>{a.planOfAction}</td><td>{a.doctorName}</td>
+                      <td>{planText(a.planOfAction)}</td><td className="nowrap">{a.doctorName}</td>
                       <td>{a.liveStage ? <StageTrack stage={a.liveStage} /> : <StatusPill status={a.status} />}</td>
                     </tr>))}</tbody>
                 </table>)}

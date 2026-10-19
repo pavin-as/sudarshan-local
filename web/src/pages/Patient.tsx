@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api";
 import { useAuth } from "../auth";
-import { niceDate, money, stamp, todayIST } from "../format";
+import { niceDate, money, stamp, todayIST, planText } from "../format";
 import { Drawer, ErrorNotice, Loading, StatusPill } from "../components/ui";
 import { PatientPicker } from "../components/PatientPicker";
 import { TrendChart } from "../components/TrendChart";
@@ -154,7 +154,7 @@ export function PatientPage() {
               {upcoming.length === 0 && <span className="muted">No upcoming appointment.</span>}
               {d.appointments.slice(0, 12).map((a: any) => (
                 <button key={a.id} className="appt" onClick={() => setApptId(a.id)} style={{ opacity: a.date < todayIST() ? 0.75 : 1 }}>
-                  <div><b>{niceDate(a.date, true)}</b> {a.slotTime ?? "waitlist"}<div className="appt-sub">{[a.planOfAction, a.doctorName].filter(Boolean).join(", ")}</div></div>
+                  <div><b>{niceDate(a.date, true)}</b> {a.slotTime ?? "waitlist"}<div className="appt-sub">{[planText(a.planOfAction), a.doctorName].filter(Boolean).join(", ")}</div></div>
                   <StatusPill status={a.status} />
                 </button>
               ))}

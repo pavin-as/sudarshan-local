@@ -376,6 +376,29 @@ try {
     assert.ok(!pending.body.assessments.some((a: any) => a.id === triageId));
   });
 
+  console.log("HFA slots held until 2 days before (D-024)");
+  await step("a held HFA slot refuses other plans more than 2 days ahead; HFA and a manager's reason may book it", async () => {
+    const codes = ["Su", "M", "Tu", "W", "Th", "F", "Sa"], day = codes[new Date(D2 + "T00:00:00Z").getUTCDay()];
+    const prev = (await pool.query(`SELECT value FROM app.settings WHERE key = 'general.HFA Slot'`)).rows[0]?.value ?? null;
+    await pool.query(`INSERT INTO app.settings (key, value) VALUES ('general.HFA Slot', $1::jsonb)
+                      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`, [JSON.stringify([`${day}-11:30-11:40-0`])]);
+    try {
+      const refused = await call("POST", "/api/appointments", staff, { date: D2, slotTime: "11:30", patientName: "ZZ Test Hfa One", phone: "9000000121", planOfAction: "REF" });
+      assert.equal(refused.status, 409); assert.match(refused.body.message, /kept for HFA/);
+      assert.ok(!refused.body.details.freeSlots.includes("11:30"), "a held slot is not suggested");
+      const hfa = await call("POST", "/api/appointments", staff, { date: D2, slotTime: "11:30", patientName: "ZZ Test Hfa Two", phone: "9000000122", planOfAction: '["HFA (BE)"]' });
+      assert.equal(hfa.status, 200);
+      await call("POST", `/api/appointments/${hfa.body.appointment.id}/cancel`, staff, { reason: "test" });
+      const over = await call("POST", "/api/appointments", admin, { date: D2, slotTime: "11:30", patientName: "ZZ Test Hfa One", phone: "9000000121",
+        planOfAction: "REF", override: { reason: "Doctor asked for this time" } });
+      assert.equal(over.status, 200);
+      assert.ok(over.body.warnings.some((w: string) => /kept for HFA.*booked anyway/.test(w)));
+    } finally {
+      if (prev) await pool.query(`UPDATE app.settings SET value = $1 WHERE key = 'general.HFA Slot'`, [prev]);
+      else await pool.query(`DELETE FROM app.settings WHERE key = 'general.HFA Slot'`);
+    }
+  });
+
   console.log("month view and settings");
   await step("month view lists every day of the month with its load", async () => {
     const r = await call("GET", `/api/month?month=${D2.slice(0, 7)}`, doctor);

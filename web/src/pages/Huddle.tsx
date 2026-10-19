@@ -3,7 +3,7 @@
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api, type RuleFinding } from "../api";
-import { dayLabel, niceDate, weekdayName } from "../format";
+import { dayLabel, niceDate, weekdayName, planText } from "../format";
 import { ErrorNotice, Loading, Tags } from "../components/ui";
 import { LEVEL_WORDS, RuleNotes } from "../components/RuleNotes";
 
@@ -17,12 +17,6 @@ interface Huddle {
   summary: Record<"booked" | "waitlist" | "newPatients" | "notConfirmed" | "dilation" | "injections" | "lasers" | "atGonio" | "hfa" | "rop", number>;
 }
 
-/** "["REF","DIL","OCT (LE)"]" -> "REF, DIL, OCT (LE)" */
-const plan = (p: string | null) => {
-  if (!p) return "";
-  try { const v = JSON.parse(p); if (Array.isArray(v)) return v.join(", "); } catch { /* plain text */ }
-  return p;
-};
 
 export function HuddlePage() {
   const [params, setParams] = useSearchParams();
@@ -80,7 +74,7 @@ export function HuddlePage() {
                 <td className="nowrap"><b>{a.slotTime}</b></td>
                 <td><b>{a.patientName}</b> <span className="muted small">{a.mrd ?? "new"}{a.ageYears != null && `, ${a.ageYears} y`}</span>
                   {a.familyGroup && <div className="small muted">family {a.familyGroup}</div>}</td>
-                <td>{plan(a.planOfAction)}</td>
+                <td>{planText(a.planOfAction)}</td>
                 <td>{(a.tags.length > 0 || extra.length > 0) && <Tags tags={[...a.tags, ...extra]} />}</td>
                 <td className="small">{a.doctorName}</td>
                 <td className="small nowrap">{a.confirmed1day ? "1-day" : a.confirmed4day ? "4-day" : <span className="warn-text">not yet</span>}</td>
@@ -94,7 +88,7 @@ export function HuddlePage() {
         {waiting.length > 0 && (
           <section className="stack">
             <h3>Waitlist ({waiting.length})</h3>
-            <div className="small">{waiting.map((a) => `${a.patientName} (${a.mrd ?? "new"})${a.planOfAction ? `: ${plan(a.planOfAction)}` : ""}`).join(" · ")}</div>
+            <div className="small">{waiting.map((a) => `${a.patientName} (${a.mrd ?? "new"})${a.planOfAction ? `: ${planText(a.planOfAction)}` : ""}`).join(" · ")}</div>
           </section>)}
         <p className="muted small">Printed from Sudarshan. Contains patient names: keep it in the clinic and shred it after the day.</p>
       </>}

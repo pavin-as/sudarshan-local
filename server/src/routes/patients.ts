@@ -15,7 +15,9 @@ export async function patientRoutes(app: FastifyInstance) {
     const { q: text } = z.object({ q: z.string().trim().min(2).max(60) }).parse(req.query);
     const digits = text.replace(/\D/g, "");
     const isPhone = digits.length >= 6 && digits.length === text.replace(/[\s+-]/g, "").length;
-    const params: unknown[] = [text.toUpperCase(), text, isPhone ? digits.slice(-10) : null];
+    // MRDs are SPD + 1-5 digits: "12345", "spd12345" and "SPD 12345" all look for SPD12345 (exact first, then SPD123456...)
+    const mrdNumber = /^(spd)?\s*\d{1,5}$/i.test(text) ? `SPD${digits}` : null;
+    const params: unknown[] = [mrdNumber ?? text.toUpperCase(), text, isPhone ? digits.slice(-10) : null];
     const rows = await q(
       `SELECT p.patient_id AS "patientId", p.mrd, p.name, p.age_years AS "ageYears", p.sex, p.mobile,
               (SELECT max(v.tappoint_date_time)::date FROM yarago.tblappointments v
@@ -25,7 +27,7 @@ export async function patientRoutes(app: FastifyInstance) {
          FROM clinical.patient p
         WHERE upper(p.mrd) LIKE $1 || '%'
            OR ($3::text IS NOT NULL AND p.mobile LIKE '%' || $3)
-           OR ($3::text IS NULL AND p.name ILIKE '%' || $2 || '%')
+           OR ($3::text IS NULL AND ${mrdNumber ? "$2::text IS NULL" : "p.name ILIKE '%' || $2 || '%'"})
         ORDER BY rank, "lastVisit" DESC NULLS LAST, p.name
         LIMIT 25`, params);
     return { patients: rows.map(({ rank, ...r }: any) => r) };
