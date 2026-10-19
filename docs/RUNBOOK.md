@@ -171,6 +171,22 @@ If it fails, the log shows the last lines of the error; most often the internet 
 5. Morning: staff use Sudarshan only. Google app kept read-only for 3 months.
 6. Delete the exported spreadsheet copies; rotate the old Google app keys.
 
+## 10. Seeing Sudarshan as each role
+
+Sudarshan does not use the Google app's passwords. To see what a role sees, an admin makes one test login per role on
+**Users > Add user** (the one-time password is shown once; the first login asks for a new one):
+`test_doctor` (Doctor), `test_manager` (Manager), `test_opto` (Optometrist), `test_frontdesk` (Front desk). Use a
+second browser or a private window to stay logged in as yourself. Real staff get their own one-time password from
+Users > "Give password" on their row when they start using Sudarshan. Deactivate the test logins before go-live.
+
+| Role | Sees |
+|---|---|
+| Admin | everything, including Users |
+| Manager | everything except Users |
+| Doctor, Optometrist | board, patients, clinical detail and the doctor summary; cannot book |
+| Counsellor | as front desk, plus clinical detail and the doctor summary |
+| Front desk | board, booking, calls, lists, patients without clinical detail |
+
 ## 9. Ports and paths quick reference
 
 `http://shichika:8484` web app · `http://shichika:3000` Metabase · `D:\Sudarshan\app\.env` settings and secrets (admins only) · `D:\Sudarshan\app\logs`

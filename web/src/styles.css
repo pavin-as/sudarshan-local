@@ -402,3 +402,17 @@ table.list.compact td, table.list.compact th { padding: 0.3rem 0.55rem; }
 .ds-dl dd { margin: 0; white-space: pre-wrap; }
 .scroll-x { overflow-x: auto; }
 .ds button.link { color: var(--action); text-decoration-color: currentColor; }
+
+/* follow-up board risk tiers */
+.fu-tiers { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1rem; }
+.fu-tier { flex: 1 1 170px; display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem; text-align: left; padding: 0.6rem 0.8rem; border-left: 4px solid var(--line); background: var(--surface); }
+.fu-tier .fu-n { font-size: 1.5rem; font-weight: 700; line-height: 1.1; }
+.fu-tier[aria-pressed="true"] { outline: 2px solid var(--action); outline-offset: -2px; }
+.fu-tier.plain { border: 1px solid var(--line); border-left: 4px solid var(--done); border-radius: var(--radius-s); }
+.fu-tier.t1 { border-left-color: var(--vessel); } .fu-tier.t2 { border-left-color: var(--disc); }
+.fu-tier.t3 { border-left-color: var(--action); } .fu-tier.t4 { border-left-color: var(--line); }
+.fu-badge { display: inline-block; font-size: 0.78rem; font-weight: 700; padding: 0.05rem 0.45rem; border-radius: 3px; white-space: nowrap; }
+.fu-badge.t1 { background: var(--vessel-soft); color: var(--vessel); } .fu-badge.t2 { background: var(--disc-soft); color: #6b4a00; }
+.fu-badge.t3 { background: var(--action-soft); color: #0a4f53; } .fu-badge.t4 { background: var(--line-soft); color: var(--ink-soft); }
+.fu-script { background: var(--action-soft); border-radius: var(--radius-s); padding: 0.6rem 0.8rem; line-height: 1.5; }
+.fu-row td:first-child { width: 80px; }

@@ -45,6 +45,9 @@ Point tests at a test database with an env file: `SUDARSHAN_ENV=<path to test .e
 
 - [ ] Type checks and builds pass; API test passes on the test database.
 - [ ] New behaviour has tests; screens checked in a browser (screenshot reviewed) at desktop and phone width.
+- [ ] Screenshots of real data on shichika (they reach a cloud model): blur every element that can hold a patient's
+      name or number, including headings and dialog titles, and open no dialog that is not blurred as a whole. On
+      19 Oct a call dialog's title showed one patient's name in a check; the files were deleted at once.
 - [ ] COMPLIANCE.md checklist (section 6) passes.
 - [ ] SCHEMA.md updated if the schema changed; DESIGN.md if a pattern changed; DECISIONS.md if a decision changed.
 - [ ] CHANGELOG.md entry under "Unreleased"; STATUS.md updated.

@@ -186,6 +186,20 @@ two sentences; shown only when every number in it appears in the facts (`checked
 logged in `app.ai_summary_views`; `app.ai_summaries` is audited (migration 0010). Checked 19 Oct on 3 real patients
 (injections, laser, other): 12 of 12 facts match Yarago's raw tables for each.
 
+### D-027 · 2026-10-19 · Accepted · Claude (Pavin asked for the Phase B follow-up board)
+**Follow-up board ranks overdue patients by clinical risk, with a call script per tier.** Tiers
+(`services/followupRisk.ts`): **Urgent** = an injection in the last 6 months, ROP, retinal detachment, or an infant;
+**High** = laser in the last year, an older injection, or diabetic retinopathy / DME, vein occlusion, AMD, vitreous
+haemorrhage, uveitis, macular hole / ERM; **Monitor** = coded diabetes, glaucoma / suspect, CSCR, hypertensive or
+myopic retinopathy; **Routine** = the rest. The condition is the analytics group of the latest examination findings
+(`analytics.categorise`, Dr. Sameera's rules), so the board and the dashboards agree. Within a tier, the most recently
+overdue first (most likely to come back). Each row carries the tier's call script filled with the patient, doctor, due
+date and treatment; scripts and the clinic name are edited on Settings (Malayalam welcome). The board also shows how
+many patients came back within 30 days of a call logged in Sudarshan. Checked 19 Oct on 500 real rows against Yarago's
+raw injection table: every injection in the last 6 months is Urgent, no Urgent row without a reason, order correct.
+**Imported roles:** the Login sheet's "Opto" is optometrist and "reception" is front desk; the sheet sets a role only
+until the person has a Sudarshan password, after which the Users screen owns it.
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

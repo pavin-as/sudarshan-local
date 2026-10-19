@@ -168,6 +168,38 @@ function PlansSection({ plans }: { plans: Plan[] }) {
   );
 }
 
+// Follow-up call scripts, one per risk tier; {name}, {doctor}, {due}, {treatment} and {clinic} are filled in per patient
+function ScriptsSection() {
+  const toast = useToast();
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["followup-scripts"], queryFn: () => api<{ clinicName: string; scripts: { tier: number; words: string; text: string }[] }>("/followups/scripts") });
+  const [f, setF] = useState<{ clinicName: string; scripts: Record<string, string> } | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  useEffect(() => { if (q.data) setF({ clinicName: q.data.clinicName, scripts: Object.fromEntries(q.data.scripts.map((s) => [String(s.tier), s.text])) }); }, [q.data]);
+  if (!q.data || !f) return null;
+  const save = async () => {
+    setError(null);
+    try { await api("/followups/scripts", { method: "PUT", body: f }); toast("Call scripts saved"); await qc.invalidateQueries(); }
+    catch (e) { setError(e); }
+  };
+  return (
+    <section className="panel">
+      <div className="panel-head"><h2 className="grow">Follow-up call scripts</h2></div>
+      <div className="panel-pad stack">
+        <p className="small muted" style={{ margin: 0 }}>Shown in the call dialog on Follow-up calls, filled in for each patient. Write them in the words staff
+          use on the phone (Malayalam is fine). Fill-ins: {"{name}"}, {"{doctor}"}, {"{due}"}, {"{treatment}"}, {"{clinic}"}.</p>
+        <label className="field"><span>Clinic name as said on the phone</span>
+          <input value={f.clinicName} onChange={(e) => setF({ ...f, clinicName: e.target.value })} /></label>
+        {q.data.scripts.map((s) => (
+          <label key={s.tier} className="field"><span>{s.words}</span>
+            <textarea rows={3} value={f.scripts[String(s.tier)] ?? ""} onChange={(e) => setF({ ...f, scripts: { ...f.scripts, [String(s.tier)]: e.target.value } })} /></label>))}
+        <div className="row"><ErrorNotice error={error} /><span className="grow" />
+          <button className="btn-primary" onClick={() => void save()}>Save scripts</button></div>
+      </div>
+    </section>
+  );
+}
+
 export function SettingsPage() {
   const q = useQuery({ queryKey: ["settings"], queryFn: () => api<SettingsData>("/settings") });
   if (q.error) return <ErrorNotice error={q.error} />;
@@ -182,6 +214,7 @@ export function SettingsPage() {
       <section className="panel"><div className="panel-head"><h2>Lists</h2></div>
         <div className="panel-pad settings-cols">{d.lists.map((l) => <ListSection key={l.id} list={l} />)}</div></section>
       <PlansSection plans={d.plans} />
+      <ScriptsSection />
       <section className="panel">
         <div className="panel-head"><h2 className="grow">Reserved slot blocks (from the Google app)</h2><span className="muted small">rule 17 and the HFA hold</span></div>
         <div className="panel-pad stack small">

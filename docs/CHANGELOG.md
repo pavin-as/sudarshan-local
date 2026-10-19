@@ -5,6 +5,14 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Follow-up board ranked by clinical risk** (D-027): Urgent (injection in the last 6 months, ROP, detachment), High
+  (recent laser, retinal disease under care), Monitor (diabetes, conditions to watch), Routine. Counts per tier at the
+  top (click to filter), the reasons beside each patient, a filled-in call script in the call dialog, and how many came
+  back after a call. Scripts are edited on Settings > Follow-up call scripts.
+  Technical: `services/followupRisk.ts`, `GET/PUT /api/followups/scripts`, ranked `GET /api/followups` (tier, reasons,
+  script; `tiers`, `cameBackAfterCall30d`); 6 new checks in `npm run test:rules`.
+- **Roles from the Login sheet**: "Opto" is now Optometrist (6 users) and "reception" Front desk; a role set on the
+  Users screen is no longer overwritten once the person has a Sudarshan password.
 - **Doctor summary** (`/patients/<id>/summary`, D-026), in the layout Dr. Sameera agreed: today's booking, a two-line
   overview written by the local model (labelled "AI-generated · verify", shown only when every number in it is in the
   facts), alerts, findings by eye, vision and pressure, treatment, last visit; every date opens that Yarago visit.

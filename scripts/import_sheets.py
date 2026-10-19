@@ -172,7 +172,8 @@ def norm_name(s):
 
 ROLE_MAP = {"director": "admin", "admin": "admin", "administrator": "admin", "doctor": "doctor",
             "manager": "manager", "optometrist": "optometrist", "optometry": "optometrist",
-            "counsellor": "counsellor", "counselor": "counsellor"}
+            "counsellor": "counsellor", "counselor": "counsellor", "opto": "optometrist",
+            "reception": "staff", "receptionist": "staff", "front desk": "staff"}
 
 
 # ------------------------------------------------------------------ import
@@ -198,7 +199,9 @@ def run(data, conn, dry_run=False):
         role = ROLE_MAP.get((txt(u.get("role")) or "").lower(), "staff")
         cur.execute("""INSERT INTO app.users (username, full_name, role, email, legacy_username)
                        VALUES (%s, %s, %s, %s, %s)
-                       ON CONFLICT (username) DO UPDATE SET full_name = EXCLUDED.full_name, role = EXCLUDED.role,
+                       ON CONFLICT (username) DO UPDATE SET full_name = EXCLUDED.full_name,
+                         -- the Login sheet's role only until the person sets a Sudarshan password; then the Users screen owns it
+                         role = CASE WHEN app.users.password_hash IS NULL THEN EXCLUDED.role ELSE app.users.role END,
                          email = coalesce(EXCLUDED.email, app.users.email), legacy_username = EXCLUDED.legacy_username""",
                     (username, txt(u.get("Name")) or username, role, txt(u.get("Email")), username))
         counts["users"] += 1
