@@ -470,3 +470,19 @@ table.list.compact td, table.list.compact th { padding: 0.3rem 0.55rem; }
 .date-chip.held::after { content: "held"; display: block; font-size: 0.65rem; color: #6b4a00; font-weight: 700; }
 .date-chip.held[aria-pressed="true"]::after { color: #fde68a; }
 .slots-pick button.wl-full { background: var(--disc-soft); border-color: var(--disc); color: #5a3e00; }
+
+/* WhatsApp and payment links (D-034) */
+.mode-banner { border-left: 4px solid var(--disc); background: var(--disc-soft); padding: 0.45rem 0.8rem; border-radius: var(--radius-s); font-size: 0.9rem; }
+.mode-banner.live { border-left-color: var(--done); background: var(--done-soft); }
+.mode-banner.off { border-left-color: var(--line); background: var(--line-soft); }
+.pill.msg-sent, .pill.pay-paid, .pill.pay-refunded, .pill.pay-partially_refunded { background: var(--done-soft); color: var(--done); }
+.pill.msg-queued, .pill.pay-created, .pill.pay-sent { background: var(--action-soft); color: var(--action); }
+.pill.msg-failed, .pill.pay-failed { background: var(--vessel-soft); color: var(--vessel); }
+.pill.msg-skipped, .pill.pay-expired, .pill.pay-cancelled { background: var(--line-soft); color: var(--ink-soft); }
+.pill.test { background: var(--disc-soft); color: #7a5300; }
+.outreach-item { border-top: 1px solid var(--line-soft); padding: 0.5rem 0; }
+.outreach-item:first-of-type { border-top: 0; }
+.link-text { font-family: ui-monospace, monospace; font-size: 0.85rem; word-break: break-all; }
+tr.not-sent td { color: var(--ink-soft); }
+.wa-page .panel { overflow-x: auto; }          /* wide lists scroll inside their panel on a phone */
+.wa-page .panel-head { flex-wrap: wrap; }

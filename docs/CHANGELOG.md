@@ -5,6 +5,23 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **WhatsApp reminders and payment links, in test mode** (D-034). New **WhatsApp** page: pick a day, see every booked
+  patient and whether they would get the reminder (and why not: no phone, landline, already sent, test mode), then
+  "Send to 12 patients" and "Yes, send 12". The history shows what was sent and what did not arrive (call those
+  patients), beside the Google app's own sends. In the appointment panel: send one reminder, make a **Razorpay payment
+  link** (amount, the patient's mobile read back and ticked), copy it, send it from WhatsApp on the PC or through
+  AiSensy, "Check payment now", cancel it; an admin can refund. New **Payments** page (open, paid, to check). Settings:
+  off / test / live for each, test numbers, templates (AiSensy campaign names), amounts. **Test mode until cut-over:**
+  only bookings named TEST, WhatsApp only to the test numbers, Razorpay test keys only; live is refused before cut-over
+  and only an admin can choose it. A payment does not change the booking (P-5).
+  Technical: migration 0015 (`app.broadcasts`, `app.payment_refunds`, columns on `messages` and `payments`, settings
+  `messaging.*`, `payments.*`), `services/outreach.ts`, `whatsapp.ts`, `razorpay.ts`, `payments.ts`, routes
+  `whatsapp.ts`, `payments.ts`, permissions `messages.send`, `messages.broadcast`, `payments.write`, `payments.refund`;
+  outbox every 5 s and Razorpay check every minute started by `index.ts`; `.env` `AISENSY_API_KEY`, `RAZORPAY_KEY_ID`,
+  `RAZORPAY_KEY_SECRET`. Tests `test/outreach.test.ts` (18) and `test/outreach.unit.test.ts` (7).
+- **Tests:** the API test runs again after D-029/D-030 and the Today change (early-booking bands set for its days, print
+  log cleaned up, Today's new fields); `server/test/yarago_stub.sql` builds an empty Yarago mirror for a test database
+  in a workspace without shichika's schema file.
 - **What we owe wholesalers, on the Pharmacy dashboard** (D-033): amount owed now, open invoices, oldest open invoice,
   amount settled in the last 30 days, balance per wholesaler and the list of open invoices (oldest paid first). Live as
   of the last sync: the pharmacy purchase and payment tables now sync every 150 seconds.

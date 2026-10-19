@@ -170,6 +170,8 @@ If it fails, the log shows the last lines of the error; most often the internet 
    (`Unregister-ScheduledTask -TaskName 'Sudarshan refresh from Google' -Confirm:$false`), remove TEST bookings.
 5. Morning: staff use Sudarshan only. Google app kept read-only for 3 months.
 6. Delete the exported spreadsheet copies; rotate the old Google app keys.
+7. WhatsApp and payments go live only now (section 11): stop the Google app's Broadcast page first, so patients do not
+   get the reminder twice.
 
 ## 10. Seeing Sudarshan as each role
 
@@ -191,3 +193,33 @@ Users > "Give password" on their row when they start using Sudarshan. Deactivate
 
 `http://shichika:8484` web app · `http://shichika:3000` Metabase · `D:\Sudarshan\app\.env` settings and secrets (admins only) · `D:\Sudarshan\app\logs`
 logs · `D:\PostgreSQL\16\data` database files · MySQL 3306 (Yarago) · Postgres 5432 (localhost).
+
+## 11. WhatsApp and payment links (D-034)
+
+Both have a switch on **Settings**: Off, Test mode, Live. They start in **test mode**: only bookings named TEST get a
+message or a payment link, WhatsApp goes only to the test numbers on Settings, and Razorpay must have *test* keys.
+Live can be chosen only by an admin and only after cut-over (Sudarshan refuses it while the Google app is the master).
+
+Keys go in `D:\Sudarshan\app\.env` (never anywhere else), then restart the server (`Restart-Service SudarshanServer`):
+```
+AISENSY_API_KEY=<the NEW AiSensy key: the old one was in git history and must be rotated first>
+RAZORPAY_KEY_ID=rzp_test_...        # test keys until go-live; rzp_live_... after
+RAZORPAY_KEY_SECRET=...
+```
+Settings shows "key is set" / "test keys" without ever showing the key. shichika needs outbound HTTPS to
+`backend.aisensy.com` and `api.razorpay.com`; nothing comes in (Razorpay is asked every minute, no webhook).
+
+Trying it (test mode):
+1. Settings > WhatsApp: add your own mobile as a test number. Check the AiSensy campaign name of the reminder template
+   (the Google app used `sudarsdhan_appointment`).
+2. Book a practice patient named `TEST <name>` for tomorrow with your mobile. WhatsApp page: the list shows who would get
+   the reminder and why the others would not; press Send. The message arrives on your phone within seconds.
+3. In that booking's panel: Make a payment link (Rs 100 or more), pay it with a Razorpay test card or UPI test id;
+   within a minute (or with "Check payment now") it shows Paid. An admin can then refund it.
+
+If the server stops while sending, the message being sent is marked "not delivered" and is never resent by itself;
+check with the patient. Not-delivered messages are listed on the WhatsApp page: call those patients.
+
+Going live (after cut-over): rotate the AiSensy key, put the Razorpay live keys in `.env` (after KYC), restart the server,
+then an admin sets both switches to Live. Back to Off at any time stops new sends; links already sent stay payable.
+

@@ -9,6 +9,7 @@ import { COMMON_TAGS, useMeta } from "./BookDialog";
 import { DateStrip, SlotPicker } from "./SlotPicker";
 import { PatientPicker } from "./PatientPicker";
 import { RuleCheckPanel, RuleNotes, useDayRules } from "./RuleNotes";
+import { AppointmentOutreach } from "./Outreach";
 
 interface Event { id: number; at: string; type: string; by: string | null; from: any; to: any; note: string | null }
 
@@ -121,6 +122,8 @@ export function AppointmentDrawer({ id, onClose }: { id: number; onClose: () => 
           </>}
         </div>
       )}
+
+      {!mode && <AppointmentOutreach a={a} />}
 
       {mode && (
         <section className="panel panel-pad stack">

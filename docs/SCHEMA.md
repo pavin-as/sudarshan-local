@@ -32,7 +32,7 @@ schema, update this file in the same commit (Testing.md, "Definition of done").
    The server's connections run with `TimeZone=Asia/Kolkata`.
 6. **No secrets in tables.** `app.settings` holds no keys; secrets are in `.env`.
 
-Applied so far: `0001_schemas`, `0002_sync_runs`, `0003_app_core`, `0004_server`, `0005_backup_runs`, `0006_analytics`, `0014_wholesaler_balance` (live wholesaler balance views, purchases at invoice value, D-033), `0013_pharmacy_analytics` (pharmacy facts and dimensions in `analytics`, D-032), `0012_print_log` (who printed which day list, D-029), `0011_emr_completeness` (`analytics.emr_completeness` + nightly function, D-028), `0010_doctor_summary` (audit on `ai_summaries`, `facts_hash`, `checked`, AI settings, D-026), `0009_trial_google_master` (setting `trial.google_master`, D-025), `0008_import_no_time` (imported bookings at 00:00 had no time: time cleared, upcoming ones waitlist), `0007_front_desk_lists` (direct-call close reason and doctor; cancelled bookings' call-back date and cancel-list status; imported archived and old_cancel rows taken off the list).
+Applied so far: `0001_schemas`, `0002_sync_runs`, `0003_app_core`, `0004_server`, `0005_backup_runs`, `0006_analytics`, `0015_whatsapp_payments` (WhatsApp broadcasts and outbox, payment link fields, refunds, off/test/live settings, D-034), `0014_wholesaler_balance` (live wholesaler balance views, purchases at invoice value, D-033), `0013_pharmacy_analytics` (pharmacy facts and dimensions in `analytics`, D-032), `0012_print_log` (who printed which day list, D-029), `0011_emr_completeness` (`analytics.emr_completeness` + nightly function, D-028), `0010_doctor_summary` (audit on `ai_summaries`, `facts_hash`, `checked`, AI settings, D-026), `0009_trial_google_master` (setting `trial.google_master`, D-025), `0008_import_no_time` (imported bookings at 00:00 had no time: time cleared, upcoming ones waitlist), `0007_front_desk_lists` (direct-call close reason and doctor; cancelled bookings' call-back date and cancel-list status; imported archived and old_cancel rows taken off the list).
 Views: `10_clinical.sql`, `20_clinical_flow_followup.sql`, `30_app_audit.sql`.
 
 ## Yarago facts the views depend on
@@ -217,6 +217,23 @@ One row per booking for its whole life; status column replaces the appointment/c
 | created_at | timestamp with time zone | no | now() |
 | updated_at | timestamp with time zone | no | now() |
 
+### app.broadcasts
+One row per "send the day's reminders" a person started (0015, D-034): template, AiSensy campaign, the day, mode, how many were
+queued and how many on the preview were not sent. Its messages point to it (`messages.broadcast_id`). Audited.
+
+| Column | Type | Null | Default |
+|---|---|---|---|
+| id | bigint | no |  |
+| template | text | no |  |
+| campaign | text | no |  |
+| for_date | date | no |  |
+| mode | text | no |  |
+| queued | integer | no | 0 |
+| skipped | integer | no | 0 |
+| created_by | integer | yes |  |
+| created_at | timestamp with time zone | no | now() |
+| finished_at | timestamp with time zone | yes |  |
+
 ### app.audit_log
 Every insert/update/delete on audited app tables, written by trigger: actor, plain summary, field changes. Passwords stored only as "(changed)".
 
@@ -384,7 +401,10 @@ Daily figures (jsonb); legacy DailyKPIReport imported.
 | computed_at | timestamp with time zone | no | now() |
 
 ### app.messages
-WhatsApp / email / SMS sent or queued (Broadcast, EmailAudit).
+WhatsApp / email / SMS sent or queued (Broadcast, EmailAudit). Sudarshan's WhatsApp messages (0015, D-034): `status` queued -> sent / failed /
+skipped; `mode` test or live; `attempts` is set to 1 before the AiSensy call, so a message interrupted by a restart is marked
+failed, never sent twice; `payload` holds the campaign, the filled-in values and the appointment day. Rows with `legacy_ref`
+are the Google app's broadcast summaries (importer).
 
 | Column | Type | Null | Default |
 |---|---|---|---|
@@ -402,9 +422,14 @@ WhatsApp / email / SMS sent or queued (Broadcast, EmailAudit).
 | created_at | timestamp with time zone | no | now() |
 | sent_at | timestamp with time zone | yes |  |
 | legacy_ref | text | yes |  |
-
+| broadcast_id | bigint | yes |  |
+| payment_id | bigint | yes |  |
+| mode | text | yes |  |
+| attempts | integer | no | 0 |
 ### app.payments
-Razorpay payment links; status by polling (no webhook).
+Razorpay payment links; status by polling (no webhook, D-017). 0015: `reference` (SUD-<id>, sent as reference_id), `phone` the
+link is for (confirmed by staff), `mode`, `expires_at`, `paid_amount`, `needs_review` (amount paid differs), `error` (link not
+made), cancel fields. Status created -> sent -> paid -> partially_refunded / refunded, or expired / cancelled / failed.
 
 | Column | Type | Null | Default |
 |---|---|---|---|
@@ -423,7 +448,40 @@ Razorpay payment links; status by polling (no webhook).
 | created_by | integer | yes |  |
 | created_at | timestamp with time zone | no | now() |
 | updated_at | timestamp with time zone | no | now() |
+| reference | text | yes |  |
+| phone | text | yes |  |
+| currency | text | no | 'INR'::text |
+| mode | text | yes |  |
+| expires_at | timestamp with time zone | yes |  |
+| paid_amount | numeric | yes |  |
+| sent_at | timestamp with time zone | yes |  |
+| sent_via | text | yes |  |
+| needs_review | text | yes |  |
+| error | text | yes |  |
+| cancelled_at | timestamp with time zone | yes |  |
+| cancelled_by | integer | yes |  |
+| cancel_reason | text | yes |  |
 
+### app.payment_refunds
+One row per refund asked for (admins only, 0015). `idempotency_key` (SUDR-<payment>-<n>) goes to Razorpay so a retried request
+never refunds twice; status requested -> pending -> processed / failed, by polling. Audited.
+
+| Column | Type | Null | Default |
+|---|---|---|---|
+| id | bigint | no |  |
+| payment_id | bigint | no |  |
+| patient_id | integer | yes |  |
+| amount | numeric | no |  |
+| reason | text | no |  |
+| note | text | yes |  |
+| status | text | no | 'requested'::text |
+| provider_refund_id | text | yes |  |
+| idempotency_key | text | no |  |
+| error | text | yes |  |
+| requested_by | integer | yes |  |
+| requested_at | timestamp with time zone | no | now() |
+| processed_at | timestamp with time zone | yes |  |
+| updated_at | timestamp with time zone | no | now() |
 ### app.plan_of_action
 PlanOfActionMaster list.
 

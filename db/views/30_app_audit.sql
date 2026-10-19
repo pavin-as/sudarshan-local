@@ -21,7 +21,7 @@ LANGUAGE sql STABLE AS $$
     WHEN v IS NULL OR v = 'null'::jsonb THEN '(empty)'
     WHEN p_field = 'doctor_id' AND (v #>> '{}') ~ '^\d+$'
       THEN coalesce((SELECT name FROM app.doctors WHERE id = (v #>> '{}')::int), v #>> '{}')
-    WHEN p_field IN ('booked_by','cancelled_by','confirmed_4day_by','confirmed_1day_by','created_by','decision_by','actor_id','user_id')
+    WHEN p_field IN ('booked_by','cancelled_by','confirmed_4day_by','confirmed_1day_by','created_by','decision_by','actor_id','user_id','requested_by')
          AND (v #>> '{}') ~ '^\d+$'
       THEN coalesce((SELECT full_name FROM app.users WHERE id = (v #>> '{}')::int), v #>> '{}')
     ELSE app.audit_value_text(v)

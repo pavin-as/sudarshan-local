@@ -25,6 +25,8 @@ import { CancelListPage, useCancelList } from "./pages/CancelList";
 import { TriagePage, useTriage } from "./pages/Triage";
 import { MonthPage } from "./pages/Month";
 import { SettingsPage } from "./pages/Settings";
+import { WhatsAppPage } from "./pages/WhatsApp";
+import { PaymentsPage } from "./pages/Payments";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 20_000, refetchOnWindowFocus: true, retry: (n, e: any) => n < 2 && !(e?.status >= 400 && e?.status < 500) } },
@@ -62,6 +64,13 @@ function TrialBanner() {
   );
 }
 
+// payments to check (amount differs, link not made, refund failed): a number on the menu
+function usePaymentCounts(enabled: boolean) {
+  const r = useQuery({ queryKey: ["payments", "counts"], enabled, refetchInterval: 5 * 60_000,
+                       queryFn: () => api<{ counts: { review: number } }>("/payments?view=review") });
+  return r.data?.counts.review ?? 0;
+}
+
 const ROLE_WORDS: Record<string, string> = { admin: "Admin", manager: "Manager", staff: "Front desk", doctor: "Doctor", optometrist: "Optometrist", counsellor: "Counsellor" };
 
 function Shell() {
@@ -72,6 +81,7 @@ function Shell() {
   const calls = useDirectCalls("open").data?.counts.open ?? 0;
   const toCallBack = useCancelList("to_call").data?.counts.toCall ?? 0;
   const triagePending = useTriage("pending").data?.pending ?? 0;
+  const payReview = usePaymentCounts(can("payments.write"));
   return (
     <div className="shell">
       <nav className="nav" aria-label="Main">
@@ -85,6 +95,8 @@ function Shell() {
         <NavLink to="/triage">Triage {!!triagePending && <span className="count">{triagePending}</span>}</NavLink>
         <NavLink to="/patients">Patients</NavLink>
         <NavLink to="/followups">Follow-up calls</NavLink>
+        {can("messages.send") && <NavLink to="/whatsapp">WhatsApp</NavLink>}
+        {can("payments.write") && <NavLink to="/payments">Payments {!!payReview && <span className="count">{payReview}</span>}</NavLink>}
         {can("clinical.read") && <NavLink to="/emr-completeness">EMR completeness</NavLink>}
         {can("audit.read") && <NavLink to="/activity">Activity log</NavLink>}
         {can("settings.manage") && <NavLink to="/calendar">Clinic calendar</NavLink>}
@@ -117,6 +129,8 @@ function Shell() {
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/users" element={<UsersPage />} />
+          <Route path="/whatsapp" element={<WhatsAppPage />} />
+          <Route path="/payments" element={<PaymentsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

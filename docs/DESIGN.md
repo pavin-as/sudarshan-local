@@ -82,6 +82,18 @@ change in the facts (new Yarago data) queues a new overview; the queue runs one 
 07:00-09:00 only (`startSummaryJob`, started by `index.ts`, never by tests). A shown overview is logged in
 `app.ai_summary_views`. The model is changed with the setting `ai.overview_model`; a prompt change bumps `PROMPT_VERSION`.
 
+### WhatsApp and payment links (D-034)
+`services/outreach.ts` holds the off / test / live switch, which bookings test mode may touch and phone cleaning;
+`services/whatsapp.ts` the templates, who may get a message (`recipientFor`, pure, with the reason in words), the
+preview, queueing and the outbox worker (`deliverQueued`); `services/razorpay.ts` only the Razorpay REST calls;
+`services/payments.ts` links, refunds and the once-a-minute check (`pollPayments`). AiSensy and Razorpay sit behind
+replaceable transports (`setWhatsAppTransport`, `setRazorpayTransport`) so tests never reach them. A send is always
+two steps: a person's request writes `queued` rows in one transaction; the worker claims one row at a time
+(`attempts = 1` before the call, so a restart never sends twice) and records the answer. The worker and the check are
+started by `index.ts` (`startOutreachJobs`), never by tests, which call them directly. A payment link is made in two
+transactions around the Razorpay call, so no lock is held while waiting on the internet. Razorpay errors are
+`RazorpayError` (HTTP 502 with Razorpay's words).
+
 ### Adding a feature (checklist)
 1. Read DECISIONS.md and COMPLIANCE.md; if the feature conflicts, ask first.
 2. Migration (if needed) + SCHEMA.md; audit triggers for new tables.
@@ -136,6 +148,9 @@ Names come from the eye (choroid, optic disc, vessel), so the palette stays spec
 - **Today page:** stat tiles on top (a number and what it counts; tiles that lead somewhere are links), then the
   live list on the left and "To do" on the right. Every to-do line is a link to the screen where it is done; the page
   itself changes nothing. Live figures refresh every minute.
+- **Sending to patients** (WhatsApp, payment links): a mode banner on every screen that sends ("test mode: ... real
+  patients get nothing"); a list of who gets it and why the others do not before the button; the button says how many
+  ("Send to 12 patients"), then an inline "Yes, send 12" (no pop-up). Not-delivered messages are listed to call instead.
 - **Printed sheets** (huddle): `@media print` hides the menu and buttons; a closing line reminds that the paper holds
   patient names.
 - **Rule findings:** a word for the level ("Against rule", "Check", "Note") then the sentence and what to do, with a red,

@@ -1,5 +1,5 @@
 # Sudarshan - status and handoff
-Last updated: 2026-10-18 (night). Plan: docs/PLAN.md (exported from the Claude Docs plan). Read CLAUDE.md first; the other docs are listed there.
+Last updated: 2026-10-20. Plan: docs/PLAN.md (exported from the Claude Docs plan). Read CLAUDE.md first; the other docs are listed there.
 
 ## Done (Phase A)
 - Read-only MySQL user `sudarshan_ro` on Yarago (MySQL 5.6, db `yghealthcarecombined`, 127.0.0.1:3306).
@@ -122,6 +122,16 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       (analytics already treats them as "booking date not known").
 - [ ] Not in Yarago: patient PIN/area (geography KPI), coded diagnoses, surgery advice. Raise with the clinic if wanted.
 
+- [x] Phase 4 in **test mode** (20 Oct, D-034): WhatsApp page (the day's reminders: preview, then send), reminder and
+      payment link from the appointment panel, Payments page, Settings (off / test / live, test numbers, templates,
+      amounts), outbox worker, Razorpay checked every minute, refunds by admins. Migration 0015. 18 + 7 checks with AiSensy
+      and Razorpay faked; screens checked in a browser on demo data.
+- [ ] Pavin: new AiSensy key (rotate the old one first) and Razorpay **test** keys into `.env`; add your mobile as a test
+      number; try RUNBOOK 11 with a TEST booking. Tell me the AiSensy campaign names if not `sudarsdhan_appointment`.
+- [ ] Pavin: ask AiSensy / Meta for a payment-link template (name, amount, link); until then links go by WhatsApp on the PC.
+- [ ] Pavin: P-5 (should a paid link confirm the booking / hold urgent slots?) and P-6 (privacy notice naming AiSensy and Razorpay).
+- [ ] Before go-live of Phase 4: Razorpay KYC and live keys; cut-over done; Google app Broadcast page no longer used.
+
 ## Next step
 Trial running on live Google data (D-025). Remaining, in order:
 1. **Shadow run** (Phase C gate): staff keep booking in the Google app; daily comparison of the day board, cancel list,
@@ -129,5 +139,5 @@ Trial running on live Google data (D-025). Remaining, in order:
    3306 closed to the LAN, the second-pass patient linking (P-2), which rules block (P-1).
 2. **Cut-over** (RUNBOOK 8): evening switch, `trial.google_master` false, Google app read-only for 3 months (P-3).
 3. **Phase B** done: doctor summary (D-026), follow-up board (D-027), EMR completeness page (D-028).
-4. **After cut-over:** WhatsApp confirmations and broadcast, Razorpay (polling, D-017), no-show risk score,
+4. **After cut-over:** switch WhatsApp and payments to live (built in test mode, D-034; RUNBOOK 11), no-show risk score,
    ask-the-data for Pavin, off-site backup copy (P-4).

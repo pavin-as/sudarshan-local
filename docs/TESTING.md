@@ -11,6 +11,8 @@ write; it is only read by the read-only check.
 | **shichika real database** | `server/test/real-data.ts` (read-only screen check), `scripts/check_views.py` | No (the check adds a temporary `zz_check` login and removes it) |
 
 Point tests at a test database with an env file: `SUDARSHAN_ENV=<path to test .env>`.
+Without shichika's `yarago_schema.json` (a cloud workspace), build the empty mirror from `server/test/yarago_stub.sql`
+(the tables and columns the views read), then run every file in `db/migrations` and `db/views` in name order.
 `server/test/api.test.ts` and `seed-demo.ts` refuse to run without it.
 
 ## 2. The checks
@@ -20,6 +22,7 @@ Point tests at a test database with an env file: `SUDARSHAN_ENV=<path to test .e
 | Type check server | `cd server && npx tsc --noEmit -p .` | Every change |
 | Type check + build web | `cd web && npm run build` | Every web change |
 | **Scheduling rules and triage scoring** (30 + 7 checks, no database) | `cd server && npm run test:rules` | Every change to `services/rules.ts` or rule settings |
+| **WhatsApp and payments** (18 checks, test mode end to end with AiSensy and Razorpay faked: who may, preview reasons, queue and outbox, no double send, restart safety, off and live switches, links, paid by polling, refunds, cancel, amount check, log sentences without keys); 7 more without a database in `test:rules` | `cd server && SUDARSHAN_ENV=<test env> npx tsx test/outreach.test.ts` (also run by `npm test`) | Every change to messaging or payments |
 | **API test** (38+ checks: logins, lockout, password change, permissions, cross-site refusal, users, calendar, booking refusals and overrides, reschedule, confirm, cancel/restore, story, board order, search, audit sentences, passwords never in the log) | `cd server && SUDARSHAN_ENV=<test env> npm test` | Every server change |
 | Browser flow (log in, board, book a new patient, refuse a taken slot, cancel) with screenshots | Playwright script against the test server with demo data (`test/seed-demo.ts`) | Every screen change |
 | Real-data read check: each screen's query, time and row count, no patient details printed | `cd server && npx tsx test/real-data.ts` (also step 7 of `install-server.ps1`) | After deploying to shichika |

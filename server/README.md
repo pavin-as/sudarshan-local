@@ -10,7 +10,7 @@ node dist/cli.js list-users      # who can log in
 node dist/cli.js temp-password <username>        # one-time password, must be changed at login
 node dist/cli.js create-user <username> "<Full name>" <role>
 npx tsx test/real-data.ts        # read-only check of every screen's query on the real database
-SUDARSHAN_ENV=<test .env> npm test   # full API test - TEST DATABASE ONLY (writes and deletes test rows)
+SUDARSHAN_ENV=<test .env> npm test   # full API test + WhatsApp/payments test - TEST DATABASE ONLY (writes and deletes test rows)
 ```
 
 ## Rules the code follows
@@ -58,4 +58,8 @@ SUDARSHAN_ENV=<test .env> npm test   # full API test - TEST DATABASE ONLY (write
 | `GET patients/search?q`, `GET patients/:id`, `GET patients/:id/visits/:visitId` | Yarago patient, visits, trend, injections, dues |
 | `GET followups?view=to_call|upcoming|all_overdue`, `POST followups/:patientId/actions` | follow-up board and call log |
 | `GET audit?patientId&entity&entityId&userId&from&to&text&before` | activity log in plain sentences |
+| `GET whatsapp/status`, `GET whatsapp/preview?date&template`, `POST whatsapp/broadcasts`, `GET whatsapp/broadcasts`, `GET whatsapp/broadcasts/:id`, `GET whatsapp/messages?status` | WhatsApp (D-034): the day's reminders, preview then send (managers, admins); what was sent |
+| `GET/POST appointments/:id/messages` | messages for one booking; send a reminder (`again` to resend) |
+| `GET payments/status`, `GET payments?view=open|paid|review|all&q`, `GET/POST appointments/:id/payments`, `POST payments/:id/check|cancel|sent|whatsapp`, `POST payments/:id/refunds` | Razorpay payment links (D-034); refunds admins only |
+| `GET/PUT settings/whatsapp`, `GET/PUT settings/payments` | off / test / live, test numbers, templates, amounts; live by an admin after cut-over only |
 | `GET health` | public: database and last sync time |

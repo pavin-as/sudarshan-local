@@ -72,6 +72,11 @@ Sudarshan never changes Yarago. Corrections to patient details are made in Yarag
 14. Reporting tools (Metabase, any BI) connect only as `sudarshan_bi`, which can read only the `analytics` schema.
     That schema never holds names, phone numbers or MRDs. Exports from Metabase stay on clinic computers.
 
+**Messages and payments**
+15. Messages and payment links to patients are sent only when a person presses send (D-034); test mode until cut-over.
+    Never send clinical detail (plan, diagnosis, notes) in a WhatsApp template or to Razorpay. Phone numbers are not
+    written to the server log (message ids only).
+
 **Network**
 12. Clinic LAN only. The server port is open to the local subnet only. Nothing on shichika is reachable from the internet
     (Razorpay is polled, not called back).
@@ -97,7 +102,8 @@ Sudarshan never changes Yarago. Corrections to patient details are made in Yarag
 | Delete `D:\Sudarshan\sudershanWebsite.xlsx` (plaintext passwords, patient data) | Done 19 Oct |
 | Git history cleaned of legacy keys; keys rotated | History cleaned 19 Oct (Gemini key, AiSensy token). Keys **not yet rotated** |
 | Google app's Gemini rule check sends patient names to Google | Ends when the Google app is retired |
-| Privacy notice for patients covering appointment messages (WhatsApp/SMS) | To check with the clinic |
+| Privacy notice for patients covering appointment messages (WhatsApp/SMS) | To check with the clinic; needed before WhatsApp or payments go live (P-6) |
+| WhatsApp (AiSensy) and payment links (Razorpay), D-034 | Built 20 Oct in **test mode** (TEST bookings, test numbers, Razorpay test keys only); live refused before cut-over and only by an admin. AiSensy receives phone, name, date and time; Razorpay receives name, phone and "<clinic> appointment <date>" (no plan, no notes): record both as processors. Outbound HTTPS only (`backend.aisensy.com`, `api.razorpay.com`), nothing inbound. Keys in `.env` only, never shown on screens or logged; the activity log check in `test/outreach.test.ts` looks for them. **Rotate the AiSensy key before Sudarshan uses it** (the old one is in git history) |
 | Monthly access review (who has which role) | To start at go-live |
 | `sudarshan_bi` read-only login limited to `analytics`; Metabase LAN only | Done 19 Oct: access checked by `install-metabase.ps1` (no `app`, `yarago`, `clinical`); read-only transactions, 120 s limit; firewall port 3000 local subnet only |
 | Analytics free of identity | Done 19 Oct: random patient key (mapping in `app`), age band only; staff-typed text (cancel reasons, remarks, diagnosis notes) not copied |

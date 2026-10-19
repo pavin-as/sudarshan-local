@@ -63,6 +63,10 @@ try {
   await get("follow-ups to call (overdue up to 90 days)", "/api/followups", (b) => `${b.followups.length} to call, ${b.followups.filter((f: any) => f.injectionCount > 0).length} injection patients`);
   await get("follow-ups due next 7 days", "/api/followups?view=upcoming", (b) => `${b.followups.length}`);
   await get("activity log, latest 50", "/api/audit", (b) => `${b.entries.length} entries`);
+  await get("WhatsApp list for tomorrow (sends nothing)", `/api/whatsapp/preview?date=${addDays(today, 1)}`,
+    (b) => `${b.mode} mode, ${b.rows.filter((r: any) => r.send).length} of ${b.rows.length} would get it`);
+  await get("WhatsApp sent (Sudarshan and Google app)", "/api/whatsapp/broadcasts", (b) => `${b.broadcasts.length} from Sudarshan, ${b.googleApp.length} from the Google app`);
+  await get("payment links, open", "/api/payments", (b) => `${b.payments.length} open, ${b.counts.review} to check`);
   await get("imported appointments, last 30 days", `/api/appointments?from=${addDays(today, -30)}&to=${today}&limit=500`,
     (b) => `${b.appointments.length} (${b.appointments.filter((a: any) => a.status === "no_show").length} no-show)`);
 } finally {

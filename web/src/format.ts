@@ -62,3 +62,16 @@ export function planText(p: string | null | undefined): string {
 }
 /** For editing: "REF, DIL, OCT (LE)" (eye codes kept, no brackets or quotes). */
 export const planEditText = (p: string | null | undefined) => planItems(p).join(", ");
+
+// WhatsApp messages and payment links (D-034)
+export const MESSAGE_WORDS: Record<string, string> = { queued: "Waiting to send", sent: "Sent", failed: "Not delivered", skipped: "Not sent" };
+export const PAYMENT_WORDS: Record<string, string> = {
+  created: "Link made", sent: "Link sent", paid: "Paid", expired: "Expired unpaid", cancelled: "Cancelled",
+  refunded: "Refunded", partially_refunded: "Partly refunded", failed: "Link not made",
+};
+export const REFUND_WORDS: Record<string, string> = { requested: "Asked", pending: "Being refunded", processed: "Refunded", failed: "Refund failed" };
+/** ₹500 or ₹499.50 */
+export function rupees(n: number | null | undefined): string {
+  if (n == null) return "";
+  return "₹" + n.toLocaleString("en-IN", { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 });
+}

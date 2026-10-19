@@ -24,7 +24,8 @@ export async function api<T = any>(path: string, opts: { method?: string; body?:
 // ---- shared types (match the API) ----
 export type Role = "admin" | "doctor" | "manager" | "staff" | "optometrist" | "counsellor";
 export type Permission = "users.manage" | "settings.manage" | "appointments.read" | "appointments.write" |
-  "patients.read" | "clinical.read" | "followups.write" | "audit.read";
+  "patients.read" | "clinical.read" | "followups.write" | "audit.read" |
+  "messages.send" | "messages.broadcast" | "payments.write" | "payments.refund";
 
 export interface User { id: number; username: string; fullName: string; role: Role; mustChangePassword: boolean; permissions: Permission[] }
 
@@ -59,3 +60,26 @@ export interface Meta {
   codeLabels: { kind: string; code: number; label: string }[];
   today: string;
 }
+
+// WhatsApp and payment links (D-034)
+export type OutreachMode = "off" | "test" | "live";
+export type MessageStatus = "queued" | "sent" | "failed" | "skipped";
+export interface Message {
+  id: number; template: string; templateLabel: string; to: string; status: MessageStatus; error: string | null; mode: "test" | "live" | null;
+  createdAt: string; sentAt: string | null; appointmentId: number | null; broadcastId: number | null; paymentId: number | null;
+  patientName: string | null; mrd: string | null; createdBy: string | null; forDate: string | null; slotTime: string | null;
+}
+export type PaymentStatus = "created" | "sent" | "paid" | "expired" | "cancelled" | "refunded" | "partially_refunded" | "failed";
+export interface Refund { id: number; amount: number; reason: string; status: "requested" | "pending" | "processed" | "failed"; error: string | null; requestedAt: string; processedAt: string | null; by: string | null }
+export interface Payment {
+  id: number; appointmentId: number | null; patientId: number | null; amount: number; purpose: string | null; status: PaymentStatus;
+  mode: "test" | "live" | null; phone: string | null; reference: string | null; linkUrl: string | null; expiresAt: string | null;
+  paidAmount: number | null; paidAt: string | null; razorpayPaymentId: string | null; refundedAmount: number; needsReview: string | null;
+  error: string | null; sentAt: string | null; sentVia: string | null; cancelledAt: string | null; cancelReason: string | null;
+  createdAt: string; createdBy: string | null; patientName: string | null; mrd: string | null; date: string | null; slotTime: string | null;
+  refunds: Refund[];
+}
+export interface PaymentStatusInfo { mode: OutreachMode; modeWords: string; defaultAmount: number; minAmount: number; maxAmount: number; linkHours: number;
+  keyMode: "test" | "live" | "unknown" | null; problem: string | null; lastCheck: { at: string; checked: number; changed: number; error: string | null } | null }
+export interface WhatsAppStatus { mode: OutreachMode; modeWords: string; keySet: boolean; testNumbers: number; queued: number;
+  templates: { key: string; label: string; kind: "appointment" | "payment"; ready: boolean }[] }

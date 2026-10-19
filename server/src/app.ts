@@ -26,6 +26,9 @@ import { cancelListRoutes } from "./routes/cancelList.js";
 import { triageRoutes } from "./routes/triage.js";
 import { monthRoutes } from "./routes/month.js";
 import { settingsRoutes } from "./routes/settings.js";
+import { whatsappRoutes } from "./routes/whatsapp.js";
+import { paymentRoutes } from "./routes/payments.js";
+import { RazorpayError } from "./services/razorpay.js";
 
 export async function buildApp(opts: { logger?: boolean } = {}): Promise<FastifyInstance> {
   const app = Fastify({
@@ -48,6 +51,7 @@ export async function buildApp(opts: { logger?: boolean } = {}): Promise<Fastify
       return reply.status(400).send({ error: "invalid_input", message: problems[0], problems });
     }
     if (err instanceof HttpError) return reply.status(err.status).send({ error: err.code, message: err.message, details: err.details });
+    if (err instanceof RazorpayError) return reply.status(502).send({ error: "razorpay", message: err.message });
     const e = err as any;
     if (e.validation || e.statusCode === 400 || e.statusCode === 415) return reply.status(e.statusCode ?? 400).send({ error: "invalid_input", message: e.message });
     if (e.code === "23514" || e.code === "23505") {        // check / unique violation from Postgres
@@ -112,5 +116,7 @@ export async function buildApp(opts: { logger?: boolean } = {}): Promise<Fastify
   await app.register(triageRoutes);
   await app.register(monthRoutes);
   await app.register(settingsRoutes);
+  await app.register(whatsappRoutes);
+  await app.register(paymentRoutes);
   return app;
 }

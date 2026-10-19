@@ -270,9 +270,36 @@ invoice's lines by selling value (12 months on 19 Oct: Rs 30.1 lakh, not Rs 53.1
 lakh, SRM Associates Rs 1.12 lakh, Central Agencies Rs 1.00 lakh; leftovers from 2021-22: Malabar Drugs Rs 8,274 and two
 invoices with no wholesaler Rs 48,505 (to check in Yarago).
 
+### D-034 · 2026-10-20 · Accepted · Pavin asked for it ("Phase 4 test-mode build"); Claude chose the design
+**WhatsApp reminders and Razorpay payment links built now, in test mode; live only after cut-over.** Each has a switch
+(settings `messaging.mode`, `payments.mode`): off / test / live. **Test mode** touches only practice bookings (named
+TEST, or ZZ Test in the API test); WhatsApp goes only to the numbers on Settings (staff phones); Razorpay must have test
+keys (`rzp_test_`, checked from the key id). **Live** can be set only by an admin and is refused while
+`trial.google_master` is true (D-025): until cut-over the Google app sends the clinic's reminders, and two systems would
+message patients twice. **A person always sends**: the day's reminders from the WhatsApp page (preview with who gets it
+and why the others do not, then a confirm), one reminder or a payment link from the appointment panel. The outbox
+worker only delivers what a person queued, one message at a time; a message interrupted by a restart is marked "not
+delivered", never resent by itself. A reminder already sent for that appointment day is not sent again unless someone
+chooses "Send again". **Templates** are AiSensy campaigns (Meta-approved), filled with values in order; the reminder keeps
+the Google app's campaign `sudarsdhan_appointment` and wording (name, "17-June-2026", "4:10 PM"); the payment-link
+template needs a new approved template with the link, so until then a link is sent from WhatsApp on the PC (wa.me, the
+Google app's own phase 1) or copied. **Payment links**: made by front desk and counsellors with a checked phone number,
+amount within settings (default Rs 500, Rs 100-5000), valid 24 hours; Razorpay gets the patient's name, phone and
+"<clinic> appointment <date>" only, never the plan or a note; our reference `SUD-<id>` stops a second link for one
+request. Status by asking Razorpay every minute for open links and pending refunds (D-017); "Check payment now" asks at
+once. An amount paid that differs from the link is flagged "to check". **Refunds by admins only** (the Google app's
+decision), never more than paid, with an idempotency key. **A paid link does not change the appointment** (no slot hold
+and release as the Google app's plan designed): see P-5. Who: messages to one patient = front desk, counsellor, manager,
+admin; the day's broadcast = manager, admin (Google app levels 1 and 3); doctors and optometrists see what was sent.
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.
 - **P-2** Second-pass linking of ~4,400 imported bookings without a Yarago patient (phone + name, confirmed by a person).
 - **P-4** Off-site copy of the Sudarshan backups (encrypted cloud or a drive taken home weekly).
 - **P-3** Keep the Google app read-only for 3 months after cut-over (plan), then archive the spreadsheet.
+- **P-5** Payments and the booking: should a paid link confirm the appointment, and should urgent same-day bookings be held
+  only until paid (the Google app's plan: 15-minute hold, slot released if unpaid, late payments to a person)? For now a
+  payment is recorded beside the booking and changes nothing (D-034). Also: which visits need an advance at all. Owner: Pavin.
+- **P-6** Patient privacy notice for appointment messages (WhatsApp) and payment links, naming AiSensy and Razorpay as
+  processors; needed before WhatsApp or payments go live (COMPLIANCE). Owner: Pavin.

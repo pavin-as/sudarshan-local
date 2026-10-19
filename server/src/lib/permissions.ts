@@ -9,16 +9,21 @@ export type Permission =
   | "patients.read"         // find patients, demographics, visit list, dues, follow-ups
   | "clinical.read"         // exam findings, vision/IOP trends, diagnosis, AI summaries
   | "followups.write"       // log follow-up calls
-  | "audit.read";           // the activity log
+  | "audit.read"            // the activity log
+  | "messages.send"         // send one WhatsApp message to a booked patient (reminder, payment link)
+  | "messages.broadcast"    // send the day's reminders to every booked patient (Google app: levels 1 and 3)
+  | "payments.write"        // make, send, check and cancel Razorpay payment links
+  | "payments.refund";      // refund a payment (Google app decision: director / admin only)
 
 const ALL: Permission[] = ["users.manage", "settings.manage", "appointments.read", "appointments.write",
-  "patients.read", "clinical.read", "followups.write", "audit.read"];
+  "patients.read", "clinical.read", "followups.write", "audit.read",
+  "messages.send", "messages.broadcast", "payments.write", "payments.refund"];
 
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   admin: ALL,
-  manager: ALL.filter((p) => p !== "users.manage"),
-  staff: ["appointments.read", "appointments.write", "patients.read", "followups.write"],
-  counsellor: ["appointments.read", "appointments.write", "patients.read", "clinical.read", "followups.write"],
+  manager: ALL.filter((p) => p !== "users.manage" && p !== "payments.refund"),
+  staff: ["appointments.read", "appointments.write", "patients.read", "followups.write", "messages.send", "payments.write"],
+  counsellor: ["appointments.read", "appointments.write", "patients.read", "clinical.read", "followups.write", "messages.send", "payments.write"],
   doctor: ["appointments.read", "patients.read", "clinical.read"],
   optometrist: ["appointments.read", "patients.read", "clinical.read"],
 };

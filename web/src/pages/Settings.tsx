@@ -262,6 +262,110 @@ function EarlySection({ data }: { data: { thresholds: { days: number; percentage
   );
 }
 
+// WhatsApp and payment links (D-034): off / test / live, test numbers, the AiSensy templates, payment amounts.
+// Live only by an admin and only after cut-over (the server refuses it while the Google app is the master).
+interface WaTemplate { key: string; label: string; campaign: string; params: string[]; kind: "appointment" | "payment" }
+interface WaSettings { mode: string; modes: { key: string; label: string }[]; keySet: boolean; testNumbers: string[]; templates: WaTemplate[]; params: { key: string; label: string }[] }
+interface PaySettings { mode: string; modes: { key: string; label: string }[]; defaultAmount: number; minAmount: number; maxAmount: number; linkHours: number;
+                        keyMode: string | null; problem: string | null }
+
+function ModeSwitch({ value, modes, onChange, admin }: { value: string; modes: { key: string; label: string }[]; onChange: (m: string) => void; admin: boolean }) {
+  return (
+    <div className="seg" role="group" aria-label="Mode">{modes.map((m) => (
+      <button key={m.key} aria-pressed={value === m.key} disabled={m.key === "live" && !admin && value !== "live"}
+        title={m.key === "live" ? "Admins only, after cut-over" : undefined} onClick={() => onChange(m.key)}>{m.label}</button>))}</div>
+  );
+}
+
+function WhatsAppSection() {
+  const { user } = useAuth();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["settings-whatsapp"], queryFn: () => api<WaSettings>("/settings/whatsapp") });
+  const [nums, setNums] = useState<string | null>(null);
+  const [tpl, setTpl] = useState<WaTemplate[] | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  if (!q.data) return null;
+  const d = q.data;
+  const templates = tpl ?? d.templates;
+  const save = async (body: unknown, done: string) => {
+    setError(null);
+    try { await api("/settings/whatsapp", { method: "PUT", body }); toast(done); setNums(null); setTpl(null); await qc.invalidateQueries(); }
+    catch (e) { setError(e); }
+  };
+  const editT = (i: number, patch: Partial<WaTemplate>) => setTpl(templates.map((t, j) => (j === i ? { ...t, ...patch } : t)));
+  return (
+    <section className="panel">
+      <div className="panel-head"><h2 className="grow">WhatsApp (AiSensy)</h2>
+        <span className="muted small">{d.keySet ? "AiSensy key is set in .env" : "AiSensy key not set yet (AISENSY_API_KEY in .env)"}</span></div>
+      <div className="panel-pad stack">
+        <div className="row"><b>Mode</b><ModeSwitch value={d.mode} modes={d.modes} admin={user?.role === "admin"} onChange={(m) => void save({ mode: m }, `WhatsApp: ${m}`)} />
+          <span className="small muted">Test: only bookings named TEST, only to the numbers below. Live: every booked patient, after cut-over.</span></div>
+        <label className="field"><span>Test numbers (staff phones, one per line or separated by commas)</span>
+          <textarea rows={2} value={nums ?? d.testNumbers.map((n) => `+${n}`).join("\n")} onChange={(e) => setNums(e.target.value)} /></label>
+        {nums !== null && <div className="row"><span className="grow" /><button onClick={() => setNums(null)}>Undo</button>
+          <button className="btn-primary" onClick={() => void save({ testNumbers: nums.split(/[\n,]+/).map((x) => x.trim()).filter(Boolean) }, "Test numbers saved")}>Save test numbers</button></div>}
+        <h3>Templates</h3>
+        <p className="small muted" style={{ margin: 0 }}>Each template is approved by Meta in AiSensy first; put its campaign name here. The values are filled in this order.
+          The payment-link template needs a new approved template with the link (none yet).</p>
+        <table className="list compact">
+          <thead><tr><th>Name</th><th>AiSensy campaign</th><th>Values, in order</th><th>For</th></tr></thead>
+          <tbody>{templates.map((t, i) => (
+            <tr key={t.key}>
+              <td><input value={t.label} aria-label="Template name" onChange={(e) => editT(i, { label: e.target.value })} /></td>
+              <td><input value={t.campaign} placeholder="not approved yet" aria-label="AiSensy campaign" onChange={(e) => editT(i, { campaign: e.target.value })} /></td>
+              <td className="small">{d.params.map((p) => (
+                <label key={p.key} className="check" style={{ marginRight: "0.5rem" }}><input type="checkbox" checked={t.params.includes(p.key)}
+                  onChange={(e) => editT(i, { params: e.target.checked ? [...t.params, p.key] : t.params.filter((x) => x !== p.key) })} />{p.key}</label>))}
+                <div className="muted">{t.params.join(", ")}</div></td>
+              <td className="small">{t.kind === "payment" ? "payment link" : "appointment"}</td>
+            </tr>))}</tbody>
+        </table>
+        <div className="row"><ErrorNotice error={error} /><span className="grow" />
+          <button onClick={() => setTpl([...templates, { key: `template_${templates.length + 1}`, label: "New template", campaign: "", params: ["name", "date"], kind: "appointment" }])}>Add a template</button>
+          {tpl && <button onClick={() => setTpl(null)}>Undo</button>}
+          <button className="btn-primary" disabled={!tpl} onClick={() => void save({ templates }, "Templates saved")}>Save templates</button></div>
+      </div>
+    </section>
+  );
+}
+
+function PaymentsSection() {
+  const { user } = useAuth();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["settings-payments"], queryFn: () => api<PaySettings>("/settings/payments") });
+  const [f, setF] = useState<Record<string, string> | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  if (!q.data) return null;
+  const d = q.data;
+  const vals = f ?? { defaultAmount: String(d.defaultAmount), minAmount: String(d.minAmount), maxAmount: String(d.maxAmount), linkHours: String(d.linkHours) };
+  const save = async (body: unknown, done: string) => {
+    setError(null);
+    try { await api("/settings/payments", { method: "PUT", body }); toast(done); setF(null); await qc.invalidateQueries(); }
+    catch (e) { setError(e); }
+  };
+  const field = (k: string, label: string) => (
+    <label className="field"><span>{label}</span><input className="narrow-input" inputMode="numeric" value={vals[k]}
+      onChange={(e) => setF({ ...vals, [k]: e.target.value.replace(/\D/g, "") })} /></label>);
+  return (
+    <section className="panel">
+      <div className="panel-head"><h2 className="grow">Payment links (Razorpay)</h2>
+        <span className="muted small">{d.keyMode === "test" ? "Razorpay test keys in .env" : d.keyMode === "live" ? "Razorpay live keys in .env" : d.keyMode ? "Razorpay key in .env not recognised" : "Razorpay keys not set yet (.env)"}</span></div>
+      <div className="panel-pad stack">
+        <div className="row"><b>Mode</b><ModeSwitch value={d.mode} modes={d.modes} admin={user?.role === "admin"} onChange={(m) => void save({ mode: m }, `Payments: ${m}`)} />
+          <span className="small muted">Test: Razorpay test keys, only bookings named TEST. Live: live keys, after cut-over.</span></div>
+        {d.problem && d.mode !== "off" && <div className="notice small">{d.problem}</div>}
+        <div className="row">{field("defaultAmount", "Usual amount (₹)")}{field("minAmount", "Smallest (₹)")}{field("maxAmount", "Largest (₹)")}{field("linkHours", "Link valid for (hours)")}</div>
+        <div className="row"><ErrorNotice error={error} /><span className="grow" />
+          {f && <button onClick={() => setF(null)}>Undo</button>}
+          <button className="btn-primary" disabled={!f} onClick={() => void save(Object.fromEntries(Object.entries(vals).map(([k, v]) => [k, Number(v)])), "Payment settings saved")}>Save amounts</button></div>
+        <p className="small muted" style={{ margin: 0 }}>Refunds are made by an admin, from the payment in the appointment panel.</p>
+      </div>
+    </section>
+  );
+}
+
 export function SettingsPage() {
   const q = useQuery({ queryKey: ["settings"], queryFn: () => api<SettingsData>("/settings") });
   if (q.error) return <ErrorNotice error={q.error} />;
@@ -278,6 +382,8 @@ export function SettingsPage() {
         <div className="panel-pad settings-cols">{d.lists.map((l) => <ListSection key={l.id} list={l} />)}</div></section>
       <PlansSection plans={d.plans} />
       <ScriptsSection />
+      <WhatsAppSection />
+      <PaymentsSection />
       <section className="panel">
         <div className="panel-head"><h2 className="grow">Reserved slot blocks (from the Google app)</h2><span className="muted small">rule 17 and the HFA hold</span></div>
         <div className="panel-pad stack small">
