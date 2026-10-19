@@ -424,6 +424,31 @@ try {
     assert.ok(pr.body.appointments.filter((a: any) => !a.slotTime).every((a: any) => a.consultStart === null));
   });
 
+  await step("early booking limit: refused far ahead over the limit, a manager may book with a reason, a same-day move is not limited", async () => {
+    const FAR = addDays(todayIST(), 20);
+    await pool.query(`INSERT INTO app.day_capacity (on_date, max_slots) VALUES ($1, 4) ON CONFLICT (on_date) DO UPDATE SET max_slots = 4`, [FAR]);
+    try {
+      // 4 slots, 20 days ahead: up to 51%. Checked before each booking: 0%, 25%, 50% pass; at 75% it is refused
+      const book = (n: string, slot: string | null, who = staff, extra: any = {}) =>
+        call("POST", "/api/appointments", who, { date: FAR, slotTime: slot, patientName: `ZZ Test Early ${n}`, phone: `90000001${n.length}${slot ? slot.slice(0, 2) : "00"}`, ...extra });
+      const a1 = await book("One", "10:00");
+      assert.equal(a1.status, 200);
+      assert.equal((await book("Two", "10:10")).status, 200);
+      assert.equal((await book("Three", "10:20")).status, 200, "2 of 4 = 50%, under 51%");
+      const a4 = await book("Four", "10:30");
+      assert.equal(a4.status, 409); assert.match(a4.body.message, /limited to 51%/);
+      assert.equal((await book("Four", null)).status, 200, "the waitlist is not limited");
+      assert.equal((await book("Five", "10:40", staff, { override: { reason: "post-op" } })).status, 400, "front desk cannot override");
+      const over = await book("Five", "10:40", admin, { override: { reason: "post-op review" } });
+      assert.equal(over.status, 200); assert.ok(over.body.warnings.some((w: string) => /limited to 51%.*booked anyway/.test(w)));
+      // now 4 of 4 with a time: a change of time on the same day adds no place, so it is not limited (other limits aside)
+      const mv = await call("POST", `/api/appointments/${a1.body.appointment.id}/move`, staff, { date: FAR, slotTime: "11:00" });
+      assert.ok(!(mv.body?.message ?? "").includes("limited to"), "a same-day move is not refused for the early limit");
+    } finally {
+      await pool.query(`DELETE FROM app.day_capacity WHERE on_date = $1`, [FAR]);
+    }
+  });
+
   console.log("trial: the Google app is the master (D-025)");
   await step("imported records and the calendar are read-only while trial.google_master is on; practice bookings are not", async () => {
     const own = await call("POST", "/api/appointments", staff, { date: D2, slotTime: "12:30", patientName: "ZZ Test Trial Own", phone: "9000000131" });

@@ -72,6 +72,7 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
 - [ ] Staff: rewrite the four call scripts in Malayalam on Settings > Follow-up call scripts, and set the clinic name.
 - [x] Phase B: EMR completeness page per month (19 Oct, D-028). Phase B is complete.
 - [x] Day prints: Print (consult start / check-in, doctor late arrival) and Print POA on the day board (19 Oct, D-029).
+- [x] Early booking limit with manager override (19 Oct, D-030).
 - [ ] Pavin: test logins per role (see RUNBOOK 10); Google-app passwords were pasted into a chat on 19 Oct and are
       not used by Sudarshan, but should be changed in the Google app too.
 - [ ] Pavin: share the EMR completeness report with the clinical staff (https://claude.ai/artifact/EfVt9jujDutkEzYGTxsqCa,

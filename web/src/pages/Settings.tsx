@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api";
+import { useAuth } from "../auth";
 import { ErrorNotice, Loading, useToast } from "../components/ui";
 
 interface Plan { name: string; eye: string | null; prepMin: number | null; consultMin: number | null; priority: number | null; isActive: boolean }
@@ -200,6 +201,51 @@ function ScriptsSection() {
   );
 }
 
+// Early booking limits (D-030): admins change them, as in the Google app; managers see them
+function EarlySection({ data }: { data: { thresholds: { days: number; percentage: number }[]; defaults: { days: number; percentage: number }[] } }) {
+  const { user } = useAuth();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const admin = user?.role === "admin";
+  const [rows, setRows] = useState(data.thresholds.map((t) => ({ days: String(t.days), percentage: String(t.percentage) })));
+  const [error, setError] = useState<unknown>(null);
+  useEffect(() => setRows(data.thresholds.map((t) => ({ days: String(t.days), percentage: String(t.percentage) }))), [data]);
+  const save = async (list: { days: string; percentage: string }[]) => {
+    setError(null);
+    try {
+      await api("/settings/early-booking", { method: "PUT", body: { thresholds: list.map((r) => ({ days: Number(r.days), percentage: Number(r.percentage) })) } });
+      toast("Early booking limits saved"); await qc.invalidateQueries();
+    } catch (e) { setError(e); }
+  };
+  const label = (d: string) => (d === "0" ? "Same day" : `${d} or more days ahead`);
+  return (
+    <section className="panel">
+      <div className="panel-head"><h2 className="grow">Early booking limits</h2><span className="muted small">{admin ? "admin" : "only an admin can change these"}</span></div>
+      <div className="panel-pad stack">
+        <p className="small muted" style={{ margin: 0 }}>The further away a day is, the smaller the share of its maximum slots that can be booked, so places stay for
+          patients who need to book close to the date. Waitlist and cancelled bookings do not count. Over the limit a booking is refused; a manager can
+          book anyway with a reason. Percentages must rise as the day gets closer, between 10% and 100%.</p>
+        <table className="list compact" style={{ maxWidth: 520 }}>
+          <thead><tr><th>Days ahead</th><th>Up to % of the day's slots</th>{admin && <th />}</tr></thead>
+          <tbody>{rows.map((r, i) => (
+            <tr key={i}>
+              <td>{admin ? <input className="narrow-input" inputMode="numeric" aria-label="Days ahead" value={r.days}
+                    onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, days: e.target.value.replace(/\D/g, "") } : x)))} /> : label(r.days)}
+                {admin && <span className="muted small"> {r.days === "0" ? "same day" : "or more"}</span>}</td>
+              <td>{admin ? <input className="narrow-input" inputMode="numeric" aria-label="Percentage" value={r.percentage}
+                    onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, percentage: e.target.value.replace(/\D/g, "") } : x)))} /> : `${r.percentage}%`}</td>
+              {admin && <td><button className="btn-small" disabled={rows.length <= 1} onClick={() => setRows(rows.filter((_, j) => j !== i))}>Remove</button></td>}
+            </tr>))}</tbody>
+        </table>
+        {admin && <div className="row"><ErrorNotice error={error} /><span className="grow" />
+          <button onClick={() => setRows([...rows, { days: "", percentage: "" }])}>Add a band</button>
+          <button onClick={() => void save(data.defaults.map((t) => ({ days: String(t.days), percentage: String(t.percentage) })))}>Back to the Google app's values</button>
+          <button className="btn-primary" onClick={() => void save(rows)}>Save limits</button></div>}
+      </div>
+    </section>
+  );
+}
+
 export function SettingsPage() {
   const q = useQuery({ queryKey: ["settings"], queryFn: () => api<SettingsData>("/settings") });
   if (q.error) return <ErrorNotice error={q.error} />;
@@ -211,6 +257,7 @@ export function SettingsPage() {
         <div className="muted">For managers and admins. Every change is written to the activity log. Users have their own page; API keys and passwords are kept in .env on shichika, not here.</div></div></div>
       <RulesSection data={d.rules} />
       <BookingSection data={d.booking} />
+      <EarlySection data={(d as any).earlyBooking} />
       <section className="panel"><div className="panel-head"><h2>Lists</h2></div>
         <div className="panel-pad settings-cols">{d.lists.map((l) => <ListSection key={l.id} list={l} />)}</div></section>
       <PlansSection plans={d.plans} />

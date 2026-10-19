@@ -5,6 +5,14 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Early booking limit** (D-030), as in the Google app: far-ahead days can only be filled to a share of their slots
+  (10+ days 51%, 5-9 days 79%, 4 days 85%, 1-3 days 95%, same day 100%). An amber notice with the unlock table appears as
+  soon as a held day is chosen when booking or rescheduling; held days show "held" on the date strips. A booking over
+  the limit is refused; a manager can book anyway with a reason. The waitlist and a change of time on the same day are
+  not limited. Admins change the bands on Settings. The reschedule panel now also offers managers the override for a
+  full day, a taken slot or a held HFA slot (the server accepted it; the screen did not show it).
+  Technical: `services/earlyBooking.ts`, check in `checkPlacement`, `early` on day info, `PUT /api/settings/early-booking`;
+  6 new checks in `npm run test:rules`, an API test step.
 - **Today: two boxes whose numbers add up** (Pavin, 19 Oct: "11 arrived and 13 checked out is confusing"). Before, some
   figures counted only booked patients and others everyone in Yarago. Now: *Booked for today* = arrived + not arrived
   yet + can't tell (booking not linked to a Yarago patient); *Came to the clinic today* = with a booking + without a

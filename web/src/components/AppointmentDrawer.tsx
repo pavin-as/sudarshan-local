@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type Appointment } from "../api";
+import { api, ApiError, type Appointment } from "../api";
 import { useAuth } from "../auth";
 import { clock, dayLabel, niceDate, stamp, todayIST, planText, planEditText } from "../format";
 import { Drawer, ErrorNotice, Loading, StageTrack, StatusPill, Tags, useToast } from "./ui";
@@ -43,6 +43,7 @@ export function AppointmentDrawer({ id, onClose }: { id: number; onClose: () => 
   const [moveDate, setMoveDate] = useState("");
   const [moveSlot, setMoveSlot] = useState<string | null>(null);
   const [text, setText] = useState("");
+  const [override, setOverride] = useState("");
   const [edit, setEdit] = useState<any>({});
 
   const a = q.data?.appointment;
@@ -64,7 +65,7 @@ export function AppointmentDrawer({ id, onClose }: { id: number; onClose: () => 
   if (!a) return <Drawer title="Appointment" onClose={onClose}>{q.error ? <ErrorNotice error={q.error} /> : <Loading />}</Drawer>;
 
   const open = (m: Mode) => {
-    setError(null); setMode(m); setText("");
+    setError(null); setMode(m); setText(""); setOverride("");
     if (m === "move") { setMoveDate(a.date); setMoveSlot(a.slotTime); }
     if (m === "edit") setEdit({ planOfAction: planEditText(a.planOfAction), remarks: a.remarks ?? "", appointmentType: a.appointmentType ?? "",
                                  urgency: a.urgency ?? "", familyGroup: a.familyGroup ?? "", phone: a.phone ?? "", doctorId: a.doctorId, tags: a.tags });
@@ -126,7 +127,8 @@ export function AppointmentDrawer({ id, onClose }: { id: number; onClose: () => 
           {mode === "move" && <>
             <h3>{a.status === "cancelled" ? "Restore to" : "Move to"}</h3>
             <DateStrip value={moveDate} onChange={(d) => { setMoveDate(d); setMoveSlot(null); }} />
-            <SlotPicker date={moveDate} value={moveSlot} onChange={setMoveSlot} doctorId={a.doctorId} ignoreAppointmentId={a.id} />
+            <SlotPicker date={moveDate} value={moveSlot} onChange={setMoveSlot} doctorId={a.doctorId} ignoreAppointmentId={a.id}
+              movingWithinDay={a.slotTime && a.status !== "cancelled" ? a.date : null} />
             <input placeholder="Reason (optional)" value={text} onChange={(e) => setText(e.target.value)} />
             <RuleCheckPanel body={moveDate ? { date: moveDate, slotTime: moveSlot, appointmentId: a.id } : null} />
           </>}
@@ -156,10 +158,14 @@ export function AppointmentDrawer({ id, onClose }: { id: number; onClose: () => 
             <label className="field wide"><span>Remarks</span><textarea value={edit.remarks} onChange={(e) => setEdit({ ...edit, remarks: e.target.value })} /></label>
           </div>}
           <ErrorNotice error={error} />
+          {mode === "move" && can("settings.manage") && error instanceof ApiError && error.code === "booking_refused"
+            && ((error.details as any)?.problems ?? []).some((p: string) => /full|already booked for|kept for HFA|limited to/.test(p)) && (
+            <label className="field"><span>Move anyway (manager): reason</span>
+              <input value={override} onChange={(e) => setOverride(e.target.value)} placeholder="e.g. post-op review, doctor agreed" /></label>)}
           <div className="row">
             <span className="grow" />
             <button onClick={() => setMode(null)}>Back</button>
-            {mode === "move" && <button className="btn-primary" disabled={busy} onClick={() => void run("/move", { date: moveDate, slotTime: moveSlot, reason: text || null },
+            {mode === "move" && <button className="btn-primary" disabled={busy} onClick={() => void run("/move", { date: moveDate, slotTime: moveSlot, reason: text || null, ...(override.trim() ? { override: { reason: override.trim() } } : {}) },
               `${a.status === "cancelled" ? "Restored" : "Moved"} to ${dayLabel(moveDate)} ${moveSlot ?? "waitlist"}`)}>Save new time</button>}
             {mode === "cancel" && <button className="btn-danger" disabled={busy || text.trim().length < 2} onClick={() => void run("/cancel", { reason: text }, "Appointment cancelled")}>Cancel appointment</button>}
             {mode === "remark" && <button className="btn-primary" disabled={busy || !text.trim()} onClick={() => void run("/remarks", { note: text }, "Remark added")}>Add remark</button>}

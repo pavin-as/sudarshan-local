@@ -224,6 +224,19 @@ preparation (as the rules work it out); **waitlist rows have no consult start** 
 landscape. **Every print is recorded** in `app.print_log` (who, when, which day, kind, rows, doctor start), as the
 Google app logged prints; the dialog's "work out delay" preview is not a print.
 
+### D-030 · 2026-10-19 · Accepted · Pavin (option b)
+**Early booking limit, as in the Google app, blocking with a manager override.** The further away a day is, the smaller
+the share of its maximum slots that may be booked: 10+ days 51%, 5-9 days 79%, 4 days 85%, 1-3 days 95%, same day 100%
+(the Google app's defaults; its own settings were not in the import). "% used" = bookings with a time / maximum slots,
+rounded as the Google app did (above .5 up); waitlist and cancelled bookings do not count; at or over the limit a booking
+that adds a place (new, waitlist given a slot, moved from another day) is refused. A change of time on the same day is
+not limited. **A manager or admin may book anyway with a written reason** (logged), like a full day: the Google app
+allowed no override; Pavin chose this on 19 Oct. This is an exception to D-022 (rules only warn), because the limit
+protects capacity rather than the shape of the day. Shown as soon as a date is chosen (book, reschedule, follow-up and
+direct-call bookings all use the same dialog and check), with the unlock table (a Sunday unlock moves to Saturday);
+held days are marked on the date strips. Bands are changed by an admin on Settings (10-100%, rising as the day gets
+closer, a same-day band). On 19 Oct, 7 of the next 16 open days were already over their limit.
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

@@ -7,6 +7,7 @@ import { addDays, niceDate, todayIST, toMin } from "../lib/time.js";
 import { bookingSettings, doctorsOnDate, maxSlotsFor, slotGrid } from "./calendar.js";
 import { blocksAt, HFA_OPEN_DAYS_BEFORE, loadBlocks } from "./reserved.js";
 import { isKind } from "./rules.js";
+import { earlyStatus, loadThresholds } from "./earlyBooking.js";
 
 const ACTIVE_SQL = `('booked','confirmed','checked_in','completed','no_show')`;
 const HOLDING_SQL = `('booked','confirmed','checked_in','completed','no_show','waitlist')`;   // includes waitlist
@@ -89,6 +90,18 @@ export async function checkPlacement(c: PoolClient, p: Placement, who: PatientKe
 
     if (max <= 0 && !holiday) problems.push(`${niceDate(p.date)} is not open for booking yet (set the maximum slots for the day first)`);
     else if (taken.length >= max && max > 0) soft.push(`The day is full (${taken.length} of ${max} slots booked)`);
+    // early booking limit (D-030): only when this adds a place on the day (a new booking, a waitlist patient given a
+    // slot, or a move from another day); a change of time on the same day adds nothing
+    const prev = excludeId ? await one<{ d: string; t: string | null }>(
+      `SELECT to_char(appointment_date,'YYYY-MM-DD') AS d, to_char(slot_time,'HH24:MI') AS t FROM app.appointments WHERE id = $1`, [excludeId], c) : null;
+    if (max > 0 && taken.length < max && !(prev && prev.d === p.date && prev.t)) {
+      const e = earlyStatus(p.date, today, taken.length, max, await loadThresholds(c));
+      if (e.restricted) {
+        const next = e.unlocks.find((u) => u.newSlots > 0) ?? e.unlocks[0];
+        soft.push(`${niceDate(p.date)} is limited to ${e.limit}% of its slots this far ahead (${e.days} days): ${e.booked} of ${e.max} booked (${e.percentageUsed}%)`
+          + (next ? `; more open from ${niceDate(next.from!)} (${next.percentage}%)` : ""));
+      }
+    }
     const clash = taken.find((t) => t.t === p.slotTime);
     if (clash) soft.push(`${p.slotTime} is already booked for ${clash.patient_name}`);
     if (p.date === today && toMin(p.slotTime) <= nowMin) warnings.push(`${p.slotTime} has already passed today`);

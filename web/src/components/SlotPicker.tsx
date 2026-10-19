@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { api, type DayInfo, type DoctorDay } from "../api";
+import type { EarlyStatus } from "../api";
 import { addDays, dayLabel, niceDate, todayIST, weekdayName } from "../format";
 
 interface DayDetail { day: DayInfo; settings: { slotMinutes: number; dayStart: string; dayEnd: string }; slots: { time: string; appointments: { id: number; patientName: string }[] }[]; doctors: DoctorDay[] }
@@ -14,6 +15,25 @@ export function useDay(date: string | null) {
 
 const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
 
+/** Early booking limit (D-030): how full the day is against the limit for this far ahead, and when more opens. */
+export function EarlyNotice({ e }: { e: EarlyStatus }) {
+  const band = e.band === 0 ? "the same day" : `${e.band}+ days ahead`;
+  return (
+    <div className="early-notice" role="status">
+      <b>Early booking limit:</b> {e.days} days ahead, up to {e.limit}% of the day can be booked ({band}). {e.booked} of {e.max} slots are booked
+      ({e.percentageUsed}%), so new bookings are held. A manager can book anyway with a reason.
+      {e.unlocks.length > 0 && (
+        <table className="list compact" style={{ marginTop: "0.4rem" }}>
+          <thead><tr><th>When</th><th>From</th><th>Up to</th><th>Slots</th></tr></thead>
+          <tbody>{e.unlocks.map((u) => (
+            <tr key={u.days}><td>{u.days === 0 ? "Same day" : u.days === 1 ? "1 day before" : `${u.days} days before`}</td>
+              <td className="nowrap">{u.days === 0 ? "On the day" : niceDate(u.from!, true)}</td><td>{u.percentage}%</td>
+              <td className="nowrap">{u.slotsAllowed} of {e.max}{u.newSlots > 0 ? ` (+${u.newSlots})` : ""}</td></tr>))}</tbody>
+        </table>)}
+    </div>
+  );
+}
+
 /** Strip of upcoming days showing how full each is. */
 export function DateStrip({ value, onChange, from, count = 21 }: { value: string; onChange: (d: string) => void; from?: string; count?: number }) {
   const start = from ?? todayIST();
@@ -21,8 +41,8 @@ export function DateStrip({ value, onChange, from, count = 21 }: { value: string
   return (
     <div className="dates" role="group" aria-label="Choose a day">
       {(days.data ?? []).map((d) => (
-        <button key={d.date} type="button" className={`date-chip ${d.open ? "" : "closed"}`} aria-pressed={d.date === value}
-          title={d.closedReason ?? `${d.booked} of ${d.maxSlots} booked${d.waitlist ? `, ${d.waitlist} waiting` : ""}`}
+        <button key={d.date} type="button" className={`date-chip ${d.open ? "" : "closed"} ${d.early?.restricted ? "held" : ""}`} aria-pressed={d.date === value}
+          title={d.closedReason ?? `${d.booked} of ${d.maxSlots} booked${d.waitlist ? `, ${d.waitlist} waiting` : ""}${d.early?.restricted ? `; held: early booking limit ${d.early.limit}%` : ""}`}
           onClick={() => onChange(d.date)}>
           <small>{d.date === todayIST() ? "Today" : weekdayName(d.date)}</small>
           <b>{Number(d.date.slice(8, 10))}</b>
@@ -35,8 +55,10 @@ export function DateStrip({ value, onChange, from, count = 21 }: { value: string
 }
 
 /** Pick a slot on a day: taken slots crossed out, times outside the chosen doctor's hours dimmed. */
-export function SlotPicker({ date, value, onChange, doctorId, ignoreAppointmentId }: {
+export function SlotPicker({ date, value, onChange, doctorId, ignoreAppointmentId, movingWithinDay }: {
   date: string; value: string | null; onChange: (t: string | null) => void; doctorId?: number | null; ignoreAppointmentId?: number;
+  /** a booking that already has a time on this date: changing the time adds no place, so the early limit does not apply */
+  movingWithinDay?: string | null;
 }) {
   const day = useDay(date);
   if (day.isLoading) return <div className="muted small">Loading slots…</div>;
@@ -53,6 +75,7 @@ export function SlotPicker({ date, value, onChange, doctorId, ignoreAppointmentI
                    : <span className="overdue">{info.closedReason}</span>}
         {doc && <span className="muted">· {doc.name}: {doc.onLeave ? "on leave" : doc.sessions.length ? doc.sessions.map((s) => `${s.start}-${s.end}`).join(", ") : "no session this weekday"}</span>}
       </div>
+      {info.early?.restricted && movingWithinDay !== date && <EarlyNotice e={info.early} />}
       <div className="slots-pick" role="group" aria-label="Time slot">
         <button type="button" aria-pressed={value === null} onClick={() => onChange(null)} title="Book without a time">Waitlist</button>
         {slots.map((s) => {

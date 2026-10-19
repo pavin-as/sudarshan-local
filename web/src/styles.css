@@ -462,3 +462,10 @@ table.list.compact td, table.list.compact th { padding: 0.3rem 0.55rem; }
 .tnum:disabled { opacity: 1; cursor: default; }
 .tnum.ghost { border-style: dashed; background: none; color: var(--ink-soft); }
 .tnum.ghost b { color: var(--ink-soft); }
+
+/* early booking limit (D-030) */
+.early-notice { background: var(--disc-soft); border-left: 4px solid var(--disc); border-radius: var(--radius-s); padding: 0.5rem 0.8rem; font-size: 0.9rem; color: #4a3500; }
+.early-notice .list th, .early-notice .list td { background: transparent; padding: 0.15rem 0.5rem; }
+.date-chip.held { box-shadow: inset 0 -3px 0 var(--disc); }
+.date-chip.held::after { content: "held"; display: block; font-size: 0.65rem; color: #6b4a00; font-weight: 700; }
+.date-chip.held[aria-pressed="true"]::after { color: #fde68a; }

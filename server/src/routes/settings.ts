@@ -8,6 +8,7 @@ import { one, q, setAuditSummary, withTx } from "../db.js";
 import { badRequest, conflict, notFound } from "../lib/errors.js";
 import { timeStr, toMin } from "../lib/time.js";
 import { bookingSettings, slotGrid } from "../services/calendar.js";
+import { DEFAULT_THRESHOLDS, loadThresholds, SETTING_KEY as EARLY_KEY, validateThresholds } from "../services/earlyBooking.js";
 import { DEFAULT_RULE_SETTINGS, parseRuleSettings, RULE_FIELDS, RULE_SWITCH_LABELS, RULE_SWITCHES } from "../services/rules.js";
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
@@ -38,6 +39,7 @@ export async function settingsRoutes(app: FastifyInstance) {
     };
     return {
       booking: await bookingSettings(),
+      earlyBooking: { thresholds: await loadThresholds(), defaults: DEFAULT_THRESHOLDS },
       rules: {
         switches: Object.keys(RULE_SWITCHES).map((k) => ({ key: k, label: RULE_SWITCH_LABELS[k] ?? k, on: rules.on[k] }))
           .sort((a, b) => parseFloat(a.label) - parseFloat(b.label) || a.label.localeCompare(b.label)),
@@ -69,6 +71,19 @@ export async function settingsRoutes(app: FastifyInstance) {
     });
     return { booking: await bookingSettings(),
              warning: notOnGrid ? `${notOnGrid} future bookings are at times that are not on the new grid; they stay where they are` : null };
+  });
+
+  // early booking limits (D-030): admins only, as in the Google app (level 1)
+  app.put("/api/settings/early-booking", async (req) => {
+    const me = need(req, "settings.manage");
+    if (me.role !== "admin") throw badRequest("Only an admin can change the early booking limits");
+    const b = z.object({ thresholds: z.array(z.object({ days: z.number().int(), percentage: z.number().int() })).min(1).max(10) }).parse(req.body);
+    const bad = validateThresholds(b.thresholds);
+    if (bad) throw badRequest(bad);
+    const sorted = [...b.thresholds].sort((x, y) => y.days - x.days);
+    await withTx(auditCtx(req, `Early booking limits set to ${sorted.map((t) => `${t.days === 0 ? "same day" : `${t.days}+ days`} ${t.percentage}%`).join(", ")}`), (c) =>
+      putSetting(c, EARLY_KEY, sorted, "Early booking limits: share of the day's slots that may be booked, by days ahead"));
+    return { thresholds: sorted };
   });
 
   app.put("/api/settings/rules", async (req) => {
