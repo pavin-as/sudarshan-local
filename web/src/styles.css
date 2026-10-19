@@ -369,3 +369,8 @@ a.month-cell:hover { border-color: var(--choroid-2); }
 .month-tags { display: flex; flex-wrap: wrap; gap: 0.15rem; }
 .month-tags .tag { font-size: 0.72rem; margin: 0; }
 @media (max-width: 900px) { .month-grid { grid-template-columns: repeat(7, minmax(4.5rem, 1fr)); overflow-x: auto; } .month-tags { display: none; } }
+
+/* ---------- Settings ---------- */
+.settings-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.2rem; align-items: start; }
+table.list.compact td, table.list.compact th { padding: 0.3rem 0.55rem; }
+.narrow-input { width: 6.5rem; }

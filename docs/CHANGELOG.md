@@ -5,6 +5,13 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Settings** (`/settings`, managers and admins): the scheduling rules (switch each on or off, change its numbers, with
+  the Google app's default shown where it differs), the booking grid (slot length, first slot, end of day), the visit
+  and patient type lists, and the plans of action (preparation and consultation minutes, priority, hide/show). Every
+  change goes to the activity log. The Google app's reserved slot blocks (HFA, injection, laser, ROP, dilation,
+  emergency) are shown for reference. Fixed on the way: the visit-type list was one comma-joined line, so the booking
+  dialog offered it as a single choice. Not carried over: the API-key page (secrets stay in .env) and maintenance mode.
+  Technical: `routes/settings.ts`, `RULE_FIELDS` / `RULE_SWITCH_LABELS` in `services/rules.ts`, API test steps.
 - **Month view** (`/month`): the month as a Monday-Sunday calendar; each day shows booked of maximum slots (red when
   over), waitlist, new patients, injections / lasers / ROP / HFA / AT-Gonio planned, and scheduling-rule warnings for
   days still to come; month totals on top; a click opens the day board. Technical: `routes/month.ts`, `pages/Month.tsx`.

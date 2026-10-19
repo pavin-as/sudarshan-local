@@ -52,6 +52,40 @@ export const RULE_SWITCHES: Record<string, boolean> = {
   RULE_LASER_DAY: true, RULE_LASER_DURATION: true, RULE_WHEELCHAIR: true, RULE_PLAN_DURATION: false,
 };
 
+/** What the settings screen shows: each switch in plain words, and each number with its kind and setting key. */
+export const RULE_SWITCH_LABELS: Record<string, string> = {
+  RULE_NEW_TIMING: "1. New patients not before the morning start", RULE_FAMILY_TIMING: "2. Family members not before the family cutoff",
+  RULE_FAMILY_MORNING: "3. A large family not all in the morning", RULE_NEW_CONSECUTIVE: "4. No two new patients one after another",
+  RULE_NEW_AFTER_4PM: "5. No new patients after the evening cutoff", RULE_CONSULT_WINDOW: "6. Consultation within the doctor's hours",
+  RULE_FAMILY_CONTINUOUS: "7. Family members not one after another", RULE_GONIO_AT_CONSECUTIVE: "8a. AT / Gonio not one after another",
+  RULE_GONIO_AT_CAP: "8b. AT / Gonio daily maximum", RULE_GONIO_TIMING: "8c. Gonio best in the afternoon", RULE_AT_TIMING: "8d. AT best in the afternoon",
+  RULE_HFA_SLOT: "9. HFA slots kept for HFA patients", RULE_ROP_DAY: "10. ROP only on the ROP day", RULE_LASER_DAY: "11. Laser only on laser days",
+  RULE_WHEELCHAIR: "12. Wheelchair patients early or late", RULE_LASER_DURATION: "13. Time after a laser",
+  RULE_PLAN_DURATION: "14. Time for each plan of action (never used in the Google app)",
+};
+export type RuleFieldKind = "time" | "number" | "day" | "days";
+export const RULE_FIELDS: { key: string; label: string; kind: RuleFieldKind; setting: keyof RuleSettings; index?: number }[] = [
+  { key: "NEW_MORNING_START", label: "New patients from", kind: "time", setting: "newMorningStart" },
+  { key: "NEW_EVENING_CUTOFF", label: "No new patients from", kind: "time", setting: "newEveningCutoff" },
+  { key: "NEW_CONSECUTIVE_GAP", label: "Two new patients at least (minutes apart)", kind: "number", setting: "newConsecutiveGap" },
+  { key: "FAMILY_MORNING_CUTOFF", label: "Family members from", kind: "time", setting: "familyMorningCutoff" },
+  { key: "FAMILY_MORNING_MAX", label: "Most family members in one morning", kind: "number", setting: "familyMorningMax" },
+  { key: "CONSULT_WINDOW_START", label: "Doctor starts", kind: "time", setting: "consultStart" },
+  { key: "CONSULT_WINDOW_LUNCH_START", label: "Lunch from", kind: "time", setting: "lunchStart" },
+  { key: "CONSULT_WINDOW_LUNCH_END", label: "Lunch until", kind: "time", setting: "lunchEnd" },
+  { key: "CONSULT_WINDOW_END", label: "Doctor ends", kind: "time", setting: "consultEnd" },
+  { key: "HFA_SLOT_1", label: "HFA slot 1", kind: "time", setting: "hfaSlots", index: 0 },
+  { key: "HFA_SLOT_2", label: "HFA slot 2", kind: "time", setting: "hfaSlots", index: 1 },
+  { key: "ROP_DAY", label: "ROP day", kind: "day", setting: "ropDay" },
+  { key: "LASER_DAYS", label: "Laser days", kind: "days", setting: "laserDays" },
+  { key: "LASER_DURATION", label: "Minutes after a laser", kind: "number", setting: "laserDuration" },
+  { key: "WHEELCHAIR_MORNING_END", label: "Wheelchair: morning until", kind: "time", setting: "wheelchairMorningEnd" },
+  { key: "WHEELCHAIR_EVENING_START", label: "Wheelchair: evening from", kind: "time", setting: "wheelchairEveningStart" },
+  { key: "GONIO_AT_MAX_PER_DAY", label: "Most AT / Gonio in a day", kind: "number", setting: "gonioAtMaxPerDay" },
+  { key: "GONIO_EVENING_START", label: "Gonio best from", kind: "time", setting: "gonioEveningStart" },
+  { key: "AT_EVENING_START", label: "AT best from", kind: "time", setting: "atEveningStart" },
+];
+
 /** The Google app's defaults (Code.js initializeRuleSettingsSheet). */
 export const DEFAULT_RULE_SETTINGS: RuleSettings = {
   on: { ...RULE_SWITCHES },

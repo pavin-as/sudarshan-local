@@ -21,6 +21,7 @@ import { DirectCallsPage, useDirectCalls } from "./pages/DirectCalls";
 import { CancelListPage, useCancelList } from "./pages/CancelList";
 import { TriagePage, useTriage } from "./pages/Triage";
 import { MonthPage } from "./pages/Month";
+import { SettingsPage } from "./pages/Settings";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 20_000, refetchOnWindowFocus: true, retry: (n, e: any) => n < 2 && !(e?.status >= 400 && e?.status < 500) } },
@@ -67,6 +68,7 @@ function Shell() {
         <NavLink to="/followups">Follow-up calls</NavLink>
         {can("audit.read") && <NavLink to="/activity">Activity log</NavLink>}
         {can("settings.manage") && <NavLink to="/calendar">Clinic calendar</NavLink>}
+        {can("settings.manage") && <NavLink to="/settings">Settings</NavLink>}
         {can("users.manage") && <NavLink to="/users">Users</NavLink>}
         <div className="nav-foot">
           <b>{user!.fullName}</b>{ROLE_WORDS[user!.role]}
@@ -83,6 +85,7 @@ function Shell() {
           <Route path="/cancelled" element={<CancelListPage />} />
           <Route path="/triage" element={<TriagePage />} />
           <Route path="/month" element={<MonthPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/confirm" element={<ConfirmationsPage />} />
           <Route path="/patients" element={<PatientsPage />} />
           <Route path="/patients/:id" element={<PatientPage />} />

@@ -376,6 +376,39 @@ try {
     assert.ok(!pending.body.assessments.some((a: any) => a.id === triageId));
   });
 
+  console.log("month view and settings");
+  await step("month view lists every day of the month with its load", async () => {
+    const r = await call("GET", `/api/month?month=${D2.slice(0, 7)}`, doctor);
+    assert.equal(r.status, 200);
+    const d = r.body.days.find((x: any) => x.date === D2);
+    assert.ok(d && d.booked >= 1 && typeof d.newPatients === "number");
+    assert.equal((await call("GET", "/api/month?month=2026-13", doctor)).status, 400);
+  });
+  await step("settings are for managers and admins only", async () => {
+    assert.equal((await call("GET", "/api/settings", staff)).status, 403);
+    assert.equal((await call("PUT", "/api/settings/rules", staff, { values: { NEW_MORNING_START: "09:30" } })).status, 403);
+    const r = await call("GET", "/api/settings", admin);
+    assert.equal(r.status, 200);
+    assert.ok(r.body.rules.fields.some((f: any) => f.key === "NEW_MORNING_START"));
+  });
+  await step("rule numbers are checked, and a saved number changes what the rules say", async () => {
+    assert.equal((await call("PUT", "/api/settings/rules", admin, { values: { NEW_MORNING_START: "9.30am" } })).status, 400);
+    assert.equal((await call("PUT", "/api/settings/rules", admin, { values: { ROP_DAY: "WEDNESDAY" } })).status, 400);
+    const before = (await pool.query(`SELECT value FROM app.settings WHERE key = 'rule.NEW_MORNING_START'`)).rows[0]?.value ?? null;
+    try {
+      assert.equal((await call("PUT", "/api/settings/rules", admin, { values: { NEW_MORNING_START: "09:00" } })).status, 200);
+      const day = await call("GET", `/api/rules/day?date=${D2}`, staff);
+      assert.ok(!day.body.findings.some((f: any) => f.code === "NEW_PATIENT_BEFORE_TIME" && f.id === ruleAppt), "09:10 is now allowed");
+    } finally {
+      if (before) await pool.query(`UPDATE app.settings SET value = $1 WHERE key = 'rule.NEW_MORNING_START'`, [before]);
+      else await pool.query(`DELETE FROM app.settings WHERE key = 'rule.NEW_MORNING_START'`);
+    }
+  });
+  await step("booking grid must divide into whole slots", async () => {
+    assert.equal((await call("PUT", "/api/settings/booking", admin, { slotMinutes: 7, dayStart: "09:00", dayEnd: "18:00" })).status, 400);
+    assert.equal((await call("PUT", "/api/settings/booking", admin, { slotMinutes: 10, dayStart: "18:00", dayEnd: "09:00" })).status, 400);
+  });
+
   console.log("patients, follow-ups (empty Yarago mirror in the test DB)");
   await step("patient search runs", async () => {
     const r = await call("GET", "/api/patients/search?q=SPD", staff);

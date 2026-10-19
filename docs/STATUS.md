@@ -76,7 +76,7 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       `analysis/sudarshan/rules/RULE_CARDS.md`.
 - [x] Pavin and Dr. Sameera reviewed the 16 rules (19 Oct): all stay warnings for now (D-022).
 - [ ] Later: which rules block (P-1), then build blocking with a manager override and a reason.
-- [ ] Settings screen for the rule switches and numbers (now only in `app.settings`).
+- [x] Settings screen (`/settings`), 19 Oct: rule switches and numbers, booking grid, lists, plans of action.
 - [x] Analytics schema + first KPIs + Metabase (19 Oct, D-020, D-023): migration 0006 (`analytics`, rebuilt nightly
       02:30 by the sync service, 7 s), login `sudarshan_bi` (analytics only, checked), Metabase v0.63.19 service
       `SudarshanMetabase` at http://shichika:3000 (LAN only, Java 21 pinned, own database `metabase` in the nightly backup),
@@ -92,6 +92,9 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       `GET /api/huddle`. During the trial the booking figures are those imported on 18 Oct; live in-clinic data is real.
 - [x] Direct calls (`/calls`) and cancel list (`/cancelled`), 19 Oct (migration 0007).
 - [x] Month view (`/month`), 19 Oct.
+- [ ] Pavin: the Google app reserved slot blocks (HFA Mon/Thu/Sat 09:20-09:40, injections Wed 09:00-12:20, laser Tue
+      14:00-17:30, ROP Wed 13:50-17:00, dilation slots, emergency 17:30-17:50, urgent-new 14:30/15:30). Sudarshan books on a
+      plain grid (D-010). Decide whether these blocks should come back (as warnings or as held slots).
 - [x] Triage (`/triage`), 19 Oct: same questions and scoring as the Google app (checked on all 212 imported assessments).
 - [ ] Pavin: the Google app stopped front-desk (level 4) logins from logging direct calls for *old* patients. Not
       carried over; say if it is still wanted.
@@ -102,5 +105,5 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
 - [ ] Not in Yarago: patient PIN/area (geography KPI), coded diagnoses, surgery advice. Raise with the clinic if wanted.
 
 ## Next step
-The remaining front-desk lists (direct calls, triage, cancel list, month view, settings). Phase B starts with the doctor summary built on clinical.visit / va_iop_trend / injection / laser /
+Front-desk screens are done (Today, direct calls, cancel list, triage, month view, settings); next: decisions on the open items above, a shadow-run plan, then Phase B starts with the doctor summary built on clinical.visit / va_iop_trend / injection / laser /
 visit_exam_finding / followup_current / patient_due, generated locally (Ollama) from 07:00 for booked patients.

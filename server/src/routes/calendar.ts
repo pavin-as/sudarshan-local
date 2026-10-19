@@ -5,6 +5,7 @@ import { one, q, withTx } from "../db.js";
 import { badRequest, notFound } from "../lib/errors.js";
 import { addDays, dateStr, niceDate, timeStr, todayIST } from "../lib/time.js";
 import { daysInfo, doctorsOnDate, slotsOnDate } from "../services/calendar.js";
+import { listItems } from "./settings.js";
 
 const WEEKDAYS = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -19,7 +20,10 @@ export async function calendarRoutes(app: FastifyInstance) {
       q(`SELECT kind, code, regexp_replace(label, ' \\(to confirm\\)$', '') AS label, confirmed FROM app.code_labels ORDER BY kind, code`),
     ]);
     const lists: Record<string, unknown> = {};
-    for (const s of settings as any[]) lists[s.key.replace(/^general\./, "")] = s.value;
+    for (const s of settings as any[]) {
+      const name = s.key.replace(/^general\./, "");
+      lists[name] = ["Appointment Type List", "Patient Type"].includes(name) ? listItems(s.value) : s.value;
+    }
     return { doctors, plansOfAction: plans, lists, codeLabels: labels, today: todayIST() };
   });
 

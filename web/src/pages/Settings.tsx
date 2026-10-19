@@ -1,0 +1,196 @@
+// Settings for managers and admins: scheduling rules, the booking grid, visit / patient type lists, plans of action.
+// Every change is written to the activity log. Secrets are not settings: they live in .env on shichika.
+import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "../api";
+import { ErrorNotice, Loading, useToast } from "../components/ui";
+
+interface Plan { name: string; eye: string | null; prepMin: number | null; consultMin: number | null; priority: number | null; isActive: boolean }
+interface SettingsData {
+  booking: { slotMinutes: number; dayStart: string; dayEnd: string };
+  rules: { switches: { key: string; label: string; on: boolean }[]; fields: { key: string; label: string; kind: string; value: string; defaultValue: string }[] };
+  lists: { id: string; label: string; items: string[] }[];
+  plans: Plan[];
+  reservedSlots: { name: string; entries: string[] }[];
+}
+
+function RulesSection({ data }: { data: SettingsData["rules"] }) {
+  const toast = useToast();
+  const qc = useQueryClient();
+  const [sw, setSw] = useState<Record<string, boolean>>({});
+  const [vals, setVals] = useState<Record<string, string>>({});
+  const [error, setError] = useState<unknown>(null);
+  const changed = Object.keys(sw).length + Object.keys(vals).length;
+  const save = async () => {
+    setError(null);
+    try {
+      await api("/settings/rules", { method: "PUT", body: { switches: sw, values: vals } });
+      toast("Scheduling rules saved"); setSw({}); setVals({});
+      await qc.invalidateQueries();
+    } catch (e) { setError(e); }
+  };
+  return (
+    <section className="panel">
+      <div className="panel-head"><h2 className="grow">Scheduling rules</h2><span className="muted small">all warnings only (D-022)</span></div>
+      <div className="panel-pad settings-cols">
+        <div className="stack" style={{ gap: "0.35rem" }}>
+          <h3>Which rules are checked</h3>
+          {data.switches.map((s) => {
+            const on = sw[s.key] ?? s.on;
+            return <label key={s.key} className="check"><input type="checkbox" checked={on}
+              onChange={(e) => setSw((x) => { const n = { ...x }; if (e.target.checked === s.on) delete n[s.key]; else n[s.key] = e.target.checked; return n; })} />{s.label}</label>;
+          })}
+        </div>
+        <div className="stack" style={{ gap: "0.35rem" }}>
+          <h3>The numbers</h3>
+          <table className="list compact"><tbody>{data.fields.map((f) => (
+            <tr key={f.key}>
+              <td>{f.label}</td>
+              <td><input className="narrow-input" value={vals[f.key] ?? f.value} placeholder={f.kind === "time" ? "HH:MM" : undefined}
+                inputMode={f.kind === "number" ? "numeric" : undefined} aria-label={f.label}
+                onChange={(e) => setVals((x) => { const n = { ...x }; if (e.target.value === f.value) delete n[f.key]; else n[f.key] = e.target.value; return n; })} /></td>
+              <td className="small muted">{f.value !== f.defaultValue ? `Google app default: ${f.defaultValue}` : ""}</td>
+            </tr>))}</tbody></table>
+          <p className="small muted">Times as 24-hour HH:MM (16:00). Days as MON, TUE, WED, THU, FRI, SAT, SUN; laser days separated by commas (TUE,FRI).</p>
+        </div>
+      </div>
+      <div className="panel-pad row" style={{ paddingTop: 0 }}>
+        <ErrorNotice error={error} /><span className="grow" />
+        {changed > 0 && <button onClick={() => { setSw({}); setVals({}); }}>Undo changes</button>}
+        <button className="btn-primary" disabled={!changed} onClick={() => void save()}>Save rules{changed ? ` (${changed} changed)` : ""}</button>
+      </div>
+    </section>
+  );
+}
+
+function BookingSection({ data }: { data: SettingsData["booking"] }) {
+  const toast = useToast();
+  const qc = useQueryClient();
+  const [f, setF] = useState({ slotMinutes: String(data.slotMinutes), dayStart: data.dayStart, dayEnd: data.dayEnd });
+  const [error, setError] = useState<unknown>(null);
+  useEffect(() => setF({ slotMinutes: String(data.slotMinutes), dayStart: data.dayStart, dayEnd: data.dayEnd }), [data]);
+  const dirty = f.slotMinutes !== String(data.slotMinutes) || f.dayStart !== data.dayStart || f.dayEnd !== data.dayEnd;
+  const save = async () => {
+    setError(null);
+    try {
+      const r = await api("/settings/booking", { method: "PUT", body: { slotMinutes: Number(f.slotMinutes), dayStart: f.dayStart, dayEnd: f.dayEnd } });
+      toast("Booking grid saved"); if (r.warning) toast(r.warning, "warn");
+      await qc.invalidateQueries();
+    } catch (e) { setError(e); }
+  };
+  return (
+    <section className="panel">
+      <div className="panel-head"><h2 className="grow">Booking grid</h2></div>
+      <div className="panel-pad stack">
+        <div className="row">
+          <label className="field"><span>Minutes per slot</span><input className="narrow-input" inputMode="numeric" value={f.slotMinutes} onChange={(e) => setF({ ...f, slotMinutes: e.target.value.replace(/\D/g, "") })} /></label>
+          <label className="field"><span>First slot (HH:MM)</span><input className="narrow-input" value={f.dayStart} placeholder="09:00" onChange={(e) => setF({ ...f, dayStart: e.target.value })} /></label>
+          <label className="field"><span>Last slot ends (HH:MM)</span><input className="narrow-input" value={f.dayEnd} placeholder="18:00" onChange={(e) => setF({ ...f, dayEnd: e.target.value })} /></label>
+        </div>
+        <p className="small muted">Bookings already made stay at their time. Daily maximums, holidays and doctors' hours are on the Clinic calendar page.</p>
+        <div className="row"><ErrorNotice error={error} /><span className="grow" />
+          <button className="btn-primary" disabled={!dirty} onClick={() => void save()}>Save grid</button></div>
+      </div>
+    </section>
+  );
+}
+
+function ListSection({ list }: { list: SettingsData["lists"][number] }) {
+  const toast = useToast();
+  const qc = useQueryClient();
+  const [text, setText] = useState(list.items.join("\n"));
+  const [error, setError] = useState<unknown>(null);
+  useEffect(() => setText(list.items.join("\n")), [list]);
+  const items = text.split("\n").map((x) => x.trim()).filter(Boolean);
+  const dirty = items.join("|") !== list.items.join("|");
+  const save = async () => {
+    setError(null);
+    try { await api(`/settings/lists/${list.id}`, { method: "PUT", body: { items } }); toast(`${list.label} saved`); await qc.invalidateQueries(); }
+    catch (e) { setError(e); }
+  };
+  return (
+    <div className="stack">
+      <h3>{list.label}</h3>
+      <textarea rows={Math.min(14, Math.max(5, list.items.length + 1))} value={text} onChange={(e) => setText(e.target.value)} aria-label={list.label} />
+      <div className="row"><span className="small muted grow">One per line. Offered as choices in the booking dialog.</span>
+        <button className="btn-small btn-primary" disabled={!dirty} onClick={() => void save()}>Save</button></div>
+      <ErrorNotice error={error} />
+    </div>
+  );
+}
+
+function PlanRow({ p }: { p: Plan }) {
+  const toast = useToast();
+  const qc = useQueryClient();
+  const [f, setF] = useState({ prepMin: p.prepMin?.toString() ?? "", consultMin: p.consultMin?.toString() ?? "", priority: p.priority?.toString() ?? "" });
+  const num = (v: string) => (v === "" ? null : Number(v));
+  const dirty = f.prepMin !== (p.prepMin?.toString() ?? "") || f.consultMin !== (p.consultMin?.toString() ?? "") || f.priority !== (p.priority?.toString() ?? "");
+  const patch = async (body: unknown, done: string) => {
+    try { await api(`/plans/${encodeURIComponent(p.name)}`, { method: "PATCH", body }); toast(done); await qc.invalidateQueries(); }
+    catch (e: any) { toast(e.message, "err"); }
+  };
+  const field = (k: keyof typeof f) => (
+    <input className="narrow-input" inputMode="numeric" value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value.replace(/\D/g, "") })} aria-label={`${p.name} ${k}`} />);
+  return (
+    <tr style={{ opacity: p.isActive ? 1 : 0.55 }}>
+      <td><b>{p.name}</b></td>
+      <td className="small">{p.eye === "Yes" ? "per eye" : ""}</td>
+      <td>{field("prepMin")}</td><td>{field("consultMin")}</td><td>{field("priority")}</td>
+      <td className="right"><div className="row actions">
+        {dirty && <button className="btn-small btn-primary" onClick={() => void patch({ prepMin: num(f.prepMin), consultMin: num(f.consultMin), priority: num(f.priority) }, `${p.name} saved`)}>Save</button>}
+        <button className="btn-small" onClick={() => void patch({ isActive: !p.isActive }, `${p.name} ${p.isActive ? "hidden" : "shown again"}`)}>{p.isActive ? "Hide" : "Show"}</button></div></td>
+    </tr>
+  );
+}
+
+function PlansSection({ plans }: { plans: Plan[] }) {
+  const toast = useToast();
+  const qc = useQueryClient();
+  const [name, setName] = useState("");
+  const add = async () => {
+    try { await api("/plans", { body: { name: name.trim(), eye: "No", prepMin: 0, consultMin: 10, priority: 2 } }); toast(`${name.trim()} added`); setName(""); await qc.invalidateQueries(); }
+    catch (e: any) { toast(e.message, "err"); }
+  };
+  return (
+    <section className="panel">
+      <div className="panel-head"><h2 className="grow">Plans of action</h2>
+        <span className="muted small">preparation minutes set when the consultation starts (slot + longest preparation)</span></div>
+      <table className="list compact">
+        <thead><tr><th>Plan</th><th /><th>Preparation (min)</th><th>Consultation (min)</th><th>Priority</th><th /></tr></thead>
+        <tbody>{plans.map((p) => <PlanRow key={p.name} p={p} />)}</tbody>
+      </table>
+      <div className="panel-pad row">
+        <input placeholder="New plan of action" value={name} onChange={(e) => setName(e.target.value)} />
+        <button className="btn-small" disabled={name.trim().length < 2} onClick={() => void add()}>Add</button>
+        <span className="small muted">Hidden plans are no longer offered when booking; old bookings keep them.</span>
+      </div>
+    </section>
+  );
+}
+
+export function SettingsPage() {
+  const q = useQuery({ queryKey: ["settings"], queryFn: () => api<SettingsData>("/settings") });
+  if (q.error) return <ErrorNotice error={q.error} />;
+  if (!q.data) return <Loading />;
+  const d = q.data;
+  return (
+    <div className="stack" style={{ gap: "1rem" }}>
+      <div className="page-head"><div><h1>Settings</h1>
+        <div className="muted">For managers and admins. Every change is written to the activity log. Users have their own page; API keys and passwords are kept in .env on shichika, not here.</div></div></div>
+      <RulesSection data={d.rules} />
+      <BookingSection data={d.booking} />
+      <section className="panel"><div className="panel-head"><h2>Lists</h2></div>
+        <div className="panel-pad settings-cols">{d.lists.map((l) => <ListSection key={l.id} list={l} />)}</div></section>
+      <PlansSection plans={d.plans} />
+      <section className="panel">
+        <div className="panel-head"><h2 className="grow">Reserved slot blocks from the Google app</h2><span className="muted small">for reference: not used by Sudarshan yet</span></div>
+        <div className="panel-pad stack small">
+          <p className="muted" style={{ margin: 0 }}>The Google app held some slots for one kind of patient (format day-from-to-count, e.g. W-09:00-12:20 = Wednesday 09:00-12:20).
+            Sudarshan books on a plain grid for now; whether to bring these blocks back is an open question.</p>
+          <table className="list compact"><tbody>{d.reservedSlots.map((r) => (
+            <tr key={r.name}><td className="nowrap"><b>{r.name}</b></td><td>{r.entries.join(" · ")}</td></tr>))}</tbody></table>
+        </div>
+      </section>
+    </div>
+  );
+}
