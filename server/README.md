@@ -27,7 +27,9 @@ SUDARSHAN_ENV=<test .env> npm test   # full API test - TEST DATABASE ONLY (write
   (like planningB), slots are on the grid (09:00-17:50 every 10 min, from `app.settings`), one patient per
   slot, no booking on holidays or with a doctor on leave, no second booking for the same patient that day.
   A manager or admin can book over a full day or a taken slot by giving a reason (kept in the story and log).
-  The 16 scheduling rules of the Google app are the next addition (as warnings).
+- **Scheduling rules** (src/services/rules.ts): the Google app's 16 rules as pure functions over one day's
+  bookings, read from `app.settings` `rule.*`. Warnings only (D-010, D-021); rule cards in
+  `analysis/sudarshan/rules/RULE_CARDS.md`, tests `npm run test:rules` (no database needed).
 
 ## API (all under /api, JSON)
 | | |
@@ -43,6 +45,8 @@ SUDARSHAN_ENV=<test .env> npm test   # full API test - TEST DATABASE ONLY (write
 | `POST appointments` | book (no slotTime = waitlist) |
 | `POST appointments/:id/move` | reschedule, restore a cancelled one, give a waitlisted patient a slot |
 | `PATCH appointments/:id` | edit details (plan, remarks, tags ...) |
+| `GET rules/day?date` | every scheduling-rule finding for a day, and its special cases |
+| `POST rules/check` | findings for one booking before it is made or moved (saves nothing) |
 | `POST appointments/:id/cancel`, `/confirm`, `/remarks`, `/status` | |
 | `GET patients/search?q`, `GET patients/:id`, `GET patients/:id/visits/:visitId` | Yarago patient, visits, trend, injections, dues |
 | `GET followups?view=to_call|upcoming|all_overdue`, `POST followups/:patientId/actions` | follow-up board and call log |

@@ -5,6 +5,14 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- Scheduling rules: the Google app's 16 rules now show as warnings. The booking dialog and the reschedule panel say,
+  before you book, if a time goes against a rule (e.g. "Check: new patient at 09:40, before 10:00"); the day board lists
+  the day's findings and marks the cards; the appointment panel shows its own. Nothing is blocked: Pavin and
+  Dr. Sameera reviewed the rules and keep all as warnings for now (D-022); blocks will be decided later.
+  Technical: `server/src/services/rules.ts` (pure, ported from `RuleEngine.js`), `routes/rules.ts`
+  (`GET /api/rules/day`, `POST /api/rules/check`), `test/rules.test.ts` (30 checks, `npm run test:rules`), API test and
+  `real-data.ts` steps; web `components/RuleNotes.tsx`. Rule cards: `analysis/sudarshan/rules/RULE_CARDS.md`. No
+  migration. Consult start is worked out from slot + plan preparation time when not stored; rule 14 is off (D-021).
 - Plan: analytics and business intelligence added (analytics schema, first KPIs, Metabase), D-020.
 - Nightly backup of Sudarshan to the QNAP at 02:00 (database without the Yarago copy, plus the code), 14 daily and
   12 monthly kept, restore test every 4 weeks; the menu shows managers and admins when the last backup ran and warns

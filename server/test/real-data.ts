@@ -38,6 +38,9 @@ try {
   for (const a of board.appointments ?? []) stages[a.liveStage ?? "no Yarago visit yet"] = (stages[a.liveStage ?? "no Yarago visit yet"] ?? 0) + 1;
   if (Object.keys(stages).length) console.log("     stages:", JSON.stringify(stages));
   await get("tomorrow's board", `/api/appointments?date=${addDays(today, 1)}`, (b) => `${b.appointments.length} bookings`);
+  const ruleCount = (b: any) => `${b.findings.filter((f: any) => f.level !== "info").length} to check, ${b.findings.filter((f: any) => f.level === "info").length} notes`;
+  await get("today's scheduling rules", `/api/rules/day?date=${today}`, ruleCount);
+  await get("tomorrow's scheduling rules", `/api/rules/day?date=${addDays(today, 1)}`, ruleCount);
   const s = await get("patient search 'SPD'", "/api/patients/search?q=SPD", (b) => `${b.patients.length} found`);
   await get("patient search by phone digits", "/api/patients/search?q=9846", (b) => `${b.patients.length} found`);
   // a patient with many visits makes the heaviest patient page

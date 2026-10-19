@@ -8,6 +8,7 @@ import { Drawer, ErrorNotice, Loading, StageTrack, StatusPill, Tags, useToast } 
 import { COMMON_TAGS, useMeta } from "./BookDialog";
 import { DateStrip, SlotPicker } from "./SlotPicker";
 import { PatientPicker } from "./PatientPicker";
+import { RuleCheckPanel, RuleNotes, useDayRules } from "./RuleNotes";
 
 interface Event { id: number; at: string; type: string; by: string | null; from: any; to: any; note: string | null }
 
@@ -46,6 +47,8 @@ export function AppointmentDrawer({ id, onClose }: { id: number; onClose: () => 
 
   const a = q.data?.appointment;
   const write = can("appointments.write");
+  const dayRules = useDayRules(a && a.status !== "cancelled" ? a.date : null);
+  const myRules = a ? (dayRules.data?.findings ?? []).filter((f) => f.ids.includes(a.id)) : [];
 
   const run = async (path: string, body: unknown, done: string, method = "POST") => {
     setBusy(true); setError(null);
@@ -96,6 +99,8 @@ export function AppointmentDrawer({ id, onClose }: { id: number; onClose: () => 
         {a.checkInAt && <><dt>In clinic</dt><dd>checked in {clock(a.checkInAt)}{a.checkOutAt && `, out ${clock(a.checkOutAt)}`}</dd></>}
         <dt>Booked</dt><dd>{a.bookedBy ?? (a.source === "import" ? "in the Google app" : "unknown")}, {stamp(a.bookedAt)}</dd>
       </dl>
+      {myRules.length > 0 && !mode && (
+        <section className="stack"><h3>Scheduling rules</h3><RuleNotes findings={myRules} /></section>)}
       {a.patientId ? <div><Link to={`/patients/${a.patientId}`} onClick={onClose}>Open patient record</Link></div>
         : write && (
           <div className="notice stack" style={{ gap: "0.4rem" }}>
@@ -123,6 +128,7 @@ export function AppointmentDrawer({ id, onClose }: { id: number; onClose: () => 
             <DateStrip value={moveDate} onChange={(d) => { setMoveDate(d); setMoveSlot(null); }} />
             <SlotPicker date={moveDate} value={moveSlot} onChange={setMoveSlot} doctorId={a.doctorId} ignoreAppointmentId={a.id} />
             <input placeholder="Reason (optional)" value={text} onChange={(e) => setText(e.target.value)} />
+            <RuleCheckPanel body={moveDate ? { date: moveDate, slotTime: moveSlot, appointmentId: a.id } : null} />
           </>}
           {mode === "cancel" && <>
             <h3>Cancel this appointment</h3>

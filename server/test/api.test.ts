@@ -244,6 +244,33 @@ try {
     assert.equal((await call("GET", "/api/audit", staff)).status, 403);
   });
 
+  console.log("scheduling rules (warnings, never blocks; each rule's own checks: npm run test:rules)");
+  let ruleAppt = 0;
+  await step("rule checks need login", async () => {
+    assert.equal((await call("GET", `/api/rules/day?date=${D2}`)).status, 401);
+    assert.equal((await call("POST", "/api/rules/check", undefined, { date: D2, slotTime: "09:10" })).status, 401);
+  });
+  await step("checking a new patient at 09:10 warns and saves nothing", async () => {
+    const before = (await pool.query(`SELECT count(*)::int AS n FROM app.appointments WHERE patient_name LIKE 'ZZ Test%'`)).rows[0].n;
+    const r = await call("POST", "/api/rules/check", staff, { date: D2, slotTime: "09:10", patientName: "ZZ Test Rule" });
+    assert.equal(r.status, 200);
+    assert.ok(r.body.findings.some((f: any) => f.code === "NEW_PATIENT_BEFORE_TIME" && f.level === "warning" && f.ids.includes(0)));
+    assert.equal((await pool.query(`SELECT count(*)::int AS n FROM app.appointments WHERE patient_name LIKE 'ZZ Test%'`)).rows[0].n, before);
+  });
+  await step("the rules do not block: the booking goes ahead and shows on the day's rule list", async () => {
+    const r = await call("POST", "/api/appointments", staff, { date: D2, slotTime: "09:10", patientName: "ZZ Test Rule", phone: "9000000077" });
+    assert.equal(r.status, 200); ruleAppt = r.body.appointment.id;
+    const day = await call("GET", `/api/rules/day?date=${D2}`, doctor);       // doctors may read the rules too
+    assert.equal(day.status, 200);
+    assert.ok(day.body.findings.some((f: any) => f.code === "NEW_PATIENT_BEFORE_TIME" && f.id === ruleAppt));
+  });
+  await step("checking a move uses the booking's own details and the new time", async () => {
+    const at10 = await call("POST", "/api/rules/check", staff, { date: D2, slotTime: "10:30", appointmentId: ruleAppt });
+    assert.equal(at10.status, 200);
+    assert.ok(!at10.body.findings.some((f: any) => f.code === "NEW_PATIENT_BEFORE_TIME"));
+    assert.ok(at10.body.findings.every((f: any) => f.ids.includes(ruleAppt)));
+  });
+
   console.log("patients, follow-ups (empty Yarago mirror in the test DB)");
   await step("patient search runs", async () => {
     const r = await call("GET", "/api/patients/search?q=SPD", staff);

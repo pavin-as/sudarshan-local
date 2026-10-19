@@ -124,6 +124,22 @@ label.field > span { font-weight: 700; color: var(--ink); }
 .notice.ok { border-color: var(--done); background: var(--done-soft); }
 .notice ul { margin: 0.3rem 0 0; padding-left: 1.1rem; }
 
+/* scheduling rule findings: the word carries the level, the edge colour repeats it */
+.rule-notes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+.rule-note { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: 0.5rem; padding: 0.4rem 0.6rem; border-left: 4px solid var(--line); background: var(--paper); border-radius: var(--radius-s); font-size: 0.92rem; }
+.rule-note.error { border-left-color: var(--vessel); background: var(--vessel-soft); }
+.rule-note.warning { border-left-color: var(--disc); background: var(--disc-soft); }
+.rule-level { font-weight: 700; font-size: 0.85rem; }
+.rule-note.error .rule-level { color: var(--vessel); }
+.rule-note.warning .rule-level { color: #7a5300; }
+.rule-note.info .rule-level { color: var(--ink-soft); }
+button.link { border: 0; background: none; padding: 0; color: inherit; text-align: left; font: inherit; text-decoration: underline; text-decoration-color: var(--line); cursor: pointer; }
+button.link:hover { text-decoration-color: currentColor; }
+.rule-flag { font-size: 0.78rem; font-weight: 700; color: #7a5300; white-space: nowrap; }
+.rule-flag.error { color: var(--vessel); }
+.side .rule-note { grid-template-columns: 1fr; gap: 0.1rem; }
+@media (max-width: 640px) { .rule-note { grid-template-columns: 1fr; gap: 0.1rem; } }
+
 table.list { width: 100%; border-collapse: collapse; }
 table.list th { text-align: left; font-size: 0.82rem; color: var(--ink-soft); font-weight: 700; padding: 0.5rem 0.7rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
 table.list td { padding: 0.55rem 0.7rem; border-bottom: 1px solid var(--line-soft); vertical-align: top; }

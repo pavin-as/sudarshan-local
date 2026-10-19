@@ -8,20 +8,26 @@ import { ErrorNotice, Loading, StageTrack, StatusPill, Tags } from "../component
 import { DateStrip, useDay } from "../components/SlotPicker";
 import { BookDialog, type BookPreset } from "../components/BookDialog";
 import { AppointmentDrawer } from "../components/AppointmentDrawer";
+import { LEVEL_WORDS, RuleNotes, useDayRules } from "../components/RuleNotes";
+import type { RuleLevel } from "../api";
 
 const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
 const nowMin = () => toMin(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date()));
 
-function ApptCard({ a, onOpen }: { a: Appointment; onOpen: () => void }) {
+interface CardRules { level: RuleLevel; n: number; special: string[] }
+
+function ApptCard({ a, onOpen, rules }: { a: Appointment; onOpen: () => void; rules?: CardRules }) {
+  const extra = (rules?.special ?? []).filter((t) => !a.tags.some((x) => x.toLowerCase().includes(t.toLowerCase())));
   return (
     <button className={`appt ${a.status}`} onClick={onOpen}>
       <div style={{ minWidth: 0 }}>
         <div className="appt-name">{a.patientName} <span className="muted small" style={{ fontWeight: 400 }}>{a.mrd ?? "new"}</span></div>
         <div className="appt-sub">{[a.planOfAction, a.doctorName, a.ageYears != null ? `${a.ageYears} y` : null].filter(Boolean).join(", ") || " "}
-          {a.tags.length > 0 && <> <Tags tags={a.tags} /></>}</div>
+          {(a.tags.length > 0 || extra.length > 0) && <> <Tags tags={[...a.tags, ...extra]} /></>}</div>
       </div>
       <div className="appt-side">
         {a.liveStage ? <StageTrack stage={a.liveStage} /> : <StatusPill status={a.status} />}
+        {rules && rules.n > 0 && <span className={`rule-flag ${rules.level}`}>{LEVEL_WORDS[rules.level]}{rules.n > 1 ? ` +${rules.n - 1}` : ""}</span>}
         {a.remarks && <span className="small muted" title={a.remarks}>has remarks</span>}
       </div>
     </button>
@@ -41,6 +47,22 @@ export function BoardPage() {
   const isToday = date === todayIST();
 
   const day = useDay(date);
+  const rules = useDayRules(date);
+  const [showNotes, setShowNotes] = useState(false);
+  const cardRules = useMemo(() => {
+    const m = new Map<number, CardRules>(), rank: Record<RuleLevel, number> = { error: 0, warning: 1, info: 2 };
+    const get = (id: number) => m.get(id) ?? (m.set(id, { level: "info", n: 0, special: [] }), m.get(id)!);
+    for (const f of rules.data?.findings ?? []) {
+      if (f.id == null) continue;
+      const c = get(f.id);
+      if (c.n === 0 || rank[f.level] < rank[c.level]) c.level = f.level;
+      c.n++;
+    }
+    for (const sc of rules.data?.specialCases ?? []) get(sc.id).special = sc.types;
+    return m;
+  }, [rules.data]);
+  const findings = rules.data?.findings ?? [];
+  const serious = findings.filter((f) => f.level !== "info"), notes = findings.filter((f) => f.level === "info");
   const appts = useQuery({
     queryKey: ["appointments", date],
     refetchInterval: isToday ? 60_000 : false,      // live stages from Yarago refresh every minute today
@@ -104,7 +126,7 @@ export function BoardPage() {
                   <div key={t} className={`slot ${t.endsWith(":00") ? "hour" : ""} ${isNow ? "now" : ""} ${doctors.length && !sessionsCover(t) ? "outside" : ""}`}>
                     <div className="slot-time">{t}</div>
                     <div className="slot-body">
-                      {here.map((a) => <ApptCard key={a.id} a={a} onOpen={() => setOpenId(a.id)} />)}
+                      {here.map((a) => <ApptCard key={a.id} a={a} rules={cardRules.get(a.id)} onOpen={() => setOpenId(a.id)} />)}
                       {!here.length && canBook && toMin(t) > now && (
                         <button className="slot-free" onClick={() => setBooking({ date, slotTime: t })}>Book {t}</button>)}
                     </div>
@@ -132,7 +154,7 @@ export function BoardPage() {
             <div className="panel-head"><h3 className="grow">Waitlist</h3><span className="muted small">{waitlist.length} without a time</span></div>
             <div className="panel-pad stack">
               {waitlist.length === 0 ? <span className="muted small">Nobody waiting for a slot on this day.</span>
-                : waitlist.map((a) => <ApptCard key={a.id} a={a} onOpen={() => setOpenId(a.id)} />)}
+                : waitlist.map((a) => <ApptCard key={a.id} a={a} rules={cardRules.get(a.id)} onOpen={() => setOpenId(a.id)} />)}
             </div>
           </div>
 
@@ -140,7 +162,7 @@ export function BoardPage() {
             <div className="panel">
               <div className="panel-head"><h3 className="grow">Cancelled</h3>
                 <button className="btn-quiet btn-small" onClick={() => setShowCancelled(!showCancelled)}>{showCancelled ? "Hide" : `Show ${cancelled.length}`}</button></div>
-              {showCancelled && <div className="panel-pad stack">{cancelled.map((a) => <ApptCard key={a.id} a={a} onOpen={() => setOpenId(a.id)} />)}</div>}
+              {showCancelled && <div className="panel-pad stack">{cancelled.map((a) => <ApptCard key={a.id} a={a} rules={cardRules.get(a.id)} onOpen={() => setOpenId(a.id)} />)}</div>}
             </div>
           )}
         </div>
@@ -164,6 +186,18 @@ export function BoardPage() {
               </div>
             )}
           </div>
+
+          {findings.length > 0 && (
+            <div className="panel">
+              <div className="panel-head"><h3 className="grow">Scheduling rules</h3>
+                <span className="muted small">{serious.length} to check, {notes.length} notes</span></div>
+              <div className="panel-pad stack">
+                <span className="muted small">Warnings only; nothing is blocked.</span>
+                <RuleNotes findings={showNotes ? findings : serious} onOpen={setOpenId} />
+                {notes.length > 0 && <button className="btn-quiet btn-small" onClick={() => setShowNotes(!showNotes)}>{showNotes ? "Hide notes" : `Show ${notes.length} notes`}</button>}
+              </div>
+            </div>
+          )}
 
           <div className="panel">
             <div className="panel-head"><h3>Doctors</h3></div>

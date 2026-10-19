@@ -111,9 +111,25 @@ figures live inside Sudarshan. Why: one definition per number, no clinic data in
 Rejected: Superset (heavier), Grafana (monitoring tool), Power BI Service (cloud). Plan section "Analytics and
 business intelligence"; first KPIs listed there.
 
+### D-021 · 2026-10-19 · Accepted · Claude
+**Scheduling rules ported as the Google app ran them, with four deliberate changes; all warnings.**
+The checks, thresholds and levels follow `RuleEngine.js` and the live `RuleSettings` values (rule cards in
+`analysis/sudarshan/rules/RULE_CARDS.md`). Changes: (1) consult start, when not stored, is worked out as slot + longest
+preparation time of the plan (the Google app's own formula); before, only ~13% of bookings had it, so the consult-time
+rules rarely ran. (2) Special cases and children also come from the booking dialog's tick boxes (VIP, BNI, Wheelchair,
+SVV advised, Kids), not only remarks text. (3) Rules run over the whole clinic day (one slot grid), live while booking,
+not only on a button press for one doctor. (4) Rule 14 (time per plan of action), designed but never run in the Google
+app, is built but off: on real bookings it would fire about 12 times a day. The Gemini summary is not ported (D-006).
+Which rules block: P-1.
+
+### D-022 · 2026-10-19 · Accepted · Pavin, Dr. Sameera
+**All 16 scheduling rules stay warnings for now; none blocks a booking.** Pavin and Dr. Sameera reviewed the rules
+(`docs/RULES_FOR_REVIEW.md`) and decided that, for the present, every rule only warns. Which rules become blocks will be
+decided later (P-1 stays open for that); until then do not build blocking.
+
 ## Proposed (not yet decided)
 
-- **P-1** Which of the 16 scheduling rules should *block* a booking rather than warn. Owner: Pavin, Dr. Sameera.
+- **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.
 - **P-2** Second-pass linking of ~4,400 imported bookings without a Yarago patient (phone + name, confirmed by a person).
 - **P-4** Off-site copy of the Sudarshan backups (encrypted cloud or a drive taken home weekly).
 - **P-3** Keep the Google app read-only for 3 months after cut-over (plan), then archive the spreadsheet.

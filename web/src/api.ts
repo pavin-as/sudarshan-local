@@ -41,6 +41,11 @@ export interface Appointment {
   yaragoVisitId: number | null; yaragoStatus: string | null; checkInAt: string | null; checkOutAt: string | null; liveStage: LiveStage;
 }
 
+// scheduling rules (warnings, never blocks)
+export type RuleLevel = "error" | "warning" | "info";
+export interface RuleFinding { rule: number; code: string; level: RuleLevel; id: number | null; ids: number[]; message: string; suggestion: string }
+export interface RuleDay { findings: RuleFinding[]; specialCases: { id: number; types: string[] }[] }
+
 export interface DayInfo { date: string; weekday: number; holiday: string | null; maxSlots: number; booked: number; remaining: number; waitlist: number; open: boolean; closedReason: string | null }
 export interface DoctorDay { doctorId: number; name: string; sessions: { start: string; end: string }[]; onLeave: boolean; note: string | null }
 export interface Meta {

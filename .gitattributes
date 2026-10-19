@@ -1,0 +1,13 @@
+# Line endings: store and keep text files with LF (Unix) endings in this repo and on disk.
+# Node, Python, PostgreSQL and PowerShell 5.1+ all read LF files fine; this stops the
+# "LF will be replaced by CRLF" warnings on Windows.
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.png binary
+*.jpg binary
+*.woff2 binary
+*.dump binary
+*.bundle binary
+# legacy/ is a read-only snapshot: keep its files exactly as they were
+legacy/** -text

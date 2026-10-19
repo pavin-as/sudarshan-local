@@ -48,6 +48,8 @@ and read). Decisions behind these are in DECISIONS.md; the database is in SCHEMA
    `BookingRefused` with every problem listed and the nearest free slots.
 5. **Booking logic lives in `services/booking.ts`**, runs inside the transaction and takes the per-day advisory lock
    first. Warnings are returned with the result; problems refuse the booking.
+   Scheduling rules live in `services/rules.ts` as pure functions over a day's bookings (testable without a database);
+   screens ask `POST /api/rules/check` before booking and `GET /api/rules/day` for the board.
 6. **Read Yarago only through `clinical.*`** (or `yarago.*` for a simple indexed lookup). Never connect to MySQL.
 7. **Dates** are `YYYY-MM-DD` strings and times `HH:MM` in clinic time; `lib/time.ts` has `todayIST()`, `niceDate()`.
    The database connection runs in Asia/Kolkata.
@@ -123,6 +125,9 @@ Names come from the eye (choroid, optic disc, vessel), so the palette stays spec
 - **Panels:** title, then facts as a two-column list, then actions at the bottom (primary on the right).
 - **Tables** for lists that are scanned (confirmations, follow-ups, users).
 - **Toasts** confirm what was done, bottom centre, a few seconds.
+- **Rule findings:** a word for the level ("Against rule", "Check", "Note") then the sentence and what to do, with a red,
+  amber or plain left edge. Shown before booking (dialog, reschedule), in the board's side panel (notes folded away) and
+  as the worst level's word on the card. Never a pop-up.
 
 ### Quality floor
 Works down to phone width (nav wraps, rail stays readable); visible keyboard focus; respects reduced motion; no

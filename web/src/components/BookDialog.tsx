@@ -6,6 +6,7 @@ import { dayLabel } from "../format";
 import { Dialog, ErrorNotice, useToast } from "./ui";
 import { PatientPicker, type PickedPatient } from "./PatientPicker";
 import { DateStrip, SlotPicker } from "./SlotPicker";
+import { RuleCheckPanel } from "./RuleNotes";
 
 export const COMMON_TAGS = ["VIP", "BNI", "Wheelchair", "Kids", "Urgent", "SVV advised"];
 
@@ -125,6 +126,12 @@ export function BookDialog({ preset, onClose, onBooked }: { preset: BookPreset; 
           ))}</div></div>
         <label className="field wide"><span>Remarks</span><textarea value={f.remarks} onChange={(e) => setF({ ...f, remarks: e.target.value })} /></label>
       </section>
+
+      <RuleCheckPanel body={patient || np.name.trim() ? {
+        date, slotTime: slot, patientId: patient?.patientId ?? null, patientName: patient ? null : np.name.trim() || null,
+        ageYears: patient ? null : np.age ? Number(np.age) : null, patientType: f.patientType.trim() || null,
+        planOfAction: f.planOfAction.trim() || null, familyGroup: f.familyGroup.trim() || null, tags, remarks: f.remarks.trim() || null,
+      } : null} />
 
       {error && <ErrorNotice error={error} />}
       {freeSlots.length > 0 && (

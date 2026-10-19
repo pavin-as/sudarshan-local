@@ -60,21 +60,25 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       lock, Yarago live stage on the board), patients (search, page, visit detail), follow-up board + call log,
       activity log. 38-check API test passes on the test database. Service `SudarshanServer`, port 8484,
       installer `scripts/install-server.ps1`.
-- [ ] Port the 16 scheduling rules (legacy RuleEngine.js / checks.md) as booking warnings.
+- [x] Port the 16 scheduling rules (legacy RuleEngine.js / checks.md) as booking warnings (19 Oct, D-021).
 - [x] Web UI (`web/`, React + Vite + TypeScript), served by the API server at http://shichika:8484:
       login, day board (slots, live Yarago stage, waitlist), booking dialog, appointment drawer (story, confirm,
       reschedule, cancel, link new patient to Yarago), confirmation calls (day-before, 4-day), patients,
       follow-up calls, activity log, clinic calendar, users. Font bundled (no internet needed).
-- [ ] Code-modernization plugin: preflight, assess, map, extract-rules on `legacy/sudarshan`.
+- [ ] Code-modernization plugin: preflight and assess done (analysis/sudarshan/); map, extract-rules to do.
 - [ ] Phase B: doctor summary (layout draft in the plan doc, Dr. Sameera to review), follow-up board.
 
 - [x] Backups: Sudarshan nightly 02:00 to QNAP (scripts/backup.ps1, install-backup.ps1), restore test every 4 weeks; Yarago has its own backup (F:\EMR_AUTO_BACKUP).
 - [ ] Off-site copy of backups (decision P-4).
 - [ ] Caddy / HTTPS; close MySQL 3306 to LAN.
 
-- [ ] Scheduling rules (16) as booking warnings, each with a test; rule list to Pavin and Dr. Sameera.
+- [x] Scheduling rules (16) as booking warnings, each with a test (`npm run test:rules`, 30 checks); rule cards
+      `analysis/sudarshan/rules/RULE_CARDS.md`.
+- [x] Pavin and Dr. Sameera reviewed the 16 rules (19 Oct): all stay warnings for now (D-022).
+- [ ] Later: which rules block (P-1), then build blocking with a manager override and a reason.
+- [ ] Settings screen for the rule switches and numbers (now only in `app.settings`).
 - [ ] Analytics schema + first KPIs + Metabase (plan section "Analytics and business intelligence", D-020).
 
 ## Next step
-Scheduling rules, then analytics schema + Metabase, then the remaining front-desk lists (direct calls, triage, cancel list, month view, settings). Phase B starts with the doctor summary built on clinical.visit / va_iop_trend / injection / laser /
+Analytics schema + Metabase, then the remaining front-desk lists (direct calls, triage, cancel list, month view, settings). Phase B starts with the doctor summary built on clinical.visit / va_iop_trend / injection / laser /
 visit_exam_finding / followup_current / patient_due, generated locally (Ollama) from 07:00 for booked patients.

@@ -19,6 +19,7 @@ Point tests at a test database with an env file: `SUDARSHAN_ENV=<path to test .e
 |---|---|---|
 | Type check server | `cd server && npx tsc --noEmit -p .` | Every change |
 | Type check + build web | `cd web && npm run build` | Every web change |
+| **Scheduling rules** (one block per rule, 30 checks, no database) | `cd server && npm run test:rules` | Every change to `services/rules.ts` or rule settings |
 | **API test** (38+ checks: logins, lockout, password change, permissions, cross-site refusal, users, calendar, booking refusals and overrides, reschedule, confirm, cancel/restore, story, board order, search, audit sentences, passwords never in the log) | `cd server && SUDARSHAN_ENV=<test env> npm test` | Every server change |
 | Browser flow (log in, board, book a new patient, refuse a taken slot, cancel) with screenshots | Playwright script against the test server with demo data (`test/seed-demo.ts`) | Every screen change |
 | Real-data read check: each screen's query, time and row count, no patient details printed | `cd server && npx tsx test/real-data.ts` (also step 7 of `install-server.ps1`) | After deploying to shichika |
@@ -35,7 +36,7 @@ Point tests at a test database with an env file: `SUDARSHAN_ENV=<path to test .e
 - Every bug fixed gets a test that would have caught it (e.g. "fields not sent must stay as they were" after an edit
   wiped phone numbers).
 - Every permission gets a "who may not" check, not only "who may".
-- Booking rules (the 16 scheduling rules, coming next) get one test per rule, built from the rule cards in
+- Booking rules (the 16 scheduling rules, `test/rules.test.ts`) get one test per rule, built from the rule cards in
   `analysis/` and from recorded behaviour of the Google app (past appointments), because Apps Script cannot run locally.
 - Performance: on shichika a single-day board should answer in under 300 ms and any screen under 1.5 s
   (`real-data.ts` prints times).
