@@ -74,6 +74,7 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
 - [x] Day prints: Print (consult start / check-in, doctor late arrival) and Print POA on the day board (19 Oct, D-029).
 - [x] Early booking limit with manager override (19 Oct, D-030).
 - [x] Waiting list size with manager override (19 Oct, D-031).
+- [x] Metabase Pharmacy dashboard: medicine sales, manufacturers, wholesalers (19 Oct, D-032).
 - [ ] Pavin: test logins per role (see RUNBOOK 10); Google-app passwords were pasted into a chat on 19 Oct and are
       not used by Sudarshan, but should be changed in the Google app too.
 - [ ] Pavin: share the EMR completeness report with the clinical staff (https://claude.ai/artifact/EfVt9jujDutkEzYGTxsqCa,

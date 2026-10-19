@@ -67,6 +67,17 @@ Dates are clinic dates (Asia/Kolkata).
 | Collected | Cash + card + cheque + other payment on each clinic bill. | |
 | Dues by age | What each patient owes now (`clinical.patient_due`), by days since that amount last changed: 0-30, 31-90, over 90 days. | Not by bill date: Yarago keeps one running due per patient. |
 
+## Pharmacy (dashboard "Pharmacy", D-032)
+
+| Measure | Definition | Notes |
+|---|---|---|
+| Pharmacy sales | Yarago pharmacy sale lines (`tblopticalpatientorderdetails`, categories Eye Drops, Tablets, Ointments, Others, Pharmacy Stationary): line total minus returned amount, after discount, including GST. Cancelled orders left out. | Optical (lens, frame, contact lens) not included; it is under Money. Last 12 months on 19 Oct: Rs 52.6 lakh. |
+| Purchases | Wholesaler invoice lines (`tblopticalpharmacypurchasedetails`), same categories, dated by the delivery-challan date, else the order date, else entry. Quantity after returns to the wholesaler. | Last 12 months on 19 Oct: Rs 53.1 lakh from 5 wholesalers. |
+| Manufacturer | The company most often named on a medicine's purchase invoices (Yarago keeps none on the medicine). "Not recorded" when no invoice names one. | Covers 85 of the 87 medicines sold in the last year, 99% of sales value. |
+| Wholesaler | `tbl_mst_vendor` of the purchase invoice (purchases) or of the batch sold (sales). | Names as in Yarago. |
+| Pharmacy bill | One Yarago pharmacy order. Average bill = sales / bills. | |
+| Slow-moving | Bought in the last 6 months, not sold in the last 90 days. | |
+
 ## Not available from Yarago (noted 19 Oct 2026)
 
 - **Patient geography:** no PIN code, city or state is recorded for any patient (address is free text).

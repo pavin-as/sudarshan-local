@@ -247,6 +247,16 @@ Giving a waitlist patient a slot on a full day was already refused ("the day is 
 Google app's locked type box. The percentage is changed by an admin on Settings. On 19 Oct two days were already over:
 22 Oct (7 of 6) and 31 Oct (6 of 6).
 
+### D-032 · 2026-10-19 · Accepted · Pavin asked; Claude chose the sources
+**Pharmacy analytics in the analytics schema and a Metabase "Pharmacy" dashboard.** Tables `analytics.dim_medicine`,
+`dim_wholesaler`, `fact_pharmacy_sale`, `fact_pharmacy_purchase`, rebuilt nightly by `analytics.refresh_pharmacy()`
+(its own step after the analytics, under a second). Sources: Yarago's optical+pharmacy module (sale lines, orders,
+`tbl_mst_product`, purchase invoices and lines, `tbl_mst_vendor`); pharmacy = categories 3, 5, 6, 7, 8 (optical left
+out). **Manufacturer = the company most often named on the medicine's purchase invoices**, because Yarago stores no
+manufacturer on the medicine (99% of sales value covered). Sales are what patients paid (after discount and returns,
+with GST); purchases are invoice line totals, so "bought vs sold" is not profit. Patients only as the random analytics key.
+Definitions in METRICS.md.
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

@@ -5,6 +5,13 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Metabase "Pharmacy" dashboard** (D-032): pharmacy sales last month, purchases, bills and average bill; sales per month
+  by category; sales and purchases per month; sales by manufacturer; purchases by wholesaler; top 25 medicines (with
+  manufacturer, quantity, share and patients); which wholesaler supplies which manufacturer; manufacturers bought vs
+  sold; medicines bought in the last 6 months but not sold in 90 days. Rebuilt nightly.
+  Technical: migration 0013 (`analytics.dim_medicine`, `dim_wholesaler`, `fact_pharmacy_sale`, `fact_pharmacy_purchase`,
+  `analytics.dmy()`, `analytics.refresh_pharmacy()`), nightly step in `sync/yarago_sync.py`, `PHARMACY` in
+  `scripts/metabase_dashboards.py`.
 - **Waiting list size** (D-031), as in the Google app: a day's waitlist holds at most 15% of its slots, rounded up
   (6 on a 38-slot day, 3 on a 15-slot day). The Waitlist button shows "5/6" and turns amber when full, with a notice;
   a booking without a time on a full list is refused, a manager can add anyway with a reason, a patient already waiting

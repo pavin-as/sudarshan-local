@@ -284,4 +284,78 @@ GROUP BY date_trunc('week', booked_date), 2 ORDER BY date_trunc('week', booked_d
     ],
 }
 
-DASHBOARDS = [CLINIC_WEEK, RETINA, MONEY, FRONT_DESK]
+PHARMACY = {
+    "name": "Pharmacy",
+    "description": "Medicine sales, manufacturers and the wholesalers we buy from (Yarago pharmacy; optical not included).",
+    "cards": [
+        note("**Pharmacy.** Sales = what patients paid for medicines, after discount and returns, including GST. Purchases = wholesaler "
+             "invoice lines. Yarago does not store a manufacturer on the medicine: it is the company most often named on that medicine's "
+             "purchase invoices. Last month = the last full calendar month; 12 months = the last 365 days.", 0),
+        card("Pharmacy sales last month", f"SELECT round(sum(amount)) AS \"Sales\" FROM analytics.fact_pharmacy_sale WHERE sale_date {LAST_MONTH}",
+             "scalar", 2, 0, 6, 3, lakh("Sales")),
+        card("Purchases last month", f"SELECT round(sum(amount)) AS \"Purchases\" FROM analytics.fact_pharmacy_purchase WHERE invoice_date {LAST_MONTH}",
+             "scalar", 2, 6, 6, 3, lakh("Purchases"), "Wholesaler invoices dated last month."),
+        card("Pharmacy bills last month", f"SELECT count(DISTINCT order_id) AS \"Bills\" FROM analytics.fact_pharmacy_sale WHERE sale_date {LAST_MONTH}",
+             "scalar", 2, 12, 6, 3),
+        card("Average pharmacy bill, last month", f"""
+SELECT round(sum(amount) / nullif(count(DISTINCT order_id), 0)) AS "Per bill" FROM analytics.fact_pharmacy_sale WHERE sale_date {LAST_MONTH}
+""", "scalar", 2, 18, 6, 3, money("Per bill")),
+        card("Pharmacy sales per month, by category", """
+SELECT to_char(date_trunc('month', sale_date), 'Mon YYYY') AS "Month", category AS "Category", round(sum(amount)) AS "Sales"
+FROM analytics.fact_pharmacy_sale WHERE sale_date >= (date_trunc('month', current_date) - interval '12 months')::date
+GROUP BY date_trunc('month', sale_date), 2 ORDER BY date_trunc('month', sale_date)
+""", "bar", 5, 0, 14, 7, {**chart(["Month", "Category"], ["Sales"], stacked=True), **money("Sales")}),
+        card("Sales and purchases per month", """
+SELECT to_char(m.month, 'Mon YYYY') AS "Month", round(coalesce(s.sales, 0)) AS "Sales", round(coalesce(p.purchases, 0)) AS "Purchases"
+FROM (SELECT generate_series((date_trunc('month', current_date) - interval '12 months')::date, date_trunc('month', current_date)::date, interval '1 month')::date AS month) m
+LEFT JOIN (SELECT date_trunc('month', sale_date)::date AS month, sum(amount) AS sales FROM analytics.fact_pharmacy_sale GROUP BY 1) s USING (month)
+LEFT JOIN (SELECT date_trunc('month', invoice_date)::date AS month, sum(amount) AS purchases FROM analytics.fact_pharmacy_purchase GROUP BY 1) p USING (month)
+ORDER BY m.month
+""", "bar", 5, 14, 10, 7, {**chart(["Month"], ["Sales", "Purchases"]), **money("Sales", "Purchases")},
+             "Purchases come in invoices, so a month with a large order looks high; compare over several months."),
+        card("Sales by manufacturer, last 12 months", """
+SELECT m.manufacturer AS "Manufacturer", round(sum(s.amount)) AS "Sales"
+FROM analytics.fact_pharmacy_sale s JOIN analytics.dim_medicine m USING (product_id)
+WHERE s.sale_date >= current_date - 365 GROUP BY 1 ORDER BY 2 DESC
+""", "row", 12, 0, 12, 7, {**chart(["Manufacturer"], ["Sales"]), **money("Sales")}),
+        card("Purchases by wholesaler, last 12 months", """
+SELECT coalesce(w.wholesaler, 'Not recorded') AS "Wholesaler", round(sum(p.amount)) AS "Purchases"
+FROM analytics.fact_pharmacy_purchase p LEFT JOIN analytics.dim_wholesaler w USING (vendor_id)
+WHERE p.invoice_date >= current_date - 365 GROUP BY 1 ORDER BY 2 DESC
+""", "row", 12, 12, 12, 7, {**chart(["Wholesaler"], ["Purchases"]), **money("Purchases")}),
+        card("Top 25 medicines by sales, last 12 months", """
+SELECT m.medicine AS "Medicine", m.category AS "Category", m.manufacturer AS "Manufacturer", sum(s.quantity) AS "Quantity",
+       round(sum(s.amount)) AS "Sales", round(100.0 * sum(s.amount) / sum(sum(s.amount)) OVER (), 1) AS "% of pharmacy sales",
+       count(DISTINCT s.patient_key) AS "Patients"
+FROM analytics.fact_pharmacy_sale s JOIN analytics.dim_medicine m USING (product_id)
+WHERE s.sale_date >= current_date - 365 GROUP BY 1, 2, 3 ORDER BY 5 DESC LIMIT 25
+""", "table", 19, 0, 24, 10, money("Sales"), "% is of all pharmacy sales in the 12 months, not only the top 25."),
+        card("Who supplies which manufacturer, last 12 months", """
+SELECT coalesce(w.wholesaler, 'Not recorded') AS "Wholesaler", p.manufacturer AS "Manufacturer",
+       count(DISTINCT p.purchase_id) AS "Invoices", round(sum(p.amount)) AS "Purchased"
+FROM analytics.fact_pharmacy_purchase p LEFT JOIN analytics.dim_wholesaler w USING (vendor_id)
+WHERE p.invoice_date >= current_date - 365 GROUP BY 1, 2 ORDER BY 1, 4 DESC
+""", "table", 29, 0, 12, 9, money("Purchased")),
+        card("Manufacturers: bought and sold, last 12 months", """
+SELECT coalesce(b.manufacturer, s.manufacturer) AS "Manufacturer", round(coalesce(b.purchased, 0)) AS "Purchased",
+       round(coalesce(s.sold, 0)) AS "Sold", coalesce(s.medicines, 0) AS "Medicines sold"
+FROM (SELECT manufacturer, sum(amount) AS purchased FROM analytics.fact_pharmacy_purchase WHERE invoice_date >= current_date - 365 GROUP BY 1) b
+FULL JOIN (SELECT m.manufacturer, sum(f.amount) AS sold, count(DISTINCT f.product_id) AS medicines
+             FROM analytics.fact_pharmacy_sale f JOIN analytics.dim_medicine m USING (product_id)
+            WHERE f.sale_date >= current_date - 365 GROUP BY 1) s ON s.manufacturer = b.manufacturer
+ORDER BY 3 DESC
+""", "table", 29, 12, 12, 9, money("Purchased", "Sold"),
+             "Purchased at the wholesaler's price, sold at the patient's price: the gap is not profit, as stock carries over."),
+        card("Bought in the last 6 months, not sold in the last 90 days", """
+SELECT m.medicine AS "Medicine", m.manufacturer AS "Manufacturer", max(p.invoice_date) AS "Last bought", sum(p.quantity) AS "Quantity bought",
+       round(sum(p.amount)) AS "Bought for", (SELECT max(s.sale_date) FROM analytics.fact_pharmacy_sale s WHERE s.product_id = p.product_id) AS "Last sold"
+FROM analytics.fact_pharmacy_purchase p JOIN analytics.dim_medicine m USING (product_id)
+WHERE p.invoice_date >= current_date - 182
+  AND NOT EXISTS (SELECT 1 FROM analytics.fact_pharmacy_sale s WHERE s.product_id = p.product_id AND s.sale_date >= current_date - 90)
+GROUP BY p.product_id, 1, 2 ORDER BY 5 DESC
+""", "table", 38, 0, 24, 8, money("Bought for"), "Slow-moving stock to check before reordering."),
+    ],
+}
+
+
+DASHBOARDS = [CLINIC_WEEK, RETINA, MONEY, FRONT_DESK, PHARMACY]

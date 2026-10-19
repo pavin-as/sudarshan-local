@@ -619,6 +619,14 @@ def analytics():
             except Exception:
                 pg.rollback()
                 log.exception("EMR completeness rebuild failed")
+            # pharmacy sales, manufacturers and wholesalers (D-032): its own step, like the one above
+            try:
+                n = pg.execute("SELECT analytics.refresh_pharmacy()").fetchone()[0]
+                pg.commit()
+                log.info("Pharmacy analytics rebuilt: %s", n)
+            except Exception:
+                pg.rollback()
+                log.exception("pharmacy analytics rebuild failed")
             return 0
         except Exception as e:
             pg.rollback()
