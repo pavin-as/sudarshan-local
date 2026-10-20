@@ -71,6 +71,7 @@ export async function userRoutes(app: FastifyInstance) {
   app.post("/api/users/:id/reset-password", async (req) => {
     need(req, "users.manage");
     const { id } = idParam.parse(req.params);
+    if (id === req.user!.id) throw badRequest("Use Change password for your own account");
     const cur = await one<any>("SELECT full_name FROM app.users WHERE id = $1", [id]);
     if (!cur) throw notFound("User");
     const temp = temporaryPassword();

@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, NavLink, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
@@ -7,7 +7,7 @@ import { stamp } from "./format";
 import "./styles.css";
 import { AuthProvider, useAuth } from "./auth";
 import { ToastProvider } from "./components/ui";
-import { LoginPage, ChangePasswordPage } from "./pages/Login";
+import { LoginPage, ChangePasswordPage, ChangePasswordDialog } from "./pages/Login";
 import { BoardPage } from "./pages/Board";
 import { PatientPage, PatientsPage } from "./pages/Patient";
 import { DoctorSummaryPage } from "./pages/DoctorSummary";
@@ -75,6 +75,7 @@ const ROLE_WORDS: Record<string, string> = { admin: "Admin", manager: "Manager",
 
 function Shell() {
   const { user, logout, can } = useAuth();
+  const [changingPw, setChangingPw] = useState(false);
   // confirmation calls still to make (same list as the Confirmation calls page)
   const conf = useConfirmationList();
   const due = { data: can("appointments.write") && conf.data ? new Set([...conf.data.oneDay, ...conf.data.fourDay].map((a) => a.id)).size : 0 };
@@ -105,7 +106,7 @@ function Shell() {
         <div className="nav-foot">
           <b>{user!.fullName}</b>{ROLE_WORDS[user!.role]}
           {can("settings.manage") && <BackupStatus />}
-          <div><button className="btn-quiet" onClick={() => void logout()}>Log out</button></div>
+          <div><button className="btn-quiet" onClick={() => setChangingPw(true)}>Change password</button> <button className="btn-quiet" onClick={() => void logout()}>Log out</button></div>
         </div>
       </nav>
       <main className="main">
@@ -134,6 +135,7 @@ function Shell() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+      {changingPw && <ChangePasswordDialog onClose={() => setChangingPw(false)} />}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { api } from "../api";
 import { useAuth } from "../auth";
-import { ErrorNotice } from "../components/ui";
+import { Dialog, ErrorNotice, useToast } from "../components/ui";
 
 function Brand() {
   return <div className="brand"><span className="brand-mark" aria-hidden="true" /><div><b>Sudarshan</b><span>Sampada VR appointments</span></div></div>;
@@ -59,5 +59,31 @@ export function ChangePasswordPage() {
         <button type="button" className="btn-quiet" onClick={() => void logout()}>Log out</button>
       </form>
     </div>
+  );
+}
+
+// Voluntary change from inside the app (nav footer, Users page): asks for the current password first.
+export function ChangePasswordDialog({ onClose }: { onClose: () => void }) {
+  const toast = useToast();
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [again, setAgain] = useState("");
+  const [error, setError] = useState<unknown>(null);
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    setError(null);
+    if (next !== again) { setError(new Error("The two new passwords are not the same")); return; }
+    setBusy(true);
+    try { await api("/auth/change-password", { body: { currentPassword: current, newPassword: next } }); toast("Password changed. Other computers were logged out."); onClose(); }
+    catch (err) { setError(err); } finally { setBusy(false); }
+  };
+  return (
+    <Dialog narrow title="Change password" onClose={onClose} foot={<button className="btn-primary" disabled={busy || !current || !next || !again} onClick={() => void save()}>Save password</button>}>
+      <label className="field"><span>Current password</span><input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" autoFocus /></label>
+      <label className="field"><span>New password</span><input type="password" value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" /></label>
+      <label className="field"><span>New password again</span><input type="password" value={again} onChange={(e) => setAgain(e.target.value)} autoComplete="new-password" /></label>
+      <p className="muted small">At least 8 characters, not containing your username.</p>
+      <ErrorNotice error={error} />
+    </Dialog>
   );
 }

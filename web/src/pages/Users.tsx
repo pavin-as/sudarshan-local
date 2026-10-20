@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api";
 import { useAuth } from "../auth";
 import { stamp } from "../format";
+import { ChangePasswordDialog } from "./Login";
 import { Dialog, ErrorNotice, Loading, useToast } from "../components/ui";
 
 const ROLES: [string, string, string][] = [
@@ -20,6 +21,7 @@ export function UsersPage() {
   const toast = useToast();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["users"], queryFn: () => api("/users").then((r) => r.users as any[]) });
+  const [changingOwn, setChangingOwn] = useState(false);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [shown, setShown] = useState<{ name: string; username: string; pw: string } | null>(null);
@@ -58,13 +60,16 @@ export function UsersPage() {
                 <td className="small">{!u.hasPassword ? <span className="overdue">no password yet</span> : u.mustChangePassword ? "temporary password" : "own password"}</td>
                 <td className="small">{u.lastLoginAt ? stamp(u.lastLoginAt) : "never"}</td>
                 <td className="right nowrap">
-                  <button className="btn-small" onClick={() => void reset(u)}>{u.hasPassword ? "Reset password" : "Give password"}</button>{" "}
+                  {u.id === me?.id
+                    ? <button className="btn-small" onClick={() => setChangingOwn(true)}>Change password</button>
+                    : <button className="btn-small" onClick={() => void reset(u)}>{u.hasPassword ? "Reset password" : "Give password"}</button>}{" "}
                   <button className="btn-small" onClick={() => { setError(null); setEditing({ ...u }); }}>Edit</button>
                 </td>
               </tr>))}</tbody>
           </table>)}
       </div>
 
+      {changingOwn && <ChangePasswordDialog onClose={() => setChangingOwn(false)} />}
       {shown && (
         <Dialog narrow title="Temporary password" onClose={() => setShown(null)} foot={<button className="btn-primary" onClick={() => setShown(null)}>Done</button>}>
           <p>Give this to <b>{shown.name}</b> (username <b>{shown.username}</b>). They will choose their own password when they log in. It will not be shown again.</p>

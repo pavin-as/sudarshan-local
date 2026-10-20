@@ -5,6 +5,10 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Change your own password.** "Change password" in the menu footer (asks for the current password, then the new one
+  twice); on the Users page your own row shows "Change password" instead of "Reset password", which logged you out.
+  Resetting your own account through the API is now refused. Other computers are logged out after a change.
+  Technical: `ChangePasswordDialog` in `web/src/pages/Login.tsx`; guard in `POST /api/users/:id/reset-password`.
 - **WhatsApp reminders and payment links, in test mode** (D-034). New **WhatsApp** page: pick a day, see every booked
   patient and whether they would get the reminder (and why not: no phone, landline, already sent, test mode), then
   "Send to 12 patients" and "Yes, send 12". The history shows what was sent and what did not arrive (call those
