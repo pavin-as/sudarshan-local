@@ -39,6 +39,19 @@ check("a new patient's booking matches by mobile and name; a linked one by Yarag
   assert.equal(m.get(3), undefined, "no booking = without a booking");
 });
 
+check("near spellings of one name match; different people on one phone do not", () => {
+  assert.ok(namesAgree("Saidali", "Saidalavi") && namesAgree("Zainaba", "Sainaba") && namesAgree("Mymoona CK", "Maimoona"));
+  assert.ok(namesAgree("Of Hannath", "B/O Hamnath") && namesAgree("Baby of Asna Sherin", "B/O Asna Sherin"));
+  assert.ok(!namesAgree("Liyana Mariyam", "Lamin Luwan") && !namesAgree("Ayisha", "Fathima"));
+});
+
+check("two bookings on one family phone go to the right two people", () => {
+  const fam = [{ patientId: 7, mrd: null, phone: "9000011111", name: "Lamin Luvvan" }, { patientId: 8, mrd: null, phone: "9000011111", name: "Liyana Mariyam" }];
+  const bk = [{ id: 21, patientId: null, mrd: "NDC_1", phone: "9000011111", name: "Liyana Mariyam" }, { id: 22, patientId: null, mrd: "NDC_2", phone: "9000011111", name: "Lamin Luwan" }];
+  const m = matchAll(fam, bk);
+  assert.equal(m.get(7)?.booking.id, 22); assert.equal(m.get(8)?.booking.id, 21);
+});
+
 check("same mobile but different name does not match (family phone); same MRD does", () => {
   assert.equal(matchBooking(came[0], { ...books[0], name: "Fathima" }), null);
   assert.equal(matchBooking(came[0], { ...books[0], mrd: "spd100", phone: null, name: "x" }), "mrd");

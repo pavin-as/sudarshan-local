@@ -5,6 +5,10 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Today: fewer wrong "without a booking" and no more "can't tell"** (D-036). Four patients who booked under a
+  slightly different spelling (Saidali / Saidalavi, Zainaba / Sainaba, Mymoona / Maimoona, B/O Hamnath) were counted as
+  walk-ins; near spellings now match when the mobile number is the same. A new patient's booking that nobody matches is
+  simply "not arrived yet". Technical: `nameScore` (edit distance, 0.7) in `services/arrivalMatch.ts`.
 - **Plan: Sudarshan replaces Yarago, with queue management** (D-037). Recorded in PLAN.md and DECISIONS.md; nothing
   changes for staff yet. The temporary NDC ID is only a booking-time label; the SPD number starts the patient's history.
 - **New patients get a temporary ID, and Today counts "without a booking" correctly** (D-036). A booking for a new

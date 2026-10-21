@@ -105,7 +105,7 @@ export async function todayRoutes(app: FastifyInstance) {
     }
     for (const b of booked) {
       b.cameId = cameByBooking.get(b.appointmentId) ?? null;
-      b.arrival = b.cameId != null ? "arrived" : b.patientId == null ? "unknown" : "not_arrived";
+      b.arrival = b.cameId != null ? "arrived" : "not_arrived";   // a new patient's booking is "not arrived" until someone matching comes
     }
 
     const inClinic = came.filter((v) => v.stage !== "done");

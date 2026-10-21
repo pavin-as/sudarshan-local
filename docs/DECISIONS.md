@@ -305,7 +305,9 @@ nothing can stop a payment after the 15 minutes, and they cannot tell which book
 **"Without a booking" means no appointment was made before the visit day; a missing MRD does not.** A new patient gets
 their MRD only when first registered in Yarago, so a booking made for them earlier has no Yarago patient. Today now
 matches each patient who came to a booking by Yarago patient, then MRD, then mobile number plus a shared name word
-(never writing the link; the list says "not linked yet"). **New-patient bookings get a temporary ID, never an SPD
+(never writing the link; the list says "not linked yet"). Names count as the same when they are near spellings
+(SAIDALI / SAIDALAVI, B/O and BABY OF ignored); a booking of a new patient who has not come is "not arrived", never
+"can't tell". Only a patient with no matching booking is a walk-in. **New-patient bookings get a temporary ID, never an SPD
 number** (a no-show must not use up a real MRD): `NDC_YYYYMMDD_HHMMSS_<booking id>` in IST, the time the booking was
 first made, the same shape the Google app uses. It stays in `app.appointments.mrd` until the booking is linked to the
 Yarago record, which replaces it with the real MRD (the temporary ID stays in the booking's history). Search finds
