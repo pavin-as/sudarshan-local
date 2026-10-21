@@ -284,13 +284,22 @@ chooses "Send again". **Templates** are AiSensy campaigns (Meta-approved), fille
 the Google app's campaign `sudarsdhan_appointment` and wording (name, "17-June-2026", "4:10 PM"); the payment-link
 template needs a new approved template with the link, so until then a link is sent from WhatsApp on the PC (wa.me, the
 Google app's own phase 1) or copied. **Payment links**: made by front desk and counsellors with a checked phone number,
-amount within settings (default Rs 500, Rs 100-5000), valid 24 hours; Razorpay gets the patient's name, phone and
+amount within settings (default Rs 500, Rs 100-5000), valid 24 hours (15 minutes since D-035); Razorpay gets the patient's name, phone and
 "<clinic> appointment <date>" only, never the plan or a note; our reference `SUD-<id>` stops a second link for one
 request. Status by asking Razorpay every minute for open links and pending refunds (D-017); "Check payment now" asks at
 once. An amount paid that differs from the link is flagged "to check". **Refunds by admins only** (the Google app's
 decision), never more than paid, with an idempotency key. **A paid link does not change the appointment** (no slot hold
 and release as the Google app's plan designed): see P-5. Who: messages to one patient = front desk, counsellor, manager,
 admin; the day's broadcast = manager, admin (Google app levels 1 and 3); doctors and optometrists see what was sent.
+
+### D-035 · 2026-10-21 · Accepted · Pavin asked ("Link expiry set to 15 minutes")
+**Payment links stay open 15 minutes, not 24 hours.** Setting `payments.link_minutes` (default 15, 15 to 10080; replaces
+`payments.link_hours`). Razorpay will not take payment on a link after its `expire_by`, so a patient cannot pay late on
+an old link; 15 minutes is the shortest Razorpay accepts, and 30 seconds are added for the trip to Razorpay. This is the
+first step of the prepaid-slot plan Pavin described (at most 4 prepaid slots a day for bookings today to 3 days ahead,
+one open link at a time, slot booked when paid); the slot quota and hold are not built yet (P-5). Chosen over a
+self-hosted UPI gateway (YouPI-PG) or a plain UPI QR to the clinic's account: those pay straight into the account, so
+nothing can stop a payment after the 15 minutes, and they cannot tell which booking a payment belongs to.
 
 ## Proposed (not yet decided)
 
@@ -301,5 +310,7 @@ admin; the day's broadcast = manager, admin (Google app levels 1 and 3); doctors
 - **P-5** Payments and the booking: should a paid link confirm the appointment, and should urgent same-day bookings be held
   only until paid (the Google app's plan: 15-minute hold, slot released if unpaid, late payments to a person)? For now a
   payment is recorded beside the booking and changes nothing (D-034). Also: which visits need an advance at all. Owner: Pavin.
+  21 Oct, Pavin's direction: at most 4 prepaid slots a day (today to 3 days ahead), one 15-minute link at a time (D-035),
+  slot booked when paid; a missed payment is collected at the visit. Still to settle: amount, late payment = rebook or refund.
 - **P-6** Patient privacy notice for appointment messages (WhatsApp) and payment links, naming AiSensy and Razorpay as
   processors; needed before WhatsApp or payments go live (COMPLIANCE). Owner: Pavin.

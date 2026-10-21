@@ -79,7 +79,7 @@ export interface Payment {
   createdAt: string; createdBy: string | null; patientName: string | null; mrd: string | null; date: string | null; slotTime: string | null;
   refunds: Refund[];
 }
-export interface PaymentStatusInfo { mode: OutreachMode; modeWords: string; defaultAmount: number; minAmount: number; maxAmount: number; linkHours: number;
+export interface PaymentStatusInfo { mode: OutreachMode; modeWords: string; defaultAmount: number; minAmount: number; maxAmount: number; linkMinutes: number;
   keyMode: "test" | "live" | "unknown" | null; problem: string | null; lastCheck: { at: string; checked: number; changed: number; error: string | null } | null }
 export interface WhatsAppStatus { mode: OutreachMode; modeWords: string; keySet: boolean; testNumbers: number; queued: number;
   templates: { key: string; label: string; kind: "appointment" | "payment"; ready: boolean }[] }

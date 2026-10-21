@@ -144,7 +144,7 @@ function NewPaymentForm({ a, onDone }: { a: Appointment; onDone: () => Promise<v
         <label className="check wide"><input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} />I read this number back to the patient and it is right</label>
       </div>
       <ErrorNotice error={error} />
-      <div className="row"><span className="small muted">The link is valid for {s.linkHours} hours. Razorpay gets the name, this number and the appointment date, nothing else.</span>
+      <div className="row"><span className="small muted">The link is open for {s.linkMinutes} minutes; after that the patient cannot pay on it. Razorpay gets the name, this number and the appointment date, nothing else.</span>
         <span className="grow" /><button className="btn-primary" disabled={busy || !checked || !phone.trim() || !amt} onClick={() => void make()}>Make payment link {rupees(Number(amt) || 0)}</button></div>
     </div>
   );

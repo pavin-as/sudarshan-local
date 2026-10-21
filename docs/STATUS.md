@@ -129,6 +129,9 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
 - [ ] Pavin: new AiSensy key (rotate the old one first) and Razorpay **test** keys into `.env`; add your mobile as a test
       number; try RUNBOOK 11 with a TEST booking. Tell me the AiSensy campaign names if not `sudarsdhan_appointment`.
 - [ ] Pavin: ask AiSensy / Meta for a payment-link template (name, amount, link); until then links go by WhatsApp on the PC.
+- [x] Payment links open 15 minutes (21 Oct, D-035), migration 0016.
+- [ ] Prepaid slots (P-5 direction, 21 Oct): at most 4 a day, today to 3 days ahead, one open link at a time, hold while
+      the link is open, booked when paid. Waiting on Pavin: amount, and late payment = rebook or refund.
 - [ ] Pavin: P-5 (should a paid link confirm the booking / hold urgent slots?) and P-6 (privacy notice naming AiSensy and Razorpay).
 - [ ] Before go-live of Phase 4: Razorpay KYC and live keys; cut-over done; Google app Broadcast page no longer used.
 

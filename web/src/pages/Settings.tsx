@@ -266,7 +266,7 @@ function EarlySection({ data }: { data: { thresholds: { days: number; percentage
 // Live only by an admin and only after cut-over (the server refuses it while the Google app is the master).
 interface WaTemplate { key: string; label: string; campaign: string; params: string[]; kind: "appointment" | "payment" }
 interface WaSettings { mode: string; modes: { key: string; label: string }[]; keySet: boolean; testNumbers: string[]; templates: WaTemplate[]; params: { key: string; label: string }[] }
-interface PaySettings { mode: string; modes: { key: string; label: string }[]; defaultAmount: number; minAmount: number; maxAmount: number; linkHours: number;
+interface PaySettings { mode: string; modes: { key: string; label: string }[]; defaultAmount: number; minAmount: number; maxAmount: number; linkMinutes: number;
                         keyMode: string | null; problem: string | null }
 
 function ModeSwitch({ value, modes, onChange, admin }: { value: string; modes: { key: string; label: string }[]; onChange: (m: string) => void; admin: boolean }) {
@@ -339,7 +339,7 @@ function PaymentsSection() {
   const [error, setError] = useState<unknown>(null);
   if (!q.data) return null;
   const d = q.data;
-  const vals = f ?? { defaultAmount: String(d.defaultAmount), minAmount: String(d.minAmount), maxAmount: String(d.maxAmount), linkHours: String(d.linkHours) };
+  const vals = f ?? { defaultAmount: String(d.defaultAmount), minAmount: String(d.minAmount), maxAmount: String(d.maxAmount), linkMinutes: String(d.linkMinutes) };
   const save = async (body: unknown, done: string) => {
     setError(null);
     try { await api("/settings/payments", { method: "PUT", body }); toast(done); setF(null); await qc.invalidateQueries(); }
@@ -356,7 +356,7 @@ function PaymentsSection() {
         <div className="row"><b>Mode</b><ModeSwitch value={d.mode} modes={d.modes} admin={user?.role === "admin"} onChange={(m) => void save({ mode: m }, `Payments: ${m}`)} />
           <span className="small muted">Test: Razorpay test keys, only bookings named TEST. Live: live keys, after cut-over.</span></div>
         {d.problem && d.mode !== "off" && <div className="notice small">{d.problem}</div>}
-        <div className="row">{field("defaultAmount", "Usual amount (₹)")}{field("minAmount", "Smallest (₹)")}{field("maxAmount", "Largest (₹)")}{field("linkHours", "Link valid for (hours)")}</div>
+        <div className="row">{field("defaultAmount", "Usual amount (₹)")}{field("minAmount", "Smallest (₹)")}{field("maxAmount", "Largest (₹)")}{field("linkMinutes", "Link open for (minutes, 15 or more)")}</div>
         <div className="row"><ErrorNotice error={error} /><span className="grow" />
           {f && <button onClick={() => setF(null)}>Undo</button>}
           <button className="btn-primary" disabled={!f} onClick={() => void save(Object.fromEntries(Object.entries(vals).map(([k, v]) => [k, Number(v)])), "Payment settings saved")}>Save amounts</button></div>

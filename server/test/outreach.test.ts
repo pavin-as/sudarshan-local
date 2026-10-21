@@ -63,7 +63,7 @@ const pay = (linkId: string, rupees: number) => {
 // ---------- fixtures ----------
 const D = addDays(todayIST(), 3);
 const KEYS = ["messaging.mode", "messaging.test_numbers", "messaging.templates", "payments.mode", "payments.default_amount",
-              "payments.min_amount", "payments.max_amount", "payments.link_hours", "trial.google_master"];
+              "payments.min_amount", "payments.max_amount", "payments.link_minutes", "trial.google_master"];
 const saved = (await pool.query(`SELECT key, value FROM app.settings WHERE key = ANY($1)`, [KEYS])).rows;
 const app = await buildApp({ logger: !!process.env.TEST_LOG });
 
@@ -103,7 +103,7 @@ await setting("messaging.mode", "test");
 await setting("messaging.test_numbers", ["919800000001"]);
 await pool.query(`DELETE FROM app.settings WHERE key = 'messaging.templates'`);     // the built-in templates
 await setting("payments.mode", "test");
-for (const [k, v] of [["payments.default_amount", 500], ["payments.min_amount", 100], ["payments.max_amount", 5000], ["payments.link_hours", 24]] as const) await setting(k, v);
+for (const [k, v] of [["payments.default_amount", 500], ["payments.min_amount", 100], ["payments.max_amount", 5000], ["payments.link_minutes", 15]] as const) await setting(k, v);
 await pool.query(`INSERT INTO app.day_capacity (on_date, max_slots, notes) VALUES ($1, 40, 'zz_test_out') ON CONFLICT (on_date) DO NOTHING`, [D]);
 
 let passed = 0;
@@ -257,6 +257,8 @@ try {
     assert.equal(p1.status, "created"); assert.equal(p1.amount, 500); assert.equal(p1.mode, "test");
     assert.equal(p1.reference, `SUD-${p1.id}`); assert.match(p1.linkUrl, /^https:\/\/rzp\.io\/i\/plink_/); assert.ok(p1.expiresAt);
     const body = rzpCalls.find((c) => c.path === "/payment_links")!.body;
+    const ahead = body.expire_by - Date.now() / 1000;
+    assert.ok(ahead > 15 * 60 && ahead < 16 * 60, `link open about 15 minutes (${Math.round(ahead)} s)`);
     assert.equal(body.amount, 50000); assert.equal(body.reference_id, p1.reference); assert.equal(body.customer.contact, "+919800000001");
     assert.deepEqual(body.notify, { sms: false, email: false });
     assert.ok(!JSON.stringify(body).includes("INJ") && !JSON.stringify(body).includes("injection"), "no plan or purpose sent to Razorpay");
@@ -341,11 +343,12 @@ try {
     const blob = JSON.stringify(rows);
     for (const secret of ["fake-aisensy-key-for-tests", "fake-razorpay-secret"]) assert.ok(!blob.includes(secret), "no key in the log");
   });
-  await step("payment settings: the usual amount must lie between the smallest and largest", async () => {
+  await step("payment settings: the usual amount must lie between the smallest and largest; a link is open 15 minutes or more", async () => {
     assert.equal((await call("PUT", "/api/settings/payments", mgr, { minAmount: 600 })).status, 400);
-    assert.equal((await call("PUT", "/api/settings/payments", mgr, { defaultAmount: 750, linkHours: 12 })).status, 200);
+    assert.equal((await call("PUT", "/api/settings/payments", mgr, { linkMinutes: 10 })).status, 400);
+    assert.equal((await call("PUT", "/api/settings/payments", mgr, { defaultAmount: 750, linkMinutes: 30 })).status, 200);
     const s = (await call("GET", "/api/payments/status", staff)).body;
-    assert.equal(s.defaultAmount, 750); assert.equal(s.linkHours, 12); assert.equal(s.keyMode, "test"); assert.equal(s.problem, null);
+    assert.equal(s.defaultAmount, 750); assert.equal(s.linkMinutes, 30); assert.equal(s.keyMode, "test"); assert.equal(s.problem, null);
   });
   console.log(`\nall ${passed} WhatsApp and payment checks passed`);
 } finally {

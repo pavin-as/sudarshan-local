@@ -100,7 +100,7 @@ export async function paymentRoutes(app: FastifyInstance) {
     const me = need(req, "settings.manage");
     const whole = z.number().int().positive().max(100000);
     const b = z.object({ mode: z.enum(MODES as [Mode, ...Mode[]]).optional(), defaultAmount: whole.optional(), minAmount: whole.optional(),
-                         maxAmount: whole.optional(), linkHours: z.number().int().min(1).max(168).optional() }).parse(req.body);
+                         maxAmount: whole.optional(), linkMinutes: z.number().int().min(15).max(10080).optional() }).parse(req.body);
     const cur = await loadPayments();
     const next = { ...cur, ...Object.fromEntries(Object.entries(b).filter(([, v]) => v !== undefined)) } as typeof cur;
     if (next.minAmount > next.maxAmount) throw badRequest("The smallest amount must not be above the largest");
@@ -111,7 +111,7 @@ export async function paymentRoutes(app: FastifyInstance) {
       if (keyMode() !== "live") throw badRequest("Put the Razorpay live keys (rzp_live_...) in .env before going live");
     }
     const keys: [keyof typeof b, string, string][] = [["mode", "payments.mode", "mode"], ["defaultAmount", "payments.default_amount", "usual amount ₹"],
-      ["minAmount", "payments.min_amount", "smallest ₹"], ["maxAmount", "payments.max_amount", "largest ₹"], ["linkHours", "payments.link_hours", "link hours "]];
+      ["minAmount", "payments.min_amount", "smallest ₹"], ["maxAmount", "payments.max_amount", "largest ₹"], ["linkMinutes", "payments.link_minutes", "link minutes "]];
     const set = keys.filter(([k]) => b[k] !== undefined);
     if (!set.length) throw badRequest("Nothing to change");
     await withTx(auditCtx(req, `Payment settings: ${set.map(([k, , w]) => `${w}${k === "mode" ? ` ${MODE_WORDS[b.mode!].toLowerCase()}` : b[k]}`).join(", ")}`), async (c) => {

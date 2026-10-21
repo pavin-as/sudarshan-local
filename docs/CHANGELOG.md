@@ -5,6 +5,10 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Payment links are open 15 minutes** (D-035), not 24 hours; after that Razorpay will not take payment on the link.
+  Settings shows "Link open for (minutes, 15 or more)". Technical: migration 0016 (setting `payments.link_minutes`
+  replaces `payments.link_hours`); `expire_by` is now + minutes + 30 s; the outreach test checks the expiry and the
+  15-minute floor.
 - **Change your own password.** "Change password" in the menu footer (asks for the current password, then the new one
   twice); on the Users page your own row shows "Change password" instead of "Reset password", which logged you out.
   Resetting your own account through the API is now refused. Other computers are logged out after a change.

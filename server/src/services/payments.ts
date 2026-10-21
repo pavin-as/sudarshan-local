@@ -14,11 +14,11 @@ import { cleanPhone, isPracticeBooking, modeOf, scrubNumbers, setting, type Mode
 import * as rzp from "./razorpay.js";
 import { deliverQueued, queuePaymentMessage } from "./whatsapp.js";
 
-export interface PaymentSettings { mode: Mode; defaultAmount: number; minAmount: number; maxAmount: number; linkHours: number }
+export interface PaymentSettings { mode: Mode; defaultAmount: number; minAmount: number; maxAmount: number; linkMinutes: number }
 export async function loadPayments(db?: Db): Promise<PaymentSettings> {
   const n = async (k: string, d: number) => { const v = Number(await setting(k, d, db)); return Number.isFinite(v) ? v : d; };
   return { mode: await modeOf("payments.mode", db), defaultAmount: await n("payments.default_amount", 500),
-           minAmount: await n("payments.min_amount", 100), maxAmount: await n("payments.max_amount", 5000), linkHours: await n("payments.link_hours", 24) };
+           minAmount: await n("payments.min_amount", 100), maxAmount: await n("payments.max_amount", 5000), linkMinutes: await n("payments.link_minutes", 15) };
 }
 
 /** Why Razorpay cannot be used in this mode with these keys, or null. */
@@ -90,7 +90,8 @@ export async function createPayment(ctx: AuditContext, userId: number, appointme
   });
 
   // 2. Razorpay, outside the transaction (no lock held while waiting on the internet)
-  const expiresAt = new Date(Date.now() + Math.max(1, s.linkHours) * 3_600_000);
+  // Razorpay refuses an expiry under 15 minutes ahead; the 30 s covers the trip there
+  const expiresAt = new Date(Date.now() + Math.max(15, s.linkMinutes) * 60_000 + 30_000);
   try {
     const l = await rzp.createLink({ amount, reference: p.reference, description: `${clinic} appointment ${niceDate(p.a.date)}`,
                                      name: p.a.patient_name, phone, expiresAt, notes: { sudarshan_payment: String(p.id), appointment: String(p.a.id) } });
