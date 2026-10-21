@@ -5,6 +5,8 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **The day board opens in List view.** "Time slots" (the time rail with every slot) shows when you click it; the
+  buttons now read List, Time slots. Technical: default `view` in `web/src/pages/Board.tsx`.
 - **Payment links are open 15 minutes** (D-035), not 24 hours; after that Razorpay will not take payment on the link.
   Settings shows "Link open for (minutes, 15 or more)". Technical: migration 0016 (setting `payments.link_minutes`
   replaces `payments.link_hours`); `expire_by` is now + minutes + 30 s; the outreach test checks the expiry and the

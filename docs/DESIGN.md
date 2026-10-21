@@ -112,7 +112,7 @@ at a glance and hard to misuse.
 1. **Legibility first.** Font: **Atkinson Hyperlegible** (designed for low-vision readers by the Braille Institute;
    fitting for an eye clinic), bundled locally. Body 16 px, never below 13 px for secondary text. Tabular figures for
    times and MRDs.
-2. **The day is the unit.** The day board (time rail with every slot) is the home screen; everything else opens over it
+2. **The day is the unit.** The day board (List by default; Time slots shows the time rail with every slot) is the home screen; everything else opens over it
    (appointment panel from the right, booking dialog in the middle) so staff never lose their place.
 3. **One bold element per screen.** On the board it is the time rail and each patient's live stage; everything else is
    quiet.

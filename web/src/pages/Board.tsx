@@ -40,7 +40,7 @@ export function BoardPage() {
   const [params, setParams] = useSearchParams();
   const date = params.get("date") ?? todayIST();
   const setDate = (d: string) => setParams(d === todayIST() ? {} : { date: d });
-  const [view, setView] = useState<"slots" | "list">("slots");
+  const [view, setView] = useState<"slots" | "list">("list");
   const [showFree, setShowFree] = useState(true);
   const [showCancelled, setShowCancelled] = useState(false);
   const [booking, setBooking] = useState<BookPreset | null>(null);
@@ -108,8 +108,8 @@ export function BoardPage() {
         </div>
         <span className="grow" />
         <div className="seg" role="group" aria-label="View">
-          <button aria-pressed={view === "slots"} onClick={() => setView("slots")}>Time slots</button>
           <button aria-pressed={view === "list"} onClick={() => setView("list")}>List</button>
+          <button aria-pressed={view === "slots"} onClick={() => setView("slots")}>Time slots</button>
         </div>
         <input type="date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} aria-label="Go to date" />
         <button onClick={() => setPrinting(true)}>Print</button>
