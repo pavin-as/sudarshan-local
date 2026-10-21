@@ -5,6 +5,8 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Plan: Sudarshan replaces Yarago, with queue management** (D-037). Recorded in PLAN.md and DECISIONS.md; nothing
+  changes for staff yet. The temporary NDC ID is only a booking-time label; the SPD number starts the patient's history.
 - **New patients get a temporary ID, and Today counts "without a booking" correctly** (D-036). A booking for a new
   patient is now saved as `NDC_20261012_135440_117` (booking date and time in IST, then the booking number) instead of
   waiting for an SPD number, so no-shows never use up a real MRD. On Today, a patient who booked earlier but has no MRD

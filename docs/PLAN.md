@@ -17,6 +17,9 @@ Sudarshan stays clinic-only, for 6 staff today and up to 10, plus doctors readin
 - **Replaced by the Yarago mirror:** patientMaster, yaragoPatientMaster, followup, followupMaster, followupMaster2, emrBilling, optPharBillingMaster, and the nightly 23:00 sync script.
 - **Dropped:** Sheet42, old_AuditLlog, empty Settings, tempPatientMaster, _ChartData tabs, optimizer scratch tabs.
 - **New:** doctor summaries, follow-up leakage board, automatic attended/no-show, patient-flow timings, injection tracking, daily huddle brief, ask-the-data for Pavin.
+- **Direction (D-037), not yet scheduled:** Sudarshan eventually replaces Yarago (registration, MRD issue, EMR, billing)
+  and takes over **queue management** (check-in, stations, token and waiting display, which today run on Yarago's station
+  timer). See "Later: replace Yarago and queue management" below.
 - **Out of scope for now:** OCT and fundus images, the diabetic retinopathy model, patient-facing booking.
 
 Shichika has the capacity: 32 GB RAM (about 16 GB free today) and an RTX 4070 with 12 GB.
@@ -256,6 +259,27 @@ Each phase ends at a gate that must pass before the next starts. Phases A and B 
 | GPU shared with experiments | Summaries late | Summaries run 07:00-08:00; experiments outside clinic hours |
 | Old pages and new app diverge during the build | Rework | Note every change made to the Google app from now on |
 | Shichika is the whole clinic's server: Yarago (MySQL56, Tomcat7), its backup (Tomcat9_AutoDB), BarTender labels, Mantra attendance, and soon Sudarshan | One failure stops EMR, labels, attendance and booking together; new load could slow the EMR | PostgreSQL capped at about 4 GB; AI summaries before clinic hours, experiments after hours; nightly backup of all four databases to QNAP; updates and restarts only at night; one-page recovery runbook; consider a standby machine later |
+
+## Later: replace Yarago and queue management (D-037)
+
+Pavin's direction (21 Oct): Sudarshan becomes the whole system; Yarago is retired. Nothing here is built; it fixes the
+order of work so today's choices do not block it.
+
+- **Patient identity.** Today the MRD (SPD number) comes from Yarago when the patient is first registered; a booking for
+  a new patient carries a temporary `NDC_` ID until then (D-036). Once Sudarshan owns registration it issues the SPD
+  number itself, **only when the new patient has actually arrived and is registered**, never at booking. A patient's
+  history starts from that SPD number; the temporary ID is dropped when the real MRD is set (the audit log keeps the
+  old value, as it does for every change).
+- **Queue management in Sudarshan:** check-in at the desk, a live queue per station (registration, optometry,
+  dilatation, doctor, billing), token or name board for the waiting area, time-in-stage alerts, doctor's next-patient
+  view, and check-out. It reuses the station stages already shown on Today (`StageTrack`) but writes them itself instead
+  of reading Yarago's `tbltimerpatientwaiting`. AI may suggest ordering; a person decides.
+- **Replacing Yarago (EMR) later, in slices:** registration and MRD issue first, then the queue, then visit records
+  (vision, pressure, diagnosis, plan), prescriptions, billing and pharmacy. Each slice runs beside Yarago until its
+  figures match, then Yarago's slice is switched off. Needs its own plan, clinical-safety review (COMPLIANCE) and
+  data migration of the Yarago history (the `yarago` / `clinical` mirror is the starting point).
+- **Why the queue first:** it needs only check-in and stage times, is the part staff touch all day, and removes the
+  dependency on Yarago's timers for Today, waits and the board.
 
 ## Open questions
 

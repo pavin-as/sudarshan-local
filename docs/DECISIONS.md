@@ -311,6 +311,15 @@ first made, the same shape the Google app uses. It stays in `app.appointments.mr
 Yarago record, which replaces it with the real MRD (the temporary ID stays in the booking's history). Search finds
 it by any part. Not automatic: linking is still a person's action (`/api/appointments/:id/link`); P-2 covers the old backlog.
 
+### D-037 · 2026-10-21 · Accepted (direction) · Pavin
+**Sudarshan will replace Yarago, and queue management becomes part of Sudarshan.** Not built yet and not scheduled; PLAN.md
+has the section "Later: replace Yarago and queue management". Consequences now: (1) the SPD number is the start of a
+patient's history, issued only when a new patient has arrived and registered (today by Yarago, later by Sudarshan);
+(2) the `NDC_` temporary ID is a booking-time label only: it is replaced by the SPD number when the booking is linked and
+is not carried into the patient's record (the audit log still keeps the old value, as for every change); (3) Sudarshan
+should keep writing nothing to Yarago and keep reading its stations through `clinical` views, so the queue can later move
+to Sudarshan's own tables behind the same views.
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

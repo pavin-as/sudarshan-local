@@ -137,6 +137,8 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
 - [ ] Pavin: P-5 (should a paid link confirm the booking / hold urgent slots?) and P-6 (privacy notice naming AiSensy and Razorpay).
 - [ ] Before go-live of Phase 4: Razorpay KYC and live keys; cut-over done; Google app Broadcast page no longer used.
 
+- [x] Direction recorded (21 Oct, D-037): Sudarshan replaces Yarago, queue management included (PLAN.md "Later"). Not scheduled.
+
 ## Next step
 Trial running on live Google data (D-025). Remaining, in order:
 1. **Shadow run** (Phase C gate): staff keep booking in the Google app; daily comparison of the day board, cancel list,
