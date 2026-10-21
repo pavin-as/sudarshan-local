@@ -18,7 +18,8 @@ After a change: add a `docs/CHANGELOG.md` entry, tick `docs/STATUS.md`, and upda
 - Patient-identifiable data never goes to a cloud model. Local model (Ollama) only; cloud models get de-identified or aggregate data.
 - AI never writes clinical records or sends messages by itself: it drafts, a person acts.
 - Every write to `app.*` is audited (who, when, old, new). Every AI summary shown is logged.
-- Secrets come from `.env`; never print, log or commit them. Do not push the repo to any remote (old keys in history, see COMPLIANCE.md).
+- Secrets come from `.env`; never print, log or commit them. Pushing is allowed only to the private GitHub repo
+  `pavin-as/sudarshan-local` (`origin`); history was cleaned of old keys first (COMPLIANCE.md). No other remote.
 - Every app write goes through `withTx()` (server/src/db.ts) and every route starts with `need(req, "<permission>")`.
 - Tests that write use a TEST database only (`SUDARSHAN_ENV`); on shichika only read-only checks run.
 - shichika also runs Yarago (Tomcat7), its backup (Tomcat9_AutoDB) and other services: keep resource use modest (PostgreSQL ~4 GB, GPU work outside clinic hours).
