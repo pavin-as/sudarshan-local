@@ -17,12 +17,14 @@ interface Came {
   patientId: number; patientName: string | null; mrd: string | null; ageYears: number | null; phone: string | null; doctor: string | null;
   checkIn: string | null; checkOut: string | null; stage: LiveStage; minutesIn: number; minutesAtStage: number;
   totalMin: number | null; appointmentId: number | null; slotTime: string | null; planOfAction: string | null; hasBooking: boolean;
+  /** false = matched by MRD or mobile + name, the booking is not linked to this Yarago patient yet */
+  bookingLinked: boolean | null;
 }
 /** One Sudarshan booking for today with a time. */
 interface Booked {
   appointmentId: number; slotTime: string; patientId: number | null; patientName: string; mrd: string | null; ageYears: number | null;
   phone: string | null; planOfAction: string | null; doctor: string | null; status: string; confirmed: boolean;
-  arrival: "arrived" | "not_arrived" | "unknown";
+  arrival: "arrived" | "not_arrived" | "unknown"; cameId: number | null;
 }
 interface TodayData {
   date: string; nextWorkDay: string; came: Came[]; booked: Booked[]; inClinic: Came[];
@@ -33,7 +35,7 @@ type ListKey = "booked" | "booked_arrived" | "booked_not" | "booked_unknown" | "
 const LIST_TITLES: Record<ListKey, string> = {
   booked: "Booked for today", booked_arrived: "Booked and arrived", booked_not: "Booked, not arrived yet",
   booked_unknown: "Booked, arrival can't be seen (not linked to a Yarago patient)",
-  came: "Came to the clinic today", came_booked: "Came with a booking", came_walkin: "Came without a booking (walk-in or booked in Yarago)",
+  came: "Came to the clinic today", came_booked: "Came with a booking", came_walkin: "Came without a booking (no appointment made before today)",
   came_done: "Seen and gone", came_in: "Still in the clinic",
 };
 
@@ -60,7 +62,7 @@ function TodayList({ data, which, onClose, onOpenAppt }: { data: TodayData; whic
       {n === 0 ? <div className="empty">Nobody.</div> : isBooking ? (
         <table className="list">
           <thead><tr><th>Slot</th><th>Patient</th><th>Age</th><th>Phone</th><th>Plan</th><th>Doctor</th><th>Arrival</th></tr></thead>
-          <tbody>{rowsB.map((x) => { const v = x.patientId ? came.get(x.patientId) : undefined; return (
+          <tbody>{rowsB.map((x) => { const v = x.cameId != null ? came.get(x.cameId) : undefined; return (
             <tr key={x.appointmentId} className="clickable" onClick={(e) => { if (!(e.target as HTMLElement).closest("a")) onOpenAppt(x.appointmentId); }}>
               <td className="nowrap">{x.slotTime}</td><td>{who(x.patientId, x.patientName, x.mrd)}</td><td>{x.ageYears ?? "-"}</td>
               <td className="nowrap">{x.phone ? <a href={`tel:${x.phone}`}>{x.phone}</a> : "-"}</td>
@@ -76,7 +78,7 @@ function TodayList({ data, which, onClose, onOpenAppt }: { data: TodayData; whic
           <tbody>{rowsC.map((v) => (
             <tr key={v.patientId} className="clickable" onClick={(e) => { if ((e.target as HTMLElement).closest("a")) return; v.appointmentId ? onOpenAppt(v.appointmentId) : undefined; }}>
               <td>{who(v.patientId, v.patientName, v.mrd)}</td><td>{v.ageYears ?? "-"}</td>
-              <td className="nowrap small">{v.hasBooking ? v.slotTime : <span className="muted">no booking</span>}</td>
+              <td className="nowrap small">{v.hasBooking ? <>{v.slotTime ?? "waitlist"}{v.bookingLinked === false && <div className="muted" title="Booked earlier as a new patient; not linked to this Yarago record yet">not linked yet</div>}</> : <span className="muted">no booking</span>}</td>
               <td className="nowrap">{v.checkIn ?? "-"}</td>
               <td>{v.stage === "done" ? <span className="nowrap">{v.checkOut ?? "completed"}</span> : <StageTrack stage={v.stage} />}</td>
               <td className={`nowrap ${v.stage !== "done" && v.minutesIn >= 180 ? "overdue" : ""}`}>{mins(v.stage === "done" ? v.totalMin : v.minutesIn)}</td>
@@ -139,7 +141,7 @@ export function TodayPage() {
           <h2>Came to the clinic today</h2>
           <div className="tsum"><Num n={cnt?.came} label="came" onOpen={() => setListing("came")} /><span className="op">=</span>
             <Num n={cnt?.cBooked} label="with a booking" onOpen={() => setListing("came_booked")} /><span className="op">+</span>
-            <span title="Walk-ins, or patients booked straight in Yarago"><Num n={cnt?.cWalkin} label="without a booking ⓘ" onOpen={() => setListing("came_walkin")} /></span>
+            <span title="Patients with no appointment made before today. A new patient who booked earlier counts as booked."><Num n={cnt?.cWalkin} label="without a booking ⓘ" onOpen={() => setListing("came_walkin")} /></span>
           </div>
           <div className="tsum"><span className="tnum ghost" aria-hidden="true"><b>{cnt?.came ?? "-"}</b><span>came</span></span><span className="op">=</span>
             <Num n={cnt?.cDone} label="seen and gone" onOpen={() => setListing("came_done")} /><span className="op">+</span>

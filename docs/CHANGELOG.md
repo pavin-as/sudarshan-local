@@ -5,6 +5,13 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **New patients get a temporary ID, and Today counts "without a booking" correctly** (D-036). A booking for a new
+  patient is now saved as `NDC_20261012_135440_117` (booking date and time in IST, then the booking number) instead of
+  waiting for an SPD number, so no-shows never use up a real MRD. On Today, a patient who booked earlier but has no MRD
+  yet is matched by MRD, or by mobile number and name, and counts as booked ("not linked yet" is shown beside the time);
+  only a patient with no appointment made before today is "without a booking". The booking search finds a temporary ID
+  by any part of it. Technical: `services/tempMrd.ts`, `services/arrivalMatch.ts`, `routes/today.ts`,
+  `POST /api/appointments`; new `test/arrival.unit.test.ts` (in `test:rules`). The API test (writes) was not run on shichika.
 - **The day board opens in List view.** "Time slots" (the time rail with every slot) shows when you click it; the
   buttons now read List, Time slots. Technical: default `view` in `web/src/pages/Board.tsx`.
 - **Payment links are open 15 minutes** (D-035), not 24 hours; after that Razorpay will not take payment on the link.

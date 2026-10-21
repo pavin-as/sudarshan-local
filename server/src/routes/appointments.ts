@@ -4,6 +4,7 @@ import { z } from "zod";
 import { auditCtx, need } from "../auth.js";
 import { one, q, withTx } from "../db.js";
 import { badRequest, conflict, notFound } from "../lib/errors.js";
+import { tempMrd } from "../services/tempMrd.js";
 import { can } from "../lib/permissions.js";
 import { dateStr, niceDate, timeStr } from "../lib/time.js";
 import { doctorsOnDate } from "../services/calendar.js";
@@ -170,7 +171,7 @@ export async function appointmentRoutes(app: FastifyInstance) {
     if (f.status) add("a.status = ANY(?)", f.status.split(","));
     if (f.doctorId) add("a.doctor_id = ?", f.doctorId);
     if (f.patientId) add("a.patient_id = ?", f.patientId);
-    if (f.q) { p.push(f.q); const n = `$${p.length}`; where.push(`(a.patient_name ILIKE '%' || ${n} || '%' OR a.mrd ILIKE ${n} || '%' OR a.phone LIKE '%' || ${n})`); }
+    if (f.q) { p.push(f.q); const n = `$${p.length}`; where.push(`(a.patient_name ILIKE '%' || ${n} || '%' OR a.mrd ILIKE ${n} || '%' OR (upper(left(a.mrd, 4)) = 'NDC_' AND a.mrd ILIKE '%' || ${n} || '%') OR a.phone LIKE '%' || ${n})`); }
     if (!where.length) throw badRequest("Give a date, a date range, a patient or a search");
     p.push(f.limit);
     const order = f.date ? "a.slot_time NULLS LAST, a.id" : "a.appointment_date DESC, a.slot_time NULLS LAST";
@@ -231,6 +232,12 @@ export async function appointmentRoutes(app: FastifyInstance) {
          b.ageYears ?? yp?.age_years ?? null, b.gender ?? yp?.sex ?? null, b.patientType ?? (patientId ? "Old" : "New"),
          b.appointmentType, b.planOfAction, b.urgency, b.familyGroup, b.fixedSlot ?? false, b.consultStart ?? null,
          b.tags ?? [], b.remarks, status, b.source ?? "booking", b.sourceRef, me.id], c);
+      // a new patient has no MRD yet and may never come: give a temporary ID (D-036), not a real SPD number
+      if (!patientId && !mrd) {
+        const t = await one<{ mrd: string }>(`UPDATE app.appointments SET mrd = $2 WHERE id = $1 RETURNING mrd`,
+                                             [ins!.id, tempMrd(new Date(), ins!.id)], c);
+        await addEvent(c, ins!.id, me.id, "remark", null, null, `Temporary ID ${t!.mrd} (new patient, no MRD yet)`);
+      }
       await addEvent(c, ins!.id, me.id, "booked", null, { date: b.date, slot }, override ? `Override: ${override.reason}` : null);
       if (b.source === "direct_call" && b.sourceRef && /^\d+$/.test(b.sourceRef))
         await c.query(`UPDATE app.direct_calls SET status = 'booked', appointment_id = $2 WHERE id = $1`, [Number(b.sourceRef), ins!.id]);

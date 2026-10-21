@@ -5,6 +5,7 @@ import { z } from "zod";
 import { need } from "../auth.js";
 import { q } from "../db.js";
 import { addDays, dateStr, isoWeekday, todayIST } from "../lib/time.js";
+import { matchAll } from "../services/arrivalMatch.js";
 import { checkDay, isNewPatient, loadDayAppts, loadRuleContext, procTags } from "../services/rules.js";
 
 /** The next day the clinic is open for booking after a date (maximum slots set, not a holiday), within two weeks;
@@ -76,7 +77,6 @@ export async function todayRoutes(app: FastifyInstance) {
                              WHERE x.patient_id = c.patient_id AND x.appointment_date = current_date AND x.status <> 'cancelled'
                              ORDER BY x.slot_time NULLS LAST LIMIT 1) b ON true
         ORDER BY coalesce(c.check_in_at, c.first_at)`);
-    const arrivedIds = new Set(came.map((v) => v.patientId));
 
     // today's Sudarshan bookings with a time, and whether each patient has come
     const booked = (await q<any>(
@@ -85,12 +85,27 @@ export async function todayRoutes(app: FastifyInstance) {
               (a.confirmed_1day_at IS NOT NULL OR a.confirmed_4day_at IS NOT NULL) AS confirmed
          FROM app.appointments a LEFT JOIN app.doctors d ON d.id = a.doctor_id
         WHERE a.appointment_date = current_date AND a.slot_time IS NOT NULL AND a.status IN ('booked','confirmed','completed','no_show')
-        ORDER BY a.slot_time, a.id`)).map((b) => ({ ...b,
-          arrival: b.patientId == null ? "unknown" : arrivedIds.has(b.patientId) ? "arrived" : "not_arrived" }));
+        ORDER BY a.slot_time, a.id`));
+
+    // who came with a booking (D-036): a new patient's booking has no Yarago patient yet, so it is matched by MRD, or
+    // by mobile number and name; those matches are shown as "not linked yet" and never written
+    const todays = await q<any>(
+      `SELECT a.id, a.patient_id AS "patientId", a.mrd, a.phone, a.patient_name AS name, to_char(a.slot_time,'HH24:MI') AS "slotTime",
+              a.plan_of_action AS "planOfAction"
+         FROM app.appointments a WHERE a.appointment_date = current_date AND a.status <> 'cancelled'
+        ORDER BY a.slot_time NULLS LAST, a.id`);
+    const matches = matchAll(came.map((v) => ({ patientId: v.patientId, mrd: v.mrd, phone: v.phone, name: v.patientName })), todays);
+    const cameByBooking = new Map<number, number>();
     for (const v of came) {
-      const bk = booked.find((b) => b.patientId === v.patientId);
-      if (bk) Object.assign(v, { appointmentId: bk.appointmentId, slotTime: bk.slotTime, planOfAction: bk.planOfAction });
-      v.hasBooking = !!bk;
+      const m = matches.get(v.patientId);
+      v.hasBooking = !!m;
+      v.bookingLinked = m ? m.kind !== "phone_name" && m.kind !== "mrd" : null;
+      v.appointmentId = m?.booking.id ?? null; v.slotTime = m?.booking.slotTime ?? null; v.planOfAction = m?.booking.planOfAction ?? null;
+      if (m) cameByBooking.set(m.booking.id, v.patientId);
+    }
+    for (const b of booked) {
+      b.cameId = cameByBooking.get(b.appointmentId) ?? null;
+      b.arrival = b.cameId != null ? "arrived" : b.patientId == null ? "unknown" : "not_arrived";
     }
 
     const inClinic = came.filter((v) => v.stage !== "done");

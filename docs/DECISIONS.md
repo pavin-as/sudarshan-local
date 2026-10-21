@@ -301,6 +301,16 @@ one open link at a time, slot booked when paid); the slot quota and hold are not
 self-hosted UPI gateway (YouPI-PG) or a plain UPI QR to the clinic's account: those pay straight into the account, so
 nothing can stop a payment after the 15 minutes, and they cannot tell which booking a payment belongs to.
 
+### D-036 · 2026-10-21 · Accepted · Pavin (day board/Today review)
+**"Without a booking" means no appointment was made before the visit day; a missing MRD does not.** A new patient gets
+their MRD only when first registered in Yarago, so a booking made for them earlier has no Yarago patient. Today now
+matches each patient who came to a booking by Yarago patient, then MRD, then mobile number plus a shared name word
+(never writing the link; the list says "not linked yet"). **New-patient bookings get a temporary ID, never an SPD
+number** (a no-show must not use up a real MRD): `NDC_YYYYMMDD_HHMMSS_<booking id>` in IST, the time the booking was
+first made, the same shape the Google app uses. It stays in `app.appointments.mrd` until the booking is linked to the
+Yarago record, which replaces it with the real MRD (the temporary ID stays in the booking's history). Search finds
+it by any part. Not automatic: linking is still a person's action (`/api/appointments/:id/link`); P-2 covers the old backlog.
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.
