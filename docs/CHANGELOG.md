@@ -5,6 +5,10 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Appointment panel: "What happened" is readable for imported bookings.** The old Google-app history used to show as a
+  block of raw code (`[{"timestamp":...}]`). It now shows one line per step, e.g. "22 Oct, 18:31 Appointment created for
+  BABY OF HRIDYA (syamili@sampada)" and "Check-in time updated from 16:20 to 16:40". Technical: `historyLines()` in
+  `AppointmentDrawer.tsx` parses the stored Journey / RescheduleHistory text; text that is not JSON still shows as before.
 - **Settings: clinic name.** A "Clinic name" box (managers and admins) sets the name shown in payment links. It replaces the
   field that sat with the removed follow-up call scripts; the saved value is kept. Technical: `PUT /api/settings/clinic-name`
   (setting key `followup.clinic_name`, unchanged so `payments.ts` still reads it); default "Sampada".

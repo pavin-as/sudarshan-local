@@ -29,6 +29,22 @@ function eventText(e: Event): string {
   return "";
 }
 
+/** One readable line per entry of the Google app's Journey / RescheduleHistory text (JSON); null if it is not JSON. */
+function historyLines(raw: unknown): { at: string; text: string }[] | null {
+  let list: any;
+  try { list = JSON.parse(String(raw)); } catch { return null; }
+  if (!Array.isArray(list)) return null;
+  return list.filter((h) => h && typeof h === "object").map((h) => {
+    const from = [h.fromDate && niceDate(h.fromDate), h.fromTime].filter(Boolean).join(" ");
+    const to = [h.toDate && niceDate(h.toDate), h.toTime].filter(Boolean).join(" ");
+    const text = h.description
+      ? String(h.description)
+      : from || to ? `${h.action === "rescheduled" || !h.action ? "Moved" : String(h.action).replace(/_/g, " ")}: ${from || "?"} → ${to || "?"}` : String(h.action ?? "").replace(/_/g, " ");
+    const when = h.timestamp && !isNaN(new Date(h.timestamp).getTime()) ? stamp(h.timestamp) : "";
+    return { at: when, text: `${text}${h.by ? ` (${h.by})` : ""}` };
+  });
+}
+
 type Mode = null | "move" | "cancel" | "edit" | "remark";
 
 export function AppointmentDrawer({ id, onClose }: { id: number; onClose: () => void }) {
@@ -187,8 +203,18 @@ export function AppointmentDrawer({ id, onClose }: { id: number; onClose: () => 
             <li key={e.id} className={e.type === "cancelled" || e.type === "no_show" ? "bad" : e.type.startsWith("confirmed") || e.type === "completed" ? "good" : ""}>
               <div><b>{EVENT_WORDS[e.type] ?? e.type}</b> {eventText(e)}</div>
               {e.note && <div style={{ whiteSpace: "pre-wrap" }}>{e.note}</div>}
-              {e.type === "imported" && e.to && ["RescheduleHistory", "AppointmentJourney"].filter((k) => e.to[k]).map((k) => (
-                <div key={k} className="small muted" style={{ whiteSpace: "pre-wrap" }}>{k === "RescheduleHistory" ? "Reschedules: " : "Journey: "}{String(e.to[k])}</div>))}
+              {e.type === "imported" && e.to && ["RescheduleHistory", "AppointmentJourney"].filter((k) => e.to[k]).map((k) => {
+                const lines = historyLines(e.to[k]);
+                const title = k === "RescheduleHistory" ? "Earlier reschedules" : "Earlier history";
+                return lines ? (
+                  <div key={k} className="small muted">
+                    <div>{title}:</div>
+                    <ul style={{ margin: "0.2rem 0 0.2rem 1.1rem", padding: 0 }}>
+                      {lines.map((l, i) => <li key={i}>{l.at && <b>{l.at}</b>} {l.text}</li>)}
+                    </ul>
+                  </div>
+                ) : <div key={k} className="small muted" style={{ whiteSpace: "pre-wrap" }}>{title}: {String(e.to[k])}</div>;
+              })}
               <time>{stamp(e.at)}{e.by && `, ${e.by}`}</time>
             </li>
           ))}
