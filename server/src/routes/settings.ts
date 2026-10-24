@@ -11,6 +11,7 @@ import { bookingSettings, slotGrid } from "../services/calendar.js";
 import { DEFAULT_THRESHOLDS, DEFAULT_WAITLIST_PERCENT, loadThresholds, loadWaitlistPercent, SETTING_KEY as EARLY_KEY, validateThresholds, WAITLIST_KEY } from "../services/earlyBooking.js";
 import { DEFAULT_RULE_SETTINGS, parseRuleSettings, RULE_FIELDS, RULE_SWITCH_LABELS, RULE_SWITCHES } from "../services/rules.js";
 
+const CLINIC_NAME_KEY = "followup.clinic_name";
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const LISTS: Record<string, { key: string; label: string }> = {
   "appointment-types": { key: "general.Appointment Type List", label: "Visit types" },
@@ -39,6 +40,7 @@ export async function settingsRoutes(app: FastifyInstance) {
     };
     return {
       booking: await bookingSettings(),
+      clinicName: String(m.get(CLINIC_NAME_KEY) ?? "Sampada"),
       earlyBooking: { thresholds: await loadThresholds(), defaults: DEFAULT_THRESHOLDS,
                       waitlistPercent: await loadWaitlistPercent(), waitlistDefault: DEFAULT_WAITLIST_PERCENT },
       rules: {
@@ -72,6 +74,14 @@ export async function settingsRoutes(app: FastifyInstance) {
     });
     return { booking: await bookingSettings(),
              warning: notOnGrid ? `${notOnGrid} future bookings are at times that are not on the new grid; they stay where they are` : null };
+  });
+
+  // the clinic's name as it appears in payment links (kept under the key the follow-up scripts used; payments.ts reads it)
+  app.put("/api/settings/clinic-name", async (req) => {
+    need(req, "settings.manage");
+    const b = z.object({ clinicName: z.string().trim().min(2).max(80) }).parse(req.body);
+    await withTx(auditCtx(req, `Clinic name set to ${b.clinicName}`), (c) => putSetting(c, CLINIC_NAME_KEY, b.clinicName, "Clinic name used in payment links"));
+    return { clinicName: b.clinicName };
   });
 
   // early booking limits (D-030): admins only, as in the Google app (level 1)

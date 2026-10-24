@@ -9,6 +9,7 @@ import { ErrorNotice, Loading, useToast } from "../components/ui";
 interface Plan { name: string; eye: string | null; prepMin: number | null; consultMin: number | null; priority: number | null; isActive: boolean }
 interface SettingsData {
   booking: { slotMinutes: number; dayStart: string; dayEnd: string };
+  clinicName: string;
   rules: { switches: { key: string; label: string; on: boolean }[]; fields: { key: string; label: string; kind: string; value: string; defaultValue: string }[] };
   lists: { id: string; label: string; items: string[] }[];
   plans: Plan[];
@@ -96,6 +97,29 @@ function BookingSection({ data }: { data: SettingsData["booking"] }) {
   );
 }
 
+function ClinicNameSection({ name }: { name: string }) {
+  const toast = useToast();
+  const qc = useQueryClient();
+  const [v, setV] = useState(name);
+  const [error, setError] = useState<unknown>(null);
+  useEffect(() => setV(name), [name]);
+  const save = async () => {
+    setError(null);
+    try { await api("/settings/clinic-name", { method: "PUT", body: { clinicName: v } }); toast("Clinic name saved"); await qc.invalidateQueries(); }
+    catch (e) { setError(e); }
+  };
+  return (
+    <section className="panel">
+      <div className="panel-head"><h2 className="grow">Clinic name</h2></div>
+      <div className="panel-pad stack">
+        <label className="field"><span>Name shown in payment links</span><input value={v} maxLength={80} onChange={(e) => setV(e.target.value)} /></label>
+        <div className="row"><ErrorNotice error={error} /><span className="grow" />
+          <button className="btn-primary" disabled={v.trim() === name || v.trim().length < 2} onClick={() => void save()}>Save name</button></div>
+      </div>
+    </section>
+  );
+}
+
 function ListSection({ list }: { list: SettingsData["lists"][number] }) {
   const toast = useToast();
   const qc = useQueryClient();
@@ -169,37 +193,6 @@ function PlansSection({ plans }: { plans: Plan[] }) {
   );
 }
 
-// Follow-up call scripts, one per risk tier; {name}, {doctor}, {due}, {treatment} and {clinic} are filled in per patient
-function ScriptsSection() {
-  const toast = useToast();
-  const qc = useQueryClient();
-  const q = useQuery({ queryKey: ["followup-scripts"], queryFn: () => api<{ clinicName: string; scripts: { tier: number; words: string; text: string }[] }>("/followups/scripts") });
-  const [f, setF] = useState<{ clinicName: string; scripts: Record<string, string> } | null>(null);
-  const [error, setError] = useState<unknown>(null);
-  useEffect(() => { if (q.data) setF({ clinicName: q.data.clinicName, scripts: Object.fromEntries(q.data.scripts.map((s) => [String(s.tier), s.text])) }); }, [q.data]);
-  if (!q.data || !f) return null;
-  const save = async () => {
-    setError(null);
-    try { await api("/followups/scripts", { method: "PUT", body: f }); toast("Call scripts saved"); await qc.invalidateQueries(); }
-    catch (e) { setError(e); }
-  };
-  return (
-    <section className="panel">
-      <div className="panel-head"><h2 className="grow">Follow-up call scripts</h2></div>
-      <div className="panel-pad stack">
-        <p className="small muted" style={{ margin: 0 }}>Shown in the call dialog on Follow-up calls, filled in for each patient. Write them in the words staff
-          use on the phone (Malayalam is fine). Fill-ins: {"{name}"}, {"{doctor}"}, {"{due}"}, {"{treatment}"}, {"{clinic}"}.</p>
-        <label className="field"><span>Clinic name as said on the phone</span>
-          <input value={f.clinicName} onChange={(e) => setF({ ...f, clinicName: e.target.value })} /></label>
-        {q.data.scripts.map((s) => (
-          <label key={s.tier} className="field"><span>{s.words}</span>
-            <textarea rows={3} value={f.scripts[String(s.tier)] ?? ""} onChange={(e) => setF({ ...f, scripts: { ...f.scripts, [String(s.tier)]: e.target.value } })} /></label>))}
-        <div className="row"><ErrorNotice error={error} /><span className="grow" />
-          <button className="btn-primary" onClick={() => void save()}>Save scripts</button></div>
-      </div>
-    </section>
-  );
-}
 
 // Early booking limits (D-030): admins change them, as in the Google app; managers see them
 function EarlySection({ data }: { data: { thresholds: { days: number; percentage: number }[]; defaults: { days: number; percentage: number }[];
@@ -377,11 +370,11 @@ export function SettingsPage() {
         <div className="muted">For managers and admins. Every change is written to the activity log. Users have their own page; API keys and passwords are kept in .env on shichika, not here.</div></div></div>
       <RulesSection data={d.rules} />
       <BookingSection data={d.booking} />
+      <ClinicNameSection name={d.clinicName} />
       <EarlySection data={(d as any).earlyBooking} />
       <section className="panel"><div className="panel-head"><h2>Lists</h2></div>
         <div className="panel-pad settings-cols">{d.lists.map((l) => <ListSection key={l.id} list={l} />)}</div></section>
       <PlansSection plans={d.plans} />
-      <ScriptsSection />
       <WhatsAppSection />
       <PaymentsSection />
       <section className="panel">

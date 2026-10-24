@@ -9,7 +9,7 @@ export interface Sourced<T> { value: T; date: string | null; visitId: number | n
 
 export interface SummaryFacts {
   forDate: string;
-  patient: { patientId: number; mrd: string | null; name: string | null; ageYears: number | null; sex: string | null;
+  patient: { patientId: number; mrd: string | null; name: string | null; ageYears: number | null; ageText?: string; sex: string | null;   // ageText only under a year
              language: string | null; visits: number; firstVisit: string | null };
   today: { slotTime: string | null; plan: string | null; doctor: string | null; token: string | null; appointmentId: number | null } | null;
   alerts: {
@@ -78,7 +78,7 @@ const meaningful = (s: string | null | undefined) => (s && !PLACEHOLDER.test(s.t
 // ---------- the facts ----------
 
 export async function buildFacts(patientId: number, forDate: string, db?: Db): Promise<SummaryFacts | null> {
-  const p = await one<any>(`SELECT patient_id, mrd, name, age_years, sex, language FROM clinical.patient WHERE patient_id = $1`, [patientId], db);
+  const p = await one<any>(`SELECT patient_id, mrd, name, age_years, age_text, sex, language FROM clinical.patient WHERE patient_id = $1`, [patientId], db);
   if (!p) return null;
   const [counts, booking, yToday, visits, findingRows, trend, inj, las, fups, due] = await Promise.all([
     one<any>(`SELECT count(*)::int n, to_char(min(visit_date),'YYYY-MM-DD') first FROM clinical.visit WHERE patient_id = $1 AND status_id = 3`, [patientId], db),
@@ -157,7 +157,7 @@ export async function buildFacts(patientId: number, forDate: string, db?: Db): P
 
   return {
     forDate,
-    patient: { patientId, mrd: p.mrd, name: p.name, ageYears: p.age_years, sex: p.sex, language: p.language,
+    patient: { patientId, mrd: p.mrd, name: p.name, ageYears: p.age_years, ...(p.age_text ? { ageText: p.age_text } : {}), sex: p.sex, language: p.language,
                visits: counts?.n ?? 0, firstVisit: counts?.first ?? null },
     today: booking || yToday ? { slotTime: booking?.slot ?? null, plan: booking?.plan ?? null, doctor: booking?.doctor ?? yToday?.doctor ?? null,
                                  token: yToday?.token ?? null, appointmentId: booking?.id ?? null } : null,

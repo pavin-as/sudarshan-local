@@ -61,6 +61,13 @@ try {
     if (p.latestVisitId) await get("visit detail", `/api/patients/${heavy}/visits/${p.latestVisitId}`, (b) => `${b.findings.length} findings`);
   }
   await get("follow-ups to call (overdue up to 90 days)", "/api/followups", (b) => `${b.followups.length} to call, ${b.followups.filter((f: any) => f.injectionCount > 0).length} injection patients`);
+  await get("follow-up cards (each team's count)", "/api/followups?limit=1", (b) => `${b.total} patients; ${b.groups.map((g: any) => `${g.label} ${g.count}`).join(", ")}`);
+  await get("follow-up ROP card, longest overdue first", "/api/followups?group=rop", (b) => {
+    const d = b.followups.map((f: any) => f.daysOverdue);
+    return `${b.followups.length} babies, days overdue ${d[0] ?? "-"} down to ${d[d.length - 1] ?? "-"}, sorted ${d.every((x: number, i: number) => i === 0 || d[i - 1] >= x)}`;
+  });
+  await get("patients by group (cards)", "/api/patient-groups", (b) => `${b.groups.map((g: any) => `${g.label} ${g.count}`).join(", ")}; built ${b.builtAt ?? "never"}`);
+  await get("patients by group, Low vision first page", "/api/patient-groups/lowvision?limit=50", (b) => `${b.patients.length} of ${b.total}`);
   await get("follow-ups due next 7 days", "/api/followups?view=upcoming", (b) => `${b.followups.length}`);
   await get("activity log, latest 50", "/api/audit", (b) => `${b.entries.length} entries`);
   await get("WhatsApp list for tomorrow (sends nothing)", `/api/whatsapp/preview?date=${addDays(today, 1)}`,
@@ -70,7 +77,8 @@ try {
   await get("imported appointments, last 30 days", `/api/appointments?from=${addDays(today, -30)}&to=${today}&limit=500`,
     (b) => `${b.appointments.length} (${b.appointments.filter((a: any) => a.status === "no_show").length} no-show)`);
 } finally {
-  await pool.query(`BEGIN; SET LOCAL app.skip_audit = 'on'; DELETE FROM app.sessions WHERE user_id = ${uid}; DELETE FROM app.users WHERE id = ${uid}; COMMIT;`);
+  // The user row cannot be deleted once a check has logged an AI summary view (foreign key), so it is switched off instead.
+  await pool.query(`BEGIN; SET LOCAL app.skip_audit = 'on'; DELETE FROM app.sessions WHERE user_id = ${uid}; UPDATE app.users SET is_active = false WHERE id = ${uid}; COMMIT;`);
   await app.close(); await pool.end();
 }
-console.log("\n(temporary check login removed)");
+console.log("\n(temporary check login switched off)");

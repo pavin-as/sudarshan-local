@@ -6,6 +6,7 @@ import { z } from "zod";
 import { auditCtx, need } from "../auth.js";
 import { q, withTx } from "../db.js";
 import { dateStr, todayIST } from "../lib/time.js";
+import { APPT_AGE_TEXT } from "../lib/text.js";
 import { checkDay, consultStartOf, loadDayAppts, loadRuleContext } from "../services/rules.js";
 
 export async function printRoutes(app: FastifyInstance) {
@@ -20,7 +21,7 @@ export async function printRoutes(app: FastifyInstance) {
     }).parse(req.body);
     const rows = await q<any>(
       `SELECT a.id, to_char(a.slot_time,'HH24:MI') AS "slotTime", to_char(a.consult_start,'HH24:MI') AS "storedConsultStart",
-              a.mrd, a.patient_name AS "patientName", a.age_years AS "ageYears", a.gender, a.phone, a.patient_type AS "patientType",
+              a.mrd, a.patient_name AS "patientName", a.age_years AS "ageYears", ${APPT_AGE_TEXT} AS "ageText", a.gender, a.phone, a.patient_type AS "patientType",
               a.appointment_type AS "appointmentType", d.name AS "doctorName", a.plan_of_action AS "planOfAction", a.remarks, a.status,
               (a.confirmed_4day_at IS NOT NULL OR a.confirmed_1day_at IS NOT NULL) AS confirmed, a.patient_id AS "patientId"
          FROM app.appointments a LEFT JOIN app.doctors d ON d.id = a.doctor_id

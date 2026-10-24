@@ -5,6 +5,46 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Settings: clinic name.** A "Clinic name" box (managers and admins) sets the name shown in payment links. It replaces the
+  field that sat with the removed follow-up call scripts; the saved value is kept. Technical: `PUT /api/settings/clinic-name`
+  (setting key `followup.clinic_name`, unchanged so `payments.ts` still reads it); default "Sampada".
+- **Babies' ages in days and months, not "0".** A patient under one year old now shows as "12 days", "1 month 10 days" or
+  "5 months 21 days" (from the date of birth in Yarago). It shows on the Patients groups (ROP), patient search, patient page,
+  doctor summary, Today, the day board and appointment panel, booking dialog, huddle sheet and the day print. From the first
+  birthday it is years as before. A booking made for a baby who is not yet linked to a Yarago record has only the age
+  typed in, so it still shows that number. One patient aged 0 has no date of birth in Yarago and still shows "0".
+  Technical: `clinical.age_text(dob)` and the new last column `age_text` of `clinical.patient` (views/10_clinical.sql);
+  `ageText` in the API where the age is shown (null from one year old); `APPT_AGE_TEXT` in `lib/text.ts` for queries on
+  `app.appointments`. The doctor-summary facts carry `ageText` only for babies, so other patients' cached summaries are not regenerated.
+- **Patients: a card for each group, with lists you can print** (D-039). Under the search bar there are now cards for ROP,
+  Injection, Laser, Diabetic retinopathy, Glaucoma, Squint, Myopia, Low vision and Other retina, each with its count.
+  Click a card to see its patients (50 at a time, "Show more"), find a name or MRD inside the list, sort by most recent or
+  name, and **Print** (the whole list, A4 landscape; "Save as PDF" in the print window). Printing is recorded in the
+  activity of prints (who, which list, how many). The cards are for doctors, optometrists, counsellors, managers and admins
+  (clinical access); front desk still has the search bar. **Low vision** = best-corrected vision in the better eye worse
+  than 6/18 (WHO, confirmed by Dr. Sameera) or booked for low vision. **The lists are rebuilt every night**, so a diagnosis
+  entered today appears tomorrow; the page says when they were last rebuilt. Technical: migration 0017
+  (`app.patient_group`, `app.refresh_patient_groups()`), called by `sync/yarago_sync.py` after the analytics rebuild;
+  `routes/patientGroups.ts` (`GET /api/patient-groups`, `/api/patient-groups/:key`); `components/PatientGroups.tsx`;
+  `lib/text.ts` holds the wording helpers shared with the follow-up board. `test/real-data.ts` prints the card counts.
+- **Follow-up calls: Print / Save as PDF.** A **Print** button beside the view buttons prints the list you are looking at
+  (the team card and the To call / Due this week / All overdue choice), on A4 landscape with a heading that names the team,
+  the view, the date and the number of patients. The cards, buttons and Call column are left out. In the print window,
+  choose "Save as PDF" as the printer to get a PDF. The page now loads up to 500 patients (was 300) so a long list prints
+  whole; if a list is longer, the heading says "the first 500". Technical: `web/src/pages/Followups.tsx`, print rules in `styles.css`.
+- **Follow-up call scripts removed** (D-038). The call dialog no longer shows "What to say", and Settings no longer has
+  "Follow-up call scripts" (they did not match what the cards show). Dr. Sameera confirmed that "Mature Retina" means
+  ROP treatment is over, so the ROP card rule stays as built. Technical: removed `fillScript`/`DEFAULT_SCRIPTS`/`TIER_WORDS`,
+  `GET`/`PUT /api/followups/scripts` and `ScriptsSection`; rows no longer carry `script` or `tierWords`. The saved texts and
+  `followup.clinic_name` stay in `app.settings` (payment links still use the clinic name; it can no longer be edited in the app).
+- **Follow-up calls: one card per team** (D-038). The cards are now ROP, Injection, Laser, Diabetic retinopathy, Other
+  retina and Routine, plus "All patients" (each counted once). Each number is the patients of that team who are overdue
+  and still need a call; hover a card for its rule. A patient can be on more than one card. Before, the first card
+  ("Urgent", 56) mixed ROP, injection and detachment patients. The ROP card has 32 babies on real data; a baby leaves it
+  when the last ROP visit shows a mature retina or 12 months pass without one, and ROP is not cut off by "Overdue up to".
+  Technical: `groupsFor` and `GROUPS` in `services/followupRisk.ts`, `?group=` replaces `?tier=` on `GET /api/followups`
+  (response `groups` replaces `tiers`); two new rule checks in `test/followups.test.ts`; `test/real-data.ts` prints the
+  card counts and now switches its temporary login off instead of deleting it (the delete failed on a foreign key).
 - **Today: fewer wrong "without a booking" and no more "can't tell"** (D-036). Four patients who booked under a
   slightly different spelling (Saidali / Saidalavi, Zainaba / Sainaba, Mymoona / Maimoona, B/O Hamnath) were counted as
   walk-ins; near spellings now match when the mobile number is the same. A new patient's booking that nobody matches is

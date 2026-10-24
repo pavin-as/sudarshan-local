@@ -96,6 +96,20 @@ INSERT INTO app.code_labels (kind, code, label, confirmed) VALUES
 ON CONFLICT (kind, code) DO UPDATE SET label = EXCLUDED.label WHERE NOT app.code_labels.confirmed;
 
 -- ---------- patients -----------------------------------------------------------------
+-- Age in words for babies under a year ("12 days", "3 months", "3 months 10 days"); NULL from the first birthday.
+-- Screens show this instead of "0 y" (ROP babies are counted in days and months).
+CREATE OR REPLACE FUNCTION clinical.age_text(dob timestamptz) RETURNS text
+LANGUAGE sql STABLE AS $$
+  SELECT CASE
+    WHEN dob IS NULL OR dob > now() OR age(dob) >= interval '1 year' THEN NULL
+    WHEN age(dob) < interval '1 month' THEN (current_date - dob::date) || CASE WHEN current_date - dob::date = 1 THEN ' day' ELSE ' days' END
+    ELSE date_part('month', age(dob))::int || CASE WHEN date_part('month', age(dob))::int = 1 THEN ' month' ELSE ' months' END
+         || CASE WHEN date_part('day', age(dob))::int > 0
+                 THEN ' ' || date_part('day', age(dob))::int || CASE WHEN date_part('day', age(dob))::int = 1 THEN ' day' ELSE ' days' END
+                 ELSE '' END
+  END
+$$;
+
 CREATE OR REPLACE VIEW clinical.patient AS
 SELECT p.apatient_id                                         AS patient_id,
        clinical.clean(p.apatientcode)                        AS mrd,
@@ -107,7 +121,8 @@ SELECT p.apatient_id                                         AS patient_id,
        clinical.clean(p.tmobile_no)                          AS mobile,
        clinical.clean(p.preferredlanguage)                   AS language,
        clinical.clean(p.vip_category_vals)                   AS vip_category,
-       p.inserteddate                                        AS registered_at
+       p.inserteddate                                        AS registered_at,
+       clinical.age_text(p.tdob)                             AS age_text
 FROM yarago.tblpatientregistration p;
 
 -- ---------- visits (one row per Yarago appointment) ------------------------------------

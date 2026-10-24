@@ -6,6 +6,7 @@ import { useAuth } from "../auth";
 import { niceDate, money, stamp, todayIST, planText } from "../format";
 import { Drawer, ErrorNotice, Loading, StatusPill } from "../components/ui";
 import { PatientPicker } from "../components/PatientPicker";
+import { PatientGroups } from "../components/PatientGroups";
 import { TrendChart } from "../components/TrendChart";
 import { BookDialog } from "../components/BookDialog";
 import { AppointmentDrawer } from "../components/AppointmentDrawer";
@@ -13,10 +14,14 @@ import { FollowupLogForm } from "./Followups";
 
 export function PatientsPage() {
   const nav = useNavigate();
+  const { can } = useAuth();
   return (
-    <div className="stack" style={{ maxWidth: 760 }}>
-      <div className="page-head"><div><h1>Patients</h1><div className="muted">Find a patient in Yarago by MRD, phone number or name.</div></div></div>
-      <PatientPicker onPick={(p) => nav(`/patients/${p.patientId}`)} autoFocus />
+    <div className="stack">
+      <div className="no-print" style={{ maxWidth: 760 }}>
+        <div className="page-head"><div><h1>Patients</h1><div className="muted">Find a patient in Yarago by MRD, phone number or name{can("clinical.read") ? ", or open a group below" : ""}.</div></div></div>
+        <PatientPicker onPick={(p) => nav(`/patients/${p.patientId}`)} autoFocus />
+      </div>
+      {can("clinical.read") && <PatientGroups />}
     </div>
   );
 }
@@ -84,7 +89,7 @@ export function PatientPage() {
       <div className="page-head">
         <div>
           <h1>{p.name}</h1>
-          <div className="muted">{p.mrd}, {[p.ageYears != null && `${p.ageYears} years`, p.sex, p.language].filter(Boolean).join(", ")}
+          <div className="muted">{p.mrd}, {[p.ageYears != null && (p.ageText ?? `${p.ageYears} years`), p.sex, p.language].filter(Boolean).join(", ")}
             {p.mobile && <>, <a href={`tel:${p.mobile}`}>{p.mobile}</a></>}{p.vipCategory && <span className="tag vip" style={{ marginLeft: 6 }}>{p.vipCategory}</span>}</div>
         </div>
         <span className="grow" />

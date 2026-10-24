@@ -92,7 +92,7 @@ export function AppointmentDrawer({ id, onClose }: { id: number; onClose: () => 
         {a.planOfAction && <><dt>Plan</dt><dd>{planText(a.planOfAction)}</dd></>}
         {(a.appointmentType || a.patientType) && <><dt>Visit</dt><dd>{[a.appointmentType, a.patientType].filter(Boolean).join(", ")}</dd></>}
         {a.phone && <><dt>Phone</dt><dd><a href={`tel:${a.phone}`}>{a.phone}</a></dd></>}
-        {(a.ageYears != null || a.gender) && <><dt>Patient</dt><dd>{[a.ageYears != null && `${a.ageYears} years`, a.gender].filter(Boolean).join(", ")}</dd></>}
+        {(a.ageYears != null || a.gender) && <><dt>Patient</dt><dd>{[a.ageYears != null && (a.ageText ?? `${a.ageYears} years`), a.gender].filter(Boolean).join(", ")}</dd></>}
         {a.tags.length > 0 && <><dt>Special</dt><dd><Tags tags={a.tags} /></dd></>}
         {a.urgency && <><dt>Urgency</dt><dd>{a.urgency}</dd></>}
         {a.familyGroup && <><dt>Family</dt><dd>{a.familyGroup}</dd></>}

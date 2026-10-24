@@ -19,7 +19,7 @@ export async function patientRoutes(app: FastifyInstance) {
     const mrdNumber = /^(spd)?\s*\d{1,5}$/i.test(text) ? `SPD${digits}` : null;
     const params: unknown[] = [mrdNumber ?? text.toUpperCase(), text, isPhone ? digits.slice(-10) : null];
     const rows = await q(
-      `SELECT p.patient_id AS "patientId", p.mrd, p.name, p.age_years AS "ageYears", p.sex, p.mobile,
+      `SELECT p.patient_id AS "patientId", p.mrd, p.name, p.age_years AS "ageYears", p.age_text AS "ageText", p.sex, p.mobile,
               (SELECT max(v.tappoint_date_time)::date FROM yarago.tblappointments v
                 WHERE v.npatient_id = p.patient_id AND v.nstatus_id <> 4) AS "lastVisit",
               CASE WHEN upper(p.mrd) = $1 THEN 0 WHEN upper(p.mrd) LIKE $1 || '%' THEN 1
@@ -37,7 +37,7 @@ export async function patientRoutes(app: FastifyInstance) {
     const me = need(req, "patients.read");
     const { id } = idParam.parse(req.params);
     const patient = await one(
-      `SELECT patient_id AS "patientId", mrd, name, to_char(dob,'YYYY-MM-DD') AS dob, age_years AS "ageYears", sex, mobile,
+      `SELECT patient_id AS "patientId", mrd, name, to_char(dob,'YYYY-MM-DD') AS dob, age_years AS "ageYears", age_text AS "ageText", sex, mobile,
               language, vip_category AS "vipCategory", registered_at AS "registeredAt"
          FROM clinical.patient WHERE patient_id = $1`, [id]);
     if (!patient) throw notFound("Patient");

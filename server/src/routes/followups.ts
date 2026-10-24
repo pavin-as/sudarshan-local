@@ -1,19 +1,16 @@
 // Follow-up board: patients Yarago says should have come back, ranked by clinical risk (services/followupRisk.ts):
 // injection course or ROP first, then retinal disease under care, then diabetes / conditions to watch, then the rest;
-// within a tier the most recently overdue first (most likely to return). Each row carries a filled call script.
+// within a tier the most recently overdue first (most likely to return). Each patient is also on the card of every team that cares.
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { auditCtx, need } from "../auth.js";
 import { one, q, withTx } from "../db.js";
 import { notFound } from "../lib/errors.js";
 import { dateStr } from "../lib/time.js";
-import { DEFAULT_SCRIPTS, fillScript, riskTier, TIER_WORDS, type Tier } from "../services/followupRisk.js";
+import { ordinal, titleWords } from "../lib/text.js";
+import { GROUPS, groupsFor, riskTier, type Group } from "../services/followupRisk.js";
 import { drugName } from "../services/summary.js";
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const niceDay = (d: string) => `${Number(d.slice(8, 10))} ${MONTHS[Number(d.slice(5, 7)) - 1]}`;
-const titleWords = (s: string | null) => (s ? s.toLowerCase().replace(/(^|\s)[a-z]/g, (m) => m.toUpperCase()).replace(/\b(Prp|Yag|Pi)\b/g, (w) => w.toUpperCase()) : null);
-const ordinal = (n: number) => { const t = ["th", "st", "nd", "rd"], v = n % 100; return n + (t[(v - 20) % 10] || t[v] || t[0]); };
 
 const ACTIONS = ["called", "no_answer", "will_come", "booked", "declined", "wrong_number", "not_needed", "moved_away", "deceased", "note"] as const;
 const ACTION_WORDS: Record<(typeof ACTIONS)[number], string> = {
@@ -30,14 +27,15 @@ export async function followupRoutes(app: FastifyInstance) {
       view: z.enum(["to_call", "upcoming", "all_overdue"]).default("to_call"),
       maxOverdueDays: z.coerce.number().int().min(1).max(3650).default(90),
       upcomingDays: z.coerce.number().int().min(1).max(60).default(7),
-      tier: z.coerce.number().int().min(1).max(4).optional(),
+      group: z.enum(GROUPS.map((g) => g.key) as [Group, ...Group[]]).optional(),
       limit: z.coerce.number().int().min(1).max(500).default(200),
     }).parse(req.query);
 
+    // ROP babies are seen every 1-2 weeks, so the "overdue up to N days" choice does not hide them (they leave at 12 months)
     const stateFilter = f.view === "upcoming"
       ? `fc.due_date BETWEEN current_date AND current_date + $1::int`
       : f.view === "all_overdue" ? `NOT fc.came_back AND fc.due_date < current_date AND $1::int > 0`
-      : `NOT fc.came_back AND fc.due_date < current_date AND fc.days_overdue <= $1::int`;
+      : `NOT fc.came_back AND fc.due_date < current_date AND fc.days_overdue <= greatest($1::int, 365)`;
     // every candidate is ranked, then the list is cut: the order is clinical risk, not the order Yarago returns
     const rows = await q<any>(
       `SELECT fc.patient_id AS "patientId", p.mrd, p.name, p.age_years AS "ageYears", p.mobile,
@@ -48,6 +46,7 @@ export async function followupRoutes(app: FastifyInstance) {
               (current_date - inj.last_at::date) AS inj_days, inj.last_proc, inj.last_drug, inj.last_eye, inj.last_n,
               to_char(las.treated_at,'YYYY-MM-DD') AS "lastLaser", (current_date - las.treated_at::date) AS las_days, las.what AS las_what, las.eye AS las_eye,
               cd.cond AS condition, coalesce(dm.dm, false) AS diabetes,
+              coalesce(rp.active, false) AS rop, rp.days AS rop_days,
               la.action AS "lastAction", la.at AS "lastActionAt", la.note AS "lastNote", to_char(la.next_call_on,'YYYY-MM-DD') AS "nextCallOn",
               ap.id AS "appointmentId", to_char(ap.appointment_date,'YYYY-MM-DD') AS "appointmentDate"
          FROM clinical.followup_current fc
@@ -66,6 +65,17 @@ export async function followupRoutes(app: FastifyInstance) {
                                                   WHERE y.patient_id = fc.patient_id AND y.finding IS NOT NULL)) cd ON true
          LEFT JOIN LATERAL (SELECT bool_or(v.systemic_illness ILIKE '%DIABET%') AS dm FROM clinical.visit v
                              WHERE v.patient_id = fc.patient_id AND v.status_id = 3) dm ON true
+         -- ROP list: the latest completed ROP visit (booked as ROP clinic / screening, or ROP findings) was in the last 12 months
+         -- and did not find a mature retina. A mature retina ends ROP screening, so the baby leaves the ROP group.
+         LEFT JOIN LATERAL (SELECT (current_date - v.visit_date) AS days,
+                                   (v.visit_date >= current_date - 365
+                                    AND NOT EXISTS (SELECT 1 FROM clinical.visit_exam_finding m WHERE m.visit_id = v.visit_id AND m.finding ~* 'mature retina')) AS active
+                              FROM clinical.visit v
+                             WHERE v.patient_id = fc.patient_id AND v.status_id = 3
+                               AND (v.reason ~* '\\mrop\\M'
+                                    OR EXISTS (SELECT 1 FROM clinical.visit_exam_finding e WHERE e.visit_id = v.visit_id
+                                                AND e.finding ~* '\\mrop\\M|prematur|plus disease|\\mzone\\M|mature retina'))
+                             ORDER BY v.visit_date DESC, v.visit_id DESC LIMIT 1) rp ON true
          LEFT JOIN LATERAL (SELECT action, at, note, next_call_on FROM app.followup_actions x
                              WHERE x.patient_id = fc.patient_id AND x.at >= fc.from_visit_date
                              ORDER BY x.at DESC LIMIT 1) la ON true
@@ -80,52 +90,33 @@ export async function followupRoutes(app: FastifyInstance) {
         ORDER BY fc.due_date DESC
         LIMIT 5000`, [f.view === "upcoming" ? f.upcomingDays : f.maxOverdueDays]);
 
-    const sc = await q<{ key: string; value: any }>(`SELECT key, value FROM app.settings WHERE key IN ('followup.scripts','followup.clinic_name')`);
-    const scripts = { ...DEFAULT_SCRIPTS, ...(sc.find((r) => r.key === "followup.scripts")?.value ?? {}) } as Record<Tier, string>;
-    const clinic = String(sc.find((r) => r.key === "followup.clinic_name")?.value ?? "the clinic");
-    const ranked = rows.map((r) => {
+    const ranked = rows.filter((r) => f.view !== "to_call" || r.rop || (r.daysOverdue ?? 0) <= f.maxOverdueDays).map((r) => {
       const inj = r.inj_days != null ? [drugName(r.last_proc, r.last_drug), r.last_eye, r.last_n ? ordinal(r.last_n) : null].filter(Boolean).join(" ") : null;
       const las = r.las_days != null ? [titleWords(r.las_what), r.las_eye].filter(Boolean).join(" ") : null;
-      const { tier, reasons } = riskTier({ ageYears: r.ageYears, condition: r.condition, lastInjectionDays: r.inj_days, lastInjection: inj,
-                                           lastLaserDays: r.las_days, lastLaser: las, diabetes: r.diabetes });
-      const treatment = r.inj_days != null && r.inj_days <= 365 ? inj : r.las_days != null && r.las_days <= 365 ? las : null;
-      const { inj_days, last_proc, last_drug, last_eye, last_n, las_days, las_what, las_eye, ...out } = r;
-      return { ...out, tier, tierWords: TIER_WORDS[tier], reasons,
-               script: fillScript(scripts[tier], { clinic, name: r.name, doctor: r.doctor, due: niceDay(r.dueDate), treatment }) };
+      const risk = { ageYears: r.ageYears, condition: r.condition, lastInjectionDays: r.inj_days, lastInjection: inj,
+                     lastLaserDays: r.las_days, lastLaser: las, diabetes: r.diabetes, rop: r.rop, ropDays: r.rop_days };
+      const { tier, reasons } = riskTier(risk);
+      const { inj_days, last_proc, last_drug, last_eye, last_n, las_days, las_what, las_eye, rop, rop_days, ...out } = r;
+      return { ...out, tier, groups: groupsFor(risk), reasons };
     });
-    ranked.sort(f.view === "upcoming"
+    // A card is a team's list. A patient can be on several cards, so the card numbers are not added up: `total` counts each patient once.
+    const groups = GROUPS.map((g) => {
+      const inG = ranked.filter((r) => r.groups.includes(g.key));
+      return { key: g.key, label: g.label, rule: g.rule, count: inG.length, notCalled: inG.filter((r) => !r.lastAction).length };
+    });
+    const shown = f.group ? ranked.filter((r) => r.groups.includes(f.group!)) : ranked;
+    // ROP: the longest overdue baby first. Others: the most recently overdue first (most likely to return).
+    shown.sort(f.view === "upcoming"
       ? (a, b) => a.dueDate.localeCompare(b.dueDate) || a.tier - b.tier
+      : f.group === "rop" ? (a, b) => (b.daysOverdue ?? 0) - (a.daysOverdue ?? 0)
       : (a, b) => a.tier - b.tier || (a.daysOverdue ?? 0) - (b.daysOverdue ?? 0));
-    const tiers = ([1, 2, 3, 4] as Tier[]).map((t) => ({ tier: t, words: TIER_WORDS[t], count: ranked.filter((r) => r.tier === t).length,
-                                                       notCalled: ranked.filter((r) => r.tier === t && !r.lastAction).length }));
     const recovered = await one<{ n: number }>(
       `SELECT count(DISTINCT a.patient_id)::int AS n FROM app.followup_actions a
         WHERE a.at >= now() - interval '60 days' AND a.actor_id IS NOT NULL
           AND EXISTS (SELECT 1 FROM yarago.tblappointments v WHERE v.npatient_id = a.patient_id AND v.nstatus_id = 3
                         AND v.tappoint_date_time > a.at AND v.tappoint_date_time >= now() - interval '30 days')`);
-    return { followups: ranked.filter((r) => !f.tier || r.tier === f.tier).slice(0, f.limit), tiers,
+    return { followups: shown.slice(0, f.limit), groups,
              total: ranked.length, cameBackAfterCall30d: recovered?.n ?? 0 };
-  });
-
-  // call scripts, editable on the Settings page (staff may write them in Malayalam)
-  app.get("/api/followups/scripts", async (req) => {
-    need(req, "patients.read");
-    const sc = await q<{ key: string; value: any }>(`SELECT key, value FROM app.settings WHERE key IN ('followup.scripts','followup.clinic_name')`);
-    const saved = sc.find((r) => r.key === "followup.scripts")?.value ?? {};
-    return { clinicName: String(sc.find((r) => r.key === "followup.clinic_name")?.value ?? "the clinic"),
-             scripts: ([1, 2, 3, 4] as Tier[]).map((t) => ({ tier: t, words: TIER_WORDS[t], text: saved[t] ?? DEFAULT_SCRIPTS[t], isDefault: !saved[t] })) };
-  });
-  app.put("/api/followups/scripts", async (req) => {
-    need(req, "settings.manage");
-    const b = z.object({ clinicName: z.string().trim().min(2).max(80),
-                         scripts: z.record(z.enum(["1", "2", "3", "4"]), z.string().trim().min(10).max(1500)) }).parse(req.body);
-    await withTx(auditCtx(req, "Follow-up call scripts changed"), async (c) => {
-      await c.query(`INSERT INTO app.settings (key, value, description) VALUES ('followup.scripts', $1::jsonb, 'Follow-up call scripts per risk tier')
-                     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`, [JSON.stringify(b.scripts)]);
-      await c.query(`INSERT INTO app.settings (key, value, description) VALUES ('followup.clinic_name', $1::jsonb, 'Clinic name used in call scripts')
-                     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`, [JSON.stringify(b.clinicName)]);
-    });
-    return { ok: true };
   });
 
   app.post("/api/followups/:patientId/actions", async (req) => {

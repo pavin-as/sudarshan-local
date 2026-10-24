@@ -69,7 +69,10 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
 - [x] Phase B: doctor summary built (19 Oct, D-026): layout approved by Dr. Sameera; local-model overview from 07:00
       with a number check; verified on 3 real patients (12/12 facts match Yarago raw tables each).
 - [x] Phase B: follow-up board ranked by clinical risk with call scripts (19 Oct, D-027); ranking checked on 500 real rows.
-- [ ] Staff: rewrite the four call scripts in Malayalam on Settings > Follow-up call scripts, and set the clinic name.
+- [x] Follow-up cards by team: ROP, Injection, Laser, Diabetic retinopathy, Other retina, Routine (23 Oct, D-038); ROP exit (mature retina) confirmed by Dr. Sameera 24 Oct.
+- [x] Patients page: cards by group (ROP, injection, laser, DR, glaucoma, squint, myopia, low vision, other retina) with paged lists and Print (24 Oct, D-039); rebuilt nightly.
+- [x] Follow-up call scripts removed (24 Oct, D-038); nothing for staff to rewrite.
+- [ ] Pavin: deactivate the leftover `zz_check` login on the Users page (by 12 pm, 24 Oct).
 - [x] Phase B: EMR completeness page per month (19 Oct, D-028). Phase B is complete.
 - [x] Day prints: Print (consult start / check-in, doctor late arrival) and Print POA on the day board (19 Oct, D-029).
 - [x] Early booking limit with manager override (19 Oct, D-030).

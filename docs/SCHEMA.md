@@ -482,6 +482,25 @@ never refunds twice; status requested -> pending -> processed / failed, by polli
 | requested_at | timestamp with time zone | no | now() |
 | processed_at | timestamp with time zone | yes |  |
 | updated_at | timestamp with time zone | no | now() |
+### app.patient_group (0017)
+Patients by group for the Patients page cards (D-039). One row per patient and group; **rebuilt in full every night** by
+`app.refresh_patient_groups()` (the sync worker calls it after the analytics rebuild at 02:30). Derived data: no audit
+trigger, not readable by the Metabase role. Groups: rop, injection, laser, dr, glaucoma, squint, myopia, lowvision, retina.
+
+| Column | Type | Null | Default |
+|---|---|---|---|
+| patient_id | bigint | no |  |
+| group_key | text | no |  |
+| status | text | yes |  |
+| detail | jsonb | yes |  |
+| last_event | date | yes |  |
+| last_visit | date | yes |  |
+| bcva_re, bcva_le | text | yes |  |
+| bcva_date | date | yes |  |
+| iop_re, iop_le | numeric | yes |  |
+| iop_date | date | yes |  |
+| built_at | timestamp with time zone | no | now() |
+
 ### app.plan_of_action
 PlanOfActionMaster list.
 

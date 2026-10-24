@@ -322,6 +322,44 @@ is not carried into the patient's record (the audit log still keeps the old valu
 should keep writing nothing to Yarago and keep reading its stations through `clinical` views, so the queue can later move
 to Sudarshan's own tables behind the same views.
 
+### D-038 · 2026-10-23 · Accepted · Pavin (follow-up cards by team); Claude chose the rules and the ROP exit
+**Follow-up cards are one team's list each, not risk tiers; a card number means "patients of this group who are overdue and still need a call".**
+Cards: ROP, Injection, Laser, Diabetic retinopathy, Other retina, Routine, plus "All patients" (each patient counted once). A
+patient can be on several cards, so the cards do not add up to the total; Routine = on none of the others. Rules
+(`services/followupRisk.ts` `groupsFor`): Injection/Laser = given/done in the last 12 months; Diabetic retinopathy = latest
+exam is DR/DME (coded diabetes alone is Routine); Other retina = vein occlusion, AMD, detachment, vitreous bleed, macular
+hole/ERM, uveitis, CSCR, hypertensive or myopic retina; glaucoma is Routine. **ROP list** (checked on real data 23 Oct): the
+patient's latest completed visit booked as ROP clinic/screening, or with ROP findings (ROP, prematurity, plus disease, ZONE,
+mature retina), is within 12 months **and** has no MATURE RETINA finding. A mature retina ends screening (exit); no ROP visit
+for 12 months also exits. **Dr. Sameera confirmed (24 Oct) that "Mature Retina" in the findings means ROP treatment is over.**
+Chosen because Yarago has no "ROP finished" field. ROP babies ignore the "Overdue up to N days" choice (they are seen every 1-2 weeks) and the longest
+overdue come first; other cards keep most-recently-overdue first. An age-0 infant with no ROP evidence is no longer in the ROP
+card (still ranked first in the call order). **The call scripts are removed (Pavin, 24 Oct: they did not match what the cards show, not
+needed):** no "What to say" in the call dialog, no Settings section, no `/api/followups/scripts`; D-027's scripts are retired.
+The saved texts stay in `app.settings` (`followup.scripts`), unused; `followup.clinic_name` is still read by payment links. Real data:
+ROP 32 babies (the old "Urgent" card showed 56, which also held injection and detachment patients). The analytics ROP rule
+(Dr. Sameera, D-025) is unchanged.
+
+### D-039 · 2026-10-24 · Accepted · Pavin (cards on the Patients page); Dr. Sameera confirmed the low vision rule
+**The Patients page has one card per group with a paged list and Print; the lists are rebuilt nightly.** Cards: ROP, Injection,
+Laser, Diabetic retinopathy, Glaucoma, Squint, Myopia, Low vision, Other retina. Only roles with `clinical.read` see them (front
+desk keeps the search bar; the lists carry diagnoses). Nothing loads until a card is clicked; a list loads 50 at a time ("Show 50 more"),
+with a find box and a sort, and Print fetches the whole list (up to 5,000), on A4 landscape, and records who printed which list in
+`app.print_log` (kind `patient_list`). **Nightly, not live (Pavin):** `app.patient_group` is rebuilt by `app.refresh_patient_groups()` after
+the 02:30 analytics rebuild, so a diagnosis entered today shows tomorrow; follow-up calls stay live. The table is in `app`, not
+`analytics`, because it holds patient ids (the Metabase role cannot read it). Rules: ROP = a completed visit booked as ROP clinic /
+screening or with ROP findings (status Active / Completed (mature retina, D-038) / no ROP visit for 12 months); Injection / Laser = at
+least one given / done; the condition cards read the **latest examination with findings**, each group matched by its own pattern from
+`analytics.category_rule` (so a patient with glaucoma and diabetic retinopathy is on both lists; the dashboards give a patient one
+category); Squint and Myopia also count a booking for that clinic; Other retina = the nine conditions of the follow-up card.
+**Low vision (WHO, confirmed by Dr. Sameera):** best-corrected vision in the better eye worse than 6/18 at the latest visit with a value
+(both eyes must be recorded; a patient with one eye recorded is not counted), or anyone booked for low vision (reason says low vision / LVA).
+First build 24 Oct: ROP 829 (60 active, 599 completed, 170 no ROP visit for 12 months), Injection 797, Laser 1,180, Diabetic retinopathy
+1,803, Glaucoma 1,208, Squint 906, Myopia 652, Low vision 537 (442 by vision, 54 booked only, 41 both), Other retina 2,442.
+Injection counts every injection Yarago marks as given, including sub-Tenon steroid (PST), as the follow-up board does.
+**Age of a baby (Pavin, 24 Oct):** under one year the age is shown in days and months ("1 month 10 days"), never "0"; computed from the
+Yarago date of birth by `clinical.age_text()`; one year and older stays in years.
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

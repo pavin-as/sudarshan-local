@@ -77,7 +77,7 @@ export function BookDialog({ preset, onClose, onBooked }: { preset: BookPreset; 
         <h3>Patient</h3>
         {patient ? (
           <div className="chosen">
-            <div className="grow"><b>{patient.name}</b> <span className="muted">{patient.mrd} · {[patient.ageYears != null && `${patient.ageYears} y`, patient.sex, patient.mobile].filter(Boolean).join(", ")}</span></div>
+            <div className="grow"><b>{patient.name}</b> <span className="muted">{patient.mrd} · {[patient.ageYears != null && (patient.ageText ?? `${patient.ageYears} y`), patient.sex, patient.mobile].filter(Boolean).join(", ")}</span></div>
             <button className="btn-small" onClick={() => setPatient(null)}>Change</button>
           </div>
         ) : newPatient ? (

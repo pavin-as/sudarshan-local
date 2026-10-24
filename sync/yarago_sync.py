@@ -629,6 +629,14 @@ def analytics():
             except Exception:
                 pg.rollback()
                 log.exception("pharmacy analytics rebuild failed")
+            # patient lists by group for the Patients page (D-039): its own step too
+            try:
+                n = pg.execute("SELECT app.refresh_patient_groups()").fetchone()[0]
+                pg.commit()
+                log.info("Patient groups rebuilt: %s rows", n)
+            except Exception:
+                pg.rollback()
+                log.exception("patient groups rebuild failed")
             return 0
         except Exception as e:
             pg.rollback()

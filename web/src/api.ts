@@ -34,7 +34,7 @@ export type LiveStage = "registered_not_arrived" | "arrived" | "optometry" | "wa
 
 export interface Appointment {
   id: number; date: string; slotTime: string | null; durationMin: number; doctorId: number | null; doctorName: string | null;
-  patientId: number | null; mrd: string | null; patientName: string; phone: string | null; ageYears: number | null; gender: string | null;
+  patientId: number | null; mrd: string | null; patientName: string; phone: string | null; ageYears: number | null; ageText?: string | null; gender: string | null;
   patientType: string | null; appointmentType: string | null; planOfAction: string | null; urgency: string | null;
   familyGroup: string | null; fixedSlot: boolean; consultStart: string | null; tags: string[]; remarks: string | null;
   status: Status; source: string; sourceRef: string | null; confirmed4dayAt: string | null; confirmed1dayAt: string | null;

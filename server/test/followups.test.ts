@@ -1,7 +1,7 @@
-// Follow-up board ranking and call scripts (Phase B). No database needed.
+// Follow-up board ranking and team cards (Phase B). No database needed.
 //   npm run test:rules   (runs this file too)
 import assert from "node:assert/strict";
-import { DEFAULT_SCRIPTS, fillScript, riskTier, type RiskInput } from "../src/services/followupRisk.js";
+import { groupsFor, riskTier, type RiskInput } from "../src/services/followupRisk.js";
 
 let passed = 0;
 function test(name: string, fn: () => void) {
@@ -37,11 +37,18 @@ test("the highest reason wins and every reason is listed once", () => {
   assert.equal(r.tier, 1);
   assert.deepEqual(r.reasons, ["Injection Eylea LE 20 days ago", "Diabetic retinopathy / DME", "Diabetes"]);
 });
-test("call scripts fill in the patient, doctor, due date and treatment", () => {
-  const s = fillScript(DEFAULT_SCRIPTS[1], { clinic: "the clinic", name: "Ravi", doctor: "Dr. Sameera", due: "12 Oct", treatment: "Razumab RE" });
-  assert.match(s, /Dr\. Sameera asked to see Ravi by 12 Oct to continue the treatment \(Razumab RE\)/);
-  const t = fillScript(DEFAULT_SCRIPTS[1], { clinic: "the clinic", name: "Ravi", doctor: null, due: "12 Oct", treatment: null });
-  assert.match(t, /The doctor asked to see Ravi by 12 Oct to continue the treatment\. A missed/);
-  assert.ok(!/[{}]/.test(t), "no placeholder left");
+test("ROP list replaces the finding guess: a mature retina is not urgent, and the reason names the last visit", () => {
+  const on = riskTier({ ...base, ageYears: 0, rop: true, ropDays: 12 });
+  assert.equal(on.tier, 1); assert.deepEqual(on.reasons, ["ROP, last ROP visit 12 days ago"]);
+  const off = riskTier({ ...base, condition: "ROP / ROP screening", rop: false });
+  assert.equal(off.tier, 4, "mature retina / over a year ago: off the ROP list");
+});
+test("each overdue patient is on the card of every team that cares, and on Routine only if on none", () => {
+  assert.deepEqual(groupsFor({ ...base, rop: true, ageYears: 0 }), ["rop"]);
+  assert.deepEqual(groupsFor({ ...base, lastInjectionDays: 90, condition: "Diabetic retinopathy / DME", lastLaserDays: 200 }), ["injection", "laser", "dr"]);
+  assert.deepEqual(groupsFor({ ...base, condition: "Retinal vein occlusion" }), ["retina"]);
+  assert.deepEqual(groupsFor({ ...base, lastInjectionDays: 400, lastLaserDays: 500 }), ["routine"], "old treatment alone is routine");
+  assert.deepEqual(groupsFor({ ...base, diabetes: true, condition: "Glaucoma / suspect" }), ["routine"]);
+  assert.deepEqual(groupsFor({ ...base, ageYears: 0 }), ["routine"], "an infant is on the ROP card only if ROP evidence says so");
 });
 console.log(`${passed} follow-up board checks passed`);

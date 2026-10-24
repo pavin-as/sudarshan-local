@@ -34,7 +34,7 @@ export function DoctorSummaryPage() {
       <header className="ds-head">
         <div className="ds-id">
           <h1>{p.name ?? "Patient"}</h1>
-          <div>{[p.mrd, p.ageYears != null && `${p.ageYears} years`, SEX[p.sex] ?? p.sex, p.language,
+          <div>{[p.mrd, p.ageYears != null && (p.ageText ?? `${p.ageYears} years`), SEX[p.sex] ?? p.sex, p.language,
                  `${p.visits} visit${p.visits === 1 ? "" : "s"}${p.firstVisit ? ` since ${p.firstVisit.slice(0, 4)}` : ""}`].filter(Boolean).join(" · ")}</div>
         </div>
         <div className="ds-today">

@@ -7,6 +7,7 @@ import { badRequest, conflict, notFound } from "../lib/errors.js";
 import { tempMrd } from "../services/tempMrd.js";
 import { can } from "../lib/permissions.js";
 import { dateStr, niceDate, timeStr } from "../lib/time.js";
+import { APPT_AGE_TEXT } from "../lib/text.js";
 import { doctorsOnDate } from "../services/calendar.js";
 import { FromGoogle, googleIsMaster, guardImported } from "../lib/trial.js";
 import { addEvent, checkPlacement, describe, setAuditSummary, whenText, type Override } from "../services/booking.js";
@@ -38,7 +39,7 @@ const LIVE_JOIN = `
 const APPT_COLS = `
   a.id, to_char(a.appointment_date,'YYYY-MM-DD') AS "date", to_char(a.slot_time,'HH24:MI') AS "slotTime",
   a.duration_min AS "durationMin", a.doctor_id AS "doctorId", d.name AS "doctorName",
-  a.patient_id AS "patientId", a.mrd, a.patient_name AS "patientName", a.phone, a.age_years AS "ageYears", a.gender,
+  a.patient_id AS "patientId", a.mrd, a.patient_name AS "patientName", a.phone, a.age_years AS "ageYears", ${APPT_AGE_TEXT} AS "ageText", a.gender,
   a.patient_type AS "patientType", a.appointment_type AS "appointmentType", a.plan_of_action AS "planOfAction",
   a.urgency, a.family_group AS "familyGroup", a.fixed_slot AS "fixedSlot", to_char(a.consult_start,'HH24:MI') AS "consultStart",
   a.tags, a.remarks, a.status, a.source, a.source_ref AS "sourceRef",

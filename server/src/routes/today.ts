@@ -5,6 +5,7 @@ import { z } from "zod";
 import { need } from "../auth.js";
 import { q } from "../db.js";
 import { addDays, dateStr, isoWeekday, todayIST } from "../lib/time.js";
+import { APPT_AGE_TEXT } from "../lib/text.js";
 import { matchAll } from "../services/arrivalMatch.js";
 import { checkDay, isNewPatient, loadDayAppts, loadRuleContext, procTags } from "../services/rules.js";
 
@@ -58,7 +59,7 @@ export async function todayRoutes(app: FastifyInstance) {
                 tm.room_in_at, tm.exam_start_at, tm.check_out_at, tm.last_move_at, ys.visit_id, ys.status_id, ys.first_at, ys.doctor
            FROM tm FULL JOIN ys ON ys.patient_id = tm.patient_id
           WHERE tm.check_in_at IS NOT NULL OR ys.status_id IN (1, 2, 3))
-       SELECT c.patient_id AS "patientId", p.name AS "patientName", p.mrd, p.age_years AS "ageYears", p.mobile AS phone, c.doctor,
+       SELECT c.patient_id AS "patientId", p.name AS "patientName", p.mrd, p.age_years AS "ageYears", p.age_text AS "ageText", p.mobile AS phone, c.doctor,
               to_char(coalesce(c.check_in_at, c.first_at), 'HH24:MI') AS "checkIn", to_char(c.check_out_at, 'HH24:MI') AS "checkOut",
               CASE WHEN c.check_out_at IS NOT NULL OR c.status_id = 3 THEN 'done'
                    WHEN c.exam_start_at IS NOT NULL OR c.status_id = 2 THEN 'with_doctor'
@@ -81,7 +82,7 @@ export async function todayRoutes(app: FastifyInstance) {
     // today's Sudarshan bookings with a time, and whether each patient has come
     const booked = (await q<any>(
       `SELECT a.id AS "appointmentId", to_char(a.slot_time,'HH24:MI') AS "slotTime", a.patient_id AS "patientId", a.patient_name AS "patientName",
-              a.mrd, a.age_years AS "ageYears", a.phone, a.plan_of_action AS "planOfAction", d.name AS doctor, a.status,
+              a.mrd, a.age_years AS "ageYears", ${APPT_AGE_TEXT} AS "ageText", a.phone, a.plan_of_action AS "planOfAction", d.name AS doctor, a.status,
               (a.confirmed_1day_at IS NOT NULL OR a.confirmed_4day_at IS NOT NULL) AS confirmed
          FROM app.appointments a LEFT JOIN app.doctors d ON d.id = a.doctor_id
         WHERE a.appointment_date = current_date AND a.slot_time IS NOT NULL AND a.status IN ('booked','confirmed','completed','no_show')
@@ -136,7 +137,7 @@ export async function todayRoutes(app: FastifyInstance) {
     const { date } = z.object({ date: dateStr.optional() }).parse(req.query);
     const day = date ?? await nextOpenDay(today);
     const rows = await q<any>(
-      `SELECT a.id, to_char(a.slot_time,'HH24:MI') AS "slotTime", a.patient_name AS "patientName", a.mrd, a.age_years AS "ageYears",
+      `SELECT a.id, to_char(a.slot_time,'HH24:MI') AS "slotTime", a.patient_name AS "patientName", a.mrd, a.age_years AS "ageYears", ${APPT_AGE_TEXT} AS "ageText",
               a.patient_type AS "patientType", a.plan_of_action AS "planOfAction", a.tags, a.remarks, a.status, a.family_group AS "familyGroup",
               d.name AS "doctorName", a.confirmed_4day_at IS NOT NULL AS "confirmed4day", a.confirmed_1day_at IS NOT NULL AS "confirmed1day"
          FROM app.appointments a LEFT JOIN app.doctors d ON d.id = a.doctor_id

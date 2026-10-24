@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import { niceDate } from "../format";
 
-export interface PickedPatient { patientId: number; mrd: string; name: string; ageYears: number | null; sex: string | null; mobile: string | null; lastVisit: string | null }
+export interface PickedPatient { patientId: number; mrd: string; name: string; ageYears: number | null; ageText?: string | null; sex: string | null; mobile: string | null; lastVisit: string | null }
 
 /** Find a Yarago patient by MRD, phone or name. */
 export function PatientPicker({ onPick, autoFocus }: { onPick: (p: PickedPatient) => void; autoFocus?: boolean }) {
@@ -46,7 +46,7 @@ export function PatientPicker({ onPick, autoFocus }: { onPick: (p: PickedPatient
           {results.map((p, i) => (
             <button key={p.patientId} type="button" className={i === hl ? "hl" : ""} onMouseDown={(e) => { e.preventDefault(); pick(p); }}>
               <b>{p.mrd}</b>
-              <span>{p.name} <span className="muted small">{[p.ageYears != null ? `${p.ageYears} y` : null, p.sex].filter(Boolean).join(", ")}</span></span>
+              <span>{p.name} <span className="muted small">{[p.ageYears != null ? (p.ageText ?? `${p.ageYears} y`) : null, p.sex].filter(Boolean).join(", ")}</span></span>
               <span className="muted small">{p.lastVisit ? `last ${niceDate(p.lastVisit)}` : "no visit yet"}</span>
             </button>
           ))}

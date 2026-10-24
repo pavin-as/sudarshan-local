@@ -23,7 +23,7 @@ function ApptCard({ a, onOpen, rules }: { a: Appointment; onOpen: () => void; ru
     <button className={`appt ${a.status}`} onClick={onOpen}>
       <div style={{ minWidth: 0 }}>
         <div className="appt-name">{a.patientName} <span className="muted small" style={{ fontWeight: 400 }}>{a.mrd ?? "new"}</span></div>
-        <div className="appt-sub">{[planText(a.planOfAction), a.doctorName, a.ageYears != null ? `${a.ageYears} y` : null].filter(Boolean).join(", ") || " "}
+        <div className="appt-sub">{[planText(a.planOfAction), a.doctorName, a.ageYears != null ? (a.ageText ?? `${a.ageYears} y`) : null].filter(Boolean).join(", ") || " "}
           {(a.tags.length > 0 || extra.length > 0) && <> <Tags tags={[...a.tags, ...extra]} /></>}</div>
       </div>
       <div className="appt-side">

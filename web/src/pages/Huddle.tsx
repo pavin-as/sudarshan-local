@@ -8,7 +8,7 @@ import { ErrorNotice, Loading, Tags } from "../components/ui";
 import { LEVEL_WORDS, RuleNotes } from "../components/RuleNotes";
 
 interface HuddleRow {
-  id: number; slotTime: string | null; patientName: string; mrd: string | null; ageYears: number | null; patientType: string | null;
+  id: number; slotTime: string | null; patientName: string; mrd: string | null; ageYears: number | null; ageText?: string | null; patientType: string | null;
   planOfAction: string | null; tags: string[]; remarks: string | null; status: string; familyGroup: string | null;
   doctorName: string | null; confirmed4day: boolean; confirmed1day: boolean;
 }
@@ -72,7 +72,7 @@ export function HuddlePage() {
             return (
               <tr key={a.id}>
                 <td className="nowrap"><b>{a.slotTime}</b></td>
-                <td><b>{a.patientName}</b> <span className="muted small">{a.mrd ?? "new"}{a.ageYears != null && `, ${a.ageYears} y`}</span>
+                <td><b>{a.patientName}</b> <span className="muted small">{a.mrd ?? "new"}{a.ageYears != null && `, ${a.ageText ?? `${a.ageYears} y`}`}</span>
                   {a.familyGroup && <div className="small muted">family {a.familyGroup}</div>}</td>
                 <td>{planText(a.planOfAction)}</td>
                 <td>{(a.tags.length > 0 || extra.length > 0) && <Tags tags={[...a.tags, ...extra]} />}</td>

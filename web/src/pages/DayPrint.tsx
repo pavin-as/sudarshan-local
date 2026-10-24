@@ -117,7 +117,7 @@ export function DayPrintPage() {
         <tr key={a.id}><td>{i + 1}</td><td>{a.slotTime ?? (a.status === "waitlist" ? "Waitlist" : "-")}</td>
           <td className={withOriginal && a.consultStart ? "moved" : ""}>{a.shownConsult ?? "-"}</td>
           {withOriginal && <td className="struck">{a.consultStart ?? "-"}</td>}
-          <td>{a.mrd ?? "-"}</td><td>{a.patientName}</td><td>{a.ageYears ?? "-"}</td><td>{a.gender ?? "-"}</td><td>{a.phone ?? "-"}</td>
+          <td>{a.mrd ?? "-"}</td><td>{a.patientName}</td><td>{a.ageText ?? a.ageYears ?? "-"}</td><td>{a.gender ?? "-"}</td><td>{a.phone ?? "-"}</td>
           <td>{a.patientType ?? "-"}</td><td>{a.appointmentType ?? "-"}</td><td>{a.doctorName ?? "-"}</td><td>{planShow(a.planOfAction)}</td><td>{a.remarks ?? "-"}</td></tr>))}
       </tbody>
     </table>);

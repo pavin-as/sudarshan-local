@@ -14,6 +14,7 @@ import { userRoutes } from "./routes/users.js";
 import { calendarRoutes } from "./routes/calendar.js";
 import { appointmentRoutes } from "./routes/appointments.js";
 import { patientRoutes } from "./routes/patients.js";
+import { patientGroupRoutes } from "./routes/patientGroups.js";
 import { summaryRoutes } from "./routes/summary.js";
 import { emrRoutes } from "./routes/emr.js";
 import { printRoutes } from "./routes/print.js";
@@ -104,6 +105,7 @@ export async function buildApp(opts: { logger?: boolean } = {}): Promise<Fastify
   await app.register(calendarRoutes);
   await app.register(appointmentRoutes);
   await app.register(patientRoutes);
+  await app.register(patientGroupRoutes);
   await app.register(summaryRoutes);
   await app.register(emrRoutes);
   await app.register(printRoutes);

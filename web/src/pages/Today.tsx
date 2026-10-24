@@ -14,7 +14,7 @@ import { useCancelList } from "./CancelList";
 
 /** One patient who came today (per patient, from Yarago), with their Sudarshan booking if any. */
 interface Came {
-  patientId: number; patientName: string | null; mrd: string | null; ageYears: number | null; phone: string | null; doctor: string | null;
+  patientId: number; patientName: string | null; mrd: string | null; ageYears: number | null; ageText?: string | null; phone: string | null; doctor: string | null;
   checkIn: string | null; checkOut: string | null; stage: LiveStage; minutesIn: number; minutesAtStage: number;
   totalMin: number | null; appointmentId: number | null; slotTime: string | null; planOfAction: string | null; hasBooking: boolean;
   /** false = matched by MRD or mobile + name, the booking is not linked to this Yarago patient yet */
@@ -22,7 +22,7 @@ interface Came {
 }
 /** One Sudarshan booking for today with a time. */
 interface Booked {
-  appointmentId: number; slotTime: string; patientId: number | null; patientName: string; mrd: string | null; ageYears: number | null;
+  appointmentId: number; slotTime: string; patientId: number | null; patientName: string; mrd: string | null; ageYears: number | null; ageText?: string | null;
   phone: string | null; planOfAction: string | null; doctor: string | null; status: string; confirmed: boolean;
   arrival: "arrived" | "not_arrived" | "unknown"; cameId: number | null;
 }
@@ -64,7 +64,7 @@ function TodayList({ data, which, onClose, onOpenAppt }: { data: TodayData; whic
           <thead><tr><th>Slot</th><th>Patient</th><th>Age</th><th>Phone</th><th>Plan</th><th>Doctor</th><th>Arrival</th></tr></thead>
           <tbody>{rowsB.map((x) => { const v = x.cameId != null ? came.get(x.cameId) : undefined; return (
             <tr key={x.appointmentId} className="clickable" onClick={(e) => { if (!(e.target as HTMLElement).closest("a")) onOpenAppt(x.appointmentId); }}>
-              <td className="nowrap">{x.slotTime}</td><td>{who(x.patientId, x.patientName, x.mrd)}</td><td>{x.ageYears ?? "-"}</td>
+              <td className="nowrap">{x.slotTime}</td><td>{who(x.patientId, x.patientName, x.mrd)}</td><td>{x.ageText ?? x.ageYears ?? "-"}</td>
               <td className="nowrap">{x.phone ? <a href={`tel:${x.phone}`}>{x.phone}</a> : "-"}</td>
               <td className="small">{planText(x.planOfAction) || "-"}</td><td className="small">{x.doctor ?? "-"}</td>
               <td className="small nowrap">{x.arrival === "unknown" ? <span className="muted">not linked to Yarago</span>
@@ -77,7 +77,7 @@ function TodayList({ data, which, onClose, onOpenAppt }: { data: TodayData; whic
           <thead><tr><th>Patient</th><th>Age</th><th>Booked</th><th>Checked in</th><th>{which === "came_in" ? "Now" : "Checked out / now"}</th><th>In clinic</th><th>Doctor</th><th>Plan</th></tr></thead>
           <tbody>{rowsC.map((v) => (
             <tr key={v.patientId} className="clickable" onClick={(e) => { if ((e.target as HTMLElement).closest("a")) return; v.appointmentId ? onOpenAppt(v.appointmentId) : undefined; }}>
-              <td>{who(v.patientId, v.patientName, v.mrd)}</td><td>{v.ageYears ?? "-"}</td>
+              <td>{who(v.patientId, v.patientName, v.mrd)}</td><td>{v.ageText ?? v.ageYears ?? "-"}</td>
               <td className="nowrap small">{v.hasBooking ? <>{v.slotTime ?? "waitlist"}{v.bookingLinked === false && <div className="muted" title="Booked earlier as a new patient; not linked to this Yarago record yet">not linked yet</div>}</> : <span className="muted">no booking</span>}</td>
               <td className="nowrap">{v.checkIn ?? "-"}</td>
               <td>{v.stage === "done" ? <span className="nowrap">{v.checkOut ?? "completed"}</span> : <StageTrack stage={v.stage} />}</td>
