@@ -440,6 +440,20 @@ D-040's "the photograph is never stored" for Remidio photographs (uploaded photo
 - **Remidio's own reports are not imported** (only one SPD patient has one; the March 2026 batch can be used later to measure
   the AI). Staff stop reporting in Remidio Connect.
 
+### D-043 · 2026-10-25 · Accepted · Pavin ("start step 1: the local evaluation harness ... and the Phase 01 report"); Claude chose the method
+**The retina AI is measured on frozen evaluation sets of Sampada's own Remidio photographs, against the doctor's blinded
+grade from the Sudarshan fundus report, per model, with patient-level bootstrap intervals.**
+- Reference grade copied into the set when it is made (`app.eval_set_items`); frozen sets never change and are never
+  removed (trigger), so every model (now Arko007, later RFM and others) is compared on identical images.
+- Metrics and method: AI_EVALUATION.md section 2 (referable DR = grade 2 or worse; AUROC from p2+p3+p4; 2000 patient
+  resamples, seed 20261025). Cautions shown with every figure when the set is too small.
+- Making, freezing and discarding sets: admin (`retina_ai.use` + `settings.manage`); reading results: `retina_ai.use`.
+- Export: CSV with set codes (P001-RE-01) and month only; AI grades in it are logged as shown to the exporter.
+- Public datasets (IDRiD test, Messidor-2, APTOS) are measured from the console (`cli retina-eval-external`) and never
+  stored in the database (not Sampada patients).
+- **Phase 01 conclusion (AI_EVALUATION.md section 1):** the existing model's original benchmark cannot be reproduced:
+  none was ever published (no metrics, no split, no training code, checkpoint selection unknown).
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

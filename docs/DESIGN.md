@@ -124,6 +124,12 @@ the signer's (or corrector's) `dr_doctor_grades` row on that eye's AI gradings, 
 the report's transaction and again from `gradeNewPhotos` when a photograph is graded after its report. Screen
 `pages/FundusReports.tsx` (page, `PatientFundus` for the patient page, session drawer, report form).
 
+### Retina AI evaluation (D-043)
+`services/evaluation.ts` is pure (metrics, seeded patient-level bootstrap, Markdown report, CSV) and shared by the web
+routes (`routes/evaluation.ts`, sets of Sampada photographs) and the console (`services/evalExternal.ts`, public
+datasets). A model is identified by `dr_gradings.model_sha256`; results list every model that graded the set's photographs,
+so a second grader appears without code changes. Method and data needs: AI_EVALUATION.md.
+
 ### Adding a feature (checklist)
 1. Read DECISIONS.md and COMPLIANCE.md; if the feature conflicts, ask first.
 2. Migration (if needed) + SCHEMA.md; audit triggers for new tables.

@@ -4,11 +4,13 @@
 //   node dist/cli.js create-user <username> "<Full name>" <role>
 //   node dist/cli.js retina-batch [<folder>] [--graded-by <username>] [--dry-run] [--no-move]   -> grade a folder (D-040)
 //   node dist/cli.js retina-remidio-import [<folder>] [--dry-run] [--all]   -> keep photographs downloaded from Remidio Connect (D-041)
+//   node dist/cli.js retina-eval-external <folder> --labels <csv> [--name <name>] [--out <folder>]   -> benchmark on a public dataset (D-043)
 import { pool, withTx } from "./db.js";
 import { hashPassword, temporaryPassword } from "./lib/passwords.js";
 import { ROLES } from "./lib/permissions.js";
 import { runBatch } from "./services/retinaImport.js";
 import { importDownloads } from "./services/remidioImport.js";
+import { evaluateExternal } from "./services/evalExternal.js";
 
 const GRADER_DIR = "D:\\classification\\sampada-retinal-ai";
 const flag = (name: string) => args.includes(name);
@@ -57,9 +59,16 @@ async function main() {
       await importDownloads({ folder, dryRun: flag("--dry-run"), all: flag("--all") });
       return;
     }
+    case "retina-eval-external": {
+      const labels = option("--labels");
+      if (!args[0] || args[0].startsWith("--") || !labels) throw new Error("usage: retina-eval-external <image folder> --labels <labels.csv> [--name <name>] [--out <folder>]");
+      await evaluateExternal({ folder: args[0], labels, name: option("--name"), out: option("--out") });
+      return;
+    }
     default:
       console.log("commands: list-users | temp-password <username> | create-user <username> \"<Full name>\" <role>"
-        + " | retina-batch [<folder>] [--graded-by <username>] [--dry-run] [--no-move] | retina-remidio-import [<folder>] [--dry-run] [--all]");
+        + " | retina-batch [<folder>] [--graded-by <username>] [--dry-run] [--no-move] | retina-remidio-import [<folder>] [--dry-run] [--all]"
+        + " | retina-eval-external <folder> --labels <csv> [--name <name>] [--out <folder>]");
   }
 }
 

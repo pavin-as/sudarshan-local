@@ -5,6 +5,17 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Retina AI > Evaluation: measure the AI properly** (D-043). An admin makes an evaluation set from reported Remidio
+  photographs (the doctor's grade of each eye, blinded by default; options for dates, quality and macula-centred only),
+  sees how many images and referable eyes it holds, then freezes it. For each model the tab shows referable-DR
+  sensitivity and specificity, AUROC, kappa, macro-F1, per-grade recall with 95% intervals and the confusion matrix, with
+  plain warnings while the set is too small; "Download report" gives a written report, "Download CSV" one row per image
+  without names, MRDs or dates. A console command measures the model on public datasets such as the IDRiD test set. The
+  Phase 01 report is in `docs/AI_EVALUATION.md`: the existing model's benchmark cannot be reproduced because none was ever
+  published. Technical: migration `0022_eval_sets.sql` (`app.eval_sets`, `app.eval_set_items`, frozen guard);
+  `services/evaluation.ts` (metrics, patient-level bootstrap, report, CSV), `routes/evaluation.ts`
+  (`/api/retina-ai/eval/...`), `services/evalExternal.ts` (`cli retina-eval-external`); tests: 7 without a database
+  (`test/evaluation.unit.test.ts`, in `test:rules`), 3 more API checks in `test/fundus.test.ts`.
 - **Fundus reports: doctors report Remidio photographs in Sudarshan** (D-042). New menu item "Fundus reports" lists each
   patient's photo session with its photographs; doctors see how many are waiting. Opening one shows the photographs large
   and the report form: per eye the DR grade, macular oedema and other findings, then referral and comments. Saving signs it

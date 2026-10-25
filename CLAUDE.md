@@ -8,7 +8,8 @@ Being rebuilt from Google Apps Script (snapshot in `legacy/sudarshan/`) as a loc
 2. `docs/DECISIONS.md` - what has been decided and why. Do not work around a decision; ask Pavin.
 3. `docs/COMPLIANCE.md` - privacy, security and clinical-safety rules (binding).
 4. The document for your task: `docs/PLAN.md` (the plan), `docs/SCHEMA.md` (database), `docs/DESIGN.md`
-   (code structure and interface), `docs/TESTING.md` (checks and definition of done), `docs/RUNBOOK.md` (running shichika).
+   (code structure and interface), `docs/TESTING.md` (checks and definition of done), `docs/RUNBOOK.md` (running shichika),
+   `docs/AI_EVALUATION.md` (how the retina AI is measured).
 After a change: add a `docs/CHANGELOG.md` entry, tick `docs/STATUS.md`, and update SCHEMA/DESIGN/DECISIONS if affected.
 
 ## Hard rules

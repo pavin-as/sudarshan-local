@@ -18,12 +18,17 @@ console.log(`test database: ${(await pool.query("SELECT current_database() AS d"
 const photoDir = mkdtempSync(path.join(tmpdir(), "zz-fundus-rep-"));
 Object.assign(config.retinaAi, { photoDir, key: "fake-grader-key" });
 setGraderTransport(async (_m, p) => p === "/health" ? { status: 200, data: { model_loaded: true } }
-  : { status: 200, data: { grade: 2, probs: [0.1, 0.1, 0.6, 0.1, 0.1], raw: [0.1, 0.1, 0.6, 0.1, 0.1], calibration: "native_probabilities" } });
+  : { status: 200, data: { grade: 2, probs: [0.1, 0.1, 0.6, 0.1, 0.1], raw: [0.1, 0.1, 0.6, 0.1, 0.1], calibration: "native_probabilities",
+                           model_repo: "zz/fake-model", model_sha256: "ab".repeat(32) } });
 
 const PID = 990000103, MRD = "SPD99902", IDS = "remidio_image_id BETWEEN 9900101 AND 9900199";
 const JPEG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(1000, 3)]);
 async function cleanup() {
   await pool.query(`BEGIN; SET LOCAL app.skip_audit = 'on';
+    ALTER TABLE app.eval_set_items DISABLE TRIGGER eval_frozen_guard; ALTER TABLE app.eval_sets DISABLE TRIGGER eval_frozen_guard;
+    DELETE FROM app.eval_set_items WHERE set_id IN (SELECT id FROM app.eval_sets WHERE name LIKE 'ZZ%');
+    DELETE FROM app.eval_sets WHERE name LIKE 'ZZ%';
+    ALTER TABLE app.eval_set_items ENABLE TRIGGER eval_frozen_guard; ALTER TABLE app.eval_sets ENABLE TRIGGER eval_frozen_guard;
     ALTER TABLE app.dr_gradings DISABLE TRIGGER dr_gradings_guard; ALTER TABLE app.fundus_photos DISABLE TRIGGER fundus_photos_guard;
     ALTER TABLE app.fundus_reports DISABLE TRIGGER fundus_reports_guard;
     DELETE FROM app.dr_doctor_grades WHERE grading_id IN (SELECT id FROM app.dr_gradings WHERE photo_id IN (SELECT id FROM app.fundus_photos WHERE ${IDS}));
@@ -57,8 +62,8 @@ const photo = async (rid: number, eye: string) => {
     VALUES ($1, 9900150, $2, $3, $4, 'MACULA', 'SUFFICIENT', $5, $6, 'x', $7) RETURNING id`, [rid, MRD, PID, eye, taken, JPEG.length, path.join("2026", "10", `${rid}.jpg`)])).rows[0].id);
 };
 const reId = await photo(9900101, "RE"), leId = await photo(9900102, "LE");
-const reGrading = Number((await pool.query(`INSERT INTO app.dr_gradings (patient_id, mrd, eye, source, photo_id, status, ai_grade, probs)
-  VALUES ($1, $2, 'RE', 'remidio', $3, 'ok', 1, '{0.1,0.6,0.1,0.1,0.1}') RETURNING id`, [PID, MRD, reId])).rows[0].id);
+const reGrading = Number((await pool.query(`INSERT INTO app.dr_gradings (patient_id, mrd, eye, source, photo_id, status, ai_grade, probs, model_repo, model_sha256)
+  VALUES ($1, $2, 'RE', 'remidio', $3, 'ok', 1, '{0.1,0.6,0.1,0.1,0.1}', 'zz/fake-model', $4) RETURNING id`, [PID, MRD, reId, "ab".repeat(32)])).rows[0].id);
 
 const app = await buildApp({ logger: !!process.env.TEST_LOG });
 let passed = 0;
@@ -126,6 +131,40 @@ try {
     await assert.rejects(pool.query(`DELETE FROM app.fundus_reports WHERE id = $1`, [reportId]), /cannot be removed/);
     await assert.rejects(pool.query(`UPDATE app.fundus_reports SET patient_id = 1 WHERE id = $1`, [reportId]), /cannot change/);
     await assert.rejects(pool.query(`UPDATE app.fundus_reports SET comments = 'x' WHERE id = $1`, [reportId]), /needs a reason/);
+  });
+  // ---------- evaluation sets (D-043) ----------
+  let setId = 0;
+  await step("evaluation set: preview, made by admin only, codes instead of identities, reference copied from the report", async () => {
+    const pre = (await call("GET", `/api/retina-ai/eval/candidates?blindedOnly=false&from=2026-10-24&to=2026-10-24`, doc)).body;
+    assert.ok(pre.images >= 2 && pre.byGrade[3] >= 1, "right eye severe (corrected), left eye no DR");
+    assert.equal((await call("POST", "/api/retina-ai/eval/sets", doc, { name: "ZZ eval set", from: "2026-10-24", to: "2026-10-24", blindedOnly: false })).status, 403);
+    const r = await call("POST", "/api/retina-ai/eval/sets", admin, { name: "ZZ eval set", from: "2026-10-24", to: "2026-10-24", blindedOnly: false });
+    assert.equal(r.status, 200); setId = r.body.id;
+    const items = (await pool.query(`SELECT image_code, patient_code, eye, reference_grade FROM app.eval_set_items WHERE set_id = $1 AND patient_id = $2 ORDER BY image_code`, [setId, PID])).rows;
+    assert.deepEqual(items.map((x) => [x.eye, x.reference_grade]), [["LE", 0], ["RE", 3]]);
+    assert.match(items[0].image_code, /^P\d{3}-LE-01$/); assert.equal(items[0].patient_code, items[1].patient_code);
+  });
+  await step("results per model with intervals; report says DRAFT until frozen; CSV has codes, no names or MRDs, and logs the AI grades shown", async () => {
+    const res = (await call("GET", `/api/retina-ai/eval/sets/${setId}/results`, doc)).body;
+    const m = res.models.find((x: any) => x.repo === "zz/fake-model");
+    assert.ok(m && m.evaluation.metrics.n >= 2 && Array.isArray(m.evaluation.metrics.confusion) && m.evaluation.cautions.length > 0);
+    const md = await app.inject({ method: "GET", url: `/api/retina-ai/eval/sets/${setId}/report.md?model=${"ab".repeat(32)}`, headers: { cookie: doc } });
+    assert.equal(md.statusCode, 200); assert.match(md.body, /DRAFT \(not frozen\)/); assert.match(md.body, /Research use only/);
+    const before = Number((await pool.query(`SELECT count(*) n FROM app.dr_grading_views WHERE user_id = $1`, [await docId("zz_test_fun_doc")])).rows[0].n);
+    const csv = await app.inject({ method: "GET", url: `/api/retina-ai/eval/sets/${setId}/export.csv?model=${"ab".repeat(32)}`, headers: { cookie: doc } });
+    assert.equal(csv.statusCode, 200); assert.match(csv.body, /^image_code,patient_code,eye/); assert.match(csv.body, /P\d{3}-RE-01/);
+    assert.doesNotMatch(csv.body, /SPD99902|ZZ Test|Fundus|2026-10-24/, "no MRD, name or exact date");
+    assert.ok(Number((await pool.query(`SELECT count(*) n FROM app.dr_grading_views WHERE user_id = $1`, [await docId("zz_test_fun_doc")])).rows[0].n) > before);
+    assert.equal((await call("GET", `/api/retina-ai/eval/sets/${setId}/results`, opt)).status, 403, "optometrists do not see AI figures");
+  });
+  await step("a frozen set never changes and is never removed", async () => {
+    assert.equal((await call("POST", `/api/retina-ai/eval/sets/${setId}/freeze`, admin)).status, 200);
+    assert.equal((await call("DELETE", `/api/retina-ai/eval/sets/${setId}`, admin)).status, 409);
+    await assert.rejects(pool.query(`UPDATE app.eval_set_items SET reference_grade = 0 WHERE set_id = $1`, [setId]), /frozen/);
+    await assert.rejects(pool.query(`DELETE FROM app.eval_set_items WHERE set_id = $1`, [setId]), /frozen/);
+    await assert.rejects(pool.query(`UPDATE app.eval_sets SET frozen_at = NULL WHERE id = $1`, [setId]), /frozen/);
+    const md = await app.inject({ method: "GET", url: `/api/retina-ai/eval/sets/${setId}/report.md`, headers: { cookie: doc } });
+    assert.match(md.body, /frozen \d{4}-\d{2}-\d{2} by ZZ Fun Admin/);
   });
   await step("the activity log has the report sentences", async () => {
     const n = Number((await pool.query(`SELECT count(*) n FROM app.audit_feed WHERE entity_type = 'fundus_reports' AND summary LIKE '%fundus report of ZZ Test Fundus (SPD99902)%'`)).rows[0].n);

@@ -51,8 +51,9 @@ const photoLabel = (p: { patientName?: string | null; mrd?: string | null; mrn?:
    p.quality && (p.quality === "SUFFICIENT" ? "quality sufficient" : "quality INSUFFICIENT"), p.capturedAt && stamp(p.capturedAt)].filter(Boolean).join(" · ");
 interface DoctorGrade { grade: number | null; ungradable: boolean; note: string; blinded: boolean; at: string; by: string; mine: boolean }
 
-type Tab = "grade" | "todo" | "photos" | "records" | "agreement" | "system";
-const TABS: [Tab, string][] = [["grade", "Grade a photograph"], ["todo", "To grade"], ["photos", "Photographs"], ["records", "Records"], ["agreement", "Agreement"], ["system", "System"]];
+type Tab = "grade" | "todo" | "photos" | "records" | "agreement" | "evaluation" | "system";
+const TABS: [Tab, string][] = [["grade", "Grade a photograph"], ["todo", "To grade"], ["photos", "Photographs"], ["records", "Records"],
+  ["agreement", "Agreement"], ["evaluation", "Evaluation"], ["system", "System"]];
 
 const gradeWords = (g: number | null | undefined) => (g == null ? "—" : `${g} · ${GRADES[g]}`);
 const pct = (x: number | null | undefined) => (x == null ? "—" : `${(x * 100).toFixed(1)}%`);
@@ -90,6 +91,7 @@ export function RetinaAiPage() {
       {tab === "photos" && <PhotosTab />}
       {tab === "records" && <RecordsTab />}
       {tab === "agreement" && <AgreementTab />}
+      {tab === "evaluation" && <EvaluationTab />}
       {tab === "system" && <SystemTab />}
     </div>
   );
@@ -430,6 +432,159 @@ function AgreementTab() {
         </>}
       </div>}
     </section>
+  );
+}
+
+// ---------- evaluation sets (D-043) ----------
+type Interval = [number, number] | null;
+interface EvalResult {
+  metrics: { n: number; patients: number; confusion: number[][]; accuracy: number | null; withinOne: number | null; macroF1: number | null; kappa: number | null; auroc: number | null;
+             perClass: { grade: number; reference: number; recall: number | null; precision: number | null; specificity: number | null; f1: number }[];
+             referable: { tp: number; fn: number; fp: number; tn: number; positives: number; negatives: number; sensitivity: number | null; specificity: number | null; ppv: number | null; npv: number | null } };
+  intervals: Record<string, Interval>; cautions: string[]; bootstrap: { resamples: number; seed: number };
+}
+interface EvalSet { id: number; name: string; notes: string; criteria: any; createdAt: string; frozenAt: string | null; images: number; patients: number }
+const ciText = (i: Interval, f: (x: number) => string) => (i ? ` (${f(i[0])} to ${f(i[1])})` : "");
+const d3 = (x: number | null | undefined) => (x == null ? "—" : x.toFixed(2));
+
+function EvaluationTab() {
+  const { can } = useAuth();
+  const admin = can("settings.manage");
+  const sets = useQuery({ queryKey: ["retina", "eval", "sets"], queryFn: () => api<{ sets: EvalSet[] }>("/retina-ai/eval/sets") });
+  const [open, setOpen] = useState<number | null>(null);
+  const [making, setMaking] = useState(false);
+  const chosen = open ?? sets.data?.sets[0]?.id ?? null;
+  return (
+    <div className="stack" style={{ gap: "1rem" }}>
+      <section className="panel">
+        <div className="panel-head"><h2 className="grow">Evaluation sets</h2>
+          {admin && !making && <button onClick={() => setMaking(true)}>New evaluation set</button>}</div>
+        <div className="panel-pad muted small" style={{ paddingBottom: 0 }}>A set fixes which photographs, and which doctor's grade of each, every model is measured on.
+          Freeze it before reporting figures: a frozen set never changes. The reference is the doctor's fundus report.</div>
+        {making && <NewEvalSet onDone={(id) => { setMaking(false); if (id) setOpen(id); }} />}
+        {sets.error ? <div className="panel-pad"><ErrorNotice error={sets.error} /></div> : !sets.data ? <Loading /> : !sets.data.sets.length
+          ? <div className="empty">No evaluation set yet.{admin ? " Make one once doctors have reported some photographs." : ""}</div>
+          : <table className="list"><thead><tr><th>Set</th><th>Images</th><th>Patients</th><th>Made</th><th>State</th></tr></thead>
+              <tbody>{sets.data.sets.map((s) => (
+                <tr key={s.id} className="clickable" onClick={() => setOpen(s.id)} style={s.id === chosen ? { background: "var(--action-soft)" } : undefined}>
+                  <td><b>{s.name}</b>{s.notes && <div className="muted small">{s.notes}</div>}</td><td>{s.images}</td><td>{s.patients}</td>
+                  <td className="nowrap small">{stamp(s.createdAt)}</td>
+                  <td>{s.frozenAt ? <span className="pill completed">Frozen {niceDate(s.frozenAt.slice(0, 10), true)}</span> : <span className="pill waitlist">Draft</span>}</td></tr>))}
+              </tbody></table>}
+      </section>
+      {chosen && <EvalSetResults id={chosen} onGone={() => setOpen(null)} />}
+    </div>
+  );
+}
+
+function NewEvalSet({ onDone }: { onDone: (id: number | null) => void }) {
+  const toast = useToast();
+  const qc = useQueryClient();
+  const [name, setName] = useState("");
+  const [notes, setNotes] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [blindedOnly, setBlinded] = useState(true);
+  const [excludePoor, setPoor] = useState(false);
+  const [maculaOnly, setMacula] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const [busy, setBusy] = useState(false);
+  const qs = new URLSearchParams(Object.entries({ from, to, blindedOnly: String(blindedOnly), excludePoor: String(excludePoor), maculaOnly: String(maculaOnly) }).filter(([, v]) => v)).toString();
+  const preview = useQuery({ queryKey: ["retina", "eval", "candidates", qs], queryFn: () => api<any>(`/retina-ai/eval/candidates?${qs}`) });
+  const p = preview.data;
+  const make = async () => {
+    setBusy(true); setError(null);
+    try {
+      const r = await api<{ id: number }>("/retina-ai/eval/sets", { body: { name, notes, from: from || undefined, to: to || undefined, blindedOnly, excludePoor, maculaOnly } });
+      toast(`Draft set "${name}" made`); await qc.invalidateQueries({ queryKey: ["retina", "eval"] }); onDone(r.id);
+    } catch (e) { setError(e); } finally { setBusy(false); }
+  };
+  return (
+    <div className="panel-pad stack">
+      <div className="fields">
+        <label className="field"><span>Name</span><input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Test set 2026 Q4" maxLength={80} /></label>
+        <label className="field"><span>Photographs from</span><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
+        <label className="field"><span>to</span><input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
+        <label className="field wide"><span>Notes (optional)</span><input value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} /></label>
+      </div>
+      <label className="row small"><input type="checkbox" checked={blindedOnly} onChange={(e) => setBlinded(e.target.checked)} /> Only grades the doctor gave before seeing the AI grade (recommended)</label>
+      <label className="row small"><input type="checkbox" checked={excludePoor} onChange={(e) => setPoor(e.target.checked)} /> Leave out photographs Remidio marked insufficient quality</label>
+      <label className="row small"><input type="checkbox" checked={maculaOnly} onChange={(e) => setMacula(e.target.checked)} /> Macula-centred photographs only (the model was trained on these)</label>
+      {preview.error ? <ErrorNotice error={preview.error} /> : p && <div className="notice">
+        This set would hold <b>{p.images}</b> eye images of <b>{p.patients}</b> patients: by the doctor's grade {p.byGrade.map((n: number, g: number) => `${g}: ${n}`).join(", ")}
+        {p.ungradable ? `, ${p.ungradable} not gradable` : ""}; <b>{p.referable}</b> referable (grade 2 or worse).
+        {(p.left.notBlinded + p.left.poorQuality + p.left.notMacula) > 0 && <> Left out by the rules: {[p.left.notBlinded && `${p.left.notBlinded} graded after seeing the AI`, p.left.poorQuality && `${p.left.poorQuality} poor quality`, p.left.notMacula && `${p.left.notMacula} not macula-centred`].filter(Boolean).join(", ")}.</>}
+      </div>}
+      <ErrorNotice error={error} />
+      <div className="row"><span className="grow" /><button onClick={() => onDone(null)}>Cancel</button>
+        <button className="btn-primary" disabled={busy || name.trim().length < 3 || !p?.images} onClick={() => void make()}>Make draft set</button></div>
+    </div>
+  );
+}
+
+function EvalSetResults({ id, onGone }: { id: number; onGone: () => void }) {
+  const { can } = useAuth();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["retina", "eval", "results", id], queryFn: () => api<{ set: EvalSet & { frozenBy: string | null; createdBy: string }; reference: { ungradable: number; notBlinded: number; byGrade: number[] }; models: any[] }>(`/retina-ai/eval/sets/${id}/results`) });
+  const [confirm, setConfirm] = useState<"freeze" | "discard" | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  if (q.error) return <ErrorNotice error={q.error} />;
+  if (!q.data) return <Loading />;
+  const { set, reference, models } = q.data;
+  const act = async (what: "freeze" | "discard") => {
+    setError(null);
+    try {
+      if (what === "freeze") await api(`/retina-ai/eval/sets/${id}/freeze`, { method: "POST" });
+      else await api(`/retina-ai/eval/sets/${id}`, { method: "DELETE" });
+      toast(what === "freeze" ? "Set frozen: it can no longer change" : "Draft discarded");
+      setConfirm(null); await qc.invalidateQueries({ queryKey: ["retina", "eval"] }); if (what === "discard") onGone();
+    } catch (e) { setError(e); }
+  };
+  return (
+    <section className="panel panel-pad stack">
+      <div className="row"><h2 className="grow">{set.name}</h2>
+        {set.frozenAt ? <span className="pill completed">Frozen {stamp(set.frozenAt)} by {set.frozenBy}</span> : <span className="pill waitlist">Draft: figures may change until frozen</span>}</div>
+      <div className="small muted">{set.images} eye images of {set.patients} patients. Doctor's grades: {reference.byGrade.map((n, g) => `${g}: ${n}`).join(", ")}
+        {reference.ungradable ? `; ${reference.ungradable} not gradable (left out)` : ""}{reference.notBlinded ? `; ${reference.notBlinded} graded after seeing the AI` : ""}. Made by {set.createdBy}, {stamp(set.createdAt)}.</div>
+      {can("settings.manage") && !set.frozenAt && (confirm
+        ? <div className="row"><div className="notice grow">{confirm === "freeze" ? "Freeze this set? Its photographs and reference grades will never change again." : "Discard this draft set?"}</div>
+            <button onClick={() => setConfirm(null)}>Back</button>
+            <button className={confirm === "freeze" ? "btn-primary" : "btn-danger"} onClick={() => void act(confirm)}>{confirm === "freeze" ? "Yes, freeze" : "Yes, discard"}</button></div>
+        : <div className="row"><button className="btn-primary" onClick={() => setConfirm("freeze")}>Freeze this set</button><button className="btn-danger" onClick={() => setConfirm("discard")}>Discard draft</button></div>)}
+      <ErrorNotice error={error} />
+      {!models.length ? <div className="empty">No model has graded these photographs yet.</div> : models.map((m) => <ModelResult key={m.sha} setId={id} m={m} />)}
+    </section>
+  );
+}
+
+function ModelResult({ setId, m }: { setId: number; m: any }) {
+  const e: EvalResult = m.evaluation, x = e.metrics, i = e.intervals;
+  const p = (v: number | null | undefined) => pct(v ?? null);
+  return (
+    <div className="panel panel-pad stack" style={{ borderLeft: "4px solid var(--choroid)" }}>
+      <div className="row"><h3 className="grow">{m.repo ?? "Model"} <span className="muted small">weights {String(m.sha).slice(0, 12)}…, {m.graded} graded{m.notGraded ? `, ${m.notGraded} not graded by it` : ""}</span></h3>
+        <a className="btn btn-small" href={`/api/retina-ai/eval/sets/${setId}/report.md?model=${m.sha}`}>Download report</a>
+        <a className="btn btn-small" href={`/api/retina-ai/eval/sets/${setId}/export.csv?model=${m.sha}`}>Download CSV (no names)</a></div>
+      {e.cautions.map((c) => <div key={c} className="notice">{c}</div>)}
+      <div className="stat-strip">
+        <div className="stat"><b>{p(x.referable.sensitivity)}</b><span>referable DR found{ciText(i.sensitivity, pct)}; {x.referable.tp} of {x.referable.positives}</span></div>
+        <div className="stat"><b>{p(x.referable.specificity)}</b><span>no referable DR, AI agreed{ciText(i.specificity, pct)}; {x.referable.tn} of {x.referable.negatives}</span></div>
+        <div className="stat"><b>{d3(x.auroc)}</b><span>AUROC, referable{ciText(i.auroc, d3)}</span></div>
+        <div className="stat"><b>{d3(x.kappa)}</b><span>weighted kappa{ciText(i.kappa, d3)}</span></div>
+        <div className="stat"><b>{d3(x.macroF1)}</b><span>macro-F1{ciText(i.macroF1, d3)}</span></div>
+        <div className="stat"><b>{p(x.accuracy)}</b><span>same grade{ciText(i.accuracy, pct)}</span></div>
+      </div>
+      <div className="scroll-x"><table className="list compact">
+        <thead><tr><th>Doctor's grade</th><th>Images</th><th>Recall</th><th>Precision</th><th>Specificity</th>{[0, 1, 2, 3, 4].map((g) => <th key={g}>AI {g}</th>)}</tr></thead>
+        <tbody>{x.perClass.map((c) => (
+          <tr key={c.grade}><th>{c.grade} · {GRADES[c.grade]}</th><td>{c.reference}</td><td>{p(c.recall)}<span className="muted small">{ciText(i[`recall${c.grade}`], pct)}</span></td>
+            <td>{p(c.precision)}</td><td>{p(c.specificity)}</td>
+            {x.confusion[c.grade].map((n, g) => <td key={g} style={g === c.grade ? { fontWeight: 700, background: "var(--action-soft)" } : undefined}>{n || ""}</td>)}</tr>))}</tbody>
+      </table></div>
+      <div className="muted small">Referable DR = grade 2 or worse. 95% intervals in brackets: {e.bootstrap.resamples} resamples of whole patients, seed {e.bootstrap.seed}.
+        Research use only: these figures do not make the model fit for clinical use.</div>
+    </div>
   );
 }
 

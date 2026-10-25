@@ -180,6 +180,13 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       reports" and the patient page; clinical roles read; corrections need a reason; grades feed Retina AI agreement.
       Migration 0021. 17 checks without a database pass; `test/fundus.test.ts` (7) and a browser check need the test database.
 - [ ] Pavin: `update.ps1` to deploy; tell the doctors to report in Sudarshan (Fundus reports), not in Remidio Connect.
+- [x] Step 1 of the AI plan (25 Oct, D-043): evaluation harness (Retina AI > Evaluation: frozen sets, per-model metrics
+      with patient-level 95% intervals, report, CSV without names) and console benchmark on public datasets; Phase 01
+      report in AI_EVALUATION.md (original benchmark cannot be reproduced: none was published). Migration 0022.
+      On 25 Oct: 2 photographs, 0 doctor reports, so no local figures yet.
+- [ ] Pavin: `update.ps1`; download IDRiD "B. Disease Grading" and run the IDRiD test check (RUNBOOK 12); doctors report
+      every FOP session in Sudarshan; photograph known DR patients on the FOP to reach ~100 referable eyes.
+- [ ] Pavin + legal: RFM weights licence (DINOv3) and loading `.pt` weights safely, before step 2.
 - [ ] Pavin to decide: use the March batch (doctor-graded) to measure the research model (import with --all, doctor's codes
       as blinded doctor grades: NP = 0, E08.32 = 1, E08.33 = 2, E08.34 = 3, E08.35 = 4, UG / NA = not gradable). Those
       patients are mostly not in Yarago.

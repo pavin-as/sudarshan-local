@@ -230,6 +230,14 @@ never change; any other change needs a new `amended_at`, `amended_by` and a non-
 | reported_by, reported_at | integer, timestamptz | no | the signing doctor |
 | amended_by, amended_at, amendment_reason | integer, timestamptz, text | yes | the latest correction |
 
+### app.eval_sets, app.eval_set_items (0022, D-043)
+`eval_sets`: `id`, `name` (unique), `notes`, `criteria` (jsonb: dates, blindedOnly, excludePoor, maculaOnly, what the
+rules left out), `created_by/at`, `frozen_by/at` (NULL = draft). Audited.
+`eval_set_items`: (`set_id`, `photo_id`) key; `patient_id`, `patient_code` (P001 within the set), `image_code`
+(P001-RE-01, unique in the set), `eye`, `reference_grade` 0-4 or `reference_ungradable`, `reference_blinded`,
+`reference_report_id`, `reference_by` (the doctor). Trigger `eval_frozen_guard`: no insert, change or delete of a frozen
+set's items; a frozen set cannot be renamed, unfrozen or removed. Items are not audited one by one (the set is).
+
 ### app.remidio_queue_log (0020)
 What the receiver did with each queue item (a log: no audit trigger): `at`, `item_type`, `remidio_id`, `outcome`
 (`stored` / `duplicate` / `kept` / `peeked` / `error` / `gave_up` / `skipped`), `photo_id`, `message`, and `payload` (the

@@ -277,6 +277,16 @@ Files move to `ingest\processed` or `ingest\failed`. Put only grades given **wit
 3. Within a few minutes they are graded; see Retina AI > Photographs and each patient's page. Then delete the downloads
    (patient data) from the Downloads folder.
 
+**Measuring the AI (D-043; method in AI_EVALUATION.md).** Retina AI > Evaluation (admin): New evaluation set, check the
+counts, Make draft set, then **Freeze** before quoting any figure; Download report / CSV per model.
+On a public dataset (not stored in Sudarshan), e.g. the IDRiD test set: download IDRiD "B. Disease Grading" from IEEE
+DataPort (CC BY 4.0), unzip, then (PowerShell, any user; Docker running):
+```
+cd D:\Sudarshan\app\server
+node dist\cli.js retina-eval-external "D:\datasets\IDRiD\B. Disease Grading\1. Original Images\b. Testing Set" --labels "D:\datasets\IDRiD\B. Disease Grading\2. Groundtruths\b. IDRiD_Disease Grading_Testing Labels.csv" --name "IDRiD test"
+```
+The report and per-image CSV land in `D:\Sudarshan\app\outputs\retina-eval\`; add the result to AI_EVALUATION.md section 5.
+
 A new token in Remidio Connect cancels the old one: run `setup-remidio.ps1` again. Receiver problems show on the System tab
 ("Last look"); the photographs are in the nightly backup's `fundus\` folder.
 
