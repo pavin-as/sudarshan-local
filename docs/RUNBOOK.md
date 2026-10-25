@@ -342,4 +342,17 @@ Set up on 25 Oct 2026 (Step 0).
   Plain `-verbose` is refused: it needs a mode (`:jobs` or `:dir`).
 - **Export:** the same command with `-allDcm` in place of `-norun`, into `D:\Sudarshan\data\oct\dicom\<new folder>`. Exit
   code 2 means no `.fda` was found.
+- **Read-only access to the ImageNet PC** (once). Both scripts run on 192.168.0.152, in an Administrator PowerShell.
+  1. `scripts\imagenet-discover.ps1` changes nothing. It lists drives, shares, Topcon/SQL services and the
+     **DATA FOLDER** that holds the `.fda` files. Folders below that are shown as a pattern only (letters a, digits 9), so
+     no patient names appear. Output goes to `imagenet_discover.txt` on the Desktop.
+  2. `scripts\imagenet-share-readonly.ps1` asks for that folder and for YES. It makes:
+     - a local account `sudarshan_ro` that is not an administrator, with a password Pavin chooses;
+     - a hidden share `SudarshanOCT$` on the folder, read-only, for that account only.
+
+     If ordinary signed-in accounts cannot already read the folder, it adds a read-only folder permission, and asks first.
+     It refuses to run on shichika. The undo commands are in its header.
+  3. On shichika, in Pavin's own PowerShell, store the password once:
+     `cmdkey /add:192.168.0.152 /user:<IMAGENET-PC-NAME>\sudarshan_ro /pass`.
+     After that `\\192.168.0.152\SudarshanOCT$` opens read-only.
 

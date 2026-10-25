@@ -97,7 +97,8 @@ to shichika, and leave nothing behind on 152.
    `...\work` (tool temp and logs). Access is Administrators, SYSTEM and `shichika\Admin` only.
 
 ### Step 1 - First export (when the ImageNet PC is on)
-1. Pavin: tell Claude the share's path (`\\192.168.0.152\...`) and set up a read-only account for it.
+1. Pavin, on the ImageNet PC: run `scripts\imagenet-discover.ps1`, then `scripts\imagenet-share-readonly.ps1`. Then store the
+   password on shichika with `cmdkey` (RUNBOOK 13). The result is the read-only share `\\192.168.0.152\SudarshanOCT$`.
 2. Pavin chooses and approves three studies: one structural 3D Macula, one OCTA, and (if separate) a fundus photograph only.
 3. Copy each one to `incoming\` and record its size and SHA-256.
 4. Run the tool with `-norun` (a plan only), then with `-allDcm`, each study into a new output folder. Record the command,
