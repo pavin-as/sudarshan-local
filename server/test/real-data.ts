@@ -74,6 +74,11 @@ try {
     (b) => `${b.mode} mode, ${b.rows.filter((r: any) => r.send).length} of ${b.rows.length} would get it`);
   await get("WhatsApp sent (Sudarshan and Google app)", "/api/whatsapp/broadcasts", (b) => `${b.broadcasts.length} from Sudarshan, ${b.googleApp.length} from the Google app`);
   await get("payment links, open", "/api/payments", (b) => `${b.payments.length} open, ${b.counts.review} to check`);
+  // Retina AI (D-040): only the reads that log nothing (the records list and a grading's page log the AI grades shown)
+  await get("Retina AI status and grader", "/api/retina-ai/status",
+    (b) => `grader ${b.grader.ready ? "ready" : b.grader.reachable ? "not ready" : "not reachable"}, key ${b.grader.keySet ? "set" : "NOT set"}; ${b.counts.graded} graded, ${b.counts.notGraded} not graded`);
+  await get("Retina AI to grade (AI grade hidden)", "/api/retina-ai/to-grade", (b) => `${b.gradings.length} to grade`);
+  await get("Retina AI agreement (all doctors' grades)", "/api/retina-ai/agreement?includeUnblinded=true", (b) => `${b.n} compared`);
   await get("imported appointments, last 30 days", `/api/appointments?from=${addDays(today, -30)}&to=${today}&limit=500`,
     (b) => `${b.appointments.length} (${b.appointments.filter((a: any) => a.status === "no_show").length} no-show)`);
 } finally {

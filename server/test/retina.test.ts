@@ -26,12 +26,13 @@ setGraderTransport(async (_m, path, _body, headers) => {
 
 // ---------- fixtures ----------
 const PID = 990000101, MRD = "ZZT90101";
+const MINE = `(SELECT id FROM app.dr_gradings WHERE patient_id = ${PID} OR mrd = '${MRD}')`;
 async function cleanup() {
   await pool.query(`BEGIN; SET LOCAL app.skip_audit = 'on';
     ALTER TABLE app.dr_gradings DISABLE TRIGGER dr_gradings_guard;
-    DELETE FROM app.dr_grading_views WHERE grading_id IN (SELECT id FROM app.dr_gradings WHERE patient_id = ${PID});
-    DELETE FROM app.dr_doctor_grades WHERE grading_id IN (SELECT id FROM app.dr_gradings WHERE patient_id = ${PID});
-    DELETE FROM app.dr_gradings WHERE patient_id = ${PID};
+    DELETE FROM app.dr_grading_views WHERE grading_id IN ${MINE};
+    DELETE FROM app.dr_doctor_grades WHERE grading_id IN ${MINE};
+    DELETE FROM app.dr_gradings WHERE id IN ${MINE};
     ALTER TABLE app.dr_gradings ENABLE TRIGGER dr_gradings_guard;
     DELETE FROM app.audit_log WHERE actor_id IN (SELECT id FROM app.users WHERE username LIKE 'zz_test_ret%') OR patient_id = ${PID};
     DELETE FROM app.sessions WHERE user_id IN (SELECT id FROM app.users WHERE username LIKE 'zz_test_ret%');
@@ -171,6 +172,11 @@ try {
     assert.equal((await call("PUT", `/api/retina-ai/gradings/${blindId}/remarks`, doc, { remarks: "ZZ check remark" })).status, 200);
     await assert.rejects(pool.query(`UPDATE app.dr_gradings SET ai_grade = 0 WHERE id = $1`, [blindId]), /Only the remarks/);
     await assert.rejects(pool.query(`DELETE FROM app.dr_gradings WHERE id = $1`, [blindId]), /cannot be removed/);
+  });
+  await step("a grading's patient cannot be changed, and old-store copies are no longer accepted (0019)", async () => {
+    await assert.rejects(pool.query(`UPDATE app.dr_gradings SET patient_id = NULL WHERE id = $1`, [blindId]), /Only the remarks/);
+    await assert.rejects(pool.query(`INSERT INTO app.dr_gradings (mrd, source, status, ai_grade, probs) VALUES ($1, 'legacy_import', 'ok', 1, '{0,1,0,0,0}')`, [MRD]),
+                         /dr_gradings_source_check/);
   });
   await step("the activity log (read by managers) never shows a grade", async () => {
     const rows = (await pool.query(`SELECT summary, details FROM app.audit_feed WHERE entity_type IN ('dr_gradings','dr_doctor_grades')

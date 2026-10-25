@@ -101,7 +101,7 @@ figures (pure). `routes/retinaAi.ts` takes the photograph as the raw request bod
 content-type parser), so no upload library and no temporary file; the photograph lives only in memory for the call.
 The grader is unreachable → 503 and nothing saved; an unreadable photograph → a `rejected` row with the grader's words.
 `blind=true` saves the AI grade without returning it, so a doctor grades first; `blinded` on a doctor's grade is always worked
-out from `dr_grading_views`, never sent by the browser. Console imports (`cli retina-batch`, `retina-import-legacy`) are in
+out from `dr_grading_views`, never sent by the browser. The console folder import (`cli retina-batch`) is in
 `services/retinaImport.ts`. Screen: `pages/RetinaAi.tsx`, tabs Grade a photograph / To grade / Records / Agreement / System,
 a "Research use only" notice on every tab and "AI-generated · verify" beside every AI grade.
 

@@ -168,9 +168,9 @@ UPDATE except `remarks`. Audited; `ai_grade`, `probs` and `raw_outputs` are hidd
 |---|---|---|---|
 | id | bigserial | no | |
 | created_at, created_by | timestamptz, integer | no, yes | NULL `created_by` for the console imports |
-| patient_id, mrd | bigint, text | yes | Yarago patient; NULL only for old / batch records whose MRD is not in Yarago |
-| eye | text | yes | `RE` / `LE`; NULL = not recorded (old records) |
-| source, batch_id | text | no, yes | `upload` / `batch` / `legacy_import` |
+| patient_id, mrd | bigint, text | yes | Yarago patient; NULL only for folder imports whose MRD is not in Yarago |
+| eye | text | yes | `RE` / `LE`; NULL = not given in metadata.csv |
+| source, batch_id | text | no, yes | `upload` / `batch` (0019 removed `legacy_import`, the test copy of the old grader's records) |
 | status, error | text | no, yes | `ok` / `rejected` (photograph unreadable, grader's words in `error`) / `error` |
 | ai_grade | smallint | yes | 0-4, required when `ok` |
 | probs, raw_outputs | double precision[] | yes | five scores (grade 0..4); raw model outputs |
@@ -178,7 +178,6 @@ UPDATE except `remarks`. Audited; `ai_grade`, `probs` and `raw_outputs` are hidd
 | image_filename, image_sha256, image_width, image_height | | yes | |
 | preprocess_ms, inference_ms | numeric | yes | |
 | model_repo, model_commit, model_sha256, grader_version | text | yes | which model graded it |
-| legacy_record_id | integer | yes | unique; id in the grader's old `records.db` |
 | remarks | text | no | '' |
 
 ### app.dr_doctor_grades (0018)

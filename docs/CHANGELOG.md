@@ -5,6 +5,14 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Retina AI: the September test records are removed.** The 4 records copied from the old grader on 25 Oct were random
+  fundus photographs used to try it, with made-up MRDs, not patients (Pavin). They are removed from Sudarshan (the removal
+  shows in the activity log), and `scripts\remove-retina-test-data.ps1` deletes the grader's old test databases and the log
+  lines with typed names. Retina AI starts empty; the first real records will be photographs from Remidio (SPD numbers).
+  The "copy the old records" command is gone. Technical: migration `0019_retina_remove_test_records.sql` (deletes
+  `source = 'legacy_import'`, drops `legacy_record_id`, source now `upload` / `batch` only); `importLegacy` and
+  `cli retina-import-legacy` removed; the grader makes no `records.db` while `LEGACY_UI=0`; `retina-batch` reads a bare
+  number as an SPD number (`normaliseMrd()`, as patient search); Retina AI reads added to `test/real-data.ts`; tests 10 + 16.
 - **Retina AI (research): diabetic retinopathy grade from a fundus photograph, for admin and doctors** (D-040). A new "Retina AI"
   page sends a photograph to the research model already installed on shichika and keeps the result in Sudarshan, linked to the
   Yarago patient. Five tabs: *Grade a photograph* (find the patient, choose the eye and the photo; tick "give my own grade first"
@@ -16,7 +24,7 @@ Dates are when deployed on shichika.
   longer reachable from other PCs. Folder grading and copying the old grader's records run on the server console (RUNBOOK 12).
   Technical: migration `0018_retina_ai.sql` (`app.dr_gradings` append-only by trigger, `app.dr_doctor_grades`,
   `app.dr_grading_views`); permission `retina_ai.use` (admin, doctor); `routes/retinaAi.ts`, `services/retinaAi.ts`,
-  `services/retinaImport.ts`, `pages/RetinaAi.tsx`; `cli retina-batch`, `cli retina-import-legacy`; `.env` `RETINA_AI_URL`,
+  `services/retinaImport.ts`, `pages/RetinaAi.tsx`; `cli retina-batch`; `.env` `RETINA_AI_URL`,
   `RETINA_AI_KEY` from `scripts/setup-retina-ai.ps1`; 413 "too large" answer in the error handler. Grader
   (`D:\classification\sampada-retinal-ai`, not in git): `POST /api/grade` with a shared key, `inference.validate_bytes()`,
   port `127.0.0.1:7860`, `LEGACY_UI=0`, log lines without names or phones; `model_guard.py` fixed (it had refused the

@@ -11,7 +11,7 @@ import { PatientPicker, type PickedPatient } from "../components/PatientPicker";
 
 const GRADES = ["No DR", "Mild NPDR", "Moderate NPDR", "Severe NPDR", "Proliferative DR"];
 const EYE: Record<string, string> = { RE: "Right eye", LE: "Left eye" };
-const SOURCE: Record<string, string> = { upload: "Uploaded", batch: "Folder import", legacy_import: "Old grader" };
+const SOURCE: Record<string, string> = { upload: "Uploaded", batch: "Folder import" };
 const MAX_MB = 40;
 
 interface Grading {

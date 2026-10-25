@@ -234,12 +234,11 @@ The **Retina AI** page (admin and doctors) sends a fundus photograph to the grad
 ```
 powershell -ExecutionPolicy Bypass -File D:\Sudarshan\app\scripts\setup-retina-ai.ps1
 powershell -ExecutionPolicy Bypass -File D:\Sudarshan\app\scripts\update.ps1 -Message "Retina AI (D-040)"
-cd D:\Sudarshan\app\server; node dist\cli.js retina-import-legacy
 ```
 The first makes the shared key (never shown) in both `.env` files, recreates the container on 127.0.0.1:7860 with the old
 Gradio page off, waits for the model (about a minute), checks the LAN address no longer answers and removes the old firewall
-rule. The second applies migration 0018 and restarts the server. The third copies the old grader's `records.db` once (safe to
-run again; it skips what is already copied).
+rule. The second applies the migrations and restarts the server. (Done 25 Oct, then `scripts\remove-retina-test-data.ps1`
+once, to delete the September test data: it asks for YES first.)
 
 **After a reboot** the page says "not available" until someone signs in to Windows on shichika (Docker Desktop starts at
 sign-in) and the model has loaded (about a minute). Retina AI > System shows the state. Nothing else in Sudarshan depends on it.

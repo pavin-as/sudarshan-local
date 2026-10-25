@@ -1,9 +1,6 @@
-// Retina AI imports run from the server console (D-040), never from the web:
-//   batch   grade every photograph in a folder (with an optional metadata.csv), like the grader's old batch_import.py
-//   legacy  copy the grader's old SQLite records.db into app.dr_gradings once (name and phone are not copied: the
-//           patient comes from the Yarago mirror by MRD; records.db itself is left as it is). Its times are UTC: the
-//           container has no time zone set.
-// Output names files and MRDs only, never patient names.
+// Retina AI folder import, run from the server console (D-040), never from the web: grade every photograph in a folder
+// (with an optional metadata.csv), like the grader's old batch_import.py. (The old grader's records.db held only test
+// photographs and is not copied: migration 0019.) Output names files and MRDs only, never patient names.
 import { readFileSync, readdirSync, renameSync, mkdirSync, existsSync } from "node:fs";
 import path from "node:path";
 import { one, withTx } from "../db.js";
@@ -47,10 +44,17 @@ export function parseCsv(text: string): Record<string, string>[] {
   return body.map((r) => Object.fromEntries(keys.map((k, i) => [k, (r[i] ?? "").trim()])));
 }
 
+/** MRDs as typed in the old grader and metadata.csv: "12765", "spd12765" and "SPD 12765" all mean SPD12765 (as patient search). */
+export function normaliseMrd(text: string | null | undefined): string {
+  const t = (text ?? "").trim();
+  return /^(spd)?\s*\d{1,5}$/i.test(t) ? `SPD${t.replace(/\D/g, "")}` : t.toUpperCase();
+}
+
 async function patientByMrd(mrd: string) {
-  if (!mrd) return null;
+  const m = normaliseMrd(mrd);
+  if (!m || m === "-") return null;
   return (await one<{ patientId: number; mrd: string }>(
-    `SELECT patient_id AS "patientId", mrd FROM clinical.patient WHERE upper(mrd) = upper($1) LIMIT 1`, [mrd])) ?? null;
+    `SELECT patient_id AS "patientId", mrd FROM clinical.patient WHERE upper(mrd) = $1 LIMIT 1`, [m])) ?? null;
 }
 
 async function userId(username: string) {
@@ -109,36 +113,4 @@ export async function runBatch(o: BatchOptions) {
   }
   console.log(`\n${ok} graded, ${notGraded} not graded${noPatient ? `, ${noPatient} with an MRD not found in Yarago (saved without a patient)` : ""}.`);
   console.log("Results: Sudarshan > Retina AI > Records (search the batch's patients) and > Agreement.");
-}
-
-/** Copy records.db (the grader's old store) once. Rows already copied are skipped, so it can be run again safely. */
-export async function importLegacy(dbFile: string) {
-  const { DatabaseSync } = (await import("node:sqlite" as string)) as any;
-  const db = new DatabaseSync(dbFile, { readOnly: true });
-  const rows: any[] = db.prepare(`SELECT * FROM records ORDER BY id`).all();
-  db.close();
-  let added = 0, skipped = 0, noPatient = 0;
-  for (const r of rows) {
-    if (await one(`SELECT 1 FROM app.dr_gradings WHERE legacy_record_id = $1`, [r.id])) { skipped++; continue; }
-    const patient = await patientByMrd(String(r.mrd_no ?? "").trim());
-    if (!patient) noPatient++;
-    const ok = r.status === "ok";
-    const probs = ok ? [r.p0, r.p1, r.p2, r.p3, r.p4].map(Number) : null;
-    let raw: number[] | null = null;
-    try { raw = r.raw_outputs ? JSON.parse(r.raw_outputs).map(Number) : null; } catch { raw = null; }
-    await withTx(ctx(`Copied record #${r.id} of the retina AI's old store (${r.created_at})`), (c) => c.query(
-      `INSERT INTO app.dr_gradings (created_at, patient_id, mrd, eye, source, batch_id, status, error, ai_grade, probs, raw_outputs,
-                                    calibration, image_filename, image_sha256, image_width, image_height, preprocess_ms, inference_ms,
-                                    model_repo, model_commit, model_sha256, grader_version, legacy_record_id, remarks)
-       VALUES ($1::timestamp AT TIME ZONE 'UTC', $2, $3, $4, 'legacy_import', $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
-               $16, $17, $18, $19, $20, $21, $22, $23)`,
-      [r.created_at, patient?.patientId ?? null, patient?.mrd ?? (r.mrd_no || null), eyeFrom(r.eye), r.batch_id ?? null,
-       ok ? "ok" : "error", ok ? null : (r.error_text ?? "not graded"), ok ? r.predicted_grade : null, probs, raw, r.calibration ?? null,
-       r.image_filename ?? null, r.image_sha256 ?? null, r.image_width ?? null, r.image_height ?? null, r.preprocess_ms ?? null,
-       r.inference_ms ?? null, r.model_repo ?? null, r.model_commit ?? null, r.model_sha256 ?? null, r.app_version ?? null, r.id, r.remarks ?? ""]));
-    added++;
-  }
-  console.log(`records.db: ${rows.length} record(s); ${added} copied, ${skipped} already copied${noPatient ? `, ${noPatient} without a matching Yarago patient` : ""}.`);
-  if (rows.some((r) => r.reference_grade != null))
-    console.log("Some old records carry a reference grade: those are not copied (no grader name). Add them as doctor's grades on the Retina AI page.");
 }

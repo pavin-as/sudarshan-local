@@ -373,8 +373,11 @@ clinical records, the doctor summary, follow-up cards or messages; every result 
   not through the all-permissions list, so managers do not get it. Managers also do not see grades in the activity log (grade fields
   show as "set" / "changed"; sentences never name a grade).
 - **Records:** `app.dr_gradings`, append-only by trigger (no delete; only remarks change), audited, in the nightly backup, linked to
-  the Yarago patient. Every AI grade shown is logged in `app.dr_grading_views`. The old `records.db` is copied once
-  (`cli retina-import-legacy`; name and phone are not copied, the patient comes from Yarago by MRD) and left on disk as it is.
+  the Yarago patient. Every AI grade shown is logged in `app.dr_grading_views`. **The old `records.db` is not kept (Pavin,
+  25 Oct):** its 4 records were random fundus photographs used to try the grader in September, with made-up MRDs, not
+  patients. They were copied once on 25 Oct, then removed (migration 0019, in the activity log), and the grader's test
+  databases and log lines with typed names are deleted by `scripts/remove-retina-test-data.ps1`. **The first real data
+  will be photographs from Remidio, whose MRD is the SPD number.**
 - **Validation (the point of the tool):** each doctor can give their own grade (`app.dr_doctor_grades`, one per doctor per
   photograph, or "not gradable"). It counts as **blinded** only if that doctor had not been shown the AI grade before saving it
   (worked out from the view log, again on every change). Doctors can grade first and see the AI grade after; a "To grade" list

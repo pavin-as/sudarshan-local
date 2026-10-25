@@ -146,10 +146,13 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       doctors' blinded grades, agreement figures, folder import and old-records copy on the console. Migration 0018.
       9 checks without a database pass; the 15-check API test (`test/retina.test.ts`) and a browser check still need the
       test database (not run on shichika).
-- [ ] **Not deployed yet.** Pavin, outside clinic hours, Docker Desktop running: RUNBOOK 12 first setup
-      (`setup-retina-ai.ps1`, `update.ps1`, `retina-import-legacy`). Until then the grader still runs the old code on the LAN.
-- [ ] Pavin: decide what happens to the grader's old `records.db` and `logs\` (patient data outside the QNAP backup) once
-      the copy in Sudarshan is checked.
+- [x] Deployed 25 Oct: grader on 127.0.0.1 only, model guard fixed (it had refused the model since 21 Sep), migration
+      0018; `real-data.ts` Retina AI reads pass (grader ready, key set).
+- [ ] Remove the September test data (Pavin: random photographs, not patients): `update.ps1` (migration 0019 removes the
+      4 copied records), then `scripts\remove-retina-test-data.ps1` (grader's test databases and log lines with typed names).
+- [ ] Pavin / a doctor: no real fundus photographs yet. When the first Remidio photographs arrive (MRD = SPD number),
+      grade one on the Retina AI page and check it looks right (not yet tried through Sudarshan; the grader itself was
+      checked with a synthetic image). Until then the page can be opened, but there is nothing to grade.
 - [ ] Retina AI Phase 2: Remidio Host Gateway API pull (Postman collection in `D:\classification\sampada-retinal-ai\docs\`).
       Waiting on Remidio: TIRUR production credentials and site id, body of `itemSuccessfullyHandled`, date format of
       `getExamsByDate`, whether any queue item or export carries the doctor's DR grade, whether anything else reads the queue.

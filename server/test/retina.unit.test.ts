@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { config } from "../src/config.js";
 import { HttpError } from "../src/lib/errors.js";
 import { agreement, gradeImage, graderHealth, quadraticKappa, setGraderTransport } from "../src/services/retinaAi.js";
-import { eyeFrom, parseCsv } from "../src/services/retinaImport.js";
+import { eyeFrom, normaliseMrd, parseCsv } from "../src/services/retinaImport.js";
 import { ROLE_PERMISSIONS, can } from "../src/lib/permissions.js";
 
 let passed = 0;
@@ -95,6 +95,12 @@ await check("eye words from the old grader and metadata.csv", () => {
   assert.equal(eyeFrom("Right (OD)"), "RE"); assert.equal(eyeFrom("Left (OS)"), "LE");
   assert.equal(eyeFrom("RE"), "RE"); assert.equal(eyeFrom("l"), "LE"); assert.equal(eyeFrom("OD"), "RE");
   assert.equal(eyeFrom("Not specified"), null); assert.equal(eyeFrom(""), null); assert.equal(eyeFrom(undefined), null);
+});
+
+await check("MRDs typed as digits find the SPD number, as patient search does (the old grader's records)", () => {
+  assert.equal(normaliseMrd("12765"), "SPD12765"); assert.equal(normaliseMrd("spd 1276"), "SPD1276");
+  assert.equal(normaliseMrd(" SPD12765 "), "SPD12765"); assert.equal(normaliseMrd("ndc_x1"), "NDC_X1");
+  assert.equal(normaliseMrd("123456"), "123456", "six digits is not an SPD number"); assert.equal(normaliseMrd(null), "");
 });
 
 await check("metadata.csv: header, quotes, commas inside quotes, BOM, Windows line ends, blank lines", () => {

@@ -16,7 +16,7 @@ one, stop and ask Pavin.
 | Dues and payments | Yarago mirror; `app.payments` | Financial |
 | Staff names, usernames, roles, login times | `app.users`, `app.sessions` | Personal data |
 | Activity log | `app.audit_log` | Contains patient names in sentences; same protection as patient data |
-| Research DR grades (D-040): AI grade and scores, doctors' grades, photograph file name and hash (never the photograph) | `app.dr_gradings`, `app.dr_doctor_grades`; the grader's old `D:\classification\sampada-retinal-ai\data\records.db` and `logs\` (names, MRD, phone from before D-040) | Health data; research use only |
+| Research DR grades (D-040): AI grade and scores, doctors' grades, photograph file name and hash (never the photograph) | `app.dr_gradings`, `app.dr_doctor_grades` | Health data; research use only |
 
 Sudarshan never changes Yarago. Corrections to patient details are made in Yarago and flow in through the mirror.
 
@@ -111,7 +111,7 @@ Sudarshan never changes Yarago. Corrections to patient details are made in Yarag
 | `sudarshan_bi` read-only login limited to `analytics`; Metabase LAN only | Done 19 Oct: access checked by `install-metabase.ps1` (no `app`, `yarago`, `clinical`); read-only transactions, 120 s limit; firewall port 3000 local subnet only |
 | Analytics free of identity | Done 19 Oct: random patient key (mapping in `app`), age band only; staff-typed text (cancel reasons, remarks, diagnosis notes) not copied |
 | Weekly email content | Aggregate dashboard figures only, to admin@gs.sampadavr.com via Gmail (Google Workspace) |
-| Research DR grader (D-040) | Built 25 Oct. Runs on shichika only (Docker, 127.0.0.1:7860, LAN firewall rule removed by `setup-retina-ai.ps1`); gets the photograph and file name, no patient detail; shared key in both `.env` files (grader's `docker\.env` limited to administrators). Admin and doctor role only (`retina_ai.use`). Not a medical device: grade never written to clinical records, summaries, follow-ups or messages; every shown grade logged in `app.dr_grading_views`. Grader log now holds MRD only (older lines in `logs\app.log*` still have names and phones). **The old `records.db` and `logs\` are patient data outside the QNAP backup**: keep them admin-only, or delete them once Pavin agrees the copy in Sudarshan is complete |
+| Research DR grader (D-040) | Built 25 Oct. Runs on shichika only (Docker, 127.0.0.1:7860, LAN firewall rule removed by `setup-retina-ai.ps1`); gets the photograph and file name, no patient detail; shared key in both `.env` files (grader's `docker\.env` limited to administrators). Admin and doctor role only (`retina_ai.use`). Not a medical device: grade never written to clinical records, summaries, follow-ups or messages; every shown grade logged in `app.dr_grading_views`. Grader log now holds MRD only. The grader's September test data (4 random photographs with made-up MRDs, typed names and phones in `records.db`, the pre-production database and log lines) is removed: migration 0019 in Sudarshan, `scripts/remove-retina-test-data.ps1` on the grader's disk (Pavin, 25 Oct) |
 
 ## 5. If something goes wrong (possible breach)
 
