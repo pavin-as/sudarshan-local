@@ -172,8 +172,9 @@ export async function retinaAiRoutes(app: FastifyInstance) {
 
   // ---------- fundus photographs from Remidio (D-041) ----------
   // The photograph itself (or Remidio's thumbnail). Only paths stored by the receiver are read, inside RETINA_PHOTO_DIR.
+  // Photographs are clinical records: every clinical role sees them (D-042); only the AI grade is admin + doctor.
   app.get("/api/retina-ai/photos/:id/image", async (req, reply) => {
-    need(req, "retina_ai.use");
+    need(req, "clinical.read");
     const { id } = idParam.parse(req.params);
     const { size } = z.object({ size: z.enum(["thumb", "full"]).default("full") }).parse(req.query);
     const f = await one<{ file: string; thumb: string | null }>(`SELECT file_path AS file, thumb_path AS thumb FROM app.fundus_photos WHERE id = $1`, [id]);
@@ -189,7 +190,7 @@ export async function retinaAiRoutes(app: FastifyInstance) {
 
   // Photographs received, newest first (no AI grades here: those are on Records, where each one shown is logged).
   app.get("/api/retina-ai/photos", async (req) => {
-    need(req, "retina_ai.use");
+    need(req, "clinical.read");
     const f = z.object({ patientId: z.coerce.number().int().positive().optional(), q: z.string().trim().max(60).optional(),
                          unmatched: z.enum(["true", "false"]).optional() }).parse(req.query);
     const params: unknown[] = []; const where: string[] = [];

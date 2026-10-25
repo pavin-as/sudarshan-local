@@ -170,6 +170,19 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
 - [x] Deployed 25 Oct (`915f63d`): setup-remidio.ps1 run, Cloud Data Queue On, receiver in Peek: queue empty (HTTP 404);
       the queue does not hold past exams. getPatientWithLastExam answers 404 too.
 - [ ] Tomorrow (clinic open): take one FOP photograph, Check now in Peek, then switch the receiver On.
+- [x] First import from Remidio Connect downloads works (25 Oct): 2 photographs of one SPD patient kept and graded.
+- Remidio reports, past year (counted 25 Oct, read only): 760 exams; AI reports none (aiReport, mediosAIReport, gmaReport
+  empty for all: Remidio's AI is not used). Doctor reports only for 223 exams taken 10-16 Mar 2026 (reported 11-16 Mar, one
+  doctor, 652 photographs, 1 with an SPD number: a screening batch). Diagnoses are codes: NP (174 right / 173 left eyes),
+  H40.0 glaucoma suspect 29, NA 10, E08.33 moderate NPDR 4/3, E08.37 2/1, E08.32 0/1, H35.36 drusen 3/4, H35.03 1,
+  H35.02 1, UG 1/3. The report also has referRequired, comments and a report file (path).
+- [x] Fundus reports in Sudarshan built (25 Oct, D-042): doctors report and grade Remidio photographs on "Fundus
+      reports" and the patient page; clinical roles read; corrections need a reason; grades feed Retina AI agreement.
+      Migration 0021. 17 checks without a database pass; `test/fundus.test.ts` (7) and a browser check need the test database.
+- [ ] Pavin: `update.ps1` to deploy; tell the doctors to report in Sudarshan (Fundus reports), not in Remidio Connect.
+- [ ] Pavin to decide: use the March batch (doctor-graded) to measure the research model (import with --all, doctor's codes
+      as blinded doctor grades: NP = 0, E08.32 = 1, E08.33 = 2, E08.34 = 3, E08.35 = 4, UG / NA = not gradable). Those
+      patients are mostly not in Yarago.
 - [x] Already-taken photographs: `cli retina-remidio-import` built (25 Oct); dry run on one real download matched 2 of 2.
 - [ ] Pavin: `update.ps1` (deploys the import command), then download the SPD exams in Remidio Connect and run the import
       (RUNBOOK 12, "Photographs taken before the queue was on"); then delete the downloads.

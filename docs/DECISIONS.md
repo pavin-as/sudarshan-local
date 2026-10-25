@@ -421,6 +421,25 @@ D-040's "the photograph is never stored" for Remidio photographs (uploaded photo
 - **Still open with Remidio:** what `itemSuccessfullyHandled` expects (Remidio's example sends no body); a bulk way to
   fetch past photographs.
 
+### D-042 · 2026-10-25 · Accepted · Pavin ("doctors give their report and grade in Sudarshan only; only fundus photos from Remidio"); options chosen by Pavin
+**Doctors report fundus photographs in Sudarshan, not in Remidio Connect; Remidio only supplies the photographs.**
+- **The report:** one per photo session (a Remidio exam: one patient, one day). Per eye: DR grade (no DR / mild / moderate /
+  severe NPDR / proliferative / cannot be graded), macular oedema (none / not centre-involving / centre-involving / cannot be
+  assessed), other findings (glaucoma suspect, drusen/AMD, hypertensive retinopathy, vein occlusion, other with words); then
+  referral (none / routine / urgent) and comments. Signed by the doctor who writes it (`app.fundus_reports`); never removed;
+  a correction needs a reason and keeps the signer (the activity log keeps every version). It is a clinical record in
+  Sudarshan (Sudarshan never writes to Yarago; D-037 direction).
+- **Who:** doctors write and correct (`fundus.report`, doctor role only). **All clinical roles** (`clinical.read`: doctors,
+  optometrists, counsellors, managers, admin) read reports and see the photographs; this widens D-041's admin + doctor for
+  photographs. The research AI grade stays admin + doctor (`retina_ai.use`) and is never shown on the report screens.
+- **AI measurement:** the report's DR grade per eye is the reporting (or correcting) doctor's grade of that eye's
+  photographs in `app.dr_doctor_grades`, blinded when that doctor had not been shown the AI grade before; photographs graded
+  by the AI after the report get the grade then. No separate grading step for doctors.
+- **Screens:** "Fundus reports" (menu, with the doctors' to-report count): sessions to report / reported / all; a session
+  opens with large photographs and the report or the form. The patient page's "Fundus photographs" shows the same sessions.
+- **Remidio's own reports are not imported** (only one SPD patient has one; the March 2026 batch can be used later to measure
+  the AI). Staff stop reporting in Remidio Connect.
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

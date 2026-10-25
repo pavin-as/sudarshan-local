@@ -186,8 +186,8 @@ Users > "Give password" on their row when they start using Sudarshan. Deactivate
 |---|---|
 | Admin | everything, including Users |
 | Manager | everything except Users and Retina AI |
-| Doctor | board, patients, clinical detail, the doctor summary and Retina AI (research, D-040); cannot book |
-| Optometrist | board, patients, clinical detail and the doctor summary; cannot book |
+| Doctor | board, patients, clinical detail, the doctor summary, fundus photographs; **writes fundus reports** (D-042); Retina AI (research, D-040); cannot book |
+| Optometrist | board, patients, clinical detail, the doctor summary, fundus photographs and reports (read); cannot book |
 | Counsellor | as front desk, plus clinical detail and the doctor summary |
 | Front desk | board, booking, calls, lists, patients without clinical detail |
 

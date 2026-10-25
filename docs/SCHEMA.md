@@ -212,6 +212,24 @@ on a photograph that has none. Audited.
 | thumb_path | text | yes | Remidio's thumbnail |
 | meta | jsonb | yes | the queue item without its links |
 
+### app.fundus_reports (0021, D-042)
+The doctor's report of one photo session (patient, day, Remidio exam). Unique on (patient_id, exam_date,
+coalesce(remidio_exam_id, 0)). Trigger `fundus_reports_guard`: no DELETE; patient, session, `reported_by`, `reported_at`
+never change; any other change needs a new `amended_at`, `amended_by` and a non-empty `amendment_reason`. Audited.
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| id, patient_id, exam_date, remidio_exam_id | bigserial, bigint, date, bigint | no, no, no, yes | |
+| photo_ids | bigint[] | no | the photographs reported on |
+| re_dr, le_dr | text | yes | none / mild / moderate / severe / pdr / ungradable; at least one eye |
+| re_dme, le_dme | text | yes | none / non_centre / centre / ungradable |
+| re_findings, le_findings | text[] | no | glaucoma_suspect, drusen_amd, hypertensive, vein_occlusion, other |
+| re_other, le_other | text | no | words for "other" |
+| referral | text | no | none / routine / urgent |
+| comments | text | no | |
+| reported_by, reported_at | integer, timestamptz | no | the signing doctor |
+| amended_by, amended_at, amendment_reason | integer, timestamptz, text | yes | the latest correction |
+
 ### app.remidio_queue_log (0020)
 What the receiver did with each queue item (a log: no audit trigger): `at`, `item_type`, `remidio_id`, `outcome`
 (`stored` / `duplicate` / `kept` / `peeked` / `error` / `gave_up` / `skipped`), `photo_id`, `message`, and `payload` (the

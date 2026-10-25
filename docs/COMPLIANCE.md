@@ -17,7 +17,8 @@ one, stop and ask Pavin.
 | Staff names, usernames, roles, login times | `app.users`, `app.sessions` | Personal data |
 | Activity log | `app.audit_log` | Contains patient names in sentences; same protection as patient data |
 | Research DR grades (D-040): AI grade and scores, doctors' grades, photograph file name and hash | `app.dr_gradings`, `app.dr_doctor_grades` | Health data; research use only |
-| Fundus photographs from the Remidio FOP (D-041) with the MRN, eye and Remidio's patient details | files in `D:\Sudarshan\data\fundus` (administrators and SYSTEM only; backup `fundus\`), `app.fundus_photos`, `app.remidio_queue_log` | Health data (clinical images); admin and doctors only |
+| Fundus photographs from the Remidio FOP (D-041) with the MRN, eye and Remidio's patient details | files in `D:\Sudarshan\data\fundus` (administrators and SYSTEM only; backup `fundus\`), `app.fundus_photos`, `app.remidio_queue_log` | Health data (clinical images); clinical roles (D-042) |
+| The doctor's fundus report (D-042) | `app.fundus_reports` | Health data; clinical record in Sudarshan; written by doctors, read by clinical roles |
 
 Sudarshan never changes Yarago. Corrections to patient details are made in Yarago and flow in through the mirror.
 

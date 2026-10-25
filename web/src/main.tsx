@@ -28,6 +28,7 @@ import { SettingsPage } from "./pages/Settings";
 import { WhatsAppPage } from "./pages/WhatsApp";
 import { PaymentsPage } from "./pages/Payments";
 import { RetinaAiPage } from "./pages/RetinaAi";
+import { FundusReportsPage, useFundusTodo } from "./pages/FundusReports";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 20_000, refetchOnWindowFocus: true, retry: (n, e: any) => n < 2 && !(e?.status >= 400 && e?.status < 500) } },
@@ -84,6 +85,7 @@ function Shell() {
   const toCallBack = useCancelList("to_call").data?.counts.toCall ?? 0;
   const triagePending = useTriage("pending").data?.pending ?? 0;
   const payReview = usePaymentCounts(can("payments.write"));
+  const fundusTodo = useFundusTodo(can("fundus.report"));
   return (
     <div className="shell">
       <nav className="nav" aria-label="Main">
@@ -100,6 +102,7 @@ function Shell() {
         {can("messages.send") && <NavLink to="/whatsapp">WhatsApp</NavLink>}
         {can("payments.write") && <NavLink to="/payments">Payments {!!payReview && <span className="count">{payReview}</span>}</NavLink>}
         {can("clinical.read") && <NavLink to="/emr-completeness">EMR completeness</NavLink>}
+        {can("clinical.read") && <NavLink to="/fundus">Fundus reports {!!fundusTodo && <span className="count">{fundusTodo}</span>}</NavLink>}
         {can("retina_ai.use") && <NavLink to="/retina-ai">Retina AI</NavLink>}
         {can("audit.read") && <NavLink to="/activity">Activity log</NavLink>}
         {can("settings.manage") && <NavLink to="/calendar">Clinic calendar</NavLink>}
@@ -135,6 +138,7 @@ function Shell() {
           <Route path="/whatsapp" element={<WhatsAppPage />} />
           <Route path="/payments" element={<PaymentsPage />} />
           <Route path="/retina-ai" element={<RetinaAiPage />} />
+          <Route path="/fundus" element={<FundusReportsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

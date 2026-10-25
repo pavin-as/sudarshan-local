@@ -17,6 +17,7 @@ import { setting } from "./outreach.js";
 import { fetchPhoto, getQueueItem, itemHandled, lastQueueHttp, photoFromItem, photoUrlAllowed, remidioReady, stripLinks,
          type QueuePhoto } from "./remidio.js";
 import { gradeImage } from "./retinaAi.js";
+import { syncGradesForPhoto } from "./fundusReport.js";
 import { normaliseMrd } from "./retinaImport.js";
 
 export type ReceiverMode = "off" | "peek" | "on";
@@ -177,7 +178,7 @@ export async function gradeNewPhotos(log: FastifyBaseLogger): Promise<number> {
         outcome = { kind: "error", message: `could not grade: ${String(e?.message ?? e).slice(0, 200)}` };   // e.g. file missing
       }
       const r = outcome.kind === "ok" ? outcome.result : null;
-      await withTx(ctx(`Graded Remidio photograph #${f.id} with the research DR model`), (c) => c.query(
+      await withTx(ctx(`Graded Remidio photograph #${f.id} with the research DR model`), async (c) => { await c.query(
         `INSERT INTO app.dr_gradings (patient_id, mrd, eye, source, photo_id, status, error, ai_grade, probs, raw_outputs, calibration,
                                       image_filename, image_sha256, image_width, image_height, preprocess_ms, inference_ms,
                                       model_repo, model_commit, model_sha256, grader_version)
@@ -185,7 +186,9 @@ export async function gradeNewPhotos(log: FastifyBaseLogger): Promise<number> {
         [f.patient_id, f.mrd, f.eye, f.id, outcome.kind, outcome.kind === "ok" ? null : outcome.message, r?.grade ?? null, r?.probs ?? null,
          r?.raw ?? null, r?.calibration ?? null, `remidio-${f.remidio_image_id}${path.extname(file)}`, r?.imageSha256 ?? null,
          r?.width ?? null, r?.height ?? null, r?.preprocessMs ?? null, r?.inferenceMs ?? null, r?.modelRepo ?? null,
-         r?.modelCommit ?? null, r?.modelSha256 ?? null, r?.graderVersion ?? null]));
+         r?.modelCommit ?? null, r?.modelSha256 ?? null, r?.graderVersion ?? null]);
+        await syncGradesForPhoto(c, Number(f.id));       // a doctor's report written before the AI graded it (D-042)
+      });
       graded++;
     }
   } catch (e: any) {

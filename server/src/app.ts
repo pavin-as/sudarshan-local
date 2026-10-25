@@ -30,6 +30,7 @@ import { settingsRoutes } from "./routes/settings.js";
 import { whatsappRoutes } from "./routes/whatsapp.js";
 import { paymentRoutes } from "./routes/payments.js";
 import { retinaAiRoutes } from "./routes/retinaAi.js";
+import { fundusRoutes } from "./routes/fundus.js";
 import { RazorpayError } from "./services/razorpay.js";
 
 export async function buildApp(opts: { logger?: boolean } = {}): Promise<FastifyInstance> {
@@ -123,5 +124,6 @@ export async function buildApp(opts: { logger?: boolean } = {}): Promise<Fastify
   await app.register(whatsappRoutes);
   await app.register(paymentRoutes);
   await app.register(retinaAiRoutes);
+  await app.register(fundusRoutes);
   return app;
 }

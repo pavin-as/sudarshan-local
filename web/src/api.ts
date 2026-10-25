@@ -25,7 +25,7 @@ export async function api<T = any>(path: string, opts: { method?: string; body?:
 export type Role = "admin" | "doctor" | "manager" | "staff" | "optometrist" | "counsellor";
 export type Permission = "users.manage" | "settings.manage" | "appointments.read" | "appointments.write" |
   "patients.read" | "clinical.read" | "followups.write" | "audit.read" |
-  "messages.send" | "messages.broadcast" | "payments.write" | "payments.refund" | "retina_ai.use";
+  "messages.send" | "messages.broadcast" | "payments.write" | "payments.refund" | "retina_ai.use" | "fundus.report";
 
 export interface User { id: number; username: string; fullName: string; role: Role; mustChangePassword: boolean; permissions: Permission[] }
 

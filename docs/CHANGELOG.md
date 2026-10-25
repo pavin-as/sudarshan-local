@@ -5,6 +5,17 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Fundus reports: doctors report Remidio photographs in Sudarshan** (D-042). New menu item "Fundus reports" lists each
+  patient's photo session with its photographs; doctors see how many are waiting. Opening one shows the photographs large
+  and the report form: per eye the DR grade, macular oedema and other findings, then referral and comments. Saving signs it
+  with the doctor's name; a correction asks why and keeps both names. The patient page's "Fundus photographs" now shows the
+  sessions with their reports. Optometrists, counsellors and managers can now see the photographs and reports too (they
+  could not before); only doctors write them; the research AI grade stays admin and doctors and never shows on reports.
+  The report's DR grades also count as the doctor's (blinded) grades on Retina AI > Agreement. Technical: migration
+  `0021_fundus_reports.sql` (`app.fundus_reports`, guard: no delete, corrections need a reason, signer and session fixed);
+  permission `fundus.report` (doctor); `routes/fundus.ts`, `services/fundusReport.ts` (`syncReportGrades`, also run by
+  `gradeNewPhotos` for photographs graded after the report); `pages/FundusReports.tsx`; photograph routes need
+  `clinical.read`; tests 17 without a database, `test/fundus.test.ts` (7, test database, in `npm test`).
 - **Retina AI: photographs taken before the receiver was on can be brought in** (D-041). Download the exams in Remidio
   Connect (Exams > Download), then one console command keeps every SPD photograph in Sudarshan with its eye, field and
   quality, linked to the patient and graded like the others (RUNBOOK 12). Tried on one real download: 2 of 2 photographs

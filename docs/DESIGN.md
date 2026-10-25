@@ -115,6 +115,15 @@ Failures keep the item at the head; the 10th failure of the same item logs `gave
 served by `GET /api/retina-ai/photos/:id/image` (paths only from the database, resolved inside the photo folder).
 Screens: Retina AI tabs Photographs and System (receiver), thumbnails in To grade and Records; `FundusPhotos` on the patient page.
 
+### Fundus reports (D-042)
+`routes/fundus.ts`: a session is computed, not stored: linked `fundus_photos` grouped by patient, day in clinic time and
+`coalesce(remidio_exam_id, 0)`, left-joined to its `fundus_reports` row (the same key). Reads need `clinical.read`, writes
+`fundus.report`; answers never carry an AI grade. `services/fundusReport.ts` holds the words for every choice (the API sends
+them, so the form and the views use the same words) and `syncReportGrades`, which writes the report's DR grade per eye as
+the signer's (or corrector's) `dr_doctor_grades` row on that eye's AI gradings, blinded from `dr_grading_views`; it runs in
+the report's transaction and again from `gradeNewPhotos` when a photograph is graded after its report. Screen
+`pages/FundusReports.tsx` (page, `PatientFundus` for the patient page, session drawer, report form).
+
 ### Adding a feature (checklist)
 1. Read DECISIONS.md and COMPLIANCE.md; if the feature conflicts, ask first.
 2. Migration (if needed) + SCHEMA.md; audit triggers for new tables.

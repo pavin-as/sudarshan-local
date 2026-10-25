@@ -184,5 +184,19 @@ await check("a downloaded file is matched to its exam-list photograph by MRN (an
   assert.equal(matchDownload({ ...d, mrn: "SPD10248" }, exams, same), null, "another MRN: no match");
 });
 
+// ---------- the doctor's fundus report (D-042) ----------
+const { drNumber, reportLine, DR } = await import("../src/services/fundusReport.js");
+await check("the report's DR choice becomes the 0-4 grade the AI uses; 'cannot be graded' is no grade; one-line summary", () => {
+  assert.deepEqual(Object.keys(DR).map((k) => drNumber(k as any)), [0, 1, 2, 3, 4, null]);
+  assert.equal(reportLine({ re_dr: "moderate", le_dr: "none", referral: "urgent" }), "RE Moderate NPDR, LE No DR; refer, urgent");
+  assert.equal(reportLine({ re_dr: null, le_dr: "pdr", referral: "none" }), "LE Proliferative DR");
+});
+await check("only doctors write fundus reports; every clinical role reads them and the photographs", () => {
+  assert.ok(can("doctor", "fundus.report"));
+  for (const r of ["admin", "manager", "optometrist", "counsellor", "staff"] as const) assert.ok(!can(r, "fundus.report"), r);
+  for (const r of ["admin", "manager", "doctor", "optometrist", "counsellor"] as const) assert.ok(can(r, "clinical.read"), r);
+  assert.ok(!can("staff", "clinical.read"));
+});
+
 setGraderTransport(null);
 console.log(`\n${passed} retina AI checks passed`);
