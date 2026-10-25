@@ -5,6 +5,10 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Topcon export tool set up on shichika** (D-047, Step 0). The .NET 10 Desktop Runtime 10.0.13 is installed. Topcon's DICOM
+  OCT Export Tool 3.0.0.39 is in `D:\Sudarshan\tools\topcon\`. Its temp files and logs go to the admin-only
+  `D:\Sudarshan\data\oct\work\`. shichika's Hardware ID for Topcon's licence is `410689457` (US tier now). No patient
+  files have been converted yet. RUNBOOK section 13.
 - **Plan for Topcon Maestro2 fundus photographs, OCT and OCTA** (D-047). `docs/OCT_PLAN.md` replaces Pavin's notes. Topcon's
   export tool will run on shichika, and the ImageNet PC stays read only. Nothing changes in the clinic yet. Documentation
   only.

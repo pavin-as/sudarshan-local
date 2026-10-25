@@ -79,15 +79,20 @@ to shichika, and leave nothing behind on 152.
 
 ### Step 0 - Prepare (now; the ImageNet PC can be off)
 1. ~~Pavin agrees: run the tool on shichika (section 4).~~ Done 25 Oct (D-047).
-2. Install the .NET 10 Desktop Runtime x64 on shichika (admin; installs alongside .NET 6/8, normally no reboot).
-3. Copy the tool to `D:\Sudarshan\tools\topcon\DicomOctExport-3.0.0.39\` (a path without spaces, as the manual asks).
-   Make a separate config copy (temp and log folders as in section 5, `NoPrompt=true`, `CPUCores=4`).
-   Record the zip's SHA-256 (`22E50BF6FD2D4BCEAA5ADEC4FE2DFC39778C7CBB3C4123F71798234945B01E21`) and confirm it came from Topcon.
-4. Run the tool once with no arguments to get shichika's Hardware ID.
+2. ~~Install the .NET 10 Desktop Runtime x64 on shichika.~~ Done 25 Oct: 10.0.13 through winget (Microsoft's installer,
+   hash checked). No reboot. Yarago, PostgreSQL and the Sudarshan services kept running.
+3. ~~Copy the tool to `D:\Sudarshan\tools\topcon\DicomOctExport-3.0.0.39\`.~~ Done 25 Oct (RUNBOOK 13).
+   - Config: temp and log folders as in section 5, `NoPrompt=true`, `CPUCores=4`. Topcon's original is kept beside it.
+   - The zip's SHA-256 is `22E50BF6FD2D4BCEAA5ADEC4FE2DFC39778C7CBB3C4123F71798234945B01E21`.
+   - Pavin still to confirm that the zip came from Topcon.
+4. ~~Get shichika's Hardware ID.~~ Done 25 Oct: **`410689457`**, access level US.
+   - The tool prints it on every run that has an input, as `parser access level: US, id: ...`. A run with no arguments
+     prints only the usage text, despite what the manual says.
+   - The ID was the same on three runs.
 5. Pavin asks Topcon for a **Research** (or OUS) key for that Hardware ID, along with the section 7 questions. The best time
    to ask is when Topcon comes to set the OCTA licence.
-6. Make the folders (admin and SYSTEM only): `D:\Sudarshan\data\oct\incoming` (copied `.fda`), `...\dicom` (exports),
-   `...\work` (tool temp and logs).
+6. ~~Make the folders.~~ Done 25 Oct: `D:\Sudarshan\data\oct\incoming` (copied `.fda`), `...\dicom` (exports) and
+   `...\work` (tool temp and logs). Access is Administrators, SYSTEM and `shichika\Admin` only.
 
 ### Step 1 - First export (when the ImageNet PC is on)
 1. Pavin: tell Claude the share's path (`\\192.168.0.152\...`) and set up a read-only account for it.

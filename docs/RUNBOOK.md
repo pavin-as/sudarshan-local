@@ -314,3 +314,32 @@ A new token in Remidio Connect cancels the old one: run `setup-remidio.ps1` agai
 "Older version without the Sudarshan connection" → the container still runs old code: `cd D:\classification\sampada-retinal-ai\docker`,
 `docker compose up -d --force-recreate app`. Grader log: `D:\classification\sampada-retinal-ai\logs\app.log`.
 
+## 13. Topcon DICOM OCT Export Tool (D-047, `docs/OCT_PLAN.md`)
+Set up on 25 Oct 2026 (Step 0).
+- **Tool:** `D:\Sudarshan\tools\topcon\DicomOctExport-3.0.0.39\` (v3.0.0.39, a copy of Topcon's zip, SHA-256
+  `22E50BF6...1E21`). The manual is beside it in `D:\Sudarshan\tools\topcon\`. It needs the .NET 10 Desktop Runtime,
+  installed with winget on 25 Oct (10.0.13, alongside .NET 6 and 8).
+- **Config** (`DicomOctExport.dll.config`, with Topcon's original kept as `.topcon-original`):
+  - `TempDir` is `D:\Sudarshan\data\oct\work\temp`;
+  - the log goes to `D:\Sudarshan\data\oct\work\log\app_<pid>.log`;
+  - `NoPrompt=true`, `CPUCores=4`.
+
+  `CleanupPrviouslyRanOutputs=true` is Topcon's default: **always give a new, empty output folder.**
+- **Data:** `D:\Sudarshan\data\oct\` holds `incoming\` (copied `.fda`), `dicom\` (exports) and `work\` (temp and logs). Access
+  is Administrators, SYSTEM and `shichika\Admin` only (the explicit user entry lets a non-elevated session work). Temp files
+  and logs may hold patient names. Not yet in the nightly backup (Step 4 of the plan).
+- **Licence tier:** every run prints `parser access level: <tier>, id: <Hardware ID>`.
+  - shichika: **US tier, Hardware ID `410689457`** (the same on three runs, 25 Oct).
+  - The Research key from Topcon is a file `DicomOCTExport.exe.license`, placed in the tool folder. The next run should
+    say Research.
+- **Dry run** (lists the jobs, writes nothing):
+
+  ```
+  cd D:\Sudarshan\data\oct\work
+  D:\Sudarshan\tools\topcon\DicomOctExport-3.0.0.39\DicomOctExport.exe <file.fda> <new output folder> -norun -verbose:jobs
+  ```
+
+  Plain `-verbose` is refused: it needs a mode (`:jobs` or `:dir`).
+- **Export:** the same command with `-allDcm` in place of `-norun`, into `D:\Sudarshan\data\oct\dicom\<new folder>`. Exit
+  code 2 means no `.fda` was found.
+

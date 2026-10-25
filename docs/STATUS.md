@@ -226,12 +226,16 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       patients by itself.
 
 - [x] Topcon Maestro2 plan accepted (25 Oct, D-047, `docs/OCT_PLAN.md`): the export tool runs on shichika.
+- [x] Topcon Step 0 done (25 Oct, RUNBOOK 13): .NET 10 Desktop Runtime 10.0.13, tool in `D:\Sudarshan\tools\topcon\`,
+      restricted `D:\Sudarshan\data\oct\`, config with temp and logs there. shichika's **Hardware ID is `410689457`**
+      (US tier).
 - [ ] Topcon Maestro2. Pavin:
-  - ask Topcon, at the OCTA licence visit, for an export tool Research key for shichika's Hardware ID, and the plan's
+  - ask Topcon, at the OCTA licence visit, for an export tool Research key for Hardware ID `410689457`, and the plan's
     section 7 questions;
+  - confirm that the tool zip came from Topcon;
   - give the read-only share path on the ImageNet PC.
 
-  Then Step 0 (.NET 10 Desktop Runtime, tool folder, Hardware ID) and Step 1 (first export of three studies).
+  Then Step 1 (first export of three studies).
 
 ## Next step
 Trial running on live Google data (D-025). Remaining, in order:
