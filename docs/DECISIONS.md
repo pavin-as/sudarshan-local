@@ -360,6 +360,33 @@ Injection counts every injection Yarago marks as given, including sub-Tenon ster
 **Age of a baby (Pavin, 24 Oct):** under one year the age is shown in days and months ("1 month 10 days"), never "0"; computed from the
 Yarago date of birth by `clinical.age_text()`; one year and older stays in years.
 
+### D-040 · 2026-10-25 · Accepted · Pavin asked ("the feature in D:/classification, admin only at present"; then admin + doctor role); Claude chose the design
+**The research diabetic retinopathy grader moves into Sudarshan as a "Retina AI" page for admin and doctors, research use only.**
+This lifts "the diabetic retinopathy model" out of PLAN.md's "out of scope". The model (Arko007/diabetic-retinopathy-v1, 413 IDRiD
+training images, no published accuracy, not checked on Sampada patients) is **not a medical device**: its grade never goes into
+clinical records, the doctor summary, follow-up cards or messages; every result says "Research use only" and "AI-generated · verify".
+- **Where it runs:** the existing Docker container in `D:\classification\sampada-retinal-ai` (TensorFlow, CPU, 8 cores), now published
+  on **127.0.0.1:7860 only** (was the LAN, with no login). Sudarshan's server sends it the photograph (and the file name, nothing about
+  the patient) to `POST /api/grade` with a shared key (`RETINA_AI_KEY` = the grader's `GRADER_API_KEY`); the old Gradio page and its
+  own `records.db` are switched off (`LEGACY_UI=0`). The photograph is held in memory and never stored, in either place.
+- **Who:** new permission `retina_ai.use`, given to admin and the **whole doctor role** (Pavin chose the role over a per-user grant);
+  not through the all-permissions list, so managers do not get it. Managers also do not see grades in the activity log (grade fields
+  show as "set" / "changed"; sentences never name a grade).
+- **Records:** `app.dr_gradings`, append-only by trigger (no delete; only remarks change), audited, in the nightly backup, linked to
+  the Yarago patient. Every AI grade shown is logged in `app.dr_grading_views`. The old `records.db` is copied once
+  (`cli retina-import-legacy`; name and phone are not copied, the patient comes from Yarago by MRD) and left on disk as it is.
+- **Validation (the point of the tool):** each doctor can give their own grade (`app.dr_doctor_grades`, one per doctor per
+  photograph, or "not gradable"). It counts as **blinded** only if that doctor had not been shown the AI grade before saving it
+  (worked out from the view log, again on every change). Doctors can grade first and see the AI grade after; a "To grade" list
+  shows photographs without the AI grade. The Agreement tab uses blinded grades by default: exact and within-one agreement,
+  quadratic weighted kappa, confusion matrix, and referable DR (grade 2 or worse) sensitivity / specificity.
+- **Folder import:** `cli retina-batch` grades a folder with `metadata.csv` (filename, mrd_no, eye, reference_grade); reference
+  grades need `--graded-by <user>` and are saved as blinded (they must have been given without the AI result).
+- **Later (Phase 2, not built):** pull new photographs from Remidio's Host Gateway API (cloud, outbound only) once the TIRUR
+  credentials arrive and the DR-grade field is known; DICOM stays dormant until Remidio confirms where it pushes from.
+- **Known limits:** Docker Desktop starts only when someone signs in to Windows on shichika, so after a reboot the page says
+  "not available" until then; Sudarshan itself is unaffected.
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

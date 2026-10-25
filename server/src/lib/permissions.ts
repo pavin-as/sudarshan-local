@@ -13,18 +13,20 @@ export type Permission =
   | "messages.send"         // send one WhatsApp message to a booked patient (reminder, payment link)
   | "messages.broadcast"    // send the day's reminders to every booked patient (Google app: levels 1 and 3)
   | "payments.write"        // make, send, check and cancel Razorpay payment links
-  | "payments.refund";      // refund a payment (Google app decision: director / admin only)
+  | "payments.refund"       // refund a payment (Google app decision: director / admin only)
+  | "retina_ai.use";        // grade fundus photographs with the research DR model, see and grade results (D-040)
 
 const ALL: Permission[] = ["users.manage", "settings.manage", "appointments.read", "appointments.write",
   "patients.read", "clinical.read", "followups.write", "audit.read",
   "messages.send", "messages.broadcast", "payments.write", "payments.refund"];
 
+// retina_ai.use is given by name, not through ALL, so managers do not get it (D-040: admin and doctors only)
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
-  admin: ALL,
+  admin: [...ALL, "retina_ai.use"],
   manager: ALL.filter((p) => p !== "users.manage" && p !== "payments.refund"),
   staff: ["appointments.read", "appointments.write", "patients.read", "followups.write", "messages.send", "payments.write"],
   counsellor: ["appointments.read", "appointments.write", "patients.read", "clinical.read", "followups.write", "messages.send", "payments.write"],
-  doctor: ["appointments.read", "patients.read", "clinical.read"],
+  doctor: ["appointments.read", "patients.read", "clinical.read", "retina_ai.use"],
   optometrist: ["appointments.read", "patients.read", "clinical.read"],
 };
 

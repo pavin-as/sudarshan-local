@@ -94,6 +94,17 @@ started by `index.ts` (`startOutreachJobs`), never by tests, which call them dir
 transactions around the Razorpay call, so no lock is held while waiting on the internet. Razorpay errors are
 `RazorpayError` (HTTP 502 with Razorpay's words).
 
+### Retina AI, research DR grader (D-040)
+`services/retinaAi.ts` holds only the call to the grader container (`POST http://127.0.0.1:7860/api/grade`, raw image body,
+file name in `x-file-name`, key in `x-grader-key`; behind `setGraderTransport` so tests never need Docker) and the agreement
+figures (pure). `routes/retinaAi.ts` takes the photograph as the raw request body (`image/jpeg` / `image/png`, 40 MB, its own
+content-type parser), so no upload library and no temporary file; the photograph lives only in memory for the call.
+The grader is unreachable → 503 and nothing saved; an unreadable photograph → a `rejected` row with the grader's words.
+`blind=true` saves the AI grade without returning it, so a doctor grades first; `blinded` on a doctor's grade is always worked
+out from `dr_grading_views`, never sent by the browser. Console imports (`cli retina-batch`, `retina-import-legacy`) are in
+`services/retinaImport.ts`. Screen: `pages/RetinaAi.tsx`, tabs Grade a photograph / To grade / Records / Agreement / System,
+a "Research use only" notice on every tab and "AI-generated · verify" beside every AI grade.
+
 ### Adding a feature (checklist)
 1. Read DECISIONS.md and COMPLIANCE.md; if the feature conflicts, ask first.
 2. Migration (if needed) + SCHEMA.md; audit triggers for new tables.

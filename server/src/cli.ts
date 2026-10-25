@@ -2,9 +2,16 @@
 //   node dist/cli.js list-users
 //   node dist/cli.js temp-password <username>             -> prints a one-time password, must be changed at login
 //   node dist/cli.js create-user <username> "<Full name>" <role>
+//   node dist/cli.js retina-batch [<folder>] [--graded-by <username>] [--dry-run] [--no-move]   -> grade a folder (D-040)
+//   node dist/cli.js retina-import-legacy [<records.db>]                                      -> copy the grader's old records once
 import { pool, withTx } from "./db.js";
 import { hashPassword, temporaryPassword } from "./lib/passwords.js";
 import { ROLES } from "./lib/permissions.js";
+import { importLegacy, runBatch } from "./services/retinaImport.js";
+
+const GRADER_DIR = "D:\\classification\\sampada-retinal-ai";
+const flag = (name: string) => args.includes(name);
+const option = (name: string) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
 
 const [cmd, ...args] = process.argv.slice(2);
 const ctx = (summary: string) => ({ userId: null, source: "cli" as const, summary });
@@ -39,8 +46,18 @@ async function main() {
       console.log(`\n  Created ${fullName} (${username}, ${role})\n  Temporary password: ${temp}\n`);
       return;
     }
+    case "retina-batch": {
+      const folder = args[0] && !args[0].startsWith("--") ? args[0] : `${GRADER_DIR}\\ingest\\incoming`;
+      await runBatch({ folder, gradedBy: option("--graded-by"), dryRun: flag("--dry-run"), move: !flag("--no-move") });
+      return;
+    }
+    case "retina-import-legacy": {
+      await importLegacy(args[0] ?? `${GRADER_DIR}\\data\\records.db`);
+      return;
+    }
     default:
-      console.log("commands: list-users | temp-password <username> | create-user <username> \"<Full name>\" <role>");
+      console.log("commands: list-users | temp-password <username> | create-user <username> \"<Full name>\" <role>"
+        + " | retina-batch [<folder>] [--graded-by <username>] [--dry-run] [--no-move] | retina-import-legacy [<records.db>]");
   }
 }
 

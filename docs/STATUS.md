@@ -1,5 +1,5 @@
 # Sudarshan - status and handoff
-Last updated: 2026-10-20. Plan: docs/PLAN.md (exported from the Claude Docs plan). Read CLAUDE.md first; the other docs are listed there.
+Last updated: 2026-10-25. Plan: docs/PLAN.md (exported from the Claude Docs plan). Read CLAUDE.md first; the other docs are listed there.
 
 ## Done (Phase A)
 - Read-only MySQL user `sudarshan_ro` on Yarago (MySQL 5.6, db `yghealthcarecombined`, 127.0.0.1:3306).
@@ -141,6 +141,20 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
 - [ ] Before go-live of Phase 4: Razorpay KYC and live keys; cut-over done; Google app Broadcast page no longer used.
 
 - [x] Direction recorded (21 Oct, D-037): Sudarshan replaces Yarago, queue management included (PLAN.md "Later"). Not scheduled.
+
+- [x] Retina AI Phase 1 built (25 Oct, D-040): research DR grader page for admin and doctors, records in `app.dr_gradings`,
+      doctors' blinded grades, agreement figures, folder import and old-records copy on the console. Migration 0018.
+      9 checks without a database pass; the 15-check API test (`test/retina.test.ts`) and a browser check still need the
+      test database (not run on shichika).
+- [ ] **Not deployed yet.** Pavin, outside clinic hours, Docker Desktop running: RUNBOOK 12 first setup
+      (`setup-retina-ai.ps1`, `update.ps1`, `retina-import-legacy`). Until then the grader still runs the old code on the LAN.
+- [ ] Pavin: decide what happens to the grader's old `records.db` and `logs\` (patient data outside the QNAP backup) once
+      the copy in Sudarshan is checked.
+- [ ] Retina AI Phase 2: Remidio Host Gateway API pull (Postman collection in `D:\classification\sampada-retinal-ai\docs\`).
+      Waiting on Remidio: TIRUR production credentials and site id, body of `itemSuccessfullyHandled`, date format of
+      `getExamsByDate`, whether any queue item or export carries the doctor's DR grade, whether anything else reads the queue.
+- [ ] Pavin: what goes in the MRN field on the Remidio FOP (the Yarago SPD number?): decides whether Phase 2 can match
+      patients by itself.
 
 ## Next step
 Trial running on live Google data (D-025). Remaining, in order:

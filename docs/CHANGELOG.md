@@ -5,6 +5,23 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Retina AI (research): diabetic retinopathy grade from a fundus photograph, for admin and doctors** (D-040). A new "Retina AI"
+  page sends a photograph to the research model already installed on shichika and keeps the result in Sudarshan, linked to the
+  Yarago patient. Five tabs: *Grade a photograph* (find the patient, choose the eye and the photo; tick "give my own grade first"
+  to see the AI grade only after yours), *To grade* (photographs you have not graded, without the AI grade), *Records* (every
+  grading, search by MRD or name and dates, remarks), *Agreement* (how often the AI matches doctors' blinded grades: same grade,
+  within one, kappa, referable DR found / missed) and *System* (is the grader running). Every screen says it is research use
+  only; the grade never goes into the patient's record, summaries or follow-ups. Managers and front desk do not see the page or
+  the grades (the activity log shows only that a grade was set). The grader's old page on port 7860 is switched off and no
+  longer reachable from other PCs. Folder grading and copying the old grader's records run on the server console (RUNBOOK 12).
+  Technical: migration `0018_retina_ai.sql` (`app.dr_gradings` append-only by trigger, `app.dr_doctor_grades`,
+  `app.dr_grading_views`); permission `retina_ai.use` (admin, doctor); `routes/retinaAi.ts`, `services/retinaAi.ts`,
+  `services/retinaImport.ts`, `pages/RetinaAi.tsx`; `cli retina-batch`, `cli retina-import-legacy`; `.env` `RETINA_AI_URL`,
+  `RETINA_AI_KEY` from `scripts/setup-retina-ai.ps1`; 413 "too large" answer in the error handler. Grader
+  (`D:\classification\sampada-retinal-ai`, not in git): `POST /api/grade` with a shared key, `inference.validate_bytes()`,
+  port `127.0.0.1:7860`, `LEGACY_UI=0`, log lines without names or phones; `model_guard.py` fixed (it had refused the
+  model since 21 Sep: Keras 3 settings objects were taken for unknown layers; pinned SHA-256 unchanged). Tests: `test/retina.unit.test.ts` (9, in
+  `test:rules`), `test/retina.test.ts` (15, test database, in `npm test`).
 - **Appointment panel: "What happened" is readable for imported bookings.** The old Google-app history used to show as a
   block of raw code (`[{"timestamp":...}]`). It now shows one line per step, e.g. "22 Oct, 18:31 Appointment created for
   BABY OF HRIDYA (syamili@sampada)" and "Check-in time updated from 16:20 to 16:40". Technical: `historyLines()` in

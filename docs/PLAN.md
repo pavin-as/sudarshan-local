@@ -20,7 +20,9 @@ Sudarshan stays clinic-only, for 6 staff today and up to 10, plus doctors readin
 - **Direction (D-037), not yet scheduled:** Sudarshan eventually replaces Yarago (registration, MRD issue, EMR, billing)
   and takes over **queue management** (check-in, stations, token and waiting display, which today run on Yarago's station
   timer). See "Later: replace Yarago and queue management" below.
-- **Out of scope for now:** OCT and fundus images, the diabetic retinopathy model, patient-facing booking.
+- **Research only (D-040):** the diabetic retinopathy model, as a Retina AI page for admin and doctors to measure it against
+  doctors' grades; never part of clinical records or care. Phase 2 (Remidio API pull) waits for Remidio's credentials.
+- **Out of scope for now:** OCT images, storing fundus images, patient-facing booking.
 
 Shichika has the capacity: 32 GB RAM (about 16 GB free today) and an RTX 4070 with 12 GB.
 

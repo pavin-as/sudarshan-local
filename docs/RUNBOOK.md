@@ -16,6 +16,7 @@ App folder `D:\Sudarshan\app` · Python `C:\Users\Admin\AppData\Local\Programs\P
 | `SudarshanYaragoSync` | Mirrors Yarago into Postgres: every 150 s, full copy at 01:00 | none | `logs\yarago_sync.log`, `logs\service-*.log` |
 | `SudarshanServer` | API + web app, `http://shichika:8484` (LAN only) | 8484 | `logs\server-out.log`, `logs\server-err.log` |
 | `SudarshanMetabase` | Management dashboards, `http://shichika:3000` (LAN only); Java 21 and Metabase in `D:\Sudarshan\metabase` | 3000 | `logs\metabase-out.log`, `logs\metabase-err.log` |
+| Docker container `sampada-retinal-ai` (not a Windows service) | Research DR grader for the Retina AI page (D-040), `D:\classification\sampada-retinal-ai`; starts with Docker Desktop, i.e. **only after someone signs in to Windows** | 7860, this machine only | `D:\classification\sampada-retinal-ai\logs\app.log` |
 
 The sync service also rebuilds the reporting tables (`analytics`) at 02:30, after the 02:00 backup.
 
@@ -184,8 +185,9 @@ Users > "Give password" on their row when they start using Sudarshan. Deactivate
 | Role | Sees |
 |---|---|
 | Admin | everything, including Users |
-| Manager | everything except Users |
-| Doctor, Optometrist | board, patients, clinical detail and the doctor summary; cannot book |
+| Manager | everything except Users and Retina AI |
+| Doctor | board, patients, clinical detail, the doctor summary and Retina AI (research, D-040); cannot book |
+| Optometrist | board, patients, clinical detail and the doctor summary; cannot book |
 | Counsellor | as front desk, plus clinical detail and the doctor summary |
 | Front desk | board, booking, calls, lists, patients without clinical detail |
 
@@ -222,4 +224,37 @@ check with the patient. Not-delivered messages are listed on the WhatsApp page: 
 
 Going live (after cut-over): rotate the AiSensy key, put the Razorpay live keys in `.env` (after KYC), restart the server,
 then an admin sets both switches to Live. Back to Off at any time stops new sends; links already sent stay payable.
+
+## 12. Retina AI (research DR grader, D-040)
+
+The **Retina AI** page (admin and doctors) sends a fundus photograph to the grader container in
+`D:\classification\sampada-retinal-ai` and keeps the result in Sudarshan. Research use only: never for a clinical decision.
+
+**First setup (once, outside clinic hours), PowerShell as Administrator, Docker Desktop running:**
+```
+powershell -ExecutionPolicy Bypass -File D:\Sudarshan\app\scripts\setup-retina-ai.ps1
+powershell -ExecutionPolicy Bypass -File D:\Sudarshan\app\scripts\update.ps1 -Message "Retina AI (D-040)"
+cd D:\Sudarshan\app\server; node dist\cli.js retina-import-legacy
+```
+The first makes the shared key (never shown) in both `.env` files, recreates the container on 127.0.0.1:7860 with the old
+Gradio page off, waits for the model (about a minute), checks the LAN address no longer answers and removes the old firewall
+rule. The second applies migration 0018 and restarts the server. The third copies the old grader's `records.db` once (safe to
+run again; it skips what is already copied).
+
+**After a reboot** the page says "not available" until someone signs in to Windows on shichika (Docker Desktop starts at
+sign-in) and the model has loaded (about a minute). Retina AI > System shows the state. Nothing else in Sudarshan depends on it.
+
+**Grading a folder** (e.g. exported from the Remidio dashboard): put the JPG/PNG files in
+`D:\classification\sampada-retinal-ai\ingest\incoming`, optionally with `metadata.csv`
+(`filename,mrd_no,eye,reference_grade`; eye `Right (OD)` / `Left (OS)` / `RE` / `LE`), then
+```
+cd D:\Sudarshan\app\server; node dist\cli.js retina-batch --dry-run
+node dist\cli.js retina-batch --graded-by <username of the doctor who gave the reference grades>
+```
+Files move to `ingest\processed` or `ingest\failed`. Put only grades given **without** seeing the AI result in
+`reference_grade`: they are saved as blinded. The output names files and MRDs only.
+
+**Problems:** System tab says the key does not match → run `setup-retina-ai.ps1` again, then `Restart-Service SudarshanServer`.
+"Older version without the Sudarshan connection" → the container still runs old code: `cd D:\classification\sampada-retinal-ai\docker`,
+`docker compose up -d --force-recreate app`. Grader log: `D:\classification\sampada-retinal-ai\logs\app.log`.
 

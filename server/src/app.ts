@@ -29,6 +29,7 @@ import { monthRoutes } from "./routes/month.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { whatsappRoutes } from "./routes/whatsapp.js";
 import { paymentRoutes } from "./routes/payments.js";
+import { retinaAiRoutes } from "./routes/retinaAi.js";
 import { RazorpayError } from "./services/razorpay.js";
 
 export async function buildApp(opts: { logger?: boolean } = {}): Promise<FastifyInstance> {
@@ -55,6 +56,7 @@ export async function buildApp(opts: { logger?: boolean } = {}): Promise<Fastify
     if (err instanceof RazorpayError) return reply.status(502).send({ error: "razorpay", message: err.message });
     const e = err as any;
     if (e.validation || e.statusCode === 400 || e.statusCode === 415) return reply.status(e.statusCode ?? 400).send({ error: "invalid_input", message: e.message });
+    if (e.statusCode === 413) return reply.status(413).send({ error: "too_large", message: "That is too large to send. Photographs may be up to 40 MB." });
     if (e.code === "23514" || e.code === "23505") {        // check / unique violation from Postgres
       req.log.warn({ err }, "constraint violation");
       return reply.status(409).send({ error: "conflict", message: "That would break a data rule: " + (e.constraint ?? e.detail ?? "constraint") });
@@ -120,5 +122,6 @@ export async function buildApp(opts: { logger?: boolean } = {}): Promise<Fastify
   await app.register(settingsRoutes);
   await app.register(whatsappRoutes);
   await app.register(paymentRoutes);
+  await app.register(retinaAiRoutes);
   return app;
 }

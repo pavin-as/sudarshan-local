@@ -27,6 +27,7 @@ import { MonthPage } from "./pages/Month";
 import { SettingsPage } from "./pages/Settings";
 import { WhatsAppPage } from "./pages/WhatsApp";
 import { PaymentsPage } from "./pages/Payments";
+import { RetinaAiPage } from "./pages/RetinaAi";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 20_000, refetchOnWindowFocus: true, retry: (n, e: any) => n < 2 && !(e?.status >= 400 && e?.status < 500) } },
@@ -99,6 +100,7 @@ function Shell() {
         {can("messages.send") && <NavLink to="/whatsapp">WhatsApp</NavLink>}
         {can("payments.write") && <NavLink to="/payments">Payments {!!payReview && <span className="count">{payReview}</span>}</NavLink>}
         {can("clinical.read") && <NavLink to="/emr-completeness">EMR completeness</NavLink>}
+        {can("retina_ai.use") && <NavLink to="/retina-ai">Retina AI</NavLink>}
         {can("audit.read") && <NavLink to="/activity">Activity log</NavLink>}
         {can("settings.manage") && <NavLink to="/calendar">Clinic calendar</NavLink>}
         {can("settings.manage") && <NavLink to="/settings">Settings</NavLink>}
@@ -132,6 +134,7 @@ function Shell() {
           <Route path="/users" element={<UsersPage />} />
           <Route path="/whatsapp" element={<WhatsAppPage />} />
           <Route path="/payments" element={<PaymentsPage />} />
+          <Route path="/retina-ai" element={<RetinaAiPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

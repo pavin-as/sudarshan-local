@@ -31,4 +31,10 @@ export const config = {
   sessionHours: num("SESSION_HOURS", 12),
   timezone: "Asia/Kolkata",
   logLevel: process.env.LOG_LEVEL ?? "info",
+  // research DR grader (D-040): Docker container on this machine only; the key is shared with its docker\.env
+  retinaAi: {
+    url: (process.env.RETINA_AI_URL ?? "http://127.0.0.1:7860").replace(/\/$/, ""),
+    key: process.env.RETINA_AI_KEY ?? "",
+    timeoutMs: num("RETINA_AI_TIMEOUT_MS", 60_000),
+  },
 };

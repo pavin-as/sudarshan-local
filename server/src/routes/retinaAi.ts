@@ -1,0 +1,188 @@
+// Retina AI, research use only (D-040): grade a fundus photograph with the DR model, keep every result, let doctors give
+// their own grade, and show how often the two agree. Permission retina_ai.use (admin and doctors).
+// Every AI grade shown is logged in app.dr_grading_views (COMPLIANCE: every AI result shown is logged); a doctor's grade
+// counts as "blinded" only when that doctor had not been shown the AI grade before saving it.
+// The photograph is held in memory for the call to the grader and never stored.
+import type { FastifyInstance, FastifyRequest } from "fastify";
+import type pg from "pg";
+import { z } from "zod";
+import { auditCtx, need } from "../auth.js";
+import { one, q, withTx } from "../db.js";
+import { badRequest, notFound } from "../lib/errors.js";
+import { dateStr } from "../lib/time.js";
+import { GRADES, IMAGE_TYPES, MAX_IMAGE_MB, agreement, gradeImage, graderHealth } from "../services/retinaAi.js";
+
+const EYE_WORDS: Record<string, string> = { RE: "right eye", LE: "left eye" };
+const idParam = z.object({ id: z.coerce.number().int().positive() });
+
+const COLS = `g.id, g.created_at AS "createdAt", g.patient_id AS "patientId", coalesce(p.mrd, g.mrd) AS mrd, p.name AS "patientName",
+  g.eye, g.source, g.batch_id AS "batchId", g.status, g.error, g.image_filename AS "imageFilename", g.remarks,
+  u.full_name AS "createdBy", (SELECT count(*) FROM app.dr_doctor_grades d WHERE d.grading_id = g.id)::int AS "doctorGrades",
+  mine.grade AS "myGrade", mine.ungradable AS "myUngradable", mine.blinded AS "myBlinded"`;
+const AI_COLS = `g.ai_grade AS "aiGrade", g.probs, g.raw_outputs AS "rawOutputs", g.calibration, g.image_width AS "imageWidth",
+  g.image_height AS "imageHeight", g.inference_ms AS "inferenceMs", g.model_sha256 AS "modelSha256", g.model_commit AS "modelCommit",
+  g.grader_version AS "graderVersion"`;
+const FROM = `FROM app.dr_gradings g LEFT JOIN clinical.patient p ON p.patient_id = g.patient_id
+  LEFT JOIN app.users u ON u.id = g.created_by
+  LEFT JOIN app.dr_doctor_grades mine ON mine.grading_id = g.id AND mine.graded_by = $1`;
+
+const who = (r: { patientName?: string | null; mrd?: string | null; patientId?: number | null }) =>
+  r.patientName ? `${r.patientName} (${r.mrd})` : r.mrd ?? (r.patientId ? `patient ${r.patientId}` : "an unknown patient");
+
+async function logViews(req: FastifyRequest, userId: number, ids: number[], c?: pg.PoolClient) {
+  if (!ids.length) return;
+  const sql = `INSERT INTO app.dr_grading_views (grading_id, user_id) SELECT unnest($1::bigint[]), $2`;
+  if (c) { await c.query(sql, [ids, userId]); return; }
+  await withTx(auditCtx(req, `Viewed ${ids.length} AI grading${ids.length === 1 ? "" : "s"}`), (t) => t.query(sql, [ids, userId]));
+}
+
+export async function retinaAiRoutes(app: FastifyInstance) {
+  // photographs arrive as the raw request body (JPEG or PNG); this parser only applies to the routes in this file
+  app.addContentTypeParser([...IMAGE_TYPES], { parseAs: "buffer", bodyLimit: MAX_IMAGE_MB * 1024 * 1024 },
+    (_req, body, done) => done(null, body));
+
+  app.get("/api/retina-ai/status", async (req) => {
+    need(req, "retina_ai.use");
+    const [grader, counts] = await Promise.all([graderHealth(), one(
+      `SELECT count(*)::int AS total, count(*) FILTER (WHERE status = 'ok')::int AS graded,
+              count(*) FILTER (WHERE status <> 'ok')::int AS "notGraded",
+              (SELECT count(DISTINCT grading_id)::int FROM app.dr_doctor_grades) AS "withDoctorGrade",
+              max(created_at) AS "lastAt"
+         FROM app.dr_gradings`)]);
+    return { grader, counts, grades: GRADES, maxImageMb: MAX_IMAGE_MB };
+  });
+
+  // Grade one photograph: ?patientId=&eye=RE|LE[&blind=true], body = the image, header x-file-name = its file name (URL-encoded).
+  // blind=true: the AI grade is saved but not returned (nor logged as seen), so the person can give their own grade first.
+  app.post("/api/retina-ai/grade", { bodyLimit: MAX_IMAGE_MB * 1024 * 1024 }, async (req) => {
+    const me = need(req, "retina_ai.use");
+    const { patientId, eye, blind } = z.object({ patientId: z.coerce.number().int().positive(), eye: z.enum(["RE", "LE"]),
+                                                 blind: z.enum(["true", "false"]).optional() }).parse(req.query);
+    const hide = blind === "true";
+    const type = String(req.headers["content-type"] ?? "").split(";")[0].trim().toLowerCase();
+    if (!(IMAGE_TYPES as readonly string[]).includes(type)) throw badRequest("Choose a JPG or PNG photograph.");
+    const image = req.body as Buffer;
+    if (!Buffer.isBuffer(image) || !image.length) throw badRequest("No photograph was received. Choose the file again.");
+    let fileName = "photo";
+    try { fileName = decodeURIComponent(String(req.headers["x-file-name"] ?? "")).slice(0, 200) || fileName; } catch { /* keep the default */ }
+    if (!/\.(jpe?g|png)$/i.test(fileName)) fileName += type === "image/png" ? ".png" : ".jpg";
+
+    const patient = await one<{ patientId: number; mrd: string; patientName: string }>(
+      `SELECT patient_id AS "patientId", mrd, name AS "patientName" FROM clinical.patient WHERE patient_id = $1`, [patientId]);
+    if (!patient) throw notFound("Patient");
+
+    const outcome = await gradeImage(image, fileName, type);         // throws 503 when the grader cannot be reached: nothing saved
+    const r = outcome.kind === "ok" ? outcome.result : null;
+    // never the grade itself: managers read the activity log but may not see AI results (D-040)
+    const sentence = r
+      ? `Graded a fundus photograph of ${who(patient)}, ${EYE_WORDS[eye]}, with the research DR model`
+      : `Fundus photograph of ${who(patient)}, ${EYE_WORDS[eye]}, not graded: ${outcome.kind === "ok" ? "" : outcome.message}`;
+    const id = await withTx(auditCtx(req, sentence), async (c) => {
+      const row = (await c.query(
+        `INSERT INTO app.dr_gradings (created_by, patient_id, mrd, eye, source, status, error, ai_grade, probs, raw_outputs, calibration,
+                                      image_filename, image_sha256, image_width, image_height, preprocess_ms, inference_ms,
+                                      model_repo, model_commit, model_sha256, grader_version)
+         VALUES ($1,$2,$3,$4,'upload',$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) RETURNING id`,
+        [me.id, patientId, patient.mrd, eye, outcome.kind, outcome.kind === "ok" ? null : outcome.message,
+         r?.grade ?? null, r?.probs ?? null, r?.raw ?? null, r?.calibration ?? null, fileName, r?.imageSha256 ?? null,
+         r?.width ?? null, r?.height ?? null, r?.preprocessMs ?? null, r?.inferenceMs ?? null,
+         r?.modelRepo ?? null, r?.modelCommit ?? null, r?.modelSha256 ?? null, r?.graderVersion ?? null])).rows[0];
+      if (r && !hide) await logViews(req, me.id, [row.id], c);
+      return Number(row.id);
+    });
+    return { grading: await one(`SELECT ${COLS}${hide ? "" : `, ${AI_COLS}`} ${FROM} WHERE g.id = $2`, [me.id, id]), aiHidden: hide };
+  });
+
+  // Past gradings with the AI grade (each shown result is logged).
+  app.get("/api/retina-ai/gradings", async (req) => {
+    const me = need(req, "retina_ai.use");
+    const f = z.object({ q: z.string().trim().max(60).optional(), from: dateStr.optional(), to: dateStr.optional(),
+                         patientId: z.coerce.number().int().positive().optional() }).parse(req.query);
+    const params: unknown[] = [me.id];
+    const where: string[] = [];
+    if (f.q) { params.push(f.q); where.push(`(coalesce(p.mrd, g.mrd) ILIKE $${params.length} || '%' OR p.name ILIKE '%' || $${params.length} || '%')`); }
+    if (f.from) { params.push(f.from); where.push(`g.created_at >= $${params.length}::date`); }
+    if (f.to) { params.push(f.to); where.push(`g.created_at < $${params.length}::date + 1`); }
+    if (f.patientId) { params.push(f.patientId); where.push(`g.patient_id = $${params.length}`); }
+    const rows = await q(`SELECT ${COLS}, ${AI_COLS} ${FROM} ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+                           ORDER BY g.created_at DESC, g.id DESC LIMIT 200`, params);
+    await logViews(req, me.id, rows.filter((r: any) => r.status === "ok").map((r: any) => Number(r.id)));
+    return { gradings: rows };
+  });
+
+  // Photographs I have not graded yet, WITHOUT the AI grade, so my grade can be blinded.
+  app.get("/api/retina-ai/to-grade", async (req) => {
+    const me = need(req, "retina_ai.use");
+    const rows = await q(
+      `SELECT ${COLS}, EXISTS (SELECT 1 FROM app.dr_grading_views v WHERE v.grading_id = g.id AND v.user_id = $1) AS "aiSeen"
+         ${FROM} WHERE g.status = 'ok' AND mine.id IS NULL ORDER BY g.created_at DESC LIMIT 200`, [me.id]);
+    return { gradings: rows };
+  });
+
+  app.get("/api/retina-ai/gradings/:id", async (req) => {
+    const me = need(req, "retina_ai.use");
+    const { id } = idParam.parse(req.params);
+    const g = await one<any>(`SELECT ${COLS}, ${AI_COLS} ${FROM} WHERE g.id = $2`, [me.id, id]);
+    if (!g) throw notFound("AI grading");
+    const doctorGrades = await q(
+      `SELECT d.grade, d.ungradable, d.note, d.blinded, d.updated_at AS at, u.full_name AS "by", d.graded_by = $2 AS mine
+         FROM app.dr_doctor_grades d JOIN app.users u ON u.id = d.graded_by WHERE d.grading_id = $1 ORDER BY d.updated_at`, [id, me.id]);
+    if (g.status === "ok") await logViews(req, me.id, [id]);
+    return { grading: g, doctorGrades };
+  });
+
+  app.put("/api/retina-ai/gradings/:id/remarks", async (req) => {
+    need(req, "retina_ai.use");
+    const { id } = idParam.parse(req.params);
+    const { remarks } = z.object({ remarks: z.string().trim().max(2000) }).parse(req.body);
+    const g = await one<any>(`SELECT g.patient_id AS "patientId", coalesce(p.mrd, g.mrd) AS mrd, p.name AS "patientName"
+                                FROM app.dr_gradings g LEFT JOIN clinical.patient p ON p.patient_id = g.patient_id WHERE g.id = $1`, [id]);
+    if (!g) throw notFound("AI grading");
+    await withTx(auditCtx(req, `Changed the remarks on AI grading #${id} of ${who(g)}`), (c) =>
+      c.query(`UPDATE app.dr_gradings SET remarks = $2 WHERE id = $1`, [id, remarks]));
+    return { ok: true };
+  });
+
+  // My own grade of the photograph (one per person; saving again replaces it).
+  app.put("/api/retina-ai/gradings/:id/my-grade", async (req) => {
+    const me = need(req, "retina_ai.use");
+    const { id } = idParam.parse(req.params);
+    const b = z.object({ grade: z.number().int().min(0).max(4).nullable(), ungradable: z.boolean().default(false),
+                         note: z.string().trim().max(1000).default("") })
+      .refine((x) => (x.grade === null) === x.ungradable, { message: "Choose a grade, or mark the photograph as not gradable" })
+      .parse(req.body);
+    const g = await one<any>(`SELECT g.status, g.patient_id AS "patientId", coalesce(p.mrd, g.mrd) AS mrd, p.name AS "patientName"
+                                FROM app.dr_gradings g LEFT JOIN clinical.patient p ON p.patient_id = g.patient_id WHERE g.id = $1`, [id]);
+    if (!g) throw notFound("AI grading");
+    if (g.status !== "ok") throw badRequest("This photograph was not graded by the AI, so there is nothing to compare with.");
+    const saved = await withTx(auditCtx(req, `Gave a doctor's DR grade for ${who(g)} (AI grading #${id})`), async (c) =>
+      (await c.query(
+        `INSERT INTO app.dr_doctor_grades (grading_id, patient_id, graded_by, grade, ungradable, note, blinded)
+         VALUES ($1, $2, $3, $4, $5, $6, NOT EXISTS (SELECT 1 FROM app.dr_grading_views v WHERE v.grading_id = $1 AND v.user_id = $3))
+         ON CONFLICT (grading_id, graded_by) DO UPDATE
+           SET grade = EXCLUDED.grade, ungradable = EXCLUDED.ungradable, note = EXCLUDED.note, blinded = EXCLUDED.blinded
+         RETURNING blinded`, [id, g.patientId, me.id, b.grade, b.ungradable, b.note])).rows[0]);
+    return { ok: true, blinded: saved.blinded };
+  });
+
+  // How often the AI grade matches doctors' grades. Blinded grades only unless asked otherwise.
+  app.get("/api/retina-ai/agreement", async (req) => {
+    need(req, "retina_ai.use");
+    const f = z.object({ from: dateStr.optional(), to: dateStr.optional(), graderId: z.coerce.number().int().positive().optional(),
+                         includeUnblinded: z.enum(["true", "false"]).optional() }).parse(req.query);
+    const params: unknown[] = [];
+    const where = [`g.status = 'ok'`];
+    if (f.includeUnblinded !== "true") where.push("d.blinded");
+    if (f.from) { params.push(f.from); where.push(`g.created_at >= $${params.length}::date`); }
+    if (f.to) { params.push(f.to); where.push(`g.created_at < $${params.length}::date + 1`); }
+    if (f.graderId) { params.push(f.graderId); where.push(`d.graded_by = $${params.length}`); }
+    const rows = await q<{ ai: number; doctor: number | null; ungradable: boolean }>(
+      `SELECT g.ai_grade AS ai, d.grade AS doctor, d.ungradable
+         FROM app.dr_doctor_grades d JOIN app.dr_gradings g ON g.id = d.grading_id WHERE ${where.join(" AND ")}`, params);
+    const graders = await q(
+      `SELECT u.id, u.full_name AS name, count(*)::int AS grades, count(*) FILTER (WHERE d.blinded)::int AS blinded
+         FROM app.dr_doctor_grades d JOIN app.users u ON u.id = d.graded_by GROUP BY u.id, u.full_name ORDER BY u.full_name`);
+    const pairs = rows.filter((r) => !r.ungradable && r.doctor !== null).map((r) => ({ ai: Number(r.ai), doctor: Number(r.doctor) }));
+    return { ...agreement(pairs), ungradable: rows.filter((r) => r.ungradable).length, graders, grades: GRADES };
+  });
+}
