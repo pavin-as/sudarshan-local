@@ -107,4 +107,30 @@ check("screening: cut-off keeps the target sensitivity on validation; three outc
   assert.equal(f.refer + f.uncertain + f.routine, 20);
 });
 
+const { screeningIntervals } = await import("../src/services/evalScreening.js");
+const { screeningFor } = await import("../src/services/screening.js");
+check("live screening outcome (D-046): by the model's own cut-offs; ungradable photograph or doctor's 'not gradable' is uncertain", () => {
+  const cut = { abc: { name: "M", refer: 0.4, clear: 0.1, source: "test" } };
+  const g = (probs: number[], extra: any = {}) => screeningFor({ status: "ok", probs, modelSha256: "abc", ...extra }, cut);
+  const r = g([0.5, 0, 0.2, 0.1, 0.2]);
+  assert.equal(r!.outcome, "refer"); near(r!.score, 0.5, "score = p2+p3+p4");
+  assert.equal(g([0.8, 0, 0.1, 0.05, 0.05])!.outcome, "uncertain");
+  assert.equal(g([0.95, 0, 0.05, 0, 0])!.outcome, "routine");
+  assert.equal(g([0.95, 0, 0.05, 0, 0], { photoQuality: "INSUFFICIENT" })!.outcome, "uncertain");
+  assert.equal(g([0.95, 0, 0.05, 0, 0], { doctorUngradable: true })!.outcome, "uncertain");
+  assert.equal(screeningFor({ status: "ok", probs: [1, 0, 0, 0, 0], modelSha256: "other" }, cut), null, "no cut-offs: no outcome");
+  assert.equal(screeningFor({ status: "error", probs: null, modelSha256: "abc" }, cut), null, "failed grading: no outcome");
+});
+check("screening on Sampada sets: ungradable rows are never cleared; intervals resample whole patients, reproducibly", () => {
+  const rs = [{ id: "a", ref: 0, score: 0, ungradable: true }, { id: "b", ref: 0, score: 0 }];
+  const f = screeningFigures(rs, 0.4, 0.2);
+  assert.equal(f.uncertain, 1); assert.equal(f.routine, 1);
+  // two patients, each with two eyes of the same kind: resampling patients keeps eyes together
+  const pr = [{ id: "1", ref: 3, score: 0.9, cluster: "P1" }, { id: "2", ref: 3, score: 0.05, cluster: "P1" },
+              { id: "3", ref: 0, score: 0.0, cluster: "P2" }, { id: "4", ref: 0, score: 0.0, cluster: "P2" }];
+  const a = screeningIntervals(pr, 0.4, 0.1, 400, 7), b = screeningIntervals(pr, 0.4, 0.1, 400, 7);
+  assert.deepEqual(a, b, "same seed, same intervals");
+  assert.deepEqual(a.sensitivity, [0.5, 0.5], "patient P1 always comes with both eyes, so sensitivity is always 1 of 2");
+});
+
 console.log(`\n${passed} evaluation checks passed`);

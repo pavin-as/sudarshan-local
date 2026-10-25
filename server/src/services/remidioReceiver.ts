@@ -16,7 +16,8 @@ import { HttpError } from "../lib/errors.js";
 import { setting } from "./outreach.js";
 import { fetchPhoto, getQueueItem, itemHandled, lastQueueHttp, photoFromItem, photoUrlAllowed, remidioReady, stripLinks,
          type QueuePhoto } from "./remidio.js";
-import { gradeImage } from "./retinaAi.js";
+import { gradeImage, graderHealth, graderTargets, type GraderTarget } from "./retinaAi.js";
+import { activeGraders } from "./screening.js";
 import { syncGradesForPhoto } from "./fundusReport.js";
 import { normaliseMrd } from "./retinaImport.js";
 
@@ -160,25 +161,52 @@ export async function pollQueue(log: FastifyBaseLogger): Promise<string> {
 }
 
 /** Grade photographs that have no AI grading yet, a few at a time; stops quietly while the grader is down. */
+/** Grade photographs not yet graded by each research grader switched on in retina.graders (D-046), a few at a time per
+ *  grader; a grader that is down or has no key is skipped (the others carry on). Its model is identified by the
+ *  SHA-256 its /health reports (for RFM, per head), so each photograph gets one grading per model. */
 export async function gradeNewPhotos(log: FastifyBaseLogger): Promise<number> {
-  if (grading || !config.retinaAi.key) return 0;
+  if (grading) return 0;
   grading = true;
   let graded = 0;
   try {
+    for (const g of await activeGraders()) {
+      const target = graderTargets()[g.grader];
+      if (!target?.key) continue;
+      const health = await graderHealth(target);
+      if (!health.ready) continue;
+      // the model this grader (and head) answers with; "" when a grader does not say (then: any grading without a model)
+      const sha = (g.head ? health.heads?.[g.head]?.model_sha256 : health.modelSha256) ?? "";
+      if (g.head && !sha) { log.warn(`photo grading: ${g.key} has no head "${g.head}"`); continue; }
+      graded += await gradeWith(g.key, target, g.head ? `head=${encodeURIComponent(g.head)}` : "", sha);
+    }
+  } catch (e: any) {
+    if (!(e instanceof HttpError && e.status === 503)) log.warn(`photo grading: ${String(e?.message ?? e).slice(0, 300)}`);
+  } finally {
+    grading = false;
+  }
+  return graded;
+}
+
+async function gradeWith(key: string, target: GraderTarget, query: string, sha: string): Promise<number> {
+  let graded = 0;
+  {
     const todo = await q<any>(
       `SELECT f.id, f.remidio_image_id, f.patient_id, coalesce(p.mrd, f.mrn) AS mrd, f.eye, f.file_path
          FROM app.fundus_photos f LEFT JOIN clinical.patient p ON p.patient_id = f.patient_id
-        WHERE NOT EXISTS (SELECT 1 FROM app.dr_gradings g WHERE g.photo_id = f.id) ORDER BY f.id LIMIT 5`);
+        WHERE NOT EXISTS (SELECT 1 FROM app.dr_gradings g WHERE g.photo_id = f.id AND coalesce(g.model_sha256, '') = $1)
+        ORDER BY f.id LIMIT 5`, [sha]);
     for (const f of todo) {
       const file = path.join(config.retinaAi.photoDir, f.file_path);
       let outcome: Awaited<ReturnType<typeof gradeImage>>;
-      try { outcome = await gradeImage(await readFile(file), path.basename(file), file.endsWith(".png") ? "image/png" : "image/jpeg"); }
+      try { outcome = await gradeImage(await readFile(file), path.basename(file), file.endsWith(".png") ? "image/png" : "image/jpeg", target, query); }
       catch (e: any) {
         if (e instanceof HttpError && e.status === 503) break;            // grader down: try again next time
         outcome = { kind: "error", message: `could not grade: ${String(e?.message ?? e).slice(0, 200)}` };   // e.g. file missing
       }
       const r = outcome.kind === "ok" ? outcome.result : null;
-      await withTx(ctx(`Graded Remidio photograph #${f.id} with the research DR model`), async (c) => { await c.query(
+      if (r && (r.modelSha256 || "") !== sha) break;   // the model changed since /health was read: read it again next round
+      const modelSha = sha || null;                     // failures are recorded under the model too, so they are not retried for ever
+      await withTx(ctx(`Graded Remidio photograph #${f.id} with the research model ${key}`), async (c) => { await c.query(
         `INSERT INTO app.dr_gradings (patient_id, mrd, eye, source, photo_id, status, error, ai_grade, probs, raw_outputs, calibration,
                                       image_filename, image_sha256, image_width, image_height, preprocess_ms, inference_ms,
                                       model_repo, model_commit, model_sha256, grader_version)
@@ -186,15 +214,11 @@ export async function gradeNewPhotos(log: FastifyBaseLogger): Promise<number> {
         [f.patient_id, f.mrd, f.eye, f.id, outcome.kind, outcome.kind === "ok" ? null : outcome.message, r?.grade ?? null, r?.probs ?? null,
          r?.raw ?? null, r?.calibration ?? null, `remidio-${f.remidio_image_id}${path.extname(file)}`, r?.imageSha256 ?? null,
          r?.width ?? null, r?.height ?? null, r?.preprocessMs ?? null, r?.inferenceMs ?? null, r?.modelRepo ?? null,
-         r?.modelCommit ?? null, r?.modelSha256 ?? null, r?.graderVersion ?? null]);
+         r?.modelCommit ?? null, modelSha, r?.graderVersion ?? null]);
         await syncGradesForPhoto(c, Number(f.id));       // a doctor's report written before the AI graded it (D-042)
       });
       graded++;
     }
-  } catch (e: any) {
-    if (!(e instanceof HttpError && e.status === 503)) log.warn(`photo grading: ${String(e?.message ?? e).slice(0, 300)}`);
-  } finally {
-    grading = false;
   }
   return graded;
 }

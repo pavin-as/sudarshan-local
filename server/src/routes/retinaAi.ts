@@ -15,7 +15,8 @@ import { badRequest, notFound } from "../lib/errors.js";
 import { dateStr } from "../lib/time.js";
 import { remidioReady } from "../services/remidio.js";
 import { lastPoll, pollQueue, receiverMode } from "../services/remidioReceiver.js";
-import { GRADES, IMAGE_TYPES, MAX_IMAGE_MB, agreement, gradeImage, graderHealth } from "../services/retinaAi.js";
+import { GRADES, IMAGE_TYPES, MAX_IMAGE_MB, agreement, gradeImage, graderHealth, graderTargets } from "../services/retinaAi.js";
+import { activeGraders, screeningCutoffs, screeningFor, type Screened } from "../services/screening.js";
 
 const EYE_WORDS: Record<string, string> = { RE: "right eye", LE: "left eye" };
 const idParam = z.object({ id: z.coerce.number().int().positive() });
@@ -26,10 +27,17 @@ const COLS = `g.id, g.created_at AS "createdAt", g.patient_id AS "patientId", co
   mine.grade AS "myGrade", mine.ungradable AS "myUngradable", mine.blinded AS "myBlinded"`;
 const AI_COLS = `g.ai_grade AS "aiGrade", g.probs, g.raw_outputs AS "rawOutputs", g.calibration, g.image_width AS "imageWidth",
   g.image_height AS "imageHeight", g.inference_ms AS "inferenceMs", g.model_sha256 AS "modelSha256", g.model_commit AS "modelCommit",
-  g.grader_version AS "graderVersion"`;
+  g.grader_version AS "graderVersion", g.model_repo AS "modelRepo", fp.quality AS "photoQuality",
+  EXISTS (SELECT 1 FROM app.dr_doctor_grades dd WHERE dd.grading_id = g.id AND dd.ungradable) AS "doctorUngradable"`;
 const FROM = `FROM app.dr_gradings g LEFT JOIN clinical.patient p ON p.patient_id = g.patient_id
-  LEFT JOIN app.users u ON u.id = g.created_by
+  LEFT JOIN app.users u ON u.id = g.created_by LEFT JOIN app.fundus_photos fp ON fp.id = g.photo_id
   LEFT JOIN app.dr_doctor_grades mine ON mine.grading_id = g.id AND mine.graded_by = $1`;
+
+/** Each AI grading shown gets its screening outcome (refer / uncertain / routine) from its model's cut-offs (D-046). */
+async function withScreening<T extends Record<string, any>>(rows: T[]): Promise<(T & { screening: Screened | null })[]> {
+  const cutoffs = await screeningCutoffs();
+  return rows.map((r) => ({ ...r, screening: "aiGrade" in r ? screeningFor(r as any, cutoffs) : null }));
+}
 
 const who = (r: { patientName?: string | null; mrd?: string | null; patientId?: number | null }) =>
   r.patientName ? `${r.patientName} (${r.mrd})` : r.mrd ?? (r.patientId ? `patient ${r.patientId}` : "an unknown patient");
@@ -54,7 +62,16 @@ export async function retinaAiRoutes(app: FastifyInstance) {
               (SELECT count(DISTINCT grading_id)::int FROM app.dr_doctor_grades) AS "withDoctorGrade",
               max(created_at) AS "lastAt"
          FROM app.dr_gradings`)]);
-    return { grader, counts, grades: GRADES, maxImageMb: MAX_IMAGE_MB };
+    // every research grader switched on (D-046), with whether it answers and which model it is
+    const cutoffs = await screeningCutoffs();
+    const graders = await Promise.all((await activeGraders()).map(async (g) => {
+      const t = graderTargets()[g.grader];
+      const h = t ? await graderHealth(t) : { reachable: false, ready: false, keySet: false, heads: null } as any;
+      const sha = (g.head ? h.heads?.[g.head]?.model_sha256 : h.modelSha256) ?? null;
+      return { key: g.key, ready: !!h.ready && (!g.head || !!sha), reachable: !!h.reachable, keySet: !!h.keySet, modelSha256: sha,
+               cutoffs: sha ? cutoffs[sha] ?? null : null };
+    }));
+    return { grader, graders, counts, grades: GRADES, maxImageMb: MAX_IMAGE_MB };
   });
 
   // Grade one photograph: ?patientId=&eye=RE|LE[&blind=true], body = the image, header x-file-name = its file name (URL-encoded).
@@ -95,16 +112,19 @@ export async function retinaAiRoutes(app: FastifyInstance) {
       if (r && !hide) await logViews(req, me.id, [row.id], c);
       return Number(row.id);
     });
-    return { grading: await one(`SELECT ${COLS}${hide ? "" : `, ${AI_COLS}`} ${FROM} WHERE g.id = $2`, [me.id, id]), aiHidden: hide };
+    const [shown] = await withScreening([await one<any>(`SELECT ${COLS}${hide ? "" : `, ${AI_COLS}`} ${FROM} WHERE g.id = $2`, [me.id, id])]);
+    return { grading: shown, aiHidden: hide };
   });
 
   // Past gradings with the AI grade (each shown result is logged).
   app.get("/api/retina-ai/gradings", async (req) => {
     const me = need(req, "retina_ai.use");
     const f = z.object({ q: z.string().trim().max(60).optional(), from: dateStr.optional(), to: dateStr.optional(),
-                         patientId: z.coerce.number().int().positive().optional() }).parse(req.query);
+                         patientId: z.coerce.number().int().positive().optional(),
+                         model: z.string().regex(/^[0-9a-f]{64}$/i).optional() }).parse(req.query);
     const params: unknown[] = [me.id];
     const where: string[] = [];
+    if (f.model) { params.push(f.model); where.push(`g.model_sha256 = $${params.length}`); }
     if (f.q) { params.push(f.q); where.push(`(coalesce(p.mrd, g.mrd) ILIKE $${params.length} || '%' OR p.name ILIKE '%' || $${params.length} || '%')`); }
     if (f.from) { params.push(f.from); where.push(`g.created_at >= $${params.length}::date`); }
     if (f.to) { params.push(f.to); where.push(`g.created_at < $${params.length}::date + 1`); }
@@ -112,15 +132,20 @@ export async function retinaAiRoutes(app: FastifyInstance) {
     const rows = await q(`SELECT ${COLS}, ${AI_COLS} ${FROM} ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
                            ORDER BY g.created_at DESC, g.id DESC LIMIT 200`, params);
     await logViews(req, me.id, rows.filter((r: any) => r.status === "ok").map((r: any) => Number(r.id)));
-    return { gradings: rows };
+    return { gradings: await withScreening(rows) };
   });
 
-  // Photographs I have not graded yet, WITHOUT the AI grade, so my grade can be blinded.
+  // Photographs I have not graded yet, WITHOUT the AI grade, so my grade can be blinded. One row per photograph (a Remidio
+  // photograph has one AI grading per model; the doctor grades the photograph once, which counts against every model).
   app.get("/api/retina-ai/to-grade", async (req) => {
     const me = need(req, "retina_ai.use");
-    const rows = await q(
-      `SELECT ${COLS}, EXISTS (SELECT 1 FROM app.dr_grading_views v WHERE v.grading_id = g.id AND v.user_id = $1) AS "aiSeen"
-         ${FROM} WHERE g.status = 'ok' AND mine.id IS NULL ORDER BY g.created_at DESC LIMIT 200`, [me.id]);
+    const rows = await q<any>(
+      `SELECT * FROM (
+         SELECT DISTINCT ON (coalesce(g.photo_id, -g.id)) ${COLS},
+                EXISTS (SELECT 1 FROM app.dr_grading_views v JOIN app.dr_gradings g2 ON g2.id = v.grading_id
+                         WHERE v.user_id = $1 AND (g2.id = g.id OR g2.photo_id = g.photo_id)) AS "aiSeen"
+           ${FROM} WHERE g.status = 'ok' AND mine.id IS NULL ORDER BY coalesce(g.photo_id, -g.id), g.created_at) x
+        ORDER BY "createdAt" DESC LIMIT 200`, [me.id]);
     return { gradings: rows };
   });
 
@@ -133,7 +158,8 @@ export async function retinaAiRoutes(app: FastifyInstance) {
       `SELECT d.grade, d.ungradable, d.note, d.blinded, d.updated_at AS at, u.full_name AS "by", d.graded_by = $2 AS mine
          FROM app.dr_doctor_grades d JOIN app.users u ON u.id = d.graded_by WHERE d.grading_id = $1 ORDER BY d.updated_at`, [id, me.id]);
     if (g.status === "ok") await logViews(req, me.id, [id]);
-    return { grading: g, doctorGrades };
+    const [shown] = await withScreening([g]);
+    return { grading: shown, doctorGrades };
   });
 
   app.put("/api/retina-ai/gradings/:id/remarks", async (req) => {
@@ -156,17 +182,28 @@ export async function retinaAiRoutes(app: FastifyInstance) {
                          note: z.string().trim().max(1000).default("") })
       .refine((x) => (x.grade === null) === x.ungradable, { message: "Choose a grade, or mark the photograph as not gradable" })
       .parse(req.body);
-    const g = await one<any>(`SELECT g.status, g.patient_id AS "patientId", coalesce(p.mrd, g.mrd) AS mrd, p.name AS "patientName"
+    const g = await one<any>(`SELECT g.status, g.photo_id AS "photoId", g.patient_id AS "patientId", coalesce(p.mrd, g.mrd) AS mrd, p.name AS "patientName"
                                 FROM app.dr_gradings g LEFT JOIN clinical.patient p ON p.patient_id = g.patient_id WHERE g.id = $1`, [id]);
     if (!g) throw notFound("AI grading");
     if (g.status !== "ok") throw badRequest("This photograph was not graded by the AI, so there is nothing to compare with.");
-    const saved = await withTx(auditCtx(req, `Gave a doctor's DR grade for ${who(g)} (AI grading #${id})`), async (c) =>
-      (await c.query(
-        `INSERT INTO app.dr_doctor_grades (grading_id, patient_id, graded_by, grade, ungradable, note, blinded)
-         VALUES ($1, $2, $3, $4, $5, $6, NOT EXISTS (SELECT 1 FROM app.dr_grading_views v WHERE v.grading_id = $1 AND v.user_id = $3))
-         ON CONFLICT (grading_id, graded_by) DO UPDATE
-           SET grade = EXCLUDED.grade, ungradable = EXCLUDED.ungradable, note = EXCLUDED.note, blinded = EXCLUDED.blinded
-         RETURNING blinded`, [id, g.patientId, me.id, b.grade, b.ungradable, b.note])).rows[0]);
+    // a Remidio photograph: the doctor's grade is of the photograph, so it goes on every model's grading of it (D-046);
+    // "blinded" is worked out per grading (has this doctor been shown that model's grade?)
+    const ids = g.photoId
+      ? (await q<{ id: number }>(`SELECT id FROM app.dr_gradings WHERE photo_id = $1 AND status = 'ok'`, [g.photoId])).map((x) => Number(x.id))
+      : [id];
+    const saved = await withTx(auditCtx(req, `Gave a doctor's DR grade for ${who(g)} (AI grading #${id})`), async (c) => {
+      let thisOne = null;
+      for (const gid of ids) {
+        const row = (await c.query(
+          `INSERT INTO app.dr_doctor_grades (grading_id, patient_id, graded_by, grade, ungradable, note, blinded)
+           VALUES ($1, $2, $3, $4, $5, $6, NOT EXISTS (SELECT 1 FROM app.dr_grading_views v WHERE v.grading_id = $1 AND v.user_id = $3))
+           ON CONFLICT (grading_id, graded_by) DO UPDATE
+             SET grade = EXCLUDED.grade, ungradable = EXCLUDED.ungradable, note = EXCLUDED.note, blinded = EXCLUDED.blinded
+           RETURNING blinded`, [gid, g.patientId, me.id, b.grade, b.ungradable, b.note])).rows[0];
+        if (gid === id) thisOne = row;
+      }
+      return thisOne;
+    });
     return { ok: true, blinded: saved.blinded };
   });
 
@@ -200,7 +237,7 @@ export async function retinaAiRoutes(app: FastifyInstance) {
     const photos = await q(
       `SELECT f.id, f.captured_at AS "capturedAt", f.received_at AS "receivedAt", f.patient_id AS "patientId", p.mrd, p.name AS "patientName",
               f.mrn, f.sex_check AS "sexCheck", f.eye, f.field, f.quality, f.width, f.height, f.thumb_path IS NOT NULL AS "hasThumb",
-              (SELECT g.id FROM app.dr_gradings g WHERE g.photo_id = f.id) AS "gradingId"
+              (SELECT count(*)::int FROM app.dr_gradings g WHERE g.photo_id = f.id) AS "gradings"
          FROM app.fundus_photos f LEFT JOIN clinical.patient p ON p.patient_id = f.patient_id
          ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY f.captured_at DESC NULLS LAST, f.id DESC LIMIT 300`, params);
     return { photos };

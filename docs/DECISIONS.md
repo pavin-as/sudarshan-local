@@ -481,6 +481,22 @@ quality); research mode until validated on Sampada data and permitted (AI_EVALUA
 First results (AI_EVALUATION.md section 5): Arko007 cannot screen; RFM is the candidate, both heads to be validated in
 silent mode on Sampada photographs with cut-offs re-chosen on a Sampada validation set.
 
+### D-046 · 2026-10-25 · Accepted · Pavin ("silent RFM grading of Sampada photos with screening outcomes"; purpose: non-commercial research and doctor assistance only, to see where doctor and AI differ)
+**Every Remidio photograph is graded silently by each research model switched on, with a research screening outcome.**
+- Models: setting `retina.graders`, at first `arko`, `rfm:aptos`, `rfm:messidor`; one AI grading per photograph per model
+  (unique on photograph + model SHA-256). Uploads on the Grade tab still use Arko007 only.
+- Outcome per grading: referral score p2+p3+p4 against that model's cut-offs in `retina.screening_cutoffs` (refer / uncertain
+  / routine, D-045); Remidio INSUFFICIENT quality or a doctor's "not gradable" is always uncertain. Starting cut-offs are
+  the APTOS validation ones (AI_EVALUATION.md section 5), labelled as such wherever shown.
+- Silent: outcomes are shown only on the Retina AI page (admin and doctors), never on the fundus report form, the patient
+  record, to patients or in messages; nothing is cleared or referred by them. The doctor's report stays the decision.
+- The doctor grades a photograph once; the grade is stored against every model's grading of it, blinded per model.
+- Evaluation sets have a role (validation / test / other). Cut-offs may be chosen only on a frozen validation set and are
+  applied unchanged to another set; a patient already in a set of the other role is left out of a new set, and results
+  refuse a validation set that shares a patient. Screening intervals resample whole patients.
+- Not commercial: RFM's licence terms (AI_EVALUATION.md 4b) allow this research use; any clinical or commercial use still
+  needs the head author's permission and review.
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

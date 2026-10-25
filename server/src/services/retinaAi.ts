@@ -58,9 +58,10 @@ export async function graderHealth(target?: GraderTarget) {
     return { reachable: true, ready: r.status === 200 && d.model_loaded === true, modelRepo: d.model_repo ?? null,
              modelCommit: d.model_commit ?? null, modelSha256: d.model_sha256 ?? null, calibration: d.output_calibration ?? null,
              version: d.app_version ?? null, tensorflow: d.tensorflow ?? null, uptimeSeconds: d.uptime_seconds ?? null,
-             lastInferenceMs: d.last_inference_ms ?? null, error: d.error ?? null, keySet: !!config.retinaAi.key };
+             lastInferenceMs: d.last_inference_ms ?? null, error: d.error ?? null, keySet: !!(target ?? config.retinaAi).key,
+             heads: (d.heads ?? null) as Record<string, { model_sha256: string; head_sha256: string; epoch: number }> | null };
   } catch {
-    return { reachable: false, ready: false, keySet: !!config.retinaAi.key };
+    return { reachable: false, ready: false, keySet: !!(target ?? config.retinaAi).key, heads: null };
   }
 }
 

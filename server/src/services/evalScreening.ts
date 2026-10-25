@@ -17,7 +17,9 @@ import { BOOTSTRAP, seeded } from "./evaluation.js";
 import { labelColumns, stem } from "./evalExternal.js";
 import { parseCsv } from "./retinaImport.js";
 
-export interface ScreenRow { id: string; ref: number; score: number }
+/** cluster = patient code when patients are known (Sampada sets): intervals then resample whole patients.
+ *  ungradable = the photograph itself could not be graded (Remidio INSUFFICIENT): always "uncertain". */
+export interface ScreenRow { id: string; ref: number; score: number; cluster?: string; ungradable?: boolean }
 export type Outcome = "refer" | "uncertain" | "routine";
 const referable = (g: number) => g >= 2;
 
@@ -36,7 +38,7 @@ export function outcomeOf(score: number, refer: number, clear: number, ungradabl
 }
 
 export function screeningFigures(rows: ScreenRow[], refer: number, clear: number) {
-  const out = rows.map((r) => ({ ...r, outcome: outcomeOf(r.score, refer, clear) }));
+  const out = rows.map((r) => ({ ...r, outcome: outcomeOf(r.score, refer, clear, r.ungradable) }));
   const pos = out.filter((r) => referable(r.ref)), neg = out.filter((r) => !referable(r.ref));
   const cleared = out.filter((r) => r.outcome === "routine");
   const missed = pos.filter((r) => r.outcome === "routine");
@@ -55,13 +57,16 @@ export function screeningFigures(rows: ScreenRow[], refer: number, clear: number
 }
 export type Screening = ReturnType<typeof screeningFigures>;
 
-/** 95% percentile intervals (resampling single images) at fixed cut-offs. */
+/** 95% percentile intervals at fixed cut-offs, resampling whole patients when every row has a cluster, else single images. */
 export function screeningIntervals(rows: ScreenRow[], refer: number, clear: number, resamples = BOOTSTRAP.resamples, seed = BOOTSTRAP.seed) {
   const keys = ["sensitivity", "specificity", "npv", "referralRate"] as const;
   const draws: Record<string, number[]> = Object.fromEntries(keys.map((k) => [k, []]));
   const rand = seeded(seed);
+  const groups = rows.length && rows.every((r) => r.cluster != null)
+    ? [...rows.reduce((m, r) => m.set(r.cluster!, [...(m.get(r.cluster!) ?? []), r]), new Map<string, ScreenRow[]>()).values()]
+    : rows.map((r) => [r]);
   for (let b = 0; b < resamples; b++) {
-    const f = screeningFigures(Array.from({ length: rows.length }, () => rows[Math.floor(rand() * rows.length)]), refer, clear);
+    const f = screeningFigures(Array.from({ length: groups.length }, () => groups[Math.floor(rand() * groups.length)]).flat(), refer, clear);
     for (const k of keys) { const v = f[k]; if (v != null) draws[k].push(v); }
   }
   return Object.fromEntries(keys.map((k) => {

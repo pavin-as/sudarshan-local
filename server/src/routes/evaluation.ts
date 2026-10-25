@@ -12,7 +12,9 @@ import { APP_ROOT } from "../config.js";
 import { one, q, withTx } from "../db.js";
 import { badRequest, conflict, notFound } from "../lib/errors.js";
 import { dateStr } from "../lib/time.js";
+import { cutoffForSensitivity, screeningFigures, screeningIntervals, type ScreenRow } from "../services/evalScreening.js";
 import { evaluate, reportMarkdown, toCsv, type EvalRow } from "../services/evaluation.js";
+import { screeningCutoffs } from "../services/screening.js";
 
 const DR_NUMBER: Record<string, number> = { none: 0, mild: 1, moderate: 2, severe: 3, pdr: 4 };
 const criteriaBody = z.object({
@@ -20,8 +22,13 @@ const criteriaBody = z.object({
   blindedOnly: z.boolean().default(true),            // only grades given before that doctor saw the AI grade
   excludePoor: z.boolean().default(false),           // leave out photographs Remidio marked INSUFFICIENT
   maculaOnly: z.boolean().default(false),            // only macula-centred photographs (the model was trained on these)
+  // validation: cut-offs may be chosen on it; test: cut-offs are only applied to it. A patient is never in both (D-046).
+  purpose: z.enum(["validation", "test", "other"]).default("other"),
 });
 type Criteria = z.infer<typeof criteriaBody>;
+const OTHER_ROLE: Record<string, string> = { validation: "test", test: "validation" };
+// screening cut-offs chosen on a validation set (D-045): refer keeps >= 95% of referable eyes, clear >= 99%
+const REFER_SENSITIVITY = 0.95, CLEAR_SENSITIVITY = 0.99;
 
 /** Photographs that can go into a set: linked, with an eye, in a fundus report that grades that eye. */
 async function candidates(c: Criteria) {
@@ -38,8 +45,13 @@ async function candidates(c: Criteria) {
         AND ($1::date IS NULL OR (coalesce(f.captured_at, f.received_at) AT TIME ZONE 'Asia/Kolkata')::date >= $1::date)
         AND ($2::date IS NULL OR (coalesce(f.captured_at, f.received_at) AT TIME ZONE 'Asia/Kolkata')::date <= $2::date)
       ORDER BY f.patient_id, f.eye, f.captured_at, f.id`, [c.from ?? null, c.to ?? null]);
-  const left = { notBlinded: 0, poorQuality: 0, notMacula: 0 };
+  const left = { notBlinded: 0, poorQuality: 0, notMacula: 0, otherRole: 0 };
+  // patients already in a set of the other role stay out, so validation and test never share a patient
+  const taken = OTHER_ROLE[c.purpose] ? new Set((await q<{ patient_id: number }>(
+    `SELECT DISTINCT i.patient_id FROM app.eval_set_items i JOIN app.eval_sets s ON s.id = i.set_id WHERE s.purpose = $1`,
+    [OTHER_ROLE[c.purpose]])).map((r) => Number(r.patient_id))) : new Set<number>();
   const kept = rows.filter((r) => {
+    if (taken.has(Number(r.patient_id))) { left.otherRole++; return false; }
     if (c.blindedOnly && !r.blinded) { left.notBlinded++; return false; }
     if (c.excludePoor && r.quality === "INSUFFICIENT") { left.poorQuality++; return false; }
     if (c.maculaOnly && r.field !== "MACULA") { left.notMacula++; return false; }
@@ -76,7 +88,7 @@ async function modelRows(setId: number, model: string) {
 
 async function loadSet(id: number) {
   const s = await one<any>(
-    `SELECT s.id, s.name, s.notes, s.criteria, s.created_at AS "createdAt", s.frozen_at AS "frozenAt", cu.full_name AS "createdBy",
+    `SELECT s.id, s.name, s.notes, s.criteria, s.purpose, s.created_at AS "createdAt", s.frozen_at AS "frozenAt", cu.full_name AS "createdBy",
             fu.full_name AS "frozenBy", (SELECT count(*)::int FROM app.eval_set_items i WHERE i.set_id = s.id) AS images,
             (SELECT count(DISTINCT patient_id)::int FROM app.eval_set_items i WHERE i.set_id = s.id) AS patients
        FROM app.eval_sets s JOIN app.users cu ON cu.id = s.created_by LEFT JOIN app.users fu ON fu.id = s.frozen_by WHERE s.id = $1`, [id]);
@@ -92,6 +104,52 @@ async function modelsOf(setId: number) {
       WHERE i.set_id = $1 AND g.model_sha256 IS NOT NULL GROUP BY g.model_sha256 ORDER BY max(g.created_at)`, [setId]);
 }
 
+/** Screening rows of a set for one model: gradable references the model graded; INSUFFICIENT photographs count as ungradable. */
+const screenRows = (items: any[]): ScreenRow[] => items
+  .filter((x) => !x.reference_ungradable && x.status === "ok" && Array.isArray(x.probs) && x.probs.length === 5)
+  .map((x) => ({ id: x.image_code, ref: x.reference_grade, score: Number(x.probs[2]) + Number(x.probs[3]) + Number(x.probs[4]),
+                 cluster: x.patient_code, ungradable: x.quality === "INSUFFICIENT" }));
+
+/** Three-outcome screening of one model on a set (D-045, D-046): cut-offs chosen on a frozen validation set that shares
+ *  no patient with this set, or else the model's starting cut-offs (chosen on public data, labelled as such). */
+async function screeningOf(set: any, sha: string, items: any[], validation: any | null) {
+  let refer: number, clear: number, source: string, chosenOn: { images: number; referable: number } | null = null;
+  if (validation) {
+    const v = screenRows((await modelRows(validation.id, sha)).items).filter((r) => !r.ungradable);
+    const r0 = cutoffForSensitivity(v, REFER_SENSITIVITY), c0 = cutoffForSensitivity(v, CLEAR_SENSITIVITY);
+    if (r0 == null || c0 == null) return { available: false as const, why: `"${validation.name}" has no referable eye graded by this model` };
+    refer = r0; clear = Math.min(c0, r0);
+    chosenOn = { images: v.length, referable: v.filter((r) => r.ref >= 2).length };
+    source = `chosen on validation set "${validation.name}" (${chosenOn.images} images, ${chosenOn.referable} referable)`;
+  } else {
+    const c = (await screeningCutoffs())[sha];
+    if (!c) return { available: false as const, why: "no cut-offs for this model" };
+    refer = c.refer; clear = c.clear; source = `starting cut-offs from ${c.source}: not chosen on Sampada photographs`;
+  }
+  const rows = screenRows(items);
+  const cautions = [
+    ...(set.purpose !== "test" ? ["This is not a test set: these figures are not a final check of the cut-offs."] : []),
+    ...(rows.length < 100 ? [`Only ${rows.length} graded images: intervals are wide and the figures may move a lot.`] : []),
+  ];
+  return { available: true as const, refer, clear, source, fromValidation: !!validation, chosenOn, cautions,
+           referSensitivity: REFER_SENSITIVITY, clearSensitivity: CLEAR_SENSITIVITY,
+           ungradablePhotos: rows.filter((r) => r.ungradable).length,
+           figures: screeningFigures(rows, refer, clear), intervals: screeningIntervals(rows, refer, clear) };
+}
+
+/** The validation set whose cut-offs are applied to set `testId`: frozen, role validation, no shared patient. */
+async function validationFor(testId: number, validationId: number | undefined) {
+  if (!validationId) return null;
+  if (validationId === testId) throw badRequest("Cut-offs cannot be chosen on the set they are checked on.");
+  const v = await loadSet(validationId);
+  if (v.purpose !== "validation" || !v.frozenAt) throw badRequest("Cut-offs can be chosen only on a frozen validation set.");
+  const shared = await one<{ n: number }>(
+    `SELECT count(DISTINCT a.patient_id)::int AS n FROM app.eval_set_items a JOIN app.eval_set_items b ON b.patient_id = a.patient_id
+      WHERE a.set_id = $1 AND b.set_id = $2`, [testId, validationId]);
+  if (shared!.n) throw badRequest(`${shared!.n} patient(s) are in both sets: a validation set must share no patient with the set it is checked on.`);
+  return v;
+}
+
 const idParam = z.object({ id: z.coerce.number().int().positive() });
 const modelQuery = z.object({ model: z.string().regex(/^[0-9a-f]{16,64}$/i, "Choose a model").optional() });
 
@@ -101,7 +159,7 @@ export async function evaluationRoutes(app: FastifyInstance) {
     need(req, "retina_ai.use");
     const qy = req.query as Record<string, string>;
     const c = criteriaBody.parse({ from: qy.from || undefined, to: qy.to || undefined, blindedOnly: qy.blindedOnly !== "false",
-                                   excludePoor: qy.excludePoor === "true", maculaOnly: qy.maculaOnly === "true" });
+                                   excludePoor: qy.excludePoor === "true", maculaOnly: qy.maculaOnly === "true", purpose: qy.purpose || undefined });
     const { kept, left } = await candidates(c);
     return { ...summary(kept), left };
   });
@@ -109,7 +167,7 @@ export async function evaluationRoutes(app: FastifyInstance) {
   app.get("/api/retina-ai/eval/sets", async (req) => {
     need(req, "retina_ai.use");
     const sets = await q(
-      `SELECT s.id, s.name, s.notes, s.criteria, s.created_at AS "createdAt", s.frozen_at AS "frozenAt",
+      `SELECT s.id, s.name, s.notes, s.criteria, s.purpose, s.created_at AS "createdAt", s.frozen_at AS "frozenAt",
               (SELECT count(*)::int FROM app.eval_set_items i WHERE i.set_id = s.id) AS images,
               (SELECT count(DISTINCT patient_id)::int FROM app.eval_set_items i WHERE i.set_id = s.id) AS patients
          FROM app.eval_sets s ORDER BY s.created_at DESC`);
@@ -128,8 +186,8 @@ export async function evaluationRoutes(app: FastifyInstance) {
     for (const r of kept) if (!codes.has(Number(r.patient_id))) codes.set(Number(r.patient_id), `P${String(codes.size + 1).padStart(3, "0")}`);
     const seq = new Map<string, number>();
     const id = await withTx(auditCtx(req, `Made evaluation set "${b.name}" (draft, ${kept.length} images of ${codes.size} patients)`), async (cx) => {
-      const sid = Number((await cx.query(`INSERT INTO app.eval_sets (name, notes, criteria, created_by) VALUES ($1,$2,$3,$4) RETURNING id`,
-        [b.name, b.notes, { ...c, left }, me.id])).rows[0].id);
+      const sid = Number((await cx.query(`INSERT INTO app.eval_sets (name, notes, criteria, purpose, created_by) VALUES ($1,$2,$3,$4,$5) RETURNING id`,
+        [b.name, b.notes, { ...c, left }, c.purpose, me.id])).rows[0].id);
       for (const r of kept) {
         const pc = codes.get(Number(r.patient_id))!, k = `${pc}-${r.eye}`;
         seq.set(k, (seq.get(k) ?? 0) + 1);
@@ -167,11 +225,14 @@ export async function evaluationRoutes(app: FastifyInstance) {
     return { ok: true };
   });
 
-  // Results of every model that graded the set's photographs (aggregates only).
+  // Results of every model that graded the set's photographs (aggregates only), with three-outcome screening per model;
+  // ?validation=<set id> applies cut-offs chosen on that frozen validation set instead of the starting ones.
   app.get("/api/retina-ai/eval/sets/:id/results", async (req) => {
     need(req, "retina_ai.use");
     const { id } = idParam.parse(req.params);
+    const { validation: vid } = z.object({ validation: z.coerce.number().int().positive().optional() }).parse(req.query);
     const set = await loadSet(id);
+    const validation = await validationFor(id, vid);
     const ref = await one<any>(`SELECT count(*) FILTER (WHERE reference_ungradable)::int AS ungradable,
                                        count(*) FILTER (WHERE NOT reference_blinded)::int AS "notBlinded",
                                        array_agg(reference_grade) FILTER (WHERE NOT reference_ungradable) AS grades
@@ -179,7 +240,7 @@ export async function evaluationRoutes(app: FastifyInstance) {
     const models = [];
     for (const m of await modelsOf(id)) {
       const r = await modelRows(id, m.sha);
-      models.push({ ...m, notGraded: r.notGraded, evaluation: evaluate(r.rows, r.ungradable) });
+      models.push({ ...m, notGraded: r.notGraded, evaluation: evaluate(r.rows, r.ungradable), screening: await screeningOf(set, m.sha, r.items, validation) });
     }
     return { set, reference: { ungradable: ref.ungradable, notBlinded: ref.notBlinded,
                                byGrade: [0, 1, 2, 3, 4].map((g) => (ref.grades ?? []).filter((x: number) => x === g).length) }, models };

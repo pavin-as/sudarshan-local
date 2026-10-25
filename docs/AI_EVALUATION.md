@@ -218,6 +218,11 @@ test (99.0% chosen, 99.1% and 99.6% achieved).
   together. Proposed acceptance before any wider use (for Pavin and Dr. Sameera to agree): referable sensitivity >= 95%
   with the lower 95% bound >= 90%, **no severe NPDR or PDR eye cleared**, NPV >= 98%, specificity and referral rate
   reported; DR result never clears a patient on its own.
+- **In place from 25 Oct (D-046):** every Remidio photograph is graded silently by Arko007 and both RFM heads; each
+  grading carries its research outcome from the starting cut-offs above (Retina AI page only, labelled). Evaluation sets
+  have a role: cut-offs are chosen on a frozen Sampada **validation** set and applied unchanged to a **test** set that shares
+  no patient with it; the Evaluation tab shows the three-outcome figures per model with patient-level intervals.
+  Purpose (Pavin, 25 Oct): non-commercial research and, at most, assisting the doctor and seeing where doctor and AI differ.
 - One APTOS PDR eye cleared by the APTOS head (`eaa0dfbd5024`) and the 10 severe/PDR eyes it graded 0-1 are listed in
   the reports for a doctor to look at (public images).
 

@@ -130,6 +130,16 @@ routes (`routes/evaluation.ts`, sets of Sampada photographs) and the console (`s
 datasets). A model is identified by `dr_gradings.model_sha256`; results list every model that graded the set's photographs,
 so a second grader appears without code changes. Method and data needs: AI_EVALUATION.md.
 
+### Silent multi-model grading and screening outcomes (D-046)
+`gradeNewPhotos` (`services/remidioReceiver.ts`) loops the graders in `retina.graders` (`activeGraders()` in
+`services/screening.ts`): each is a target from `graderTargets()` (`arko`, `rfm` from `RFM_GRADER_URL` / `RFM_GRADER_KEY`)
+plus an optional head (`?head=`); the model SHA comes from the grader's `/health` (per head for RFM), and a photograph is
+graded once per model SHA. `screeningFor()` turns a grading into refer / uncertain / routine from
+`retina.screening_cutoffs`; `routes/retinaAi.ts` adds it to every grading it shows (never to the blinded to-grade list).
+The doctor's grade (`my-grade`, and fundus reports through `syncReportGrades`) is written to every model's grading of the
+photograph. `routes/evaluation.ts` adds a screening block per model (`evalScreening.ts`; rows clustered by patient code),
+with cut-offs from `?validation=<frozen validation set>` or the starting cut-offs.
+
 ### Adding a feature (checklist)
 1. Read DECISIONS.md and COMPLIANCE.md; if the feature conflicts, ask first.
 2. Migration (if needed) + SCHEMA.md; audit triggers for new tables.

@@ -197,8 +197,11 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       beyond research.
 - [ ] Pavin + Dr. Sameera: agree the acceptance criteria (proposed: referable sensitivity >= 95% with lower bound >= 90%,
       no severe/PDR cleared, NPV >= 98%).
-- [ ] Next build: grade Sampada photographs with RFM too (silent, research only), validation/test roles for evaluation
-      sets, screening outcomes (three outcomes, referral rate, cut-offs from a validation set) in Retina AI > Evaluation.
+- [x] Silent RFM grading built (25 Oct, D-046): every Remidio photograph graded by Arko007 and both RFM heads, research
+      screening outcome per grading (Retina AI page only), doctor's grade shared across models, evaluation set roles
+      (validation / test, no shared patient), screening figures per model. Migration 0023; `setup-rfm.ps1`.
+- [ ] Deploy D-046: `update.ps1`, then `setup-rfm.ps1` (admin); check Retina AI > System lists three graders as Ready.
+- [ ] When ~100 referable eyes are reported: frozen Sampada validation set, then a separate test set; re-choose cut-offs.
 - [ ] Pavin to decide: use the March batch (doctor-graded) to measure the research model (import with --all, doctor's codes
       as blinded doctor grades: NP = 0, E08.32 = 1, E08.33 = 2, E08.34 = 3, E08.35 = 4, UG / NA = not gradable). Those
       patients are mostly not in Yarago.

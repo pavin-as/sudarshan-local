@@ -20,12 +20,26 @@ interface Grading {
   remarks: string; createdBy: string | null; doctorGrades: number; myGrade: number | null; myUngradable: boolean | null; myBlinded: boolean | null;
   aiGrade?: number | null; probs?: number[] | null; rawOutputs?: number[] | null; calibration?: string | null; imageWidth?: number | null;
   imageHeight?: number | null; inferenceMs?: number | null; modelSha256?: string | null; modelCommit?: string | null; graderVersion?: string | null;
-  aiSeen?: boolean; photoId?: number | null;
+  aiSeen?: boolean; photoId?: number | null; modelRepo?: string | null; photoQuality?: string | null; screening?: Screened | null;
 }
+/** Live screening outcome of a grading (D-046): research, silent, never shown to patients or used to clear anyone. */
+interface Screened { outcome: "refer" | "uncertain" | "routine"; score: number; refer: number; clear: number; source: string; model: string; ungradable: boolean }
 export interface Photo {
   id: number; capturedAt: string | null; receivedAt: string; patientId: number | null; mrd: string | null; patientName: string | null;
   mrn: string | null; sexCheck: "same" | "different" | null; eye: "RE" | "LE" | null; field: string | null; quality: string | null;
-  width: number | null; height: number | null; hasThumb: boolean; gradingId: number | null;
+  width: number | null; height: number | null; hasThumb: boolean; gradings: number;
+}
+// the models measured so far (docs/AI_EVALUATION.md), by the start of their model SHA-256
+const MODELS: Record<string, string> = { cd4b10c3: "Arko007 (unreliable)", f1a558fc: "RFM, APTOS head", b23dcc9b: "RFM, Messidor-2 head" };
+const modelName = (g: { modelSha256?: string | null; screening?: Screened | null }) =>
+  g.screening?.model ?? MODELS[String(g.modelSha256 ?? "").slice(0, 8)] ?? (g.modelSha256 ? `model ${g.modelSha256.slice(0, 8)}…` : "—");
+const OUTCOME: Record<Screened["outcome"], [string, string]> = {
+  refer: ["Refer", "tag alert"], uncertain: ["Uncertain: a person decides", "tag vip"], routine: ["Routine", "tag"],
+};
+function ScreeningTag({ s }: { s: Screened | null | undefined }) {
+  if (!s) return <span className="muted small">—</span>;
+  const [words, cls] = OUTCOME[s.outcome];
+  return <span className={cls} title={`Referral score ${s.score.toFixed(3)}; refer at ${s.refer.toPrecision(3)} or above, routine below ${s.clear.toPrecision(3)} (${s.source})${s.ungradable ? "; photograph not gradable" : ""}`}>{words}</span>;
 }
 const FIELD: Record<string, string> = { MACULA: "macula", DISC: "disc", OTHER: "other field" };
 
@@ -68,6 +82,9 @@ function ResearchBanner() {
       <div style={{ marginTop: "0.35rem" }}><b>The current model (Arko007) is unreliable:</b> on 3,662 public test images (APTOS, 25 Oct 2026) it
         missed 3 in 10 eyes needing referral, called 1 in 4 proliferative DR eyes "No DR", and flagged 1 in 3 normal eyes. It is kept only
         for research and comparison; never use it for patient advice or screening decisions.</div>
+      <div style={{ marginTop: "0.35rem" }}><b>RFM grades Remidio photographs silently</b> (two heads, D-046), with a research screening outcome
+        (Refer / Uncertain / Routine) from cut-offs chosen on public data. It is not validated on Sampada photographs: the outcome
+        never clears a patient (macular oedema, symptoms and image quality need the doctor) and is only compared with the doctor's report.</div>
     </div>
   );
 }
@@ -189,7 +206,10 @@ function AiResult({ g }: { g: Grading }) {
   const probs = g.probs ?? [];
   return (
     <div className="panel panel-pad stack" style={{ borderLeft: "4px solid var(--disc)" }}>
-      <div className="row"><h2 className="grow">AI grade: {gradeWords(g.aiGrade)}</h2><span className="ds-ai">AI-generated · verify</span></div>
+      <div className="row"><h2 className="grow">AI grade: {gradeWords(g.aiGrade)} <span className="muted small">{modelName(g)}</span></h2><span className="ds-ai">AI-generated · verify</span></div>
+      {g.screening && <div className="row small">Research screening outcome: <ScreeningTag s={g.screening} />
+        <span className="muted">referral score {g.screening.score.toFixed(3)} (refer at {g.screening.refer.toPrecision(3)} or above, routine below {g.screening.clear.toPrecision(3)}; {g.screening.source}).
+          Silent research: never clears a patient.</span></div>}
       <table className="list compact">
         <thead><tr><th>Grade</th><th>Score</th><th style={{ width: "40%" }}></th><th>Raw output</th></tr></thead>
         <tbody>{GRADES.map((name, i) => (
@@ -201,8 +221,7 @@ function AiResult({ g }: { g: Grading }) {
         </tbody>
       </table>
       <div className="muted small">{String(g.modelSha256 ?? "").startsWith("cd4b10c3") && <b>Unreliable model (Arko007, see the notice above). </b>}
-        The score shows which grade won, not how sure the model is: this model often gives 100% to one grade even when it
-        is wrong. {g.imageWidth ? `Photograph ${g.imageWidth}×${g.imageHeight}, ` : ""}{g.inferenceMs ? `graded in ${Math.round(g.inferenceMs)} ms, ` : ""}
+        The score shows which grade won, not how sure the model is{String(g.modelSha256 ?? "").startsWith("cd4b10c3") ? ": this model often gives 100% to one grade even when it is wrong" : ""}. {g.imageWidth ? `Photograph ${g.imageWidth}×${g.imageHeight}, ` : ""}{g.inferenceMs ? `graded in ${Math.round(g.inferenceMs)} ms, ` : ""}
         model {g.modelSha256?.slice(0, 12) ?? "?"}…, {g.calibration === "softmax_applied" ? "softmax applied" : "native probabilities"}.</div>
     </div>
   );
@@ -299,7 +318,7 @@ function PhotosTab() {
                   {p.quality === "INSUFFICIENT" && <span className="tag alert">Quality insufficient</span>}
                   {!p.patientId && <span className="tag alert">Not in Yarago</span>}
                   {p.sexCheck === "different" && <span className="tag alert">Sex differs from Yarago</span>}
-                  {!p.gradingId && <span className="tag">AI grading waiting</span>}
+                  {!p.gradings && <span className="tag">AI grading waiting</span>}
                 </div>
               </div>))}
           </div>}
@@ -313,29 +332,38 @@ function RecordsTab() {
   const [text, setText] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [model, setModel] = useState("");
   const [search, setSearch] = useState({ text: "", from: "", to: "" });
   const [open, setOpen] = useState<number | null>(null);
-  const qs = new URLSearchParams(Object.entries({ q: search.text, from: search.from, to: search.to }).filter(([, v]) => v)).toString();
+  const qs = new URLSearchParams(Object.entries({ q: search.text, from: search.from, to: search.to, model }).filter(([, v]) => v)).toString();
   const q = useQuery({ queryKey: ["retina", "records", qs], queryFn: () => api<{ gradings: Grading[] }>(`/retina-ai/gradings${qs ? `?${qs}` : ""}`) });
+  const status = useQuery({ queryKey: ["retina", "status"], queryFn: () => api<any>("/retina-ai/status") });
+  const models: { modelSha256: string; key: string }[] = (status.data?.graders ?? []).filter((x: any) => x.modelSha256);
   return (
     <section className="panel">
       <form className="panel-head row" onSubmit={(e) => { e.preventDefault(); setSearch({ text: text.trim(), from, to }); }}>
         <input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder="MRD or name" aria-label="MRD or name" />
         <label className="row small">From <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
         <label className="row small">To <input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
+        <select value={model} onChange={(e) => setModel(e.target.value)} aria-label="Which model">
+          <option value="">All models</option>
+          {models.map((m) => <option key={m.modelSha256} value={m.modelSha256}>{modelName(m)}</option>)}
+        </select>
         <button type="submit">Search</button><span className="grow" />
         <span className="muted small">Newest first, up to 200</span>
       </form>
       {q.error ? <div className="panel-pad"><ErrorNotice error={q.error} /></div> : !q.data ? <Loading /> : !q.data.gradings.length ? <div className="empty">No gradings found.</div> :
         <div className="scroll-x"><table className="list">
-          <thead><tr><th></th><th>When</th><th>Patient</th><th>Eye</th><th>AI grade</th><th>Your grade</th><th>Doctors</th><th>From</th><th>Remarks</th></tr></thead>
+          <thead><tr><th></th><th>When</th><th>Patient</th><th>Eye</th><th>Model</th><th>AI grade</th><th>Screening (research)</th><th>Your grade</th><th>Doctors</th><th>From</th><th>Remarks</th></tr></thead>
           <tbody>{q.data.gradings.map((g) => (
             <tr key={g.id} className="clickable" onClick={() => setOpen(g.id)}>
               <td>{g.photoId ? <PhotoThumb id={g.photoId} size={48} /> : null}</td>
               <td className="nowrap">{stamp(g.createdAt)}</td>
               <td>{g.patientName ?? <span className="muted">not in Yarago</span>} <span className="muted small">{g.mrd}</span></td>
               <td>{g.eye ? EYE[g.eye] : "—"}</td>
+              <td className="small">{modelName(g)}</td>
               <td>{g.status === "ok" ? <b>{gradeWords(g.aiGrade)}</b> : <span className="pill cancelled">Not graded</span>}</td>
+              <td>{g.status === "ok" ? <ScreeningTag s={g.screening} /> : null}</td>
               <td>{myGradeWords(g) ?? "—"}{g.myBlinded === false && <div className="muted small">not blinded</div>}</td>
               <td>{g.doctorGrades || "—"}</td><td className="small">{SOURCE[g.source] ?? g.source}</td>
               <td className="small">{g.remarks || (g.status !== "ok" ? g.error : "")}</td></tr>))}
@@ -447,7 +475,17 @@ interface EvalResult {
              referable: { tp: number; fn: number; fp: number; tn: number; positives: number; negatives: number; sensitivity: number | null; specificity: number | null; ppv: number | null; npv: number | null } };
   intervals: Record<string, Interval>; cautions: string[]; bootstrap: { resamples: number; seed: number };
 }
-interface EvalSet { id: number; name: string; notes: string; criteria: any; createdAt: string; frozenAt: string | null; images: number; patients: number }
+type Purpose = "validation" | "test" | "other";
+interface EvalSet { id: number; name: string; notes: string; criteria: any; purpose: Purpose; createdAt: string; frozenAt: string | null; images: number; patients: number }
+const PURPOSE: Record<Purpose, string> = { validation: "Validation (choose cut-offs)", test: "Test (check cut-offs once)", other: "Other" };
+interface ScreeningResult {
+  available: boolean; why?: string; refer: number; clear: number; source: string; fromValidation: boolean; cautions: string[];
+  referSensitivity: number; clearSensitivity: number; ungradablePhotos: number;
+  figures: { n: number; positives: number; negatives: number; refer: number; uncertain: number; routine: number; sensitivity: number | null;
+             specificity: number | null; npv: number | null; referralRate: number | null; autoReferSensitivity: number | null;
+             missedByGrade: { grade: number; eyes: number; missed: number }[]; missedIds: string[] };
+  intervals: Record<"sensitivity" | "specificity" | "npv" | "referralRate", Interval>;
+}
 const ciText = (i: Interval, f: (x: number) => string) => (i ? ` (${f(i[0])} to ${f(i[1])})` : "");
 const d3 = (x: number | null | undefined) => (x == null ? "—" : x.toFixed(2));
 
@@ -468,15 +506,15 @@ function EvaluationTab() {
         {making && <NewEvalSet onDone={(id) => { setMaking(false); if (id) setOpen(id); }} />}
         {sets.error ? <div className="panel-pad"><ErrorNotice error={sets.error} /></div> : !sets.data ? <Loading /> : !sets.data.sets.length
           ? <div className="empty">No evaluation set yet.{admin ? " Make one once doctors have reported some photographs." : ""}</div>
-          : <table className="list"><thead><tr><th>Set</th><th>Images</th><th>Patients</th><th>Made</th><th>State</th></tr></thead>
+          : <table className="list"><thead><tr><th>Set</th><th>Role</th><th>Images</th><th>Patients</th><th>Made</th><th>State</th></tr></thead>
               <tbody>{sets.data.sets.map((s) => (
                 <tr key={s.id} className="clickable" onClick={() => setOpen(s.id)} style={s.id === chosen ? { background: "var(--action-soft)" } : undefined}>
-                  <td><b>{s.name}</b>{s.notes && <div className="muted small">{s.notes}</div>}</td><td>{s.images}</td><td>{s.patients}</td>
+                  <td><b>{s.name}</b>{s.notes && <div className="muted small">{s.notes}</div>}</td><td className="small">{PURPOSE[s.purpose] ?? s.purpose}</td><td>{s.images}</td><td>{s.patients}</td>
                   <td className="nowrap small">{stamp(s.createdAt)}</td>
                   <td>{s.frozenAt ? <span className="pill completed">Frozen {niceDate(s.frozenAt.slice(0, 10), true)}</span> : <span className="pill waitlist">Draft</span>}</td></tr>))}
               </tbody></table>}
       </section>
-      {chosen && <EvalSetResults id={chosen} onGone={() => setOpen(null)} />}
+      {chosen && <EvalSetResults id={chosen} sets={sets.data?.sets ?? []} onGone={() => setOpen(null)} />}
     </div>
   );
 }
@@ -491,15 +529,16 @@ function NewEvalSet({ onDone }: { onDone: (id: number | null) => void }) {
   const [blindedOnly, setBlinded] = useState(true);
   const [excludePoor, setPoor] = useState(false);
   const [maculaOnly, setMacula] = useState(false);
+  const [purpose, setPurpose] = useState<Purpose>("other");
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
-  const qs = new URLSearchParams(Object.entries({ from, to, blindedOnly: String(blindedOnly), excludePoor: String(excludePoor), maculaOnly: String(maculaOnly) }).filter(([, v]) => v)).toString();
+  const qs = new URLSearchParams(Object.entries({ from, to, blindedOnly: String(blindedOnly), excludePoor: String(excludePoor), maculaOnly: String(maculaOnly), purpose }).filter(([, v]) => v)).toString();
   const preview = useQuery({ queryKey: ["retina", "eval", "candidates", qs], queryFn: () => api<any>(`/retina-ai/eval/candidates?${qs}`) });
   const p = preview.data;
   const make = async () => {
     setBusy(true); setError(null);
     try {
-      const r = await api<{ id: number }>("/retina-ai/eval/sets", { body: { name, notes, from: from || undefined, to: to || undefined, blindedOnly, excludePoor, maculaOnly } });
+      const r = await api<{ id: number }>("/retina-ai/eval/sets", { body: { name, notes, from: from || undefined, to: to || undefined, blindedOnly, excludePoor, maculaOnly, purpose } });
       toast(`Draft set "${name}" made`); await qc.invalidateQueries({ queryKey: ["retina", "eval"] }); onDone(r.id);
     } catch (e) { setError(e); } finally { setBusy(false); }
   };
@@ -509,6 +548,8 @@ function NewEvalSet({ onDone }: { onDone: (id: number | null) => void }) {
         <label className="field"><span>Name</span><input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Test set 2026 Q4" maxLength={80} /></label>
         <label className="field"><span>Photographs from</span><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
         <label className="field"><span>to</span><input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
+        <label className="field"><span>Role</span><select value={purpose} onChange={(e) => setPurpose(e.target.value as Purpose)}>
+          {(Object.keys(PURPOSE) as Purpose[]).map((k) => <option key={k} value={k}>{PURPOSE[k]}</option>)}</select></label>
         <label className="field wide"><span>Notes (optional)</span><input value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} /></label>
       </div>
       <label className="row small"><input type="checkbox" checked={blindedOnly} onChange={(e) => setBlinded(e.target.checked)} /> Only grades the doctor gave before seeing the AI grade (recommended)</label>
@@ -517,7 +558,9 @@ function NewEvalSet({ onDone }: { onDone: (id: number | null) => void }) {
       {preview.error ? <ErrorNotice error={preview.error} /> : p && <div className="notice">
         This set would hold <b>{p.images}</b> eye images of <b>{p.patients}</b> patients: by the doctor's grade {p.byGrade.map((n: number, g: number) => `${g}: ${n}`).join(", ")}
         {p.ungradable ? `, ${p.ungradable} not gradable` : ""}; <b>{p.referable}</b> referable (grade 2 or worse).
-        {(p.left.notBlinded + p.left.poorQuality + p.left.notMacula) > 0 && <> Left out by the rules: {[p.left.notBlinded && `${p.left.notBlinded} graded after seeing the AI`, p.left.poorQuality && `${p.left.poorQuality} poor quality`, p.left.notMacula && `${p.left.notMacula} not macula-centred`].filter(Boolean).join(", ")}.</>}
+        {(p.left.notBlinded + p.left.poorQuality + p.left.notMacula + (p.left.otherRole ?? 0)) > 0 && <> Left out by the rules: {[p.left.notBlinded && `${p.left.notBlinded} graded after seeing the AI`, p.left.poorQuality && `${p.left.poorQuality} poor quality`, p.left.notMacula && `${p.left.notMacula} not macula-centred`, p.left.otherRole && `${p.left.otherRole} of patients already in a ${purpose === "test" ? "validation" : "test"} set`].filter(Boolean).join(", ")}.</>}
+        {purpose !== "other" && <div className="small" style={{ marginTop: "0.3rem" }}>Patients already in a {purpose === "test" ? "validation" : "test"} set are left out, so the two never share a patient.
+          {purpose === "test" ? " Make the test set once and look at it only after the cut-offs are fixed." : " Cut-offs are chosen on it, then applied unchanged to a test set."}</div>}
       </div>}
       <ErrorNotice error={error} />
       <div className="row"><span className="grow" /><button onClick={() => onDone(null)}>Cancel</button>
@@ -526,11 +569,13 @@ function NewEvalSet({ onDone }: { onDone: (id: number | null) => void }) {
   );
 }
 
-function EvalSetResults({ id, onGone }: { id: number; onGone: () => void }) {
+function EvalSetResults({ id, sets, onGone }: { id: number; sets: EvalSet[]; onGone: () => void }) {
   const { can } = useAuth();
   const toast = useToast();
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: ["retina", "eval", "results", id], queryFn: () => api<{ set: EvalSet & { frozenBy: string | null; createdBy: string }; reference: { ungradable: number; notBlinded: number; byGrade: number[] }; models: any[] }>(`/retina-ai/eval/sets/${id}/results`) });
+  const [validation, setValidation] = useState("");
+  const validations = sets.filter((s) => s.purpose === "validation" && s.frozenAt && s.id !== id);
+  const q = useQuery({ queryKey: ["retina", "eval", "results", id, validation], queryFn: () => api<{ set: EvalSet & { frozenBy: string | null; createdBy: string }; reference: { ungradable: number; notBlinded: number; byGrade: number[] }; models: any[] }>(`/retina-ai/eval/sets/${id}/results${validation ? `?validation=${validation}` : ""}`) });
   const [confirm, setConfirm] = useState<"freeze" | "discard" | null>(null);
   const [error, setError] = useState<unknown>(null);
   if (q.error) return <ErrorNotice error={q.error} />;
@@ -547,7 +592,7 @@ function EvalSetResults({ id, onGone }: { id: number; onGone: () => void }) {
   };
   return (
     <section className="panel panel-pad stack">
-      <div className="row"><h2 className="grow">{set.name}</h2>
+      <div className="row"><h2 className="grow">{set.name} <span className="muted small">{PURPOSE[set.purpose] ?? set.purpose}</span></h2>
         {set.frozenAt ? <span className="pill completed">Frozen {stamp(set.frozenAt)} by {set.frozenBy}</span> : <span className="pill waitlist">Draft: figures may change until frozen</span>}</div>
       <div className="small muted">{set.images} eye images of {set.patients} patients. Doctor's grades: {reference.byGrade.map((n, g) => `${g}: ${n}`).join(", ")}
         {reference.ungradable ? `; ${reference.ungradable} not gradable (left out)` : ""}{reference.notBlinded ? `; ${reference.notBlinded} graded after seeing the AI` : ""}. Made by {set.createdBy}, {stamp(set.createdAt)}.</div>
@@ -557,6 +602,11 @@ function EvalSetResults({ id, onGone }: { id: number; onGone: () => void }) {
             <button className={confirm === "freeze" ? "btn-primary" : "btn-danger"} onClick={() => void act(confirm)}>{confirm === "freeze" ? "Yes, freeze" : "Yes, discard"}</button></div>
         : <div className="row"><button className="btn-primary" onClick={() => setConfirm("freeze")}>Freeze this set</button><button className="btn-danger" onClick={() => setConfirm("discard")}>Discard draft</button></div>)}
       <ErrorNotice error={error} />
+      <label className="row small">Screening cut-offs:
+        <select value={validation} onChange={(e) => setValidation(e.target.value)}>
+          <option value="">Starting cut-offs (chosen on public APTOS images)</option>
+          {validations.map((s) => <option key={s.id} value={s.id}>Chosen on validation set "{s.name}"</option>)}
+        </select>{!validations.length && <span className="muted">No frozen validation set yet.</span>}</label>
       {!models.length ? <div className="empty">No model has graded these photographs yet.</div> : models.map((m) => <ModelResult key={m.sha} setId={id} m={m} />)}
     </section>
   );
@@ -571,6 +621,8 @@ function ModelResult({ setId, m }: { setId: number; m: any }) {
         <a className="btn btn-small" href={`/api/retina-ai/eval/sets/${setId}/report.md?model=${m.sha}`}>Download report</a>
         <a className="btn btn-small" href={`/api/retina-ai/eval/sets/${setId}/export.csv?model=${m.sha}`}>Download CSV (no names)</a></div>
       {e.cautions.map((c) => <div key={c} className="notice">{c}</div>)}
+      {m.screening && <ScreeningBlock s={m.screening} />}
+      <h4>Five-class grading (secondary)</h4>
       <div className="stat-strip">
         <div className="stat"><b>{p(x.referable.sensitivity)}</b><span>referable DR found{ciText(i.sensitivity, pct)}; {x.referable.tp} of {x.referable.positives}</span></div>
         <div className="stat"><b>{p(x.referable.specificity)}</b><span>no referable DR, AI agreed{ciText(i.specificity, pct)}; {x.referable.tn} of {x.referable.negatives}</span></div>
@@ -592,14 +644,52 @@ function ModelResult({ setId, m }: { setId: number; m: any }) {
   );
 }
 
+/** Three-outcome screening figures of one model on a set (D-045): the primary outcome. */
+function ScreeningBlock({ s }: { s: ScreeningResult }) {
+  if (!s.available) return <div className="muted small">Screening: {s.why}.</div>;
+  const f = s.figures, i = s.intervals;
+  const severe = f.missedByGrade.filter((g) => g.grade >= 3).reduce((n, g) => n + g.missed, 0);
+  return (
+    <div className="stack" style={{ gap: "0.4rem" }}>
+      <h4>Screening: does the eye need an ophthalmologist? (primary)</h4>
+      {s.cautions.map((c) => <div key={c} className="notice">{c}</div>)}
+      <div className="stat-strip">
+        <div className="stat"><b>{pct(f.sensitivity)}</b><span>referable eyes not cleared{ciText(i.sensitivity, pct)}; {f.positives} referable</span></div>
+        <div className="stat"><b style={severe ? { color: "var(--vessel)" } : undefined}>{severe}</b><span>severe NPDR / PDR eyes cleared</span></div>
+        <div className="stat"><b>{pct(f.specificity)}</b><span>non-referable eyes cleared{ciText(i.specificity, pct)}</span></div>
+        <div className="stat"><b>{pct(f.npv)}</b><span>NPV: cleared eyes truly non-referable{ciText(i.npv, pct)}</span></div>
+        <div className="stat"><b>{pct(f.referralRate)}</b><span>seen by a person (refer + uncertain){ciText(i.referralRate, pct)}</span></div>
+      </div>
+      <table className="list compact"><tbody>
+        <tr><th>Outcomes</th><td>{f.refer} refer · {f.uncertain} uncertain · {f.routine} routine, of {f.n} images{s.ungradablePhotos ? ` (${s.ungradablePhotos} insufficient-quality photographs are always uncertain)` : ""}</td></tr>
+        <tr><th>Referable eyes cleared</th><td>{f.missedByGrade.map((g) => `${GRADES[g.grade]} ${g.missed} of ${g.eyes}`).join(" · ")}{f.missedIds.length ? `; severe/PDR images: ${f.missedIds.join(", ")}` : ""}</td></tr>
+        <tr><th>Cut-offs</th><td className="small">refer at {s.refer.toPrecision(3)} or above, routine below {s.clear.toPrecision(3)} (referral score p2+p3+p4); {s.source}.
+          {s.fromValidation && ` Chosen to keep ${pct(s.referSensitivity)} (refer) and ${pct(s.clearSensitivity)} (clear) of referable validation eyes.`}</td></tr>
+      </tbody></table>
+      <div className="muted small">Cleared = routine. Proposed acceptance before any assisted use: sensitivity at least 95% with the lower bound at least 90%, no severe NPDR or PDR cleared,
+        NPV at least 98%. Intervals resample whole patients. The DR outcome alone never clears a patient.</div>
+    </div>
+  );
+}
+
 // ---------- the grader ----------
 function SystemTab() {
   const q = useQuery({ queryKey: ["retina", "status"], refetchInterval: 30_000, queryFn: () => api<any>("/retina-ai/status") });
   if (q.error) return <ErrorNotice error={q.error} />;
   if (!q.data) return <Loading />;
-  const { grader: g, counts: c } = q.data;
+  const { grader: g, counts: c, graders } = q.data;
   return (
     <section className="panel panel-pad stack">
+      <h3>Graders switched on (each Remidio photograph is graded by every one)</h3>
+      <table className="list compact">
+        <thead><tr><th>Grader</th><th>Model</th><th>State</th><th>Screening cut-offs</th></tr></thead>
+        <tbody>{(graders ?? []).map((x: any) => (
+          <tr key={x.key}><td>{x.key}</td><td className="small">{x.modelSha256 ? `${modelName(x)} · ${x.modelSha256.slice(0, 12)}…` : "—"}</td>
+            <td>{x.ready ? <span className="pill completed">Ready</span> : !x.keySet ? <span className="pill cancelled">Key not set</span>
+              : !x.reachable ? <span className="pill cancelled">Not answering</span> : <span className="pill waitlist">Not ready</span>}</td>
+            <td className="small">{x.cutoffs ? `refer ≥ ${x.cutoffs.refer.toPrecision(3)}, routine < ${x.cutoffs.clear.toPrecision(3)} (${x.cutoffs.source})` : "none: no outcome shown"}</td></tr>))}
+        </tbody></table>
+      <div className="muted small">RFM's key comes from scripts\setup-rfm.ps1; the list is the setting retina.graders. Below: the Arko007 grader (used for uploads).</div>
       <div className={`notice ${g.ready ? "ok" : "error"}`}>
         {g.ready ? "The grader is running and the model is loaded."
           : !g.keySet ? "RETINA_AI_KEY is not set in Sudarshan's .env: run scripts\\setup-retina-ai.ps1 on shichika."

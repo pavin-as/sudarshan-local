@@ -46,8 +46,17 @@ setRemidioTransport(async (method, p) => {
 let failDownloads = false;
 const downloads: string[] = [];
 setPhotoFetcher(async (url) => { downloads.push(url); if (failDownloads) throw new Error("photograph download failed (HTTP 403, the link may have expired)"); return JPEG; });
-setGraderTransport(async (_m, p) => p === "/health" ? { status: 200, data: { model_loaded: true } }
-  : { status: 200, data: { grade: 1, probs: [0.2, 0.5, 0.1, 0.1, 0.1], raw: [0.2, 0.5, 0.1, 0.1, 0.1], calibration: "native_probabilities", width: 2866, height: 2866 } });
+// two research graders (D-046): Arko007 on its own URL, RFM (port 7861) with two heads, each head its own model SHA
+process.env.RFM_GRADER_URL = "http://127.0.0.1:7861"; process.env.RFM_GRADER_KEY = "fake-rfm-key";
+const RFM_SHA: Record<string, string> = { aptos: "f1a558fc09dbc07452bdd3570f4aa6af84f2bc2550c794cb88ff419c1efaaefb", messidor: "b23dcc9b2ecde8b562f61e1a046345a799327e0aa0ace36188ca8315ab0efde3" };
+setGraderTransport(async (_m, p, _b, _h, target) => {
+  const rfm = !!target?.url.includes(":7861");
+  if (p === "/health") return { status: 200, data: rfm ? { model_loaded: true, heads: Object.fromEntries(Object.entries(RFM_SHA).map(([k, v]) => [k, { model_sha256: v }])) } : { model_loaded: true } };
+  const head = /head=(\w+)/.exec(p)?.[1];
+  return { status: 200, data: rfm
+    ? { grade: 2, probs: [0.1, 0.1, 0.6, 0.1, 0.1], raw: [], calibration: "softmax_applied", width: 2866, height: 2866, model_repo: "ok1zjf/RFM", model_sha256: RFM_SHA[head ?? ""] }
+    : { grade: 1, probs: [0.2, 0.5, 0.1, 0.1, 0.1], raw: [0.2, 0.5, 0.1, 0.1, 0.1], calibration: "native_probabilities", width: 2866, height: 2866 } };
+});
 const item = (id: number, mrn: string, extra: any = {}) => ({
   type: "IMAGE",
   image: { id, examId: id + 100, laterality: "LEFT", date: Date.now(), width: 2866, height: 2866, quality: "SUFFICIENT", field: "MACULA",
@@ -57,8 +66,10 @@ const item = (id: number, mrn: string, extra: any = {}) => ({
 
 // ---------- fixtures ----------
 const PID = 990000102, MRD = "SPD99901", IDS = "remidio_image_id BETWEEN 9900001 AND 9900099";
-const KEYS = ["retina.remidio_mode", "retina.remidio_unmatched"];
+const KEYS = ["retina.remidio_mode", "retina.remidio_unmatched", "retina.graders"];
 const saved = (await pool.query(`SELECT key, value FROM app.settings WHERE key = ANY($1)`, [KEYS])).rows;
+await pool.query(`INSERT INTO app.settings (key, value) VALUES ('retina.graders', '["arko", "rfm:aptos", "rfm:messidor"]'::jsonb)
+                  ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`);
 const setMode = (mode: string, unmatched = "keep") => pool.query(
   `INSERT INTO app.settings (key, value) VALUES ('retina.remidio_mode', to_jsonb($1::text)), ('retina.remidio_unmatched', to_jsonb($2::text))
    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`, [mode, unmatched]);
@@ -66,6 +77,7 @@ async function cleanup() {
   await pool.query(`BEGIN; SET LOCAL app.skip_audit = 'on';
     ALTER TABLE app.dr_gradings DISABLE TRIGGER dr_gradings_guard; ALTER TABLE app.fundus_photos DISABLE TRIGGER fundus_photos_guard;
     DELETE FROM app.dr_grading_views WHERE grading_id IN (SELECT id FROM app.dr_gradings WHERE photo_id IN (SELECT id FROM app.fundus_photos WHERE ${IDS}));
+    DELETE FROM app.dr_doctor_grades WHERE grading_id IN (SELECT id FROM app.dr_gradings WHERE photo_id IN (SELECT id FROM app.fundus_photos WHERE ${IDS}));
     DELETE FROM app.dr_gradings WHERE photo_id IN (SELECT id FROM app.fundus_photos WHERE ${IDS});
     DELETE FROM app.remidio_queue_log WHERE remidio_id BETWEEN 9900001 AND 9900099 OR photo_id IN (SELECT id FROM app.fundus_photos WHERE ${IDS});
     DELETE FROM app.fundus_photos WHERE ${IDS};
@@ -173,13 +185,27 @@ try {
   });
 
   console.log("grading and viewing");
-  await step("new photographs are graded by the research model, once each", async () => {
+  await step("new photographs are graded by every research model switched on, once each per model (D-046)", async () => {
     assert.ok(await gradeNewPhotos(app.log) >= 2);
     assert.equal(await count(`SELECT count(*) n FROM app.dr_gradings WHERE photo_id = $1 AND source = 'remidio' AND ai_grade = 1 AND eye = 'LE'`, [photoId]), 1);
+    for (const sha of Object.values(RFM_SHA))
+      assert.equal(await count(`SELECT count(*) n FROM app.dr_gradings WHERE photo_id = $1 AND model_sha256 = $2 AND ai_grade = 2`, [photoId, sha]), 1, sha.slice(0, 8));
     await gradeNewPhotos(app.log);
-    assert.equal(await count(`SELECT count(*) n FROM app.dr_gradings WHERE photo_id = $1`, [photoId]), 1, "not graded twice");
+    assert.equal(await count(`SELECT count(*) n FROM app.dr_gradings WHERE photo_id = $1`, [photoId]), 3, "not graded twice by any model");
+    const todo = (await call("GET", "/api/retina-ai/to-grade", doc)).body.gradings.filter((g: any) => g.photoId === photoId);
+    assert.equal(todo.length, 1, "one row per photograph on the doctor's to-grade list"); assert.equal(todo[0].aiGrade, undefined);
+  });
+  await step("each grading shows its model's research screening outcome; the doctor's grade counts for every model", async () => {
+    const recs = (await call("GET", `/api/retina-ai/gradings?patientId=${PID}`, admin)).body.gradings.filter((g: any) => g.photoId === photoId);
+    const aptos = recs.find((g: any) => g.modelSha256 === RFM_SHA.aptos);
+    assert.equal(aptos.screening.outcome, "refer", "score 0.8 is above the APTOS head's refer cut-off");
+    assert.equal(recs.find((g: any) => !g.modelSha256).screening, null, "a model without cut-offs gets no outcome");
     const todo = (await call("GET", "/api/retina-ai/to-grade", doc)).body.gradings.find((g: any) => g.photoId === photoId);
-    assert.ok(todo, "on the doctor's to-grade list"); assert.equal(todo.aiGrade, undefined);
+    assert.equal((await call("PUT", `/api/retina-ai/gradings/${todo.id}/my-grade`, doc, { grade: 2, ungradable: false, note: "" })).status, 200);
+    assert.equal(await count(`SELECT count(*) n FROM app.dr_doctor_grades d JOIN app.dr_gradings g ON g.id = d.grading_id WHERE g.photo_id = $1 AND d.grade = 2 AND d.blinded`, [photoId]), 3);
+    const st = (await call("GET", "/api/retina-ai/status", admin)).body.graders;
+    assert.deepEqual(st.map((x: any) => x.key), ["arko", "rfm:aptos", "rfm:messidor"]);
+    assert.equal(st[1].modelSha256, RFM_SHA.aptos); assert.ok(st[1].cutoffs);
   });
   await step("the photograph opens for admin and doctors only; the patient's list shows it", async () => {
     const r = await call("GET", `/api/retina-ai/photos/${photoId}/image`, doc);

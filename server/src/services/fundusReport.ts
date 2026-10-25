@@ -24,7 +24,8 @@ export function reportLine(r: { re_dr: DrChoice | null; le_dr: DrChoice | null; 
 /** Write the report's grades as the doctor's grades of its photographs' AI gradings (one per doctor per photograph;
  *  a correction replaces that doctor's grade). Photographs not graded by the AI yet are picked up by gradeNewPhotos. */
 export async function syncReportGrades(c: pg.PoolClient, reportId: number): Promise<number> {
-  const r = (await c.query(`SELECT id, patient_id, photo_ids, re_dr, le_dr, coalesce(amended_by, reported_by) AS doctor
+  const r = (await c.query(`SELECT id, patient_id, photo_ids, re_dr, le_dr, coalesce(amended_by, reported_by) AS doctor,
+                                   coalesce(amended_at, reported_at) AS given_at
                               FROM app.fundus_reports WHERE id = $1`, [reportId])).rows[0];
   if (!r) return 0;
   const gradings = (await c.query(
@@ -35,12 +36,15 @@ export async function syncReportGrades(c: pg.PoolClient, reportId: number): Prom
     const dr: DrChoice | null = g.eye === "RE" ? r.re_dr : g.eye === "LE" ? r.le_dr : null;
     if (!dr) continue;
     const grade = drNumber(dr);
+    // blinded = that doctor had not been shown this AI grading BEFORE the report was given (not before now: a look at the
+    // AI after reporting must not turn a blinded grade into an unblinded one when grades are re-applied later)
     await c.query(
       `INSERT INTO app.dr_doctor_grades (grading_id, patient_id, graded_by, grade, ungradable, note, blinded)
-       VALUES ($1, $2, $3, $4, $5, $6, NOT EXISTS (SELECT 1 FROM app.dr_grading_views v WHERE v.grading_id = $1 AND v.user_id = $3))
+       VALUES ($1, $2, $3, $4, $5, $6, NOT EXISTS (SELECT 1 FROM app.dr_grading_views v WHERE v.grading_id = $1 AND v.user_id = $3
+                                                     AND v.viewed_at <= $7))
        ON CONFLICT (grading_id, graded_by) DO UPDATE
          SET grade = EXCLUDED.grade, ungradable = EXCLUDED.ungradable, note = EXCLUDED.note, blinded = EXCLUDED.blinded`,
-      [g.id, r.patient_id, r.doctor, grade, grade === null, `from fundus report #${r.id}`]);
+      [g.id, r.patient_id, r.doctor, grade, grade === null, `from fundus report #${r.id}`, r.given_at]);
     n++;
   }
   return n;

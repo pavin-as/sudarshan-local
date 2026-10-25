@@ -299,6 +299,14 @@ compare runs with `node dist\cli.js retina-eval-compare --labels <csv> --run "Na
 must only be judged on images they did not train on (APTOS head: split `e` of RFM's `datasets/aptos-2019_splits.csv`, made into
 `D:\datasets\APTOS2019\rfm_untouched_test_e.csv`).
 
+**Silent RFM grading (D-046).** Once, after `update.ps1` (migration 0023): PowerShell as Administrator,
+`powershell -ExecutionPolicy Bypass -File D:\Sudarshan\app\scripts\setup-rfm.ps1` (writes `RFM_GRADER_URL` / `RFM_GRADER_KEY`
+into Sudarshan's .env without showing them, starts the container, restarts SudarshanServer). Retina AI > System then lists
+`arko`, `rfm:aptos`, `rfm:messidor` as Ready; each new Remidio photograph gets three gradings within 5 minutes. To switch
+a model off, change the setting `retina.graders` (Settings, admin). Outcomes are research only and shown on the Retina AI
+page only. Cut-offs: Evaluation tab, make and freeze a **Validation** set, then a separate **Test** set (patients already in
+the validation set are left out), open the test set and choose "Chosen on validation set ...".
+
 A new token in Remidio Connect cancels the old one: run `setup-remidio.ps1` again. Receiver problems show on the System tab
 ("Last look"); the photographs are in the nightly backup's `fundus\` folder.
 

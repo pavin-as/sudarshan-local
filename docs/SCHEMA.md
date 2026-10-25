@@ -237,13 +237,17 @@ rules left out), `created_by/at`, `frozen_by/at` (NULL = draft). Audited.
 (P001-RE-01, unique in the set), `eye`, `reference_grade` 0-4 or `reference_ungradable`, `reference_blinded`,
 `reference_report_id`, `reference_by` (the doctor). Trigger `eval_frozen_guard`: no insert, change or delete of a frozen
 set's items; a frozen set cannot be renamed, unfrozen or removed. Items are not audited one by one (the set is).
+`eval_sets.purpose` (0023, D-046): `validation` (cut-offs may be chosen on it) / `test` / `other`; fixed once frozen.
+Settings (0023): `retina.graders` (jsonb list, e.g. `["arko", "rfm:aptos", "rfm:messidor"]`) and
+`retina.screening_cutoffs` (jsonb keyed by model SHA-256: `name`, `refer`, `clear`, `source`).
 
 ### app.remidio_queue_log (0020)
 What the receiver did with each queue item (a log: no audit trigger): `at`, `item_type`, `remidio_id`, `outcome`
 (`stored` / `duplicate` / `kept` / `peeked` / `error` / `gave_up` / `skipped`), `photo_id`, `message`, and `payload` (the
 item without links) for peeks, give-ups and items that are not photographs.
 
-`app.dr_gradings.photo_id` (0020): the photograph a `remidio` grading was made from (unique when set).
+`app.dr_gradings.photo_id` (0020): the photograph a `remidio` grading was made from; from 0023 (D-046) unique per photograph
+**and model** (`dr_gradings_photo_model_idx` on `photo_id`, `model_sha256`), so each research model grades a photograph once.
 
 ### app.dr_grading_views (0018)
 Who was shown which AI grade, when (a log: no audit trigger). Columns `grading_id`, `user_id`, `viewed_at`.

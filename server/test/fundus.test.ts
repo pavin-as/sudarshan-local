@@ -17,7 +17,7 @@ if (!process.env.SUDARSHAN_ENV) { console.error("Set SUDARSHAN_ENV to a test .en
 console.log(`test database: ${(await pool.query("SELECT current_database() AS d")).rows[0].d}`);
 const photoDir = mkdtempSync(path.join(tmpdir(), "zz-fundus-rep-"));
 Object.assign(config.retinaAi, { photoDir, key: "fake-grader-key" });
-setGraderTransport(async (_m, p) => p === "/health" ? { status: 200, data: { model_loaded: true } }
+setGraderTransport(async (_m, p) => p === "/health" ? { status: 200, data: { model_loaded: true, model_sha256: "ab".repeat(32) } }
   : { status: 200, data: { grade: 2, probs: [0.1, 0.1, 0.6, 0.1, 0.1], raw: [0.1, 0.1, 0.6, 0.1, 0.1], calibration: "native_probabilities",
                            model_repo: "zz/fake-model", model_sha256: "ab".repeat(32) } });
 

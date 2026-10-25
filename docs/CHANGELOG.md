@@ -5,6 +5,19 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Retina AI: silent RFM grading of Remidio photographs with a research screening outcome** (D-046). Every new Remidio
+  photograph is now graded by Arko007 and by RFM's APTOS and Messidor-2 heads. Records, the grading drawer and the System
+  tab show which model graded it and its outcome (Refer / Uncertain: a person decides / Routine), labelled research and
+  silent; poor-quality or not-gradable photographs are always Uncertain. The doctor grades a photograph once on To grade
+  (one row per photograph) and the grade counts for every model. Evaluation sets get a role (validation / test); a test
+  set's results can use cut-offs chosen on a frozen validation set with no shared patient, and each model shows screening
+  sensitivity, severe/PDR cleared, specificity, NPV and referral rate with patient-level intervals. Setup: after
+  update.ps1, run `scripts\setup-rfm.ps1` (admin) to give Sudarshan the RFM key. Technical: migration
+  `0023_multi_model_screening.sql` (unique photograph + model, `eval_sets.purpose`, settings `retina.graders`,
+  `retina.screening_cutoffs`); `services/screening.ts`; `gradeNewPhotos` loops the graders; `routes/retinaAi.ts`
+  (screening on gradings, model filter, to-grade per photograph, grade shared across models, graders in status);
+  `routes/evaluation.ts` (role, disjoint patients, screening per model); fundus report grades are blinded as of the report
+  time. Tests: 11 evaluation checks without a database; 1 more Remidio API check (needs a test database).
 - **Retina AI evaluation is screening-first** (D-045): refer / uncertain / routine with cut-offs chosen on validation images
   only. New console report `cli retina-eval-screening --validation <csv> --test <csv> --run Name=<csv> ...`
   (`services/evalScreening.ts`): screening sensitivity, severe/PDR cleared, specificity, NPV, referral rate with 95%
