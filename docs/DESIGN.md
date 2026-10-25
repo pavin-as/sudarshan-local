@@ -105,6 +105,16 @@ out from `dr_grading_views`, never sent by the browser. The console folder impor
 `services/retinaImport.ts`. Screen: `pages/RetinaAi.tsx`, tabs Grade a photograph / To grade / Records / Agreement / System,
 a "Research use only" notice on every tab and "AI-generated · verify" beside every AI grade.
 
+### Remidio photographs (D-041)
+`services/remidio.ts` holds only Remidio's API (behind `setRemidioTransport`) and the photo download (behind
+`setPhotoFetcher`; signed `https://storage.googleapis.com` links only, 40 MB, JPEG/PNG bytes checked by the receiver), plus
+`photoFromItem` / `stripLinks` (pure). `services/remidioReceiver.ts` runs `pollQueue` (every 60 s, single flight, up to 20
+items) and `gradeNewPhotos` (every 30 s, 5 at a time, stops while the grader is down), both started by `index.ts`, never by
+tests, which call them directly. Order per item: store files, insert `fundus_photos`, log, then `itemSuccessfullyHandled`.
+Failures keep the item at the head; the 10th failure of the same item logs `gave_up` and takes it off. Photographs are
+served by `GET /api/retina-ai/photos/:id/image` (paths only from the database, resolved inside the photo folder).
+Screens: Retina AI tabs Photographs and System (receiver), thumbnails in To grade and Records; `FundusPhotos` on the patient page.
+
 ### Adding a feature (checklist)
 1. Read DECISIONS.md and COMPLIANCE.md; if the feature conflicts, ask first.
 2. Migration (if needed) + SCHEMA.md; audit triggers for new tables.

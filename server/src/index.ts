@@ -4,6 +4,7 @@ import { pool } from "./db.js";
 import { startSummaryJob } from "./services/overview.js";
 import { startOutreachJobs } from "./services/payments.js";
 import { outboxStarted } from "./routes/whatsapp.js";
+import { startRemidioJobs } from "./services/remidioReceiver.js";
 
 const app = await buildApp();
 try {
@@ -17,12 +18,14 @@ const summaryTimer = startSummaryJob(app.log);
 // WhatsApp outbox (only what a person queued) and the Razorpay status check (D-034, D-017)
 const outreachTimers = startOutreachJobs(app.log);
 outboxStarted();
+// Remidio photo receiver and grading of new photographs (D-041); does nothing while retina.remidio_mode is "off"
+const remidioTimers = startRemidioJobs(app.log);
 
 for (const sig of ["SIGINT", "SIGTERM"] as const) {
   process.on(sig, async () => {
     app.log.info(`${sig} received, shutting down`);
     clearInterval(summaryTimer);
-    for (const t of outreachTimers) clearInterval(t);
+    for (const t of [...outreachTimers, ...remidioTimers]) clearInterval(t);
     await app.close();
     await pool.end();
     process.exit(0);

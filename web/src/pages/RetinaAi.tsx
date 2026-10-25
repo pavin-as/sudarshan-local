@@ -11,7 +11,7 @@ import { PatientPicker, type PickedPatient } from "../components/PatientPicker";
 
 const GRADES = ["No DR", "Mild NPDR", "Moderate NPDR", "Severe NPDR", "Proliferative DR"];
 const EYE: Record<string, string> = { RE: "Right eye", LE: "Left eye" };
-const SOURCE: Record<string, string> = { upload: "Uploaded", batch: "Folder import" };
+const SOURCE: Record<string, string> = { upload: "Uploaded", batch: "Folder import", remidio: "Remidio FOP" };
 const MAX_MB = 40;
 
 interface Grading {
@@ -20,12 +20,39 @@ interface Grading {
   remarks: string; createdBy: string | null; doctorGrades: number; myGrade: number | null; myUngradable: boolean | null; myBlinded: boolean | null;
   aiGrade?: number | null; probs?: number[] | null; rawOutputs?: number[] | null; calibration?: string | null; imageWidth?: number | null;
   imageHeight?: number | null; inferenceMs?: number | null; modelSha256?: string | null; modelCommit?: string | null; graderVersion?: string | null;
-  aiSeen?: boolean;
+  aiSeen?: boolean; photoId?: number | null;
 }
+export interface Photo {
+  id: number; capturedAt: string | null; receivedAt: string; patientId: number | null; mrd: string | null; patientName: string | null;
+  mrn: string | null; sexCheck: "same" | "different" | null; eye: "RE" | "LE" | null; field: string | null; quality: string | null;
+  width: number | null; height: number | null; hasThumb: boolean; gradingId: number | null;
+}
+const FIELD: Record<string, string> = { MACULA: "macula", DISC: "disc", OTHER: "other field" };
+
+/** A Remidio photograph kept on shichika (D-041). */
+export function PhotoThumb({ id, onOpen, size = 72 }: { id: number; onOpen?: () => void; size?: number }) {
+  const img = <img src={`/api/retina-ai/photos/${id}/image?size=thumb`} alt="Fundus photograph" loading="lazy"
+                   style={{ width: size, height: size, objectFit: "cover", borderRadius: 4, border: "1px solid var(--line)", display: "block", background: "#000" }} />;
+  return onOpen ? <button type="button" className="btn-quiet" style={{ padding: 0 }} onClick={(e) => { e.stopPropagation(); onOpen(); }} aria-label="Open the photograph">{img}</button> : img;
+}
+
+export function PhotoViewer({ photo, onClose }: { photo: { id: number; label?: string }; onClose: () => void }) {
+  return (
+    <Drawer wide title="Fundus photograph" sub={photo.label} onClose={onClose}>
+      <img src={`/api/retina-ai/photos/${photo.id}/image`} alt="Fundus photograph, full size"
+           style={{ width: "100%", maxHeight: "80vh", objectFit: "contain", background: "#000", borderRadius: 8 }} />
+      <div className="muted small">From the Remidio FOP, kept on shichika. Open it in a new tab for full resolution:{" "}
+        <a href={`/api/retina-ai/photos/${photo.id}/image`} target="_blank" rel="noreferrer">full size</a>.</div>
+    </Drawer>
+  );
+}
+const photoLabel = (p: { patientName?: string | null; mrd?: string | null; mrn?: string | null; eye?: string | null; capturedAt?: string | null; quality?: string | null; field?: string | null }) =>
+  [p.patientName ?? (p.mrn ? `MRN ${p.mrn} (not in Yarago)` : null), p.mrd, p.eye && EYE[p.eye], p.field && FIELD[p.field],
+   p.quality && (p.quality === "SUFFICIENT" ? "quality sufficient" : "quality INSUFFICIENT"), p.capturedAt && stamp(p.capturedAt)].filter(Boolean).join(" · ");
 interface DoctorGrade { grade: number | null; ungradable: boolean; note: string; blinded: boolean; at: string; by: string; mine: boolean }
 
-type Tab = "grade" | "todo" | "records" | "agreement" | "system";
-const TABS: [Tab, string][] = [["grade", "Grade a photograph"], ["todo", "To grade"], ["records", "Records"], ["agreement", "Agreement"], ["system", "System"]];
+type Tab = "grade" | "todo" | "photos" | "records" | "agreement" | "system";
+const TABS: [Tab, string][] = [["grade", "Grade a photograph"], ["todo", "To grade"], ["photos", "Photographs"], ["records", "Records"], ["agreement", "Agreement"], ["system", "System"]];
 
 const gradeWords = (g: number | null | undefined) => (g == null ? "—" : `${g} · ${GRADES[g]}`);
 const pct = (x: number | null | undefined) => (x == null ? "—" : `${(x * 100).toFixed(1)}%`);
@@ -60,6 +87,7 @@ export function RetinaAiPage() {
       </div>
       {tab === "grade" && <GradeTab />}
       {tab === "todo" && <ToGradeTab />}
+      {tab === "photos" && <PhotosTab />}
       {tab === "records" && <RecordsTab />}
       {tab === "agreement" && <AgreementTab />}
       {tab === "system" && <SystemTab />}
@@ -212,24 +240,64 @@ function MyGradeForm({ grading, intro, onSaved }: { grading: Grading; intro: str
 function ToGradeTab() {
   const q = useQuery({ queryKey: ["retina", "todo"], queryFn: () => api<{ gradings: Grading[] }>("/retina-ai/to-grade") });
   const [open, setOpen] = useState<number | null>(null);
+  const [view, setView] = useState<{ id: number; label: string } | null>(null);
   if (q.error) return <ErrorNotice error={q.error} />;
   if (!q.data) return <Loading />;
   const rows = q.data.gradings;
   return (
     <section className="panel">
       <div className="panel-head"><h2 className="grow">Photographs you have not graded</h2></div>
-      <div className="panel-pad muted small" style={{ paddingBottom: 0 }}>The AI grade is not shown here, so your grade counts as blinded. Sudarshan does not
-        keep photographs: look at the photograph in the Remidio dashboard or the original file (file name below).</div>
+      <div className="panel-pad muted small" style={{ paddingBottom: 0 }}>The AI grade is not shown here, so your grade counts as blinded. Photographs from
+        Remidio open here (click the picture); for uploaded ones Sudarshan keeps no copy, so look at the original file (file name below).</div>
       {!rows.length ? <div className="empty">Nothing to grade.</div> : <div className="scroll-x"><table className="list">
-        <thead><tr><th>Graded by AI</th><th>Patient</th><th>Eye</th><th>File</th><th></th></tr></thead>
+        <thead><tr><th></th><th>Graded by AI</th><th>Patient</th><th>Eye</th><th>File</th><th></th></tr></thead>
         <tbody>{rows.map((g) => (
-          <tr key={g.id}><td className="nowrap">{stamp(g.createdAt)}</td>
+          <tr key={g.id}><td>{g.photoId ? <PhotoThumb id={g.photoId} onOpen={() => setView({ id: g.photoId!, label: [g.patientName ?? g.mrd, g.eye && EYE[g.eye]].filter(Boolean).join(" · ") })} /> : null}</td>
+            <td className="nowrap">{stamp(g.createdAt)}</td>
             <td>{g.patientId ? <Link to={`/patients/${g.patientId}`}>{g.patientName ?? g.mrd}</Link> : g.mrd ?? "—"} <span className="muted small">{g.mrd}</span></td>
             <td>{g.eye ? EYE[g.eye] : "—"}</td><td className="small">{g.imageFilename}</td>
             <td>{open === g.id
               ? <MyGradeForm grading={g} intro={g.aiSeen ? "You have seen the AI grade of this photograph, so your grade will not count as blinded." : "Your grade:"} onSaved={() => setOpen(null)} />
               : <button className="btn-small" onClick={() => setOpen(g.id)}>Give my grade</button>}</td></tr>))}
         </tbody></table></div>}
+      {view && <PhotoViewer photo={view} onClose={() => setView(null)} />}
+    </section>
+  );
+}
+
+// ---------- photographs received from Remidio (no AI grade here) ----------
+function PhotosTab() {
+  const [text, setText] = useState("");
+  const [search, setSearch] = useState("");
+  const [unmatched, setUnmatched] = useState(false);
+  const [view, setView] = useState<Photo | null>(null);
+  const qs = new URLSearchParams(Object.entries({ q: search, unmatched: unmatched ? "true" : "" }).filter(([, v]) => v)).toString();
+  const q = useQuery({ queryKey: ["retina", "photos", qs], refetchInterval: 60_000, queryFn: () => api<{ photos: Photo[] }>(`/retina-ai/photos${qs ? `?${qs}` : ""}`) });
+  return (
+    <section className="panel">
+      <form className="panel-head row" onSubmit={(e) => { e.preventDefault(); setSearch(text.trim()); }}>
+        <input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder="MRD or name" aria-label="MRD or name" />
+        <button type="submit">Search</button>
+        <label className="row small"><input type="checkbox" checked={unmatched} onChange={(e) => setUnmatched(e.target.checked)} /> Only MRNs not found in Yarago</label>
+        <span className="grow" /><span className="muted small">From the Remidio FOP, newest first, up to 300</span>
+      </form>
+      {q.error ? <div className="panel-pad"><ErrorNotice error={q.error} /></div> : !q.data ? <Loading /> : !q.data.photos.length
+        ? <div className="empty">No photographs yet. They arrive from Remidio once the receiver is on (System tab).</div>
+        : <div className="panel-pad" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: "0.8rem" }}>
+            {q.data.photos.map((p) => (
+              <div key={p.id} className="stack" style={{ gap: "0.25rem" }}>
+                <PhotoThumb id={p.id} size={160} onOpen={() => setView(p)} />
+                <div className="small"><b>{p.patientId ? <Link to={`/patients/${p.patientId}`}>{p.patientName ?? p.mrd}</Link> : <>MRN {p.mrn ?? "—"}</>}</b>{p.patientId && <span className="muted"> {p.mrd}</span>}</div>
+                <div className="small muted">{[p.eye && EYE[p.eye], p.field && FIELD[p.field], p.capturedAt && stamp(p.capturedAt)].filter(Boolean).join(" · ")}</div>
+                <div className="small">
+                  {p.quality === "INSUFFICIENT" && <span className="tag alert">Quality insufficient</span>}
+                  {!p.patientId && <span className="tag alert">Not in Yarago</span>}
+                  {p.sexCheck === "different" && <span className="tag alert">Sex differs from Yarago</span>}
+                  {!p.gradingId && <span className="tag">AI grading waiting</span>}
+                </div>
+              </div>))}
+          </div>}
+      {view && <PhotoViewer photo={{ id: view.id, label: photoLabel(view) }} onClose={() => setView(null)} />}
     </section>
   );
 }
@@ -254,9 +322,10 @@ function RecordsTab() {
       </form>
       {q.error ? <div className="panel-pad"><ErrorNotice error={q.error} /></div> : !q.data ? <Loading /> : !q.data.gradings.length ? <div className="empty">No gradings found.</div> :
         <div className="scroll-x"><table className="list">
-          <thead><tr><th>When</th><th>Patient</th><th>Eye</th><th>AI grade</th><th>Your grade</th><th>Doctors</th><th>From</th><th>Remarks</th></tr></thead>
+          <thead><tr><th></th><th>When</th><th>Patient</th><th>Eye</th><th>AI grade</th><th>Your grade</th><th>Doctors</th><th>From</th><th>Remarks</th></tr></thead>
           <tbody>{q.data.gradings.map((g) => (
             <tr key={g.id} className="clickable" onClick={() => setOpen(g.id)}>
+              <td>{g.photoId ? <PhotoThumb id={g.photoId} size={48} /> : null}</td>
               <td className="nowrap">{stamp(g.createdAt)}</td>
               <td>{g.patientName ?? <span className="muted">not in Yarago</span>} <span className="muted small">{g.mrd}</span></td>
               <td>{g.eye ? EYE[g.eye] : "—"}</td>
@@ -292,6 +361,9 @@ function GradingDrawer({ id, onClose }: { id: number; onClose: () => void }) {
       <div className="stack">
         {g.patientId && <Link to={`/patients/${g.patientId}`}>Open the patient's record</Link>}
         <div className="small muted">File: {g.imageFilename ?? "—"}{g.batchId ? ` · ${g.batchId}` : ""}</div>
+        {g.photoId && <a href={`/api/retina-ai/photos/${g.photoId}/image`} target="_blank" rel="noreferrer" title="Open full size">
+          <img src={`/api/retina-ai/photos/${g.photoId}/image`} alt="Fundus photograph"
+               style={{ width: "100%", maxHeight: "60vh", objectFit: "contain", background: "#000", borderRadius: 8 }} /></a>}
         {g.status === "ok" ? <AiResult g={g} /> : <div className="notice error">Not graded: {g.error}</div>}
         {g.status === "ok" && <>
           <h3>Doctors' grades</h3>
@@ -383,7 +455,66 @@ function SystemTab() {
         <tr><th>Running for</th><td>{g.uptimeSeconds != null ? `${Math.round(g.uptimeSeconds / 3600)} h` : "—"}{g.lastInferenceMs ? `, last photograph ${Math.round(g.lastInferenceMs)} ms` : ""}</td></tr>
         <tr><th>Gradings saved</th><td>{c.graded} graded, {c.notGraded} not graded, {c.withDoctorGrade} with a doctor's grade{c.lastAt ? `; last ${stamp(c.lastAt)}` : ""}</td></tr>
       </tbody></table>
-      <div className="muted small">Folder import and copying the old grader's records run on the server console: see RUNBOOK, "Retina AI".</div>
+      <div className="muted small">Folder import runs on the server console: see RUNBOOK, "Retina AI".</div>
+      <RemidioPanel />
     </section>
+  );
+}
+
+const MODE_WORDS: Record<string, string> = {
+  off: "Off: Sudarshan does not read Remidio's queue",
+  peek: "Peek: looks at the next queue item and shows its fields; takes nothing",
+  on: "On: photographs are stored here and taken off Remidio's queue",
+};
+function RemidioPanel() {
+  const { can } = useAuth();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["retina", "remidio"], refetchInterval: 30_000, queryFn: () => api<any>("/retina-ai/remidio") });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  if (q.error) return <ErrorNotice error={q.error} />;
+  if (!q.data) return <Loading />;
+  const r = q.data, admin = can("settings.manage");
+  const change = async (body: object, words: string) => {
+    setBusy(true); setError(null);
+    try { await api("/retina-ai/remidio", { method: "PUT", body }); toast(words); await qc.invalidateQueries({ queryKey: ["retina"] }); }
+    catch (e) { setError(e); } finally { setBusy(false); }
+  };
+  const checkNow = async () => {
+    setBusy(true); setError(null);
+    try { const x = await api<{ result: string }>("/retina-ai/remidio/check-now", { method: "POST" }); toast(`Remidio: ${x.result}`); await qc.invalidateQueries({ queryKey: ["retina"] }); }
+    catch (e) { setError(e); } finally { setBusy(false); }
+  };
+  return (
+    <div className="stack" style={{ borderTop: "1px solid var(--line)", paddingTop: "0.8rem" }}>
+      <h2>Photographs from Remidio (site {r.site})</h2>
+      {!r.ready && <div className="notice">Remidio is not set up yet: an admin runs <code>scripts\setup-remidio.ps1</code> on shichika.</div>}
+      <div className="row">
+        <span className="grow"><b>{MODE_WORDS[r.mode]}</b></span>
+        {admin && <div className="seg" role="group" aria-label="Receiver">
+          {(["off", "peek", "on"] as const).map((m) =>
+            <button key={m} aria-pressed={r.mode === m} disabled={busy || !r.ready} onClick={() => void change({ mode: m }, `Receiver ${m}`)}>{m[0].toUpperCase() + m.slice(1)}</button>)}
+        </div>}
+        {admin && r.mode !== "off" && <button disabled={busy} onClick={() => void checkNow()}>Check now</button>}
+      </div>
+      <div className="small muted">Remidio Connect &gt; Sites &gt; Integration Settings &gt; Cloud Data Queue must also be On. Sudarshan looks every minute.</div>
+      {admin && <label className="row small">Photographs whose MRN is not a Yarago SPD number:
+        <select value={r.unmatched} disabled={busy} onChange={(e) => void change({ unmatched: e.target.value }, "Saved")}>
+          <option value="keep">keep them, unlinked</option><option value="skip">do not keep them</option></select></label>}
+      <ErrorNotice error={error} />
+      <table className="list compact"><tbody>
+        <tr><th>Last look</th><td>{r.lastPoll.at ? `${stamp(r.lastPoll.at)}: ${r.lastPoll.result}` : r.lastPoll.result}
+          {r.lastPoll.queueHttp ? <span className="muted"> (queue answered HTTP {r.lastPoll.queueHttp})</span> : null}
+          {r.lastPoll.error && <div className="small" style={{ color: "var(--vessel)" }}>{r.lastPoll.error}</div>}</td></tr>
+        <tr><th>Photographs kept</th><td>{r.counts.photos}{r.counts.unmatched ? `, ${r.counts.unmatched} not linked to a Yarago patient` : ""}{r.counts.toGrade ? `, ${r.counts.toGrade} waiting for the AI grade` : ""}{r.counts.lastPhotoAt ? `; last ${stamp(r.counts.lastPhotoAt)}` : ""}</td></tr>
+      </tbody></table>
+      {!!r.recent.length && <>
+        <div className="small"><b>Latest queue items</b> (fields only, no patient details)</div>
+        <table className="list compact"><tbody>{r.recent.map((x: any, i: number) => (
+          <tr key={i}><td className="nowrap small">{stamp(x.at)}</td><td className="small">{x.itemType ?? "—"}</td><td className="small"><b>{x.outcome}</b></td>
+            <td className="small">{x.message}{x.fields && <div className="muted">{x.fields.join(", ")}</div>}</td></tr>))}</tbody></table>
+      </>}
+    </div>
   );
 }

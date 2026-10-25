@@ -148,8 +148,35 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       test database (not run on shichika).
 - [x] Deployed 25 Oct: grader on 127.0.0.1 only, model guard fixed (it had refused the model since 21 Sep), migration
       0018; `real-data.ts` Retina AI reads pass (grader ready, key set).
-- [ ] Remove the September test data (Pavin: random photographs, not patients): `update.ps1` (migration 0019 removes the
-      4 copied records), then `scripts\remove-retina-test-data.ps1` (grader's test databases and log lines with typed names).
+- [x] September test records removed from Sudarshan (25 Oct, migration 0019): 0 gradings left, 4 removals in the activity log.
+- [ ] Pavin: `scripts\remove-retina-test-data.ps1` (grader's test databases and log lines with typed names; asks for YES).
+- [ ] Pavin: Remidio Connect > Sites > Integration Settings > Generate Token and copy it, then run
+      `scripts\remidio-api-trial.ps1` and press Enter (it reads the token from the clipboard and clears it; Ctrl+V does not
+      paste at a hidden prompt: first try on 25 Oct sent nothing for that reason). Read-only try of Remidio's API.
+      **25 Oct, 14:24: the live server accepts the dashboard token with the collection's PACS_GATEWAY client token**
+      (getSites 200, site "TIRUR", id 6542143548030976, no custom identifier). 14:30: getExamsByDate exists (an unknown
+      call answers 500, it answers 404) but finds no site by id, name or a made-up value: it needs the site's custom
+      identifier. Pavin to set Site Identifier `TIRUR` in Remidio Connect > Configure Site Settings (Data Storage Location
+      stays "Remidio Cloud", needed for the hosted API; ABDM ID untouched), then run the trial with `-Site TIRUR`.
+      **14:34: it works.** Site Identifier TIRUR set; `getExamsByDate/<yyyy-MM-dd>/<yyyy-MM-dd>/TIRUR` returned 91 exams
+      (9 Sep to 24 Oct, 87 patients, 180 FOP photos 2866x2866, 1 per eye mostly, 162 of sufficient quality). MRNs: 51 SPD
+      (all 51 found in Yarago), 39 "WSD", 1 typo. Remidio's birth date is always 1 January (age typed), so match by SPD
+      number only; sex agrees 49 of 51. No doctor reports in these exams (reportDate 0, all ACTIVE). Photo paths in this
+      answer are storage paths, not downloadable links: the signed links come with Cloud Data Queue items (Postman sample).
+      Script bug in step 5 sent the 91 MRNs to Remidio once (COMPLIANCE, incident 25 Oct); fixed.
+- [x] Remidio photo receiver built (25 Oct, D-041): queue reader, photos kept on shichika and in the backup, linked by SPD
+      number, graded by the research model, shown on Retina AI and the patient page; switch off / peek / on. Migration
+      0020. 13 checks without a database pass; `test/remidio.test.ts` (11) and a browser check need the test database.
+- [ ] **Not deployed.** Pavin: `update.ps1`, then RUNBOOK 12 "Photographs from Remidio" (setup-remidio.ps1, Cloud Data
+      Queue On, Peek with one test photograph, then On).
+- [ ] Pavin (after asking the team): what "WSD" numbers are; then keep or skip photographs without a Yarago SPD number.
+- [ ] Remidio: photographs of exams from before the queue was switched on; what itemSuccessfullyHandled expects;
+      whether doctor reports come through the queue. Paste back `summary.txt`
+      (no names); then delete `D:\classification\sampada-retinal-ai\_remidio_trial`. Leave Cloud Data Queue, Gateway IP/Port,
+      Offline Mode and webhooks off until the trial and the Remidio call say what they do.
+- [ ] Remidio call, added from their Integration Settings screen: what the Gateway IP / Port / Offline Mode expect (a local
+      Remidio gateway would keep images inside the clinic), whether the Cloud Data Queue carries doctor reports (the
+      webhook list has "Doctor Reports"), and whether the PACS_GATEWAY client token in the collection works on production.
 - [ ] Pavin / a doctor: no real fundus photographs yet. When the first Remidio photographs arrive (MRD = SPD number),
       grade one on the Retina AI page and check it looks right (not yet tried through Sudarshan; the grader itself was
       checked with a synthetic image). Until then the page can be opened, but there is nothing to grade.

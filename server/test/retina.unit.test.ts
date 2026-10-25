@@ -111,5 +111,47 @@ await check("metadata.csv: header, quotes, commas inside quotes, BOM, Windows li
   assert.deepEqual(parseCsv(""), []);
 });
 
+// ---------- Remidio queue items (D-041) ----------
+const { photoFromItem, stripLinks, photoUrlAllowed } = await import("../src/services/remidio.js");
+const { imageKind, mrnShape } = await import("../src/services/remidioReceiver.js");
+// the shape of Remidio's own example (Postman collection, getQueueItem), with made-up values
+const sampleItem = {
+  type: "IMAGE",
+  image: { id: 5139886340308992, examId: 4886082495709184, laterality: "RIGHT", date: 1704544019133, width: 2866, height: 2866,
+           path: "https://storage.googleapis.com/remidio-backend-india.appspot.com/1/2/3/4/FOP/images/9?GoogleAccessId=x&Expires=1&Signature=abc",
+           thumbnailPath: "https://storage.googleapis.com/remidio-backend-india.appspot.com/1/2/3/4/thumbnail-images/9?Signature=def",
+           quality: "SUFFICIENT", field: "MACULA", discQualityResults: { qualityScore: 0.8, discPresent: true } },
+  exam: { id: 4886082495709184, examState: "ACTIVE" },
+  patient: { id: 5702836293730304, firstName: "ZZ", lastName: "Test", dateOfBirth: 946656000000, gender: "MALE", mrn: "SPD12765" },
+  site: { siteId: 1, siteName: "TIRUR ", siteCustomIdentifier: "TIRUR" },
+  creatingUser: { email: "zz@example.com" },
+};
+
+await check("a Remidio IMAGE item becomes a photograph: eye, MRN, quality, signed links; other items are not photographs", () => {
+  const p = photoFromItem(sampleItem)!;
+  assert.equal(p.remidioImageId, 5139886340308992); assert.equal(p.eye, "RE"); assert.equal(p.mrn, "SPD12765"); assert.equal(p.sex, "M");
+  assert.equal(p.field, "MACULA"); assert.equal(p.quality, "SUFFICIENT"); assert.equal(p.qualityScore, 0.8);
+  assert.equal(p.capturedAt?.toISOString(), "2024-01-06T12:26:59.133Z"); assert.match(p.url, /^https:\/\/storage\.googleapis\.com\//);
+  assert.equal(photoFromItem({ ...sampleItem, image: { ...sampleItem.image, laterality: "LEFT" } })!.eye, "LE");
+  assert.equal(photoFromItem({ type: "REPORT", report: { id: 1 } }), null);
+  assert.equal(photoFromItem({ type: "IMAGE" }), null, "an image item without an image");
+  assert.equal(photoFromItem(null), null);
+});
+
+await check("what is kept of an item has no links and no tokens; photographs download only from Google storage", () => {
+  const s = JSON.stringify(stripLinks({ ...sampleItem, token: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ4In0.sig" }));
+  assert.doesNotMatch(s, /https?:\/\/|Signature|eyJ/); assert.match(s, /SPD12765/, "the rest stays");
+  assert.ok(photoUrlAllowed(sampleItem.image.path));
+  for (const bad of ["http://storage.googleapis.com/x", "https://evil.example/x", "https://storage.googleapis.com.evil.example/x", "file:///c:/x", "not a url"])
+    assert.ok(!photoUrlAllowed(bad), bad);
+});
+
+await check("only real JPEG or PNG bytes are kept as a photograph; MRN shapes hide the digits", () => {
+  assert.equal(imageKind(Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0])), "jpg");
+  assert.equal(imageKind(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0])), "png");
+  assert.equal(imageKind(Buffer.from("<html>AccessDenied</html>")), null);
+  assert.equal(mrnShape("SPD12765"), "AAA99999"); assert.equal(mrnShape("wsd01"), "AAA99"); assert.equal(mrnShape(""), "(empty)");
+});
+
 setGraderTransport(null);
 console.log(`\n${passed} retina AI checks passed`);

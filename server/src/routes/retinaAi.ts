@@ -3,20 +3,25 @@
 // Every AI grade shown is logged in app.dr_grading_views (COMPLIANCE: every AI result shown is logged); a doctor's grade
 // counts as "blinded" only when that doctor had not been shown the AI grade before saving it.
 // The photograph is held in memory for the call to the grader and never stored.
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type pg from "pg";
 import { z } from "zod";
 import { auditCtx, need } from "../auth.js";
+import { config } from "../config.js";
 import { one, q, withTx } from "../db.js";
 import { badRequest, notFound } from "../lib/errors.js";
 import { dateStr } from "../lib/time.js";
+import { remidioReady } from "../services/remidio.js";
+import { lastPoll, pollQueue, receiverMode } from "../services/remidioReceiver.js";
 import { GRADES, IMAGE_TYPES, MAX_IMAGE_MB, agreement, gradeImage, graderHealth } from "../services/retinaAi.js";
 
 const EYE_WORDS: Record<string, string> = { RE: "right eye", LE: "left eye" };
 const idParam = z.object({ id: z.coerce.number().int().positive() });
 
 const COLS = `g.id, g.created_at AS "createdAt", g.patient_id AS "patientId", coalesce(p.mrd, g.mrd) AS mrd, p.name AS "patientName",
-  g.eye, g.source, g.batch_id AS "batchId", g.status, g.error, g.image_filename AS "imageFilename", g.remarks,
+  g.eye, g.source, g.batch_id AS "batchId", g.status, g.error, g.image_filename AS "imageFilename", g.remarks, g.photo_id AS "photoId",
   u.full_name AS "createdBy", (SELECT count(*) FROM app.dr_doctor_grades d WHERE d.grading_id = g.id)::int AS "doctorGrades",
   mine.grade AS "myGrade", mine.ungradable AS "myUngradable", mine.blinded AS "myBlinded"`;
 const AI_COLS = `g.ai_grade AS "aiGrade", g.probs, g.raw_outputs AS "rawOutputs", g.calibration, g.image_width AS "imageWidth",
@@ -163,6 +168,78 @@ export async function retinaAiRoutes(app: FastifyInstance) {
            SET grade = EXCLUDED.grade, ungradable = EXCLUDED.ungradable, note = EXCLUDED.note, blinded = EXCLUDED.blinded
          RETURNING blinded`, [id, g.patientId, me.id, b.grade, b.ungradable, b.note])).rows[0]);
     return { ok: true, blinded: saved.blinded };
+  });
+
+  // ---------- fundus photographs from Remidio (D-041) ----------
+  // The photograph itself (or Remidio's thumbnail). Only paths stored by the receiver are read, inside RETINA_PHOTO_DIR.
+  app.get("/api/retina-ai/photos/:id/image", async (req, reply) => {
+    need(req, "retina_ai.use");
+    const { id } = idParam.parse(req.params);
+    const { size } = z.object({ size: z.enum(["thumb", "full"]).default("full") }).parse(req.query);
+    const f = await one<{ file: string; thumb: string | null }>(`SELECT file_path AS file, thumb_path AS thumb FROM app.fundus_photos WHERE id = $1`, [id]);
+    if (!f) throw notFound("Photograph");
+    const root = path.resolve(config.retinaAi.photoDir);
+    const full = path.resolve(root, size === "thumb" && f.thumb ? f.thumb : f.file);
+    if (!full.startsWith(root + path.sep)) throw notFound("Photograph");
+    let data: Buffer;
+    try { data = await readFile(full); } catch { throw notFound("Photograph file"); }
+    return reply.header("Content-Type", full.endsWith(".png") ? "image/png" : "image/jpeg")
+                .header("Cache-Control", "private, max-age=86400").send(data);
+  });
+
+  // Photographs received, newest first (no AI grades here: those are on Records, where each one shown is logged).
+  app.get("/api/retina-ai/photos", async (req) => {
+    need(req, "retina_ai.use");
+    const f = z.object({ patientId: z.coerce.number().int().positive().optional(), q: z.string().trim().max(60).optional(),
+                         unmatched: z.enum(["true", "false"]).optional() }).parse(req.query);
+    const params: unknown[] = []; const where: string[] = [];
+    if (f.patientId) { params.push(f.patientId); where.push(`f.patient_id = $${params.length}`); }
+    if (f.unmatched === "true") where.push("f.patient_id IS NULL");
+    if (f.q) { params.push(f.q); where.push(`(coalesce(p.mrd, f.mrn) ILIKE $${params.length} || '%' OR p.name ILIKE '%' || $${params.length} || '%')`); }
+    const photos = await q(
+      `SELECT f.id, f.captured_at AS "capturedAt", f.received_at AS "receivedAt", f.patient_id AS "patientId", p.mrd, p.name AS "patientName",
+              f.mrn, f.sex_check AS "sexCheck", f.eye, f.field, f.quality, f.width, f.height, f.thumb_path IS NOT NULL AS "hasThumb",
+              (SELECT g.id FROM app.dr_gradings g WHERE g.photo_id = f.id) AS "gradingId"
+         FROM app.fundus_photos f LEFT JOIN clinical.patient p ON p.patient_id = f.patient_id
+         ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY f.captured_at DESC NULLS LAST, f.id DESC LIMIT 300`, params);
+    return { photos };
+  });
+
+  // The receiver: switch, what it did last, counts.
+  app.get("/api/retina-ai/remidio", async (req) => {
+    need(req, "retina_ai.use");
+    const [counts, recent] = await Promise.all([
+      one(`SELECT (SELECT count(*)::int FROM app.fundus_photos) AS photos,
+                  (SELECT count(*)::int FROM app.fundus_photos WHERE patient_id IS NULL) AS unmatched,
+                  (SELECT count(*)::int FROM app.fundus_photos f WHERE NOT EXISTS (SELECT 1 FROM app.dr_gradings g WHERE g.photo_id = f.id)) AS "toGrade",
+                  (SELECT max(received_at) FROM app.fundus_photos) AS "lastPhotoAt"`),
+      q(`SELECT at, item_type AS "itemType", outcome, message, payload FROM app.remidio_queue_log ORDER BY id DESC LIMIT 15`),
+    ]);
+    const unmatched = (await one<{ value: string }>(`SELECT value FROM app.settings WHERE key = 'retina.remidio_unmatched'`))?.value ?? "keep";
+    // the log's payload is shown only as its field names (the item holds patient details)
+    const fields = (o: any, pre = ""): string[] => o && typeof o === "object" && !Array.isArray(o)
+      ? Object.entries(o).flatMap(([k, v]) => (v && typeof v === "object" && !Array.isArray(v) ? fields(v, `${pre}${k}.`) : [`${pre}${k}`])) : [];
+    return { mode: await receiverMode(), unmatched, ready: remidioReady(), site: config.remidio.site, lastPoll, counts,
+             recent: recent.map(({ payload, ...r }: any) => ({ ...r, fields: payload ? fields(payload) : null })) };
+  });
+
+  app.put("/api/retina-ai/remidio", async (req) => {
+    need(req, "retina_ai.use"); need(req, "settings.manage");
+    const b = z.object({ mode: z.enum(["off", "peek", "on"]).optional(), unmatched: z.enum(["keep", "skip"]).optional() }).parse(req.body);
+    if (!b.mode && !b.unmatched) throw badRequest("Nothing to change");
+    const words = [b.mode && `receiver ${b.mode}`, b.unmatched && `photographs without a Yarago SPD number: ${b.unmatched}`].filter(Boolean).join("; ");
+    await withTx(auditCtx(req, `Remidio photo receiver: ${words}`), async (c) => {
+      if (b.mode) await c.query(`INSERT INTO app.settings (key, value) VALUES ('retina.remidio_mode', to_jsonb($1::text))
+                                 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`, [b.mode]);
+      if (b.unmatched) await c.query(`INSERT INTO app.settings (key, value) VALUES ('retina.remidio_unmatched', to_jsonb($1::text))
+                                      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`, [b.unmatched]);
+    });
+    return { ok: true };
+  });
+
+  app.post("/api/retina-ai/remidio/check-now", async (req) => {
+    need(req, "retina_ai.use"); need(req, "settings.manage");
+    return { result: await pollQueue(req.log), lastPoll };
   });
 
   // How often the AI grade matches doctors' grades. Blinded grades only unless asked otherwise.

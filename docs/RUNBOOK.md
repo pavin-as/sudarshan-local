@@ -253,6 +253,19 @@ node dist\cli.js retina-batch --graded-by <username of the doctor who gave the r
 Files move to `ingest\processed` or `ingest\failed`. Put only grades given **without** seeing the AI result in
 `reference_grade`: they are saved as blinded. The output names files and MRDs only.
 
+**Photographs from Remidio (D-041), first time** (PowerShell as Administrator):
+1. Remidio Connect > Sites > Integration Settings > API Integrations > **Generate Token**, copy it.
+2. `powershell -ExecutionPolicy Bypass -File D:\Sudarshan\app\scripts\setup-remidio.ps1`, press Enter at the prompt
+   (tokens into `.env`, photo folder `D:\Sudarshan\data\fundus`, server restarted).
+3. Remidio Connect > Integration Settings > **Cloud Data Queue: On** > Submit. Leave Gateway IP/Port, Offline Mode and the
+   webhooks off.
+4. Sudarshan > Retina AI > System > **Peek**, take one photograph on the FOP (a staff volunteer under a known SPD number),
+   wait a minute or press **Check now**. "Latest queue items" shows its fields; nothing is taken.
+5. If it shows an IMAGE with `image.path` and `patient.mrn`: **On**. Within a minute the photograph is on the Photographs tab
+   and the patient page, and graded soon after.
+A new token in Remidio Connect cancels the old one: run `setup-remidio.ps1` again. Receiver problems show on the System tab
+("Last look"); the photographs are in the nightly backup's `fundus\` folder.
+
 **Problems:** System tab says the key does not match → run `setup-retina-ai.ps1` again, then `Restart-Service SudarshanServer`.
 "Older version without the Sudarshan connection" → the container still runs old code: `cd D:\classification\sampada-retinal-ai\docker`,
 `docker compose up -d --force-recreate app`. Grader log: `D:\classification\sampada-retinal-ai\logs\app.log`.

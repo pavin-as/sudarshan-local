@@ -12,7 +12,7 @@
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "cli": "node dist/cli.js",
-    "test": "tsx test/api.test.ts && tsx test/outreach.test.ts && tsx test/retina.test.ts",
+    "test": "tsx test/api.test.ts && tsx test/outreach.test.ts && tsx test/retina.test.ts && tsx test/remidio.test.ts",
     "test:rules": "tsx test/rules.test.ts && tsx test/triage.test.ts && tsx test/summary.test.ts && tsx test/followups.test.ts && tsx test/early.test.ts && tsx test/outreach.unit.test.ts && tsx test/arrival.unit.test.ts && tsx test/retina.unit.test.ts"
   },
   "dependencies": {

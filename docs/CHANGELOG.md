@@ -5,6 +5,19 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Retina AI: fundus photographs arrive from the Remidio FOP by themselves** (D-041). Once switched on, Sudarshan checks
+  Remidio every minute, keeps each new photograph on shichika (in the nightly backup), links it to the patient by the SPD
+  number typed on the FOP and grades it with the research model. Admin and doctors see the photographs on Retina AI (new
+  *Photographs* tab, and in *To grade*, so doctors can grade from the photograph itself) and as "Fundus photographs" on
+  the patient page (photographs only, no AI grade). Photos whose number is not in Yarago (e.g. WSD numbers) are kept
+  unlinked or not kept, as set on Retina AI > System, where an admin also switches the receiver off / peek / on.
+  Technical: migration `0020_remidio_photos.sql` (`app.fundus_photos`, kept for good with link-once; `app.remidio_queue_log`;
+  `dr_gradings.photo_id`; source `remidio`; settings `retina.remidio_mode`, `retina.remidio_unmatched`); `services/remidio.ts`
+  (API, signed-link download from storage.googleapis.com only), `services/remidioReceiver.ts` (`pollQueue` every 60 s,
+  `gradeNewPhotos` every 30 s, started by `index.ts`); routes `/api/retina-ai/photos`, `/photos/:id/image`, `/remidio`,
+  `/remidio/check-now`; `scripts/setup-remidio.ps1` (tokens from the clipboard and Remidio's collection into `.env`, photo
+  folder); `backup.ps1` copies the photo folder; `remidio-api-trial.ps1` (read-only trial, 25 Oct). 0019 now narrows the
+  source list only once. Tests: 13 without a database, `test/remidio.test.ts` (11, test database, in `npm test`).
 - **Retina AI: the September test records are removed.** The 4 records copied from the old grader on 25 Oct were random
   fundus photographs used to try it, with made-up MRDs, not patients (Pavin). They are removed from Sudarshan (the removal
   shows in the activity log), and `scripts\remove-retina-test-data.ps1` deletes the grader's old test databases and the log

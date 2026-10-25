@@ -170,7 +170,7 @@ UPDATE except `remarks`. Audited; `ai_grade`, `probs` and `raw_outputs` are hidd
 | created_at, created_by | timestamptz, integer | no, yes | NULL `created_by` for the console imports |
 | patient_id, mrd | bigint, text | yes | Yarago patient; NULL only for folder imports whose MRD is not in Yarago |
 | eye | text | yes | `RE` / `LE`; NULL = not given in metadata.csv |
-| source, batch_id | text | no, yes | `upload` / `batch` (0019 removed `legacy_import`, the test copy of the old grader's records) |
+| source, batch_id | text | no, yes | `upload` / `batch` / `remidio` (0020); 0019 removed `legacy_import`, the test copy of the old grader's records |
 | status, error | text | no, yes | `ok` / `rejected` (photograph unreadable, grader's words in `error`) / `error` |
 | ai_grade | smallint | yes | 0-4, required when `ok` |
 | probs, raw_outputs | double precision[] | yes | five scores (grade 0..4); raw model outputs |
@@ -192,6 +192,32 @@ A person's own DR grade of a graded photograph, one per person per photograph (s
 | note | text | no | '' |
 | blinded | boolean | no | true = saved before this person was shown the AI grade (from `dr_grading_views`, worked out on every save) |
 | created_at, updated_at | timestamptz | no | |
+
+### app.fundus_photos (0020, D-041)
+One row per photograph received from Remidio's queue; the image and Remidio's thumbnail are files under `RETINA_PHOTO_DIR`.
+Kept for good: trigger `fundus_photos_guard` refuses DELETE and every UPDATE except setting `patient_id` (and `sex_check`)
+on a photograph that has none. Audited.
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| id, received_at, source | bigserial, timestamptz, text | no | source `remidio` |
+| remidio_image_id | bigint | yes | unique; Remidio's image id (duplicates are recognised by it) |
+| remidio_exam_id, remidio_patient_id | bigint | yes | |
+| mrn | text | yes | as typed on the FOP |
+| patient_id | bigint | yes | Yarago patient with that SPD number; NULL = not found when received |
+| sex_check | text | yes | `same` / `different` (Remidio's sex against Yarago's) |
+| eye, field, quality, quality_score | text, text, text, numeric | yes | `RE`/`LE`; MACULA/DISC/OTHER; SUFFICIENT/INSUFFICIENT |
+| captured_at, width, height | timestamptz, integer, integer | yes | |
+| bytes, sha256, file_path | integer, text, text | no | file path relative to `RETINA_PHOTO_DIR` |
+| thumb_path | text | yes | Remidio's thumbnail |
+| meta | jsonb | yes | the queue item without its links |
+
+### app.remidio_queue_log (0020)
+What the receiver did with each queue item (a log: no audit trigger): `at`, `item_type`, `remidio_id`, `outcome`
+(`stored` / `duplicate` / `kept` / `peeked` / `error` / `gave_up` / `skipped`), `photo_id`, `message`, and `payload` (the
+item without links) for peeks, give-ups and items that are not photographs.
+
+`app.dr_gradings.photo_id` (0020): the photograph a `remidio` grading was made from (unique when set).
 
 ### app.dr_grading_views (0018)
 Who was shown which AI grade, when (a log: no audit trigger). Columns `grading_id`, `user_id`, `viewed_at`.

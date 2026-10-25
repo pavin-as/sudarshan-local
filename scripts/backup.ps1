@@ -10,6 +10,7 @@
     daily\code_YYYY-MM-DD_HHMM.bundle      the git repository (all code and history; it is not on GitHub)
     daily\metabase_YYYY-MM-DD_HHMM.dump    Metabase's own database (dashboards, logins, subscriptions), once installed
     monthly\                               first backup of each month, kept 12 months
+    fundus\                                fundus photographs from Remidio (D-041), added to, never pruned
   Daily files are kept 14 days. Every dump is checked readable (pg_restore --list) before it counts.
   Each run is recorded in app.backup_runs and logs\backup.log. Exit code 1 on failure.
   Not included on purpose: .env (secrets). Keep a copy of it somewhere safe offline (RUNBOOK.md).
@@ -92,6 +93,16 @@ try {
     if ($LASTEXITCODE) { Log "WARNING: git bundle failed: $g" } else { $codeOk = $true; Log "code bundle ok" }
   } else { Log "WARNING: git not found, code not bundled" }
 
+  # 2b. fundus photographs from Remidio (D-041): copied into <backup>\fundus, new and changed files only. Nothing is
+  #     ever deleted there (photographs are clinical records), so this folder is not part of the daily/monthly rotation.
+  $photoDir = if ($cfg['RETINA_PHOTO_DIR']) { $cfg['RETINA_PHOTO_DIR'] } else { 'D:\Sudarshan\data\fundus' }
+  $photosOk = $null
+  if (Test-Path $photoDir) {
+    $rc = & robocopy $photoDir (Join-Path $Target 'fundus') /E /XO /R:2 /W:5 /NP /NFL /NDL /NJH /NJS 2>&1
+    $photosOk = $LASTEXITCODE -lt 8                 # robocopy: 0-7 = copied / nothing to copy, 8+ = failure
+    if ($photosOk) { Log "fundus photographs copied (robocopy code $LASTEXITCODE)" } else { Log "WARNING: fundus photograph copy failed (robocopy code $LASTEXITCODE): $rc" }
+  }
+
   # 3. counts of the main tables, kept with the run for comparison in restore tests
   $counts = & $psql -d $db -tA -c "SELECT json_build_object('appointments',(SELECT count(*) FROM app.appointments),'appointment_events',(SELECT count(*) FROM app.appointment_events),'users',(SELECT count(*) FROM app.users),'audit_log',(SELECT count(*) FROM app.audit_log),'followup_actions',(SELECT count(*) FROM app.followup_actions))" 2>&1
   if ($LASTEXITCODE) { $counts = '{}' }
@@ -112,7 +123,8 @@ try {
   $mcut = $started.AddMonths(-$KeepMonths)
   Get-ChildItem $monthly -File | Where-Object { $_.LastWriteTime -lt $mcut } | Remove-Item -Force
 
-  $details = '{"entries":' + $entries + ',"code_bundle":' + ($codeOk.ToString().ToLower()) + ',"metabase":' + ($mbOk.ToString().ToLower()) + ',"counts":' + ($counts -join '') + '}'
+  $details = '{"entries":' + $entries + ',"code_bundle":' + ($codeOk.ToString().ToLower()) + ',"metabase":' + ($mbOk.ToString().ToLower()) +
+             ',"fundus_photos":' + $(if ($null -eq $photosOk) { 'null' } else { $photosOk.ToString().ToLower() }) + ',"counts":' + ($counts -join '') + '}'
   Record 'ok' $dump $bytes $details '' $started
   Log ("backup finished in {0:N0} s" -f ((Get-Date) - $started).TotalSeconds)
   exit 0

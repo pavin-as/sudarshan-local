@@ -11,6 +11,31 @@ import { TrendChart } from "../components/TrendChart";
 import { BookDialog } from "../components/BookDialog";
 import { AppointmentDrawer } from "../components/AppointmentDrawer";
 import { FollowupLogForm } from "./Followups";
+import { PhotoThumb, PhotoViewer, type Photo } from "./RetinaAi";
+
+// Fundus photographs from the Remidio FOP (D-041), for admin and doctors. Photographs only: the research AI grade stays on
+// the Retina AI page (D-040).
+function FundusPhotos({ patientId }: { patientId: number }) {
+  const q = useQuery({ queryKey: ["retina", "photos", "patient", patientId], queryFn: () => api<{ photos: Photo[] }>(`/retina-ai/photos?patientId=${patientId}`) });
+  const [view, setView] = useState<Photo | null>(null);
+  if (!q.data?.photos.length) return null;
+  const photos = q.data.photos;
+  return (
+    <section className="panel">
+      <div className="panel-head"><h2 className="grow">Fundus photographs</h2><span className="muted small">{photos.length} from the Remidio FOP, newest first</span></div>
+      <div className="panel-pad row" style={{ alignItems: "flex-start", gap: "0.8rem" }}>
+        {photos.map((ph) => (
+          <div key={ph.id} className="stack" style={{ gap: "0.2rem", width: 120 }}>
+            <PhotoThumb id={ph.id} size={120} onOpen={() => setView(ph)} />
+            <div className="small"><b>{ph.eye === "RE" ? "Right" : ph.eye === "LE" ? "Left" : "Eye ?"}</b>{ph.capturedAt && <span className="muted"> {niceDate(ph.capturedAt.slice(0, 10), true)}</span>}</div>
+            {ph.quality === "INSUFFICIENT" && <span className="tag alert">Quality insufficient</span>}
+          </div>))}
+      </div>
+      {view && <PhotoViewer photo={{ id: view.id, label: [view.eye === "RE" ? "Right eye" : view.eye === "LE" ? "Left eye" : null, view.capturedAt && stamp(view.capturedAt)].filter(Boolean).join(" · ") }}
+                            onClose={() => setView(null)} />}
+    </section>
+  );
+}
 
 export function PatientsPage() {
   const nav = useNavigate();
@@ -108,6 +133,8 @@ export function PatientPage() {
                 points={trend.map((t: any) => ({ date: t.date, re: t.iopRe != null ? Number(t.iopRe) : null, le: t.iopLe != null ? Number(t.iopLe) : null }))} />
             </section>
           )}
+
+          {can("retina_ai.use") && <FundusPhotos patientId={p.patientId} />}
 
           <section className="panel">
             <div className="panel-head"><h2 className="grow">Visits</h2><span className="muted small">{d.visits.length} shown, newest first</span></div>

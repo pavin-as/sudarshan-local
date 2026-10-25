@@ -16,10 +16,10 @@ BEGIN
     DELETE FROM app.dr_gradings WHERE source = 'legacy_import';
     ALTER TABLE app.dr_gradings ENABLE TRIGGER dr_gradings_guard;
     ALTER TABLE app.dr_gradings DROP COLUMN legacy_record_id;
+    -- once only (inside this block): 0020 widens the list again for Remidio photographs
+    ALTER TABLE app.dr_gradings DROP CONSTRAINT IF EXISTS dr_gradings_source_check;
+    ALTER TABLE app.dr_gradings ADD CONSTRAINT dr_gradings_source_check CHECK (source IN ('upload', 'batch'));
   END IF;
 END $$;
-
-ALTER TABLE app.dr_gradings DROP CONSTRAINT IF EXISTS dr_gradings_source_check;
-ALTER TABLE app.dr_gradings ADD CONSTRAINT dr_gradings_source_check CHECK (source IN ('upload', 'batch'));
 
 INSERT INTO app.schema_migrations(version) VALUES ('0019_retina_remove_test_records') ON CONFLICT DO NOTHING;

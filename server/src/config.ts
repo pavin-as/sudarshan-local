@@ -36,5 +36,15 @@ export const config = {
     url: (process.env.RETINA_AI_URL ?? "http://127.0.0.1:7860").replace(/\/$/, ""),
     key: process.env.RETINA_AI_KEY ?? "",
     timeoutMs: num("RETINA_AI_TIMEOUT_MS", 60_000),
+    // fundus photographs received from Remidio (D-041): administrators only, in the nightly backup
+    photoDir: process.env.RETINA_PHOTO_DIR ?? "D:\\Sudarshan\\data\\fundus",
+  },
+  // Remidio Host Gateway API (D-041): written by scripts/setup-remidio.ps1; the tokens are never logged
+  remidio: {
+    url: (process.env.REMIDIO_URL ?? "https://remidio-backend-india.appspot.com").replace(/\/$/, ""),
+    clientName: process.env.REMIDIO_CLIENT_NAME ?? "PACS_GATEWAY",
+    clientIdToken: process.env.REMIDIO_CLIENT_ID_TOKEN ?? "",
+    clientAuthToken: process.env.REMIDIO_CLIENT_AUTH_TOKEN ?? "",
+    site: process.env.REMIDIO_SITE ?? "TIRUR",
   },
 };

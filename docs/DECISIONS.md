@@ -390,6 +390,30 @@ clinical records, the doctor summary, follow-up cards or messages; every result 
 - **Known limits:** Docker Desktop starts only when someone signs in to Windows on shichika, so after a reboot the page says
   "not available" until then; Sudarshan itself is unaffected.
 
+### D-041 · 2026-10-25 · Accepted · Pavin asked ("when can I see these images in Sudarshan"); Claude chose the design
+**Fundus photographs come from Remidio into Sudarshan by themselves, and Sudarshan keeps a copy on shichika.** This changes
+D-040's "the photograph is never stored" for Remidio photographs (uploaded photographs are still not kept).
+- **How:** the server reads Remidio's Cloud Data Queue for site TIRUR every minute (Host Gateway API, outbound HTTPS only;
+  nothing reaches shichika from the internet; webhooks stay off). For each IMAGE item it downloads the photograph and
+  Remidio's thumbnail from the signed Google Storage link, stores them in `RETINA_PHOTO_DIR` (`D:\Sudarshan\data\fundus`,
+  administrators and SYSTEM only, copied nightly to the backup's `fundus\` folder and never pruned there), records them in
+  `app.fundus_photos`, and only then calls `itemSuccessfullyHandled`. A second job grades new photographs with the research
+  model (D-040); the grade stays on the Retina AI page.
+- **Patients:** matched by the SPD number in the FOP's MRN field. Remidio's birth date is not used (it is always 1 January:
+  staff type an age); Remidio's sex is checked against Yarago and a difference is shown. Numbers that are not Yarago SPD
+  numbers (e.g. the 39 "WSD" exams seen on 25 Oct) are kept unlinked by default (`retina.remidio_unmatched` = keep / skip,
+  Pavin to decide after asking the team); a photograph can be linked to a patient once, never changed or removed.
+- **Who sees photographs:** admin and doctors (`retina_ai.use`), on Retina AI (Photographs, To grade, Records) and as
+  "Fundus photographs" on the patient page (photographs only, no AI grade). Widening to `clinical.read` is a later decision.
+- **Switch:** `retina.remidio_mode` off / peek / on, admins only (Retina AI > System). Peek looks at the next item and shows
+  its field names without taking it, to check the real queue item before the first "on". Remidio Connect's Cloud Data Queue
+  must be On.
+- **Safety:** store before acknowledging (a crash only causes a duplicate, which is recognised); an item that fails 10
+  times is logged and taken off so the queue cannot jam (the photograph stays in Remidio's cloud); items that are not
+  photographs (doctor reports, videos) are kept whole in `app.remidio_queue_log`, links removed, until Sudarshan reads them.
+- **Not covered:** exams from before the queue was switched on (the exams list gives storage paths, not downloadable
+  links): a question for Remidio, as is what `itemSuccessfullyHandled` expects (Remidio's example sends no body).
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.
