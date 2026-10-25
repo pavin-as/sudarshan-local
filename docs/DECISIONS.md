@@ -497,6 +497,25 @@ silent mode on Sampada photographs with cut-offs re-chosen on a Sampada validati
 - Not commercial: RFM's licence terms (AI_EVALUATION.md 4b) allow this research use; any clinical or commercial use still
   needs the head author's permission and review.
 
+### D-047 · 2026-10-25 · Accepted · Pavin ("Yes, run the converter on shichika"); Claude proposed the plan (was P-7)
+**Topcon Maestro2 fundus photographs, OCT and OCTA follow `docs/OCT_PLAN.md`; Topcon's DICOM OCT Export Tool runs on
+shichika.**
+- **Where the tool runs:** shichika, not the ImageNet PC (192.168.0.152) that drives the Maestro2.
+  - The tool's licence key (US / OUS / Research tier) follows the Hardware ID of whichever PC runs it. The device's OCT and
+    OCTA licences are separate and stay on the ImageNet PC.
+  - So nothing new goes onto the Maestro2's PC, and the exports land where Sudarshan, the AI and the backup already are.
+- **The ImageNet PC is read only,** through a read-only share. Sudarshan works only from checksummed copies; each export goes
+  to a new, empty folder. The tool's temp files and logs stay in admin-only folders.
+- **Order:**
+  1. first export and data checks (Gates 1 and 2);
+  2. Maestro2 fundus photographs into Retina AI, measured separately from Remidio (own evaluation sets and cut-offs, D-044,
+     D-045);
+  3. OCT and OCTA as research data;
+  4. OCT AI only after a clinical question is chosen.
+- **Licence:** Pavin asks Topcon for a Research key for shichika's Hardware ID. Until then exports are the US tier: 5 layers,
+  no OCTA vessel density. Maestro2 has no FAZ figures from Topcon at all.
+- **Pi NAS (192.168.0.107):** optional, and for de-identified sets only.
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

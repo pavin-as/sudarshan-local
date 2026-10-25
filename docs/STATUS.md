@@ -225,6 +225,14 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
 - [ ] Pavin: what goes in the MRN field on the Remidio FOP (the Yarago SPD number?): decides whether Phase 2 can match
       patients by itself.
 
+- [x] Topcon Maestro2 plan accepted (25 Oct, D-047, `docs/OCT_PLAN.md`): the export tool runs on shichika.
+- [ ] Topcon Maestro2. Pavin:
+  - ask Topcon, at the OCTA licence visit, for an export tool Research key for shichika's Hardware ID, and the plan's
+    section 7 questions;
+  - give the read-only share path on the ImageNet PC.
+
+  Then Step 0 (.NET 10 Desktop Runtime, tool folder, Hardware ID) and Step 1 (first export of three studies).
+
 ## Next step
 Trial running on live Google data (D-025). Remaining, in order:
 1. **Shadow run** (Phase C gate): staff keep booking in the Google app; daily comparison of the day board, cancel list,

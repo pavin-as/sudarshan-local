@@ -5,6 +5,9 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Plan for Topcon Maestro2 fundus photographs, OCT and OCTA** (D-047). `docs/OCT_PLAN.md` replaces Pavin's notes. Topcon's
+  export tool will run on shichika, and the ImageNet PC stays read only. Nothing changes in the clinic yet. Documentation
+  only.
 - **Retina AI: silent RFM grading of Remidio photographs with a research screening outcome** (D-046). Every new Remidio
   photograph is now graded by Arko007 and by RFM's APTOS and Messidor-2 heads. Records, the grading drawer and the System
   tab show which model graded it and its outcome (Refer / Uncertain: a person decides / Routine), labelled research and
