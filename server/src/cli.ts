@@ -3,10 +3,12 @@
 //   node dist/cli.js temp-password <username>             -> prints a one-time password, must be changed at login
 //   node dist/cli.js create-user <username> "<Full name>" <role>
 //   node dist/cli.js retina-batch [<folder>] [--graded-by <username>] [--dry-run] [--no-move]   -> grade a folder (D-040)
+//   node dist/cli.js retina-remidio-import [<folder>] [--dry-run] [--all]   -> keep photographs downloaded from Remidio Connect (D-041)
 import { pool, withTx } from "./db.js";
 import { hashPassword, temporaryPassword } from "./lib/passwords.js";
 import { ROLES } from "./lib/permissions.js";
 import { runBatch } from "./services/retinaImport.js";
+import { importDownloads } from "./services/remidioImport.js";
 
 const GRADER_DIR = "D:\\classification\\sampada-retinal-ai";
 const flag = (name: string) => args.includes(name);
@@ -50,9 +52,14 @@ async function main() {
       await runBatch({ folder, gradedBy: option("--graded-by"), dryRun: flag("--dry-run"), move: !flag("--no-move") });
       return;
     }
+    case "retina-remidio-import": {
+      const folder = args[0] && !args[0].startsWith("--") ? args[0] : "D:\\Sudarshan\\data\\remidio-import";
+      await importDownloads({ folder, dryRun: flag("--dry-run"), all: flag("--all") });
+      return;
+    }
     default:
       console.log("commands: list-users | temp-password <username> | create-user <username> \"<Full name>\" <role>"
-        + " | retina-batch [<folder>] [--graded-by <username>] [--dry-run] [--no-move]");
+        + " | retina-batch [<folder>] [--graded-by <username>] [--dry-run] [--no-move] | retina-remidio-import [<folder>] [--dry-run] [--all]");
   }
 }
 

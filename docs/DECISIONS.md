@@ -411,8 +411,15 @@ D-040's "the photograph is never stored" for Remidio photographs (uploaded photo
 - **Safety:** store before acknowledging (a crash only causes a duplicate, which is recognised); an item that fails 10
   times is logged and taken off so the queue cannot jam (the photograph stays in Remidio's cloud); items that are not
   photographs (doctor reports, videos) are kept whole in `app.remidio_queue_log`, links removed, until Sudarshan reads them.
-- **Not covered:** exams from before the queue was switched on (the exams list gives storage paths, not downloadable
-  links): a question for Remidio, as is what `itemSuccessfullyHandled` expects (Remidio's example sends no body).
+- **Already-taken photographs (added 25 Oct):** the queue is empty for past exams and the API gives no download link for them
+  (exams list: storage paths only; getPatientWithLastExam: 404). Remidio Connect's per-exam **Download** does give them, laid
+  out as `<MRN>_<time>/<NAME>_<MRN>_<dd-MM-yyyy>/FOP/<h.mm.ss.SSS_AM|PM>.jpg`; `cli retina-remidio-import` matches each file
+  to the exam list by MRN, day and capture time (within 2 s), which gives Remidio's image id, eye, field and quality, and
+  keeps it exactly like a queue photograph (a later queue copy is a duplicate). SPD numbers only unless `--all`. Checked on
+  shichika 25 Oct with one real download: 2 of 2 photographs matched (right macula, left disc), both linked to Yarago.
+  Downloading is done by a person in Remidio Connect (no automation of the dashboard).
+- **Still open with Remidio:** what `itemSuccessfullyHandled` expects (Remidio's example sends no body); a bulk way to
+  fetch past photographs.
 
 ## Proposed (not yet decided)
 

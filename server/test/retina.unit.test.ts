@@ -153,5 +153,36 @@ await check("only real JPEG or PNG bytes are kept as a photograph; MRN shapes hi
   assert.equal(mrnShape("SPD12765"), "AAA99999"); assert.equal(mrnShape("wsd01"), "AAA99"); assert.equal(mrnShape(""), "(empty)");
 });
 
+// ---------- Remidio Connect downloads (D-041) ----------
+const { parseDownloadPath, matchDownload, photoFromExamImage } = await import("../src/services/remidio.js");
+await check("a Remidio Connect download path gives MRN, exam day and capture time (12-hour clock with milliseconds)", () => {
+  const d = parseDownloadPath("C:\\Users\\x\\Downloads\\SPD10247_25-10-2026_3.30.34.165_PM\\ZZ TEST_SPD10247_24-10-2026\\FOP\\5.34.54.833_PM.jpg")!;
+  assert.deepEqual(d, { mrn: "SPD10247", examDate: "2026-10-24", msOfDay: ((17 * 60 + 34) * 60 + 54) * 1000 + 833 });
+  assert.equal(parseDownloadPath("a/ZZ_X_Y_spd1_01-02-2026/FOP/12.05.00.001_AM.JPG")!.msOfDay, (5 * 60) * 1000 + 1, "12 AM is 00h; names may hold underscores");
+  assert.equal(parseDownloadPath("a/ZZ_SPD1_01-02-2026/FOP/12.00.00.000_PM.png")!.msOfDay, 12 * 3600 * 1000, "12 PM is noon");
+  assert.equal(parseDownloadPath("a/ZZ_SPD1_01-02-2026/AIM/5.34.54.833_PM.jpg"), null, "only FOP folders");
+  assert.equal(parseDownloadPath("a/ZZ_SPD1_01-02-2026/FOP/photo.jpg"), null);
+  assert.equal(parseDownloadPath("FOP/5.34.54.833_PM.jpg"), null);
+});
+
+await check("a downloaded file is matched to its exam-list photograph by MRN (any case), day and time; else not at all", () => {
+  const at = Date.parse("2026-10-24T17:34:54.833+05:30");
+  const exams = [
+    { patientDetails: { mrn: "spd10247", id: 7, gender: "FEMALE" }, examDetails: { id: 70, examDate: at - 60_000 },
+      images: { fopImages: { STANDARD: [{ id: 701, date: at, laterality: "LEFT", field: "MACULA", quality: "SUFFICIENT", width: 2866, height: 2866 },
+                                         { id: 702, date: at + 30_000, laterality: "RIGHT" }], EDITED: [] } } },
+    { patientDetails: { mrn: "SPD99999" }, examDetails: { examDate: at }, images: { fopImages: { STANDARD: [{ id: 999, date: at, laterality: "RIGHT" }] } } },
+  ];
+  const same = (a: string, b: string) => normaliseMrd(a) === normaliseMrd(b);
+  const d = parseDownloadPath("x/ZZ_SPD10247_24-10-2026/FOP/5.34.54.833_PM.jpg")!;
+  const m = matchDownload(d, exams, same)!;
+  assert.equal(m.image.id, 701, "the photograph at that time, not the other eye 30 s later");
+  const p = photoFromExamImage(m.exam, m.image);
+  assert.equal(p.eye, "LE"); assert.equal(p.mrn, "spd10247"); assert.equal(p.remidioPatientId, 7); assert.equal(p.sex, "F"); assert.equal(p.url, "");
+  assert.equal(matchDownload({ ...d, msOfDay: d.msOfDay + 5000 }, exams, same), null, "5 seconds off: no match");
+  assert.equal(matchDownload({ ...d, examDate: "2026-10-23" }, exams, same), null, "another day: no match");
+  assert.equal(matchDownload({ ...d, mrn: "SPD10248" }, exams, same), null, "another MRN: no match");
+});
+
 setGraderTransport(null);
 console.log(`\n${passed} retina AI checks passed`);

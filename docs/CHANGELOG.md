@@ -5,6 +5,12 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Retina AI: photographs taken before the receiver was on can be brought in** (D-041). Download the exams in Remidio
+  Connect (Exams > Download), then one console command keeps every SPD photograph in Sudarshan with its eye, field and
+  quality, linked to the patient and graded like the others (RUNBOOK 12). Tried on one real download: 2 of 2 photographs
+  matched. Technical: `cli retina-remidio-import [<folder>] [--dry-run] [--all]` (`services/remidioImport.ts`: unpacks
+  Remidio zips with Windows tar into a temporary folder, matches by MRN, day and capture time with `matchDownload` /
+  `parseDownloadPath`, keeps with the shared `keepPhoto`); tests 15 without a database, 12 in `test/remidio.test.ts`.
 - **Retina AI: fundus photographs arrive from the Remidio FOP by themselves** (D-041). Once switched on, Sudarshan checks
   Remidio every minute, keeps each new photograph on shichika (in the nightly backup), links it to the patient by the SPD
   number typed on the FOP and grades it with the research model. Admin and doctors see the photographs on Retina AI (new

@@ -13,6 +13,8 @@ import { pool } from "../src/db.js";
 import { hashPassword } from "../src/lib/passwords.js";
 import { setPhotoFetcher, setRemidioTransport } from "../src/services/remidio.js";
 import { gradeNewPhotos, pollQueue } from "../src/services/remidioReceiver.js";
+import { importDownloads } from "../src/services/remidioImport.js";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { setGraderTransport } from "../src/services/retinaAi.js";
 
 if (!process.env.SUDARSHAN_ENV) { console.error("Set SUDARSHAN_ENV to a test .env file"); process.exit(2); }
@@ -25,10 +27,20 @@ Object.assign(config.remidio, { clientIdToken: "fake-client-id", clientAuthToken
 const JPEG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(3000, 9)]);
 const queue: any[] = [];
 const calls: string[] = [];
+// the exam list a Remidio Connect download is matched against: one SPD exam (two photographs) and one WSD exam
+const shot = Date.parse("2026-10-24T17:34:54.833+05:30");
+const examList = [
+  { patientDetails: { id: 9900300, mrn: "spd99901", gender: "MALE" }, examDetails: { id: 9900301, examDate: shot - 60_000 },
+    images: { fopImages: { STANDARD: [{ id: 9900011, examId: 9900301, date: shot, laterality: "RIGHT", field: "MACULA", quality: "SUFFICIENT", width: 2866, height: 2866 },
+                                      { id: 9900012, examId: 9900301, date: shot + 40_000, laterality: "LEFT", field: "DISC", quality: "INSUFFICIENT" }], EDITED: [] } } },
+  { patientDetails: { id: 9900400, mrn: "WSD07" }, examDetails: { id: 9900401, examDate: shot },
+    images: { fopImages: { STANDARD: [{ id: 9900013, date: shot, laterality: "RIGHT" }] } } },
+];
 setRemidioTransport(async (method, p) => {
   calls.push(`${method} ${p}`);
   if (p === "/api/gateway/getQueueItem") return queue.length ? { status: 200, data: { status: { statusCode: "OK" }, data: queue[0] } } : { status: 404, data: null };
   if (p === "/api/gateway/itemSuccessfullyHandled") { queue.shift(); return { status: 200, data: { status: { statusCode: "OK" } } }; }
+  if (p.startsWith("/api/gateway/getExamsByDate/")) return { status: 200, data: { data: examList } };
   return { status: 404, data: null };
 });
 let failDownloads = false;
@@ -177,6 +189,26 @@ try {
     const list = (await call("GET", `/api/retina-ai/photos?patientId=${PID}`, doc)).body.photos;
     assert.equal(list.length, 1); assert.equal(list[0].patientName, "ZZ Test Remidio"); assert.equal(list[0].aiGrade, undefined);
     assert.equal((await call("GET", "/api/retina-ai/photos?unmatched=true", doc)).body.photos.some((x: any) => x.mrn === "WSD12"), true);
+  });
+  await step("already-taken photographs: Remidio Connect downloads are matched to the exam list and kept (SPD only)", async () => {
+    const dl = mkdtempSync(path.join(tmpdir(), "zz-remidio-dl-"));
+    try {
+      const put = (mrn: string, t: string) => {
+        const dir = path.join(dl, `${mrn}_25-10-2026_3.30.34.165_PM`, `ZZ TEST_${mrn}_24-10-2026`, "FOP");
+        mkdirSync(dir, { recursive: true }); writeFileSync(path.join(dir, `${t}.jpg`), JPEG);
+      };
+      put("spd99901", "5.34.54.833_PM"); put("spd99901", "5.35.34.833_PM"); put("WSD07", "5.34.54.833_PM"); put("spd99901", "9.00.00.000_AM");
+      await importDownloads({ folder: dl, dryRun: true });
+      assert.equal(await count(`SELECT count(*) n FROM app.fundus_photos WHERE remidio_image_id IN (9900011, 9900012)`), 0, "dry run keeps nothing");
+      await importDownloads({ folder: dl });
+      const rows = (await pool.query(`SELECT remidio_image_id::int id, eye, field, quality, patient_id FROM app.fundus_photos WHERE remidio_image_id BETWEEN 9900011 AND 9900013 ORDER BY 1`)).rows;
+      assert.deepEqual(rows.map((r) => [r.id, r.eye, r.field, Number(r.patient_id)]), [[9900011, "RE", "MACULA", PID], [9900012, "LE", "DISC", PID]],
+                       "both SPD photographs, right eye and left eye; the WSD one and the unmatched 9 AM file left out");
+      await importDownloads({ folder: dl });
+      assert.equal(await count(`SELECT count(*) n FROM app.fundus_photos WHERE remidio_image_id IN (9900011, 9900012)`), 2, "a second run adds nothing");
+      queue.push(item(9900011, MRD));
+      assert.equal(await pollQueue(app.log), "1 duplicate", "the same photograph later from the queue is a duplicate");
+    } finally { rmSync(dl, { recursive: true, force: true }); }
   });
   await step("photographs are kept for good: no delete, no change; an unlinked one may be linked once", async () => {
     await assert.rejects(pool.query(`DELETE FROM app.fundus_photos WHERE id = $1`, [photoId]), /cannot be removed/);

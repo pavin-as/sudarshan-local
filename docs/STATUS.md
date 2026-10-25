@@ -167,8 +167,12 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
 - [x] Remidio photo receiver built (25 Oct, D-041): queue reader, photos kept on shichika and in the backup, linked by SPD
       number, graded by the research model, shown on Retina AI and the patient page; switch off / peek / on. Migration
       0020. 13 checks without a database pass; `test/remidio.test.ts` (11) and a browser check need the test database.
-- [ ] **Not deployed.** Pavin: `update.ps1`, then RUNBOOK 12 "Photographs from Remidio" (setup-remidio.ps1, Cloud Data
-      Queue On, Peek with one test photograph, then On).
+- [x] Deployed 25 Oct (`915f63d`): setup-remidio.ps1 run, Cloud Data Queue On, receiver in Peek: queue empty (HTTP 404);
+      the queue does not hold past exams. getPatientWithLastExam answers 404 too.
+- [ ] Tomorrow (clinic open): take one FOP photograph, Check now in Peek, then switch the receiver On.
+- [x] Already-taken photographs: `cli retina-remidio-import` built (25 Oct); dry run on one real download matched 2 of 2.
+- [ ] Pavin: `update.ps1` (deploys the import command), then download the SPD exams in Remidio Connect and run the import
+      (RUNBOOK 12, "Photographs taken before the queue was on"); then delete the downloads.
 - [ ] Pavin (after asking the team): what "WSD" numbers are; then keep or skip photographs without a Yarago SPD number.
 - [ ] Remidio: photographs of exams from before the queue was switched on; what itemSuccessfullyHandled expects;
       whether doctor reports come through the queue. Paste back `summary.txt`

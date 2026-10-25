@@ -263,6 +263,20 @@ Files move to `ingest\processed` or `ingest\failed`. Put only grades given **wit
    wait a minute or press **Check now**. "Latest queue items" shows its fields; nothing is taken.
 5. If it shows an IMAGE with `image.path` and `patient.mrn`: **On**. Within a minute the photograph is on the Photographs tab
    and the patient page, and graded soon after.
+**Photographs taken before the queue was on** (Remidio does not send these): download them by hand, then import.
+1. Remidio Connect > Exams (Device FOP): press **Download** on each exam with an SPD number (rows with 0 images have a grey
+   Download: nothing to fetch). The zips land in `C:\Users\Admin\Downloads`; leave them zipped or extracted, both work.
+2. PowerShell **as Administrator** (the photo folder is administrators-only):
+   ```
+   cd D:\Sudarshan\app\server
+   node dist\cli.js retina-remidio-import C:\Users\Admin\Downloads --dry-run
+   node dist\cli.js retina-remidio-import C:\Users\Admin\Downloads
+   ```
+   The dry run shows what would be kept (eye, field, quality, day; no names). Run it again any time: photographs already in
+   Sudarshan are skipped. `--all` also keeps numbers that are not SPD numbers (unlinked).
+3. Within a few minutes they are graded; see Retina AI > Photographs and each patient's page. Then delete the downloads
+   (patient data) from the Downloads folder.
+
 A new token in Remidio Connect cancels the old one: run `setup-remidio.ps1` again. Receiver problems show on the System tab
 ("Last look"); the photographs are in the nightly backup's `fundus\` folder.
 

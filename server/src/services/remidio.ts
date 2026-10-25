@@ -93,6 +93,59 @@ export interface QueuePhoto {
   width: number | null; height: number | null; url: string; thumbUrl: string | null; site: string | null;
 }
 
+/** A photograph of an exam in getExamsByDate's answer, in the same form as a queue photograph (no link: the file comes
+ *  from a Remidio Connect download). */
+export function photoFromExamImage(exam: any, i: any): QueuePhoto {
+  const p = exam?.patientDetails ?? {};
+  return {
+    remidioImageId: Number(i.id), remidioExamId: i.examId != null ? Number(i.examId) : (exam?.examDetails?.id ?? null),
+    remidioPatientId: p.id != null ? Number(p.id) : null, mrn: String(p.mrn ?? "").trim(),
+    sex: p.gender ? String(p.gender).toUpperCase().slice(0, 1) : null,
+    eye: EYE[String(i.laterality ?? "").toUpperCase()] ?? null, field: i.field ?? null, quality: i.quality ?? null,
+    qualityScore: i.discQualityResults?.qualityScore != null ? Number(i.discQualityResults.qualityScore) : null,
+    capturedAt: i.date ? new Date(Number(i.date)) : null, width: i.width ?? null, height: i.height ?? null,
+    url: "", thumbUrl: null, site: null,
+  };
+}
+
+// ---------- Remidio Connect downloads (pure) ----------
+// A download is <MRN>_<download time>/<NAME>_<MRN>_<exam date dd-MM-yyyy>/FOP/<capture time h.mm.ss.SSS_AM|PM>.jpg
+export interface DownloadedPhoto { mrn: string; examDate: string; msOfDay: number }
+export function parseDownloadPath(rel: string): DownloadedPhoto | null {
+  const parts = rel.split(/[\\/]+/).filter(Boolean);
+  if (parts.length < 3 || !/^fop$/i.test(parts[parts.length - 2])) return null;
+  const dir = parts[parts.length - 3].match(/^(.*)_([^_]+)_(\d{2})-(\d{2})-(\d{4})$/);
+  const t = parts[parts.length - 1].match(/^(\d{1,2})\.(\d{2})\.(\d{2})\.(\d{3})_(AM|PM)\.(jpe?g|png)$/i);
+  if (!dir || !t) return null;
+  const hour = (Number(t[1]) % 12) + (t[5].toUpperCase() === "PM" ? 12 : 0);
+  return { mrn: dir[2].trim(), examDate: `${dir[5]}-${dir[4]}-${dir[3]}`,
+           msOfDay: ((hour * 60 + Number(t[2])) * 60 + Number(t[3])) * 1000 + Number(t[4]) };
+}
+
+const DAY = 86_400_000;
+const shifted = (ms: number, offsetMin: number) => ms + offsetMin * 60_000;
+/** The exam-list photograph a downloaded file is: same MRN (any case), same day, capture time within 2 seconds. Clinic
+ *  time (IST) is tried first, then UTC, as the download's clock is not documented. */
+export interface DownloadMatch { exam: any; image: any; diff: number }
+export function matchDownload(f: DownloadedPhoto, exams: any[], sameMrn: (a: string, b: string) => boolean): DownloadMatch | null {
+  let best = null as DownloadMatch | null;
+  for (const offset of [330, 0]) {
+    for (const exam of exams) {
+      if (!sameMrn(String(exam?.patientDetails?.mrn ?? ""), f.mrn)) continue;
+      const imgs = [...(exam?.images?.fopImages?.STANDARD ?? []), ...(exam?.images?.fopImages?.EDITED ?? [])];
+      for (const i of imgs) {
+        const at = shifted(Number(i.date), offset);
+        if (new Date(at).toISOString().slice(0, 10) !== f.examDate
+            && new Date(shifted(Number(exam?.examDetails?.examDate), offset)).toISOString().slice(0, 10) !== f.examDate) continue;
+        const diff = Math.abs((((at % DAY) + DAY) % DAY) - f.msOfDay);
+        if (diff < 2000 && (!best || diff < best.diff)) best = { exam, image: i, diff };
+      }
+    }
+    if (best) return best;
+  }
+  return null;
+}
+
 /** The photograph in an IMAGE queue item (shape of Remidio's own example), or null for any other kind of item. */
 export function photoFromItem(item: any): QueuePhoto | null {
   if (String(item?.type ?? "").toUpperCase() !== "IMAGE" || !item.image) return null;

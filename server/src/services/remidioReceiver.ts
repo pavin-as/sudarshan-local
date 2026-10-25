@@ -46,27 +46,40 @@ async function logItem(item: unknown, type: string, remidioId: number | null, ou
     [type || null, remidioId, outcome, photoId, message.slice(0, 500), keepPayload ? stripLinks(item) : null]));
 }
 
+/** The Yarago patient for an MRN typed on the FOP: only an SPD number that exists in Yarago. */
+export async function patientForMrn(mrn: string) {
+  const mrd = normaliseMrd(mrn);
+  return /^SPD\d{1,6}$/.test(mrd)
+    ? await one<{ patientId: number; mrd: string; name: string; sex: string | null }>(
+        `SELECT patient_id AS "patientId", mrd, name, sex FROM clinical.patient WHERE upper(mrd) = $1 LIMIT 1`, [mrd])
+    : undefined;
+}
+
 /** Keep one photograph. Returns what happened; throws when it could not be stored (the item then stays on the queue). */
 async function storePhoto(p: QueuePhoto, item: unknown): Promise<"stored" | "duplicate" | "skipped"> {
   const dup = await one<{ id: number }>(`SELECT id FROM app.fundus_photos WHERE remidio_image_id = $1`, [p.remidioImageId]);
   if (dup) { await logItem(item, "IMAGE", p.remidioImageId, "duplicate", "already stored", dup.id); return "duplicate"; }
 
-  const mrd = normaliseMrd(p.mrn);
-  const patient = /^SPD\d{1,6}$/.test(mrd)
-    ? await one<{ patientId: number; mrd: string; name: string; sex: string | null }>(
-        `SELECT patient_id AS "patientId", mrd, name, sex FROM clinical.patient WHERE upper(mrd) = $1 LIMIT 1`, [mrd])
-    : undefined;
+  const patient = await patientForMrn(p.mrn);
   if (!patient && (await setting<string>("retina.remidio_unmatched", "keep")) === "skip") {
     await logItem(item, "IMAGE", p.remidioImageId, "skipped", `MRN ${mrnShape(p.mrn)} is not a Yarago SPD number; skipped by setting`);
     return "skipped";
   }
 
   const image = await fetchPhoto(p.url);
-  const kind = imageKind(image);
-  if (!kind) throw new Error("the download is not a JPEG or PNG photograph");
   let thumb: Buffer | null = null;
   if (p.thumbUrl && photoUrlAllowed(p.thumbUrl)) { try { thumb = await fetchPhoto(p.thumbUrl); if (!imageKind(thumb)) thumb = null; } catch { thumb = null; } }
+  const id = await keepPhoto(p, image, thumb, stripLinks(item), patient, "job");
+  await logItem(item, "IMAGE", p.remidioImageId, "stored", patient ? "linked to the Yarago patient" : `MRN ${mrnShape(p.mrn)} not in Yarago: kept unlinked`, id);
+  return "stored";
+}
 
+/** Write the photograph (and thumbnail) into the photo folder and record it. Shared by the queue and the download import. */
+export async function keepPhoto(p: QueuePhoto, image: Buffer, thumb: Buffer | null, meta: unknown,
+                                patient: Awaited<ReturnType<typeof patientForMrn>>, source: "job" | "cli"): Promise<number> {
+  const kind = imageKind(image);
+  if (!kind) throw new Error("the file is not a JPEG or PNG photograph");
+  if (thumb && !imageKind(thumb)) thumb = null;
   const when = p.capturedAt ?? new Date();
   const rel = path.join(String(when.getFullYear()), String(when.getMonth() + 1).padStart(2, "0"));
   await mkdir(path.join(config.retinaAi.photoDir, rel), { recursive: true });
@@ -78,15 +91,14 @@ async function storePhoto(p: QueuePhoto, item: unknown): Promise<"stored" | "dup
   const sexCheck = patient?.sex && p.sex ? (patient.sex.toUpperCase().startsWith(p.sex) ? "same" : "different") : null;
   const eyeWords = p.eye === "RE" ? "right eye" : p.eye === "LE" ? "left eye" : "eye not given";
   const who = patient ? `${patient.name} (${patient.mrd})` : `MRN ${p.mrn || "(none)"} (not in Yarago)`;
-  const id = await withTx(ctx(`Received a fundus photograph from Remidio for ${who}, ${eyeWords}`), async (c) => Number((await c.query(
+  const how = source === "cli" ? "Imported a fundus photograph downloaded from Remidio Connect" : "Received a fundus photograph from Remidio";
+  return withTx({ ...ctx(`${how} for ${who}, ${eyeWords}`), source }, async (c) => Number((await c.query(
     `INSERT INTO app.fundus_photos (remidio_image_id, remidio_exam_id, remidio_patient_id, mrn, patient_id, sex_check, eye, field, quality,
                                     quality_score, captured_at, width, height, bytes, sha256, file_path, thumb_path, meta)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING id`,
     [p.remidioImageId, p.remidioExamId, p.remidioPatientId, p.mrn || null, patient?.patientId ?? null, sexCheck, p.eye, p.field,
      p.quality, p.qualityScore, p.capturedAt, p.width, p.height, image.length, createHash("sha256").update(image).digest("hex"),
-     file, thumbFile, stripLinks(item)])).rows[0].id));
-  await logItem(item, "IMAGE", p.remidioImageId, "stored", patient ? "linked to the Yarago patient" : `MRN ${mrnShape(p.mrn)} not in Yarago: kept unlinked`, id);
-  return "stored";
+     file, thumbFile, meta])).rows[0].id));
 }
 
 /** One look at the queue: up to 20 items in "on" mode, one look in "peek". Never runs twice at once. */
