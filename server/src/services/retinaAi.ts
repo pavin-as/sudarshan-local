@@ -17,12 +17,19 @@ export interface GraderResult {
 export type GradeOutcome = { kind: "ok"; result: GraderResult } | { kind: "rejected"; message: string } | { kind: "error"; message: string };
 
 export interface GraderResponse { status: number; data: any }
-export type GraderTransport = (method: "GET" | "POST", path: string, body?: Buffer, headers?: Record<string, string>) => Promise<GraderResponse>;
+/** Which grader container: the default (Arko007, RETINA_AI_*) or another research grader such as RFM (D-044). */
+export interface GraderTarget { url: string; key: string }
+export type GraderTransport = (method: "GET" | "POST", path: string, body?: Buffer, headers?: Record<string, string>, target?: GraderTarget) => Promise<GraderResponse>;
+export const graderTargets = (): Record<string, GraderTarget> => ({
+  arko: { url: config.retinaAi.url, key: config.retinaAi.key },
+  rfm: { url: (process.env.RFM_GRADER_URL ?? "http://127.0.0.1:7861").replace(/\/$/, ""), key: process.env.RFM_GRADER_KEY ?? "" },
+});
 
-const http: GraderTransport = async (method, path, body, headers = {}) => {
-  const res = await fetch(`${config.retinaAi.url}${path}`, {
+const http: GraderTransport = async (method, path, body, headers = {}, target) => {
+  const t = target ?? { url: config.retinaAi.url, key: config.retinaAi.key };
+  const res = await fetch(`${t.url}${path}`, {
     method, signal: AbortSignal.timeout(config.retinaAi.timeoutMs),
-    headers: { "x-grader-key": config.retinaAi.key, ...headers },
+    headers: { "x-grader-key": t.key, ...headers },
     body: body ? new Uint8Array(body) : undefined,
   });
   const text = await res.text();
@@ -36,17 +43,17 @@ export function setGraderTransport(t: GraderTransport | null) { transport = t ??
 export const offline = (why: string) => new HttpError(503, "retina_ai_offline",
   `The retina AI service is not available (${why}). Ask the administrator to start Docker Desktop on shichika; nothing was saved.`);
 
-async function reach(method: "GET" | "POST", path: string, body?: Buffer, headers?: Record<string, string>) {
-  try { return await transport(method, path, body, headers); }
+async function reach(method: "GET" | "POST", path: string, body?: Buffer, headers?: Record<string, string>, target?: GraderTarget) {
+  try { return await transport(method, path, body, headers, target); }
   catch (e: any) {
     throw offline(e?.name === "TimeoutError" ? `no answer within ${Math.round(config.retinaAi.timeoutMs / 1000)} seconds` : "it does not answer");
   }
 }
 
 /** The grader's /health, in plain fields. Never throws: an unreachable grader is { reachable: false }. */
-export async function graderHealth() {
+export async function graderHealth(target?: GraderTarget) {
   try {
-    const r = await transport("GET", "/health");
+    const r = await transport("GET", "/health", undefined, undefined, target);
     const d = r.data ?? {};
     return { reachable: true, ready: r.status === 200 && d.model_loaded === true, modelRepo: d.model_repo ?? null,
              modelCommit: d.model_commit ?? null, modelSha256: d.model_sha256 ?? null, calibration: d.output_calibration ?? null,
@@ -58,9 +65,9 @@ export async function graderHealth() {
 }
 
 /** Grade one photograph. Image problems the person can fix come back as "rejected" with the grader's words. */
-export async function gradeImage(image: Buffer, fileName: string, contentType: string): Promise<GradeOutcome> {
-  if (!config.retinaAi.key) throw offline("RETINA_AI_KEY is not set in .env");
-  const r = await reach("POST", "/api/grade", image, { "content-type": contentType, "x-file-name": encodeURIComponent(fileName) });
+export async function gradeImage(image: Buffer, fileName: string, contentType: string, target?: GraderTarget, query = ""): Promise<GradeOutcome> {
+  if (!(target ?? { key: config.retinaAi.key }).key) throw offline(target ? "the grader's key is not set" : "RETINA_AI_KEY is not set in .env");
+  const r = await reach("POST", `/api/grade${query ? `?${query}` : ""}`, image, { "content-type": contentType, "x-file-name": encodeURIComponent(fileName) }, target);
   const d = r.data ?? {};
   if (r.status === 200) {
     const probs = (d.probs ?? []).map(Number);

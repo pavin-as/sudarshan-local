@@ -231,8 +231,8 @@ export async function evaluationRoutes(app: FastifyInstance) {
       ["image_code", "patient_code", "eye", "field", "quality", "photo_month", "reference_grade", "reference_ungradable", "model_repo",
        "model_sha256_12", "status", "predicted_grade", "p0", "p1", "p2", "p3", "p4", "referable_score", "set_frozen", "exported_at"],
       r.items.map((x) => [x.image_code, x.patient_code, x.eye, x.field, x.quality, x.month, x.reference_grade, x.reference_ungradable ? 1 : 0,
-        m.repo, m.sha.slice(0, 12), x.status ?? "not graded", x.ai_grade, ...(x.probs ?? [null, null, null, null, null]).map((p: number | null) => (p == null ? null : Number(p).toFixed(6))),
-        x.probs ? (Number(x.probs[2]) + Number(x.probs[3]) + Number(x.probs[4])).toFixed(6) : null, set.frozenAt ? 1 : 0, exportedAt]));
+        m.repo, m.sha.slice(0, 12), x.status ?? "not graded", x.ai_grade, ...(x.probs ?? [null, null, null, null, null]).map((p: number | null) => (p == null ? null : String(Number(p)))),
+        x.probs ? String(Number(x.probs[2]) + Number(x.probs[3]) + Number(x.probs[4])) : null, set.frozenAt ? 1 : 0, exportedAt]));
     return reply.header("Content-Type", "text/csv; charset=utf-8")
       .header("Content-Disposition", `attachment; filename="retina-eval-set${id}-${m.sha.slice(0, 12)}.csv"`).send(csv);
   });

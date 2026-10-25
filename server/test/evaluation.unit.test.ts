@@ -77,4 +77,34 @@ check("public dataset labels: IDRiD, APTOS and Messidor-2 headers are recognised
   assert.equal(stem("IDRiD_001.jpg"), "idrid_001"); assert.equal(stem("C:\\x\\IDRiD_001.JPG"), "idrid_001"); assert.equal(stem("IDRiD_001"), "idrid_001");
 });
 
+const { pairedDifferences } = await import("../src/services/evalCompare.js");
+check("paired differences: the same model against itself is exactly 0; a better model gives an interval above 0", () => {
+  const ids = Array.from({ length: 40 }, (_, i) => `img${i}`);
+  const ref = new Map(ids.map((id, i) => [id, i % 2 ? 3 : 0] as const));
+  const probs = (g: number) => (g >= 2 ? [0, 0, 0, 1, 0] : [1, 0, 0, 0, 0]);
+  const perfect = new Map(ids.map((id) => [id, { pred: ref.get(id)!, probs: probs(ref.get(id)!) }]));
+  const blind = new Map(ids.map((id) => [id, { pred: 0, probs: [1, 0, 0, 0, 0] }]));
+  const [same] = pairedDifferences(ids, ref, [perfect, perfect], 300);
+  assert.deepEqual(same.sensitivity, [0, 0]); assert.deepEqual(same.specificity, [0, 0]);
+  const [worse] = pairedDifferences(ids, ref, [perfect, blind], 300);
+  assert.deepEqual(worse.sensitivity, [-1, -1], "a model that never refers loses all sensitivity");
+});
+
+const { cutoffForSensitivity, outcomeOf, screeningFigures } = await import("../src/services/evalScreening.js");
+check("screening: cut-off keeps the target sensitivity on validation; three outcomes; ungradable never cleared", () => {
+  // 10 referable eyes with scores 0.1 .. 1.0, 10 non-referable with 0.0 .. 0.45
+  const rows = [...Array.from({ length: 10 }, (_, i) => ({ id: `p${i}`, ref: i < 2 ? 4 : 2, score: (i + 1) / 10 })),
+                ...Array.from({ length: 10 }, (_, i) => ({ id: `n${i}`, ref: 0, score: i * 0.05 }))];
+  near(cutoffForSensitivity(rows, 0.9), 0.2, "90% of 10: one allowed miss (the 0.1 eye)");
+  near(cutoffForSensitivity(rows, 1), 0.1, "100%: no miss");
+  near(cutoffForSensitivity(rows, 0.5), 0.6);
+  assert.equal(outcomeOf(0.5, 0.4, 0.2), "refer"); assert.equal(outcomeOf(0.3, 0.4, 0.2), "uncertain"); assert.equal(outcomeOf(0.1, 0.4, 0.2), "routine");
+  assert.equal(outcomeOf(0.0, 0.4, 0.2, true), "uncertain", "ungradable is never routine");
+  const f = screeningFigures(rows, 0.4, 0.2);
+  assert.equal(f.positives, 10); near(f.sensitivity, 0.9, "only the 0.1 referable eye is cleared");
+  assert.deepEqual(f.missedByGrade.map((g) => g.missed), [0, 0, 1]); assert.deepEqual(f.missedIds, ["p0"], "a missed PDR eye is listed");
+  near(f.specificity, 4 / 10, "non-referable below 0.2: 0, .05, .1, .15"); near(f.npv, 4 / 5); near(f.referralRate, 15 / 20);
+  assert.equal(f.refer + f.uncertain + f.routine, 20);
+});
+
 console.log(`\n${passed} evaluation checks passed`);

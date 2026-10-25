@@ -5,6 +5,20 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Retina AI evaluation is screening-first** (D-045): refer / uncertain / routine with cut-offs chosen on validation images
+  only. New console report `cli retina-eval-screening --validation <csv> --test <csv> --run Name=<csv> ...`
+  (`services/evalScreening.ts`): screening sensitivity, severe/PDR cleared, specificity, NPV, referral rate with 95%
+  intervals, a two-outcome view and an operating table. First results on APTOS in AI_EVALUATION.md section 5: RFM (APTOS
+  head) 99.1% sensitivity at 84.8% specificity; Arko007 has to refer everyone. Tests: 9 evaluation checks without a database.
+- **Retina AI: RFM installed as a second research grader; Arko007 labelled unreliable** (D-044). The Retina AI page now
+  says above every result that the current model (Arko007) is unreliable (APTOS: misses 3 in 10 eyes needing referral) and
+  is kept for research and comparison only. RFM (a retinal foundation model with published DR heads) runs in its own
+  container beside it, loaded the safe way (pinned checksums, tensor-only check, `weights_only=True`, no RFM code run);
+  it grades nothing in Sudarshan yet. Its licences were checked part by part (AI_EVALUATION.md 4b): fine for research;
+  clinical or commercial use needs the head author's permission and legal review. Technical: `graders/rfm/` (app.py,
+  Dockerfile, docker-compose.yml); `cli retina-eval-external --grader rfm --head ...`; new `cli retina-eval-compare` (paired
+  side-by-side report with false negatives, `services/evalCompare.ts`); `gradeImage`/`graderHealth` take a grader target;
+  per-image CSVs keep full score precision; APTOS report wording (images, not patients) and an independent recount.
 - **Retina AI > Evaluation: measure the AI properly** (D-043). An admin makes an evaluation set from reported Remidio
   photographs (the doctor's grade of each eye, blinded by default; options for dates, quality and macula-centred only),
   sees how many images and referable eyes it holds, then freezes it. For each model the tab shows referable-DR

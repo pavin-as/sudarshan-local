@@ -184,9 +184,21 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       with patient-level 95% intervals, report, CSV without names) and console benchmark on public datasets; Phase 01
       report in AI_EVALUATION.md (original benchmark cannot be reproduced: none was published). Migration 0022.
       On 25 Oct: 2 photographs, 0 doctor reports, so no local figures yet.
-- [ ] Pavin: `update.ps1`; download IDRiD "B. Disease Grading" and run the IDRiD test check (RUNBOOK 12); doctors report
-      every FOP session in Sudarshan; photograph known DR patients on the FOP to reach ~100 referable eyes.
-- [ ] Pavin + legal: RFM weights licence (DINOv3) and loading `.pt` weights safely, before step 2.
+- [x] External check 25 Oct on APTOS 2019 (3,662 images; IDRiD needs an IEEE subscription): the existing model is weak:
+      referable DR sensitivity 70.4%, specificity 63.1%, AUROC 0.70, kappa 0.44; 25% of proliferative DR called "No DR"
+      (AI_EVALUATION.md section 5). Decision: replace it as the default once a better model is shown on the same sets.
+- [ ] Doctors report every FOP session in Sudarshan; photograph known DR patients on the FOP to reach ~100 referable eyes.
+- [x] RFM installed safely (25 Oct, D-044): own container 127.0.0.1:7861, pinned checksums, tensor-only pickles,
+      `weights_only=True`, no RFM code run; reproduces RFM's published APTOS AUROC exactly (0.946).
+- [x] Screening-first evaluation (25 Oct, D-045) on APTOS, cut-offs from validation only: RFM APTOS head 99.1%
+      sensitivity / 84.8% specificity, 1 PDR cleared; RFM Messidor-2 head 99.6% / 34.2%, no severe/PDR cleared; Arko007
+      must refer everyone. Recommendation: both RFM heads in silent mode on Sampada photographs (AI_EVALUATION.md 5).
+- [ ] Pavin + legal: RFM heads (no licence stated: ask the author), DINOv3 terms, the NHS-data question; before any use
+      beyond research.
+- [ ] Pavin + Dr. Sameera: agree the acceptance criteria (proposed: referable sensitivity >= 95% with lower bound >= 90%,
+      no severe/PDR cleared, NPV >= 98%).
+- [ ] Next build: grade Sampada photographs with RFM too (silent, research only), validation/test roles for evaluation
+      sets, screening outcomes (three outcomes, referral rate, cut-offs from a validation set) in Retina AI > Evaluation.
 - [ ] Pavin to decide: use the March batch (doctor-graded) to measure the research model (import with --all, doctor's codes
       as blinded doctor grades: NP = 0, E08.32 = 1, E08.33 = 2, E08.34 = 3, E08.35 = 4, UG / NA = not gradable). Those
       patients are mostly not in Yarago.

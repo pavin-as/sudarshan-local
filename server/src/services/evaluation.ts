@@ -115,7 +115,7 @@ const pc = (x: number | null | undefined) => (x == null ? "n/a" : `${(x * 100).t
 const dec = (x: number | null | undefined) => (x == null ? "n/a" : x.toFixed(3));
 const ci = (i: [number, number] | null | undefined, f: (x: number) => string) => (i ? ` (95% CI ${f(i[0])} to ${f(i[1])})` : "");
 
-export interface ReportHeader { title: string; dataset: string[]; model: string[]; reproducibility: string[] }
+export interface ReportHeader { title: string; dataset: string[]; model: string[]; reproducibility: string[]; byImage?: boolean }
 export function reportMarkdown(h: ReportHeader, e: Evaluation): string {
   const m = e.metrics, i = e.intervals;
   const f = (x: number) => pc(x), d = (x: number) => dec(x);
@@ -125,7 +125,7 @@ export function reportMarkdown(h: ReportHeader, e: Evaluation): string {
     "## Data", ...h.dataset.map((l) => `- ${l}`), "",
     "## Model", ...h.model.map((l) => `- ${l}`), "",
     "## Results", "",
-    `Eye images: **${m.n}** from **${m.patients}** patients. Referable DR = grade ${e.referableFrom} (moderate NPDR) or worse.`, "",
+    `Eye images: **${m.n}**${h.byImage ? " (which images share a patient is not known)" : ` from **${m.patients}** patients`}. Referable DR = grade ${e.referableFrom} (moderate NPDR) or worse.`, "",
     "| Measure | Value |", "|---|---|",
     `| Referable DR sensitivity | ${pc(m.referable.sensitivity)}${ci(i.sensitivity, f)}, ${m.referable.tp} of ${m.referable.positives} found |`,
     `| Referable DR specificity | ${pc(m.referable.specificity)}${ci(i.specificity, f)}, ${m.referable.tn} of ${m.referable.negatives} |`,
@@ -141,7 +141,7 @@ export function reportMarkdown(h: ReportHeader, e: Evaluation): string {
     ...m.confusion.map((row, g) => `| ${g} ${GRADE[g]} | ${row.join(" | ")} |`), "",
     "## Cautions", ...(e.cautions.length ? e.cautions.map((c) => `- ${c}`) : ["- None beyond the general ones above."]), "",
     "## Reproducibility",
-    `- 95% intervals: percentile bootstrap, ${e.bootstrap.resamples} resamples of whole patients, seed ${e.bootstrap.seed}.`,
+    `- 95% intervals: percentile bootstrap, ${e.bootstrap.resamples} resamples of ${h.byImage ? "single images" : "whole patients"}, seed ${e.bootstrap.seed}.`,
     ...h.reproducibility.map((l) => `- ${l}`), "",
   ].join("\n");
 }

@@ -279,13 +279,25 @@ Files move to `ingest\processed` or `ingest\failed`. Put only grades given **wit
 
 **Measuring the AI (D-043; method in AI_EVALUATION.md).** Retina AI > Evaluation (admin): New evaluation set, check the
 counts, Make draft set, then **Freeze** before quoting any figure; Download report / CSV per model.
-On a public dataset (not stored in Sudarshan), e.g. the IDRiD test set: download IDRiD "B. Disease Grading" from IEEE
-DataPort (CC BY 4.0), unzip, then (PowerShell, any user; Docker running):
+On a public dataset (not stored in Sudarshan), e.g. APTOS 2019 (Kaggle competition data: `train.csv` and
+`train_images`, in `D:\datasets\APTOS2019`), PowerShell, any user, Docker running, outside clinic hours (about 40 min):
 ```
 cd D:\Sudarshan\app\server
-node dist\cli.js retina-eval-external "D:\datasets\IDRiD\B. Disease Grading\1. Original Images\b. Testing Set" --labels "D:\datasets\IDRiD\B. Disease Grading\2. Groundtruths\b. IDRiD_Disease Grading_Testing Labels.csv" --name "IDRiD test"
+node dist\cli.js retina-eval-external "D:\datasets\APTOS2019\train_images" --labels "D:\datasets\APTOS2019\train.csv" --name "APTOS 2019 train"
 ```
+(IDRiD on IEEE DataPort needs a subscription now; the command also reads IDRiD and Messidor-2 label files.)
 The report and per-image CSV land in `D:\Sudarshan\app\outputs\retina-eval\`; add the result to AI_EVALUATION.md section 5.
+
+**RFM research grader (D-044)**: container `sampada-rfm`, 127.0.0.1:7861, separate from Arko007 (7860). Weights in
+`D:\models\rfm\weights` (`rfm-1.3.pt`, `heads\aptos.pt`, `heads\messidor.pt`,
+`heads\idrid.pt`, both licence texts); its key in `D:\Sudarshan\app\graders\rfm\.env` (never committed). Start / rebuild:
+`cd D:\Sudarshan\app\graders\rfm; docker compose up -d --build`; health `http://127.0.0.1:7861/health` (shows each head's
+checksum). It refuses to start if a weights file's checksum or pickle check fails (see `docker logs sampada-rfm`). Benchmark
+with the same command as above plus `--grader rfm --head aptos|messidor|idrid` (PowerShell: first
+`$env:RFM_GRADER_KEY = (Get-Content D:\Sudarshan\app\graders\rfm\.env | Select-String '^GRADER_API_KEY=').Line.Split('=',2)[1]`);
+compare runs with `node dist\cli.js retina-eval-compare --labels <csv> --run "Name=<csv>" --run "Name=<csv>"`. The heads
+must only be judged on images they did not train on (APTOS head: split `e` of RFM's `datasets/aptos-2019_splits.csv`, made into
+`D:\datasets\APTOS2019\rfm_untouched_test_e.csv`).
 
 A new token in Remidio Connect cancels the old one: run `setup-remidio.ps1` again. Receiver problems show on the System tab
 ("Last look"); the photographs are in the nightly backup's `fundus\` folder.

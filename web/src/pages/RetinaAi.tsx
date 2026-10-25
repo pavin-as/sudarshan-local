@@ -65,6 +65,9 @@ function ResearchBanner() {
       <b>Research use only.</b> This model is not a medical device. It has no published accuracy and has not been checked on
       Sampada patients. Never use its grade to make, confirm or withhold a clinical decision: every photograph is still graded
       by the treating doctor. Results stay on this page; they do not go into the patient's record.
+      <div style={{ marginTop: "0.35rem" }}><b>The current model (Arko007) is unreliable:</b> on 3,662 public test images (APTOS, 25 Oct 2026) it
+        missed 3 in 10 eyes needing referral, called 1 in 4 proliferative DR eyes "No DR", and flagged 1 in 3 normal eyes. It is kept only
+        for research and comparison; never use it for patient advice or screening decisions.</div>
     </div>
   );
 }
@@ -197,7 +200,8 @@ function AiResult({ g }: { g: Grading }) {
             <td className="muted small">{g.rawOutputs?.[i]?.toPrecision(4) ?? "—"}</td></tr>))}
         </tbody>
       </table>
-      <div className="muted small">The score shows which grade won, not how sure the model is: this model often gives 100% to one grade even when it
+      <div className="muted small">{String(g.modelSha256 ?? "").startsWith("cd4b10c3") && <b>Unreliable model (Arko007, see the notice above). </b>}
+        The score shows which grade won, not how sure the model is: this model often gives 100% to one grade even when it
         is wrong. {g.imageWidth ? `Photograph ${g.imageWidth}×${g.imageHeight}, ` : ""}{g.inferenceMs ? `graded in ${Math.round(g.inferenceMs)} ms, ` : ""}
         model {g.modelSha256?.slice(0, 12) ?? "?"}…, {g.calibration === "softmax_applied" ? "softmax applied" : "native probabilities"}.</div>
     </div>

@@ -454,6 +454,33 @@ grade from the Sudarshan fundus report, per model, with patient-level bootstrap 
 - **Phase 01 conclusion (AI_EVALUATION.md section 1):** the existing model's original benchmark cannot be reproduced:
   none was ever published (no metrics, no split, no training code, checkpoint selection unknown).
 
+### D-044 · 2026-10-25 · Accepted · Pavin (instructions for Phase 2)
+**Arko007 is unreliable for clinical decision-making; RFM is installed and measured next; no model is promoted on
+published figures or on a better score alone.**
+- Arko007 stays available for research and comparison, labelled unreliable on the Retina AI page above every result
+  (APTOS: referable sensitivity 70%, specificity 63%, 25% of proliferative DR called "No DR"). Its predictions are never
+  used for patient advice, screening decisions or anything automated.
+- RFM: loaded the safest way (`weights_only=True` where possible; source and checksum verified; no checkpoint or
+  repository code executed); if it needed unsafe deserialisation, stop and explain the alternatives first. Code, classifier
+  heads, backbone weights and the DINOv3 licence are checked separately for research, internal clinical evaluation and
+  commercial use; nothing is assumed from a public repository. Own container; Arko007, Sudarshan and the interface
+  untouched.
+- Comparison on the same APTOS images, labels, referable-DR definition and metrics, side by side, including confusion
+  matrices and false negatives; overlap with each model's training or tuning data stated.
+- Local data: patients kept together in every split; a genuinely untouched test set kept for final validation.
+- **Replacement rule:** a model becomes the default only after acceptable referable-DR sensitivity, particularly for severe
+  NPDR and PDR, is agreed and shown **on Sampada photographs** (frozen evaluation set), not because it scores better.
+
+### D-045 · 2026-10-25 · Accepted · Pavin ("Sampada's main objective for retinal AI")
+**The retinal AI is measured and designed for DR screening and referral, not five-class grading.** Primary outcome:
+referable DR (moderate NPDR or worse); sensitivity first, no missed severe NPDR or PDR; specificity and referral rate
+measured; cut-offs chosen on validation data only; three outcomes (refer / uncertain / routine) with ungradable or
+uncertain never cleared automatically; exact grade kept for research; on Sampada photographs sensitivity, specificity,
+NPV, false negatives and referral rate; the DR outcome never clears a patient by itself (macular oedema, symptoms, image
+quality); research mode until validated on Sampada data and permitted (AI_EVALUATION.md section 0).
+First results (AI_EVALUATION.md section 5): Arko007 cannot screen; RFM is the candidate, both heads to be validated in
+silent mode on Sampada photographs with cut-offs re-chosen on a Sampada validation set.
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

@@ -1,0 +1,30 @@
+# RFM research grader (D-044), separate from the Arko007 grader (D:\classification\sampada-retinal-ai) and Sudarshan.
+#   cd D:\Sudarshan\app\graders\rfm ; docker compose up -d --build
+# The key comes from .env next to this file (GRADER_API_KEY=..., written by scripts\setup-rfm.ps1; never committed).
+name: sampada-rfm
+services:
+  rfm:
+    build: .
+    image: sampada-rfm:1.0.0
+    container_name: sampada-rfm
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:7861:7861"          # this machine only
+    volumes:
+      - D:/models/rfm/weights:/weights:ro
+    environment:
+      GRADER_API_KEY: "${GRADER_API_KEY:-}"
+      RFM_HEAD: "${RFM_HEAD:-aptos}"
+      TORCH_THREADS: "8"
+    cpus: 8.0                          # leave headroom for Yarago and the Arko007 grader
+    mem_limit: 4g
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "3" }

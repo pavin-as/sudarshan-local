@@ -8,10 +8,10 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { APP_ROOT } from "../config.js";
 import { evaluate, reportMarkdown, toCsv, type EvalRow } from "./evaluation.js";
-import { graderHealth, gradeImage } from "./retinaAi.js";
+import { graderHealth, graderTargets, gradeImage, type GraderResult } from "./retinaAi.js";
 import { parseCsv } from "./retinaImport.js";
 
-export interface ExternalOptions { folder: string; labels: string; name?: string; out?: string }
+export interface ExternalOptions { folder: string; labels: string; name?: string; out?: string; grader?: string; head?: string }
 
 /** The image and grade columns of a labels file (pure). */
 export function labelColumns(headers: string[]): { image: string; grade: string } | null {
@@ -32,19 +32,24 @@ export async function evaluateExternal(o: ExternalOptions) {
   const files = readdirSync(o.folder).filter((f) => /\.(jpe?g|png)$/i.test(f) && labels.has(stem(f))).sort();
   console.log(`${name}: ${labels.size} labelled image(s), ${files.length} found in ${o.folder}`);
   if (!files.length) throw new Error("No labelled JPG/PNG images found in the folder (TIFF is not accepted by the grader: convert first)");
-  const health = await graderHealth();
-  if (!health.ready) throw new Error("The grader is not ready: start Docker Desktop and wait for the model (Retina AI > System)");
+  const target = o.grader ? graderTargets()[o.grader] : undefined;
+  if (o.grader && !target) throw new Error(`Unknown grader "${o.grader}" (known: ${Object.keys(graderTargets()).join(", ")})`);
+  const query = o.head ? `head=${encodeURIComponent(o.head)}` : "";
+  const health = await graderHealth(target);
+  if (!health.ready) throw new Error(`The ${o.grader ?? "default"} grader is not ready: start Docker Desktop and wait for the model`);
 
   const rows: EvalRow[] = [];
   const out: (string | number | null)[][] = [];
   let failed = 0;
+  let used: GraderResult | null = null;              // the model that actually graded (for RFM: the chosen head)
   for (const [i, f] of files.entries()) {
     const ref = labels.get(stem(f))!;
-    const g = await gradeImage(readFileSync(path.join(o.folder, f)), f, /\.png$/i.test(f) ? "image/png" : "image/jpeg");
+    const g = await gradeImage(readFileSync(path.join(o.folder, f)), f, /\.png$/i.test(f) ? "image/png" : "image/jpeg", target, query);
     if (g.kind !== "ok") { failed++; out.push([f, ref, g.kind, null, null, null, null, null, null, null]); continue; }
     const r = g.result;
+    used ??= r;
     rows.push({ cluster: f, ref, pred: r.grade, probs: r.probs });
-    out.push([f, ref, "ok", r.grade, ...r.probs.map((p) => p.toFixed(6)), (r.probs[2] + r.probs[3] + r.probs[4]).toFixed(6)]);
+    out.push([f, ref, "ok", r.grade, ...r.probs.map((p) => String(p)), String(r.probs[2] + r.probs[3] + r.probs[4])]);
     if ((i + 1) % 10 === 0 || i + 1 === files.length) console.log(`  ${i + 1}/${files.length} graded`);
   }
   const e = evaluate(rows);
@@ -53,12 +58,12 @@ export async function evaluateExternal(o: ExternalOptions) {
   mkdirSync(dir, { recursive: true });
   const base = path.join(dir, `${name.replace(/[^\w.-]+/g, "_")}-${stamp}`);
   writeFileSync(`${base}.md`, reportMarkdown({
-    title: `Retina AI on the public dataset "${name}"`,
+    title: `Retina AI on the public dataset "${name}"`, byImage: true,
     dataset: [`${files.length} images from ${path.resolve(o.folder)}; labels ${path.resolve(o.labels)} (columns "${cols.image}", "${cols.grade}").`,
               "Public dataset, not Sampada patients: shows how the model does on another camera and population, not on the Remidio FOP.",
               ...(failed ? [`${failed} image(s) the grader could not read are left out.`] : []),
               "Each image is resampled on its own (which images share a patient is not known), so intervals may be too narrow."],
-    model: [`${health.modelRepo ?? "unknown"}, commit ${health.modelCommit ?? "unknown"}, weights SHA-256 ${health.modelSha256 ?? "unknown"}`,
+    model: [`${used?.modelRepo || health.modelRepo || "unknown"}, commit ${used?.modelCommit || health.modelCommit || "unknown"}, model SHA-256 ${used?.modelSha256 || health.modelSha256 || "unknown"}`,
             `grader ${health.version ?? "unknown"}, output ${health.calibration ?? "unknown"}`],
     reproducibility: [`Run ${new Date().toISOString()} with node dist/cli.js retina-eval-external.`],
   }, e));

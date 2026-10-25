@@ -4,13 +4,16 @@
 //   node dist/cli.js create-user <username> "<Full name>" <role>
 //   node dist/cli.js retina-batch [<folder>] [--graded-by <username>] [--dry-run] [--no-move]   -> grade a folder (D-040)
 //   node dist/cli.js retina-remidio-import [<folder>] [--dry-run] [--all]   -> keep photographs downloaded from Remidio Connect (D-041)
-//   node dist/cli.js retina-eval-external <folder> --labels <csv> [--name <name>] [--out <folder>]   -> benchmark on a public dataset (D-043)
+//   node dist/cli.js retina-eval-external <folder> --labels <csv> [--name <name>] [--out <folder>] [--grader arko|rfm] [--head aptos|messidor|idrid]
+//                                                                                -> benchmark on a public dataset (D-043, D-044)
 import { pool, withTx } from "./db.js";
 import { hashPassword, temporaryPassword } from "./lib/passwords.js";
 import { ROLES } from "./lib/permissions.js";
 import { runBatch } from "./services/retinaImport.js";
 import { importDownloads } from "./services/remidioImport.js";
 import { evaluateExternal } from "./services/evalExternal.js";
+import { compareRuns } from "./services/evalCompare.js";
+import { screeningReport } from "./services/evalScreening.js";
 
 const GRADER_DIR = "D:\\classification\\sampada-retinal-ai";
 const flag = (name: string) => args.includes(name);
@@ -62,7 +65,31 @@ async function main() {
     case "retina-eval-external": {
       const labels = option("--labels");
       if (!args[0] || args[0].startsWith("--") || !labels) throw new Error("usage: retina-eval-external <image folder> --labels <labels.csv> [--name <name>] [--out <folder>]");
-      await evaluateExternal({ folder: args[0], labels, name: option("--name"), out: option("--out") });
+      await evaluateExternal({ folder: args[0], labels, name: option("--name"), out: option("--out"), grader: option("--grader"), head: option("--head") });
+      return;
+    }
+    case "retina-eval-compare": {
+      const runs = args.flatMap((a, i) => (a === "--run" && args[i + 1] ? [args[i + 1]] : [])).map((r) => {
+        const at = r.indexOf("=");
+        if (at < 1) throw new Error(`--run needs Name=file.csv, got "${r}"`);
+        return { name: r.slice(0, at), csv: r.slice(at + 1) };
+      });
+      const labels = option("--labels");
+      if (!labels) throw new Error("usage: retina-eval-compare --labels <csv> --run Name=file.csv --run Name=file.csv [--name <name>] [--out <folder>]");
+      compareRuns({ labels, runs, name: option("--name"), out: option("--out") });
+      return;
+    }
+    case "retina-eval-screening": {
+      const runs = args.flatMap((a, i) => (a === "--run" && args[i + 1] ? [args[i + 1]] : [])).map((r) => {
+        const at = r.indexOf("=");
+        if (at < 1) throw new Error(`--run needs Name=file.csv, got "${r}"`);
+        return { name: r.slice(0, at), csv: r.slice(at + 1) };
+      });
+      const validation = option("--validation"), test = option("--test");
+      if (!validation || !test || !runs.length) throw new Error("usage: retina-eval-screening --validation <csv> --test <csv> --run Name=file.csv ... [--refer-sensitivity 0.95] [--clear-sensitivity 0.99]");
+      screeningReport({ validation, test, runs, name: option("--name"), out: option("--out"),
+                        referSens: option("--refer-sensitivity") ? Number(option("--refer-sensitivity")) : undefined,
+                        clearSens: option("--clear-sensitivity") ? Number(option("--clear-sensitivity")) : undefined });
       return;
     }
     default:
