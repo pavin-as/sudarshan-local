@@ -230,8 +230,9 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       restricted `D:\Sudarshan\data\oct\`, config with temp and logs there. shichika's **Hardware ID is `410689457`**
       (US tier).
 - [ ] Topcon Maestro2. Pavin:
-  - ask Topcon, at the OCTA licence visit, for an export tool Research key for Hardware ID `410689457`, and the plan's
-    section 7 questions;
+  - ask Topcon, at the OCTA licence visit, the plan's section 7 questions;
+  - optional: ask for an export tool Research key for Hardware ID `410689457`. It is not needed to use the tool; it only
+    adds 5 more layers and OCTA vessel density;
   - confirm that the tool zip came from Topcon;
   - give the read-only share path on the ImageNet PC.
 
