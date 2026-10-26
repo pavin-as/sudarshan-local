@@ -160,6 +160,49 @@ to shichika, and leave nothing behind on 152.
 **Gate 1:** for each study type, real images open in a viewer that is not Topcon's, and the list of what was and was not
 exported is written down.
 
+**Step 1 results, 26 Oct (two of today's real exams, approved by Pavin; copies in `incoming\exam01`, `incoming\exam03`):**
+- **Copies:** SHA-256 checked against the originals, and still unchanged after the export. The exam label to IMAGEnet
+  number map is kept only in `work\exam_map.txt`.
+- **Export:**
+  - `-allDcm` took 3 s for the radial exam and 15 s for the OCTA exam.
+  - Every object reports "created successfully", but **the tool's exit code is -1 even on success**. Judge a run by its
+    output, not its exit code.
+  - The `.fds` was beside the `.fda`; an export without it was not tried.
+- **Compression:** the output is **JPEG 2000**: lossless for the B-scans, flow volume and slabs, standard for the
+  photographs. It is not JPEG baseline as the manual says. Decoding needs OpenJPEG: pydicom + pylibjpeg-openjpeg in
+  `D:\Sudarshan\tools\oct-venv`. Pillow alone fails on the B-scans.
+- **Patient ID** is the SPD number (format `SPD99999`) in every object, so exports can be linked to Yarago.
+- **Identifiers** (name, birth date, sex, study date and time, device serial) are in every object. De-identification must
+  remove them. The en face slabs' `ImageComments` holds only the slab definition.
+- **What came out:**
+
+| Exam | Protocol | Objects (all decode) |
+|---|---|---|
+| exam01 | `Radial/Macula/1024/12/6mm` | OPT 12 B-scans 1024×885 (5.86 × 2.6 µm); OP colour 2576×1958 (6.87 µm); OP infrared 640×480; height-map SEG (6 surfaces × 12 B-scans); FDA stub |
+| exam03 | `3D H/Macula/320/320/6x6mm/Angio` | OPT 320 B-scans 320×885 (18.75 × 2.6 µm, 18.75 µm apart); OPTBSV flow volume 320×885×320; binary flow SEG; 4 en face slabs 320×320 (18.75 µm); OP colour and infrared; height-map SEG (6 surfaces); FDA stub |
+
+- **Slabs (exam03):**
+  - Superficial: ILM+0 to IPL/INL+15.6;
+  - Deep: IPL/INL+15.6 to +70.2;
+  - Outer Retina: IPL/INL+70.2 to BM;
+  - Choriocapillaris: BM+0 to +20.8.
+
+  OCTA exports work before the OCTA licence is set.
+- **Layer surfaces at the US tier:** ILM, RNFL/GCL, IPL/INL, **IS/OS**, OS/RPE, BM. That is 6, one more than the manual's US
+  list.
+- **Numeric checks (exam03):**
+  - the surfaces lie in order from top to bottom;
+  - the brightest depth rows (357-361) sit at OS/RPE-BM;
+  - the retina between ILM and BM is brighter than outside it;
+  - the ILM is deeper at the centre (a foveal pit), so the B-scans are not flipped and the scan is centred.
+- **Scan position:** every B-scan has an `OphthalmicFrameLocationSequence`. Frame 1 is a line on the colour photograph
+  897 px long, which is 6.16 mm at 6.87 µm per pixel, matching the 6 mm scan. So scan lines can be drawn on the fundus
+  photograph.
+- **Still to do for Gate 1:**
+  - Pavin compares the previews in `D:\Sudarshan\data\oct\work\renders\` with the same exams in IMAGEnet. Claude does not
+    view patient images (COMPLIANCE).
+  - Optionally, one plain (non-angio) 3D Macula exam. exam03 already contains a structural 3D volume.
+
 ### Step 2 - Check the exported data
 For each study:
 - modality, SOP class and series layout;

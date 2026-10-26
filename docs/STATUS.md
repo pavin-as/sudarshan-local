@@ -240,6 +240,11 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
 - [x] Read-only share from shichika to OCT_PC works (26 Oct): `\\192.168.0.152\SudarshanOCT$` = `D:\IMAGEnet6`. Live exams
       are in `Data` (numbered `.fda` + `.fds`). A Kaspersky rule lets only 192.168.0.49 reach port 445. `sudarshan_ro` is
       refused on the other shares.
+- [x] Topcon Step 1 export (26 Oct; OCT_PLAN Step 1 results). Two of today's exams, a Radial Macula and a 6×6 OCTA, were
+      copied, checksummed and exported with `-allDcm`. Every object decodes (JPEG 2000, needs OpenJPEG). The patient ID is
+      the SPD number. Geometry, layer order and scan position check out numerically.
+- [ ] Pavin: compare the previews in `D:\Sudarshan\data\oct\work\renders\` with the same exams in IMAGEnet; then Gate 1
+      passes.
 - [ ] ImageNet PC (OCT_PC, 26 Oct; OCT_PLAN section 2). Three shares give Everyone Full: `D` (all of D:\), `IMAGEnet6` and
       `Users` (C:\Users). NTFS gives Authenticated Users Modify on the OCT stores. Kaspersky blocks file sharing from the
       LAN, so the shares are limited for now; SQL Server 1433 and Remote Desktop 3389 are open to the LAN. Pavin:

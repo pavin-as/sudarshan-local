@@ -5,6 +5,11 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **First Topcon exports checked** (D-047, Step 1). shichika reads OCT_PC through a read-only share, and two of today's exams
+  exported to DICOM. The fundus photograph, B-scans, OCTA flow, en face slabs and Topcon's layer surfaces all open. The
+  patient ID is the SPD number. Nothing reaches Sudarshan's screens yet.
+  - New `scripts\oct_inspect.py` reports technical facts only: identifiers as present or empty, the patient ID as a format.
+  - It runs in `D:\Sudarshan\tools\oct-venv` (pydicom 3.0.1, pylibjpeg-openjpeg 2.4.0, Pillow, numpy).
 - **Topcon export tool set up on shichika** (D-047, Step 0). The .NET 10 Desktop Runtime 10.0.13 is installed. Topcon's DICOM
   OCT Export Tool 3.0.0.39 is in `D:\Sudarshan\tools\topcon\`. Its temp files and logs go to the admin-only
   `D:\Sudarshan\data\oct\work\`. shichika's Hardware ID for Topcon's licence is `410689457` (US tier now). No patient
