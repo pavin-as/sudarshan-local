@@ -36,7 +36,7 @@ if ((Read-Host 'Share this folder READ ONLY to shichika? Type YES') -cne 'YES') 
 if (-not (Get-LocalUser -Name $Account -ErrorAction SilentlyContinue)) {
   $pw = Read-Host "Choose a password for $Account (you type it again once on shichika)" -AsSecureString
   New-LocalUser -Name $Account -Password $pw -PasswordNeverExpires -UserMayNotChangePassword -AccountNeverExpires `
-    -Description 'Sudarshan on shichika: read-only copies of OCT files (D-047)' | Out-Null
+    -Description 'Sudarshan read-only OCT copies (D-047)' | Out-Null   # Windows allows 48 characters
   "Account $env:COMPUTERNAME\$Account made (not an administrator)."
 } else { "Account $Account already exists: kept as it is." }
 
