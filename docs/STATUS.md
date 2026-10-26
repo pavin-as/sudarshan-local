@@ -245,6 +245,16 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       the SPD number. Geometry, layer order and scan position check out numerically.
 - [ ] Pavin: compare the previews in `D:\Sudarshan\data\oct\work\renders\` with the same exams in IMAGEnet; then Gate 1
       passes.
+- [x] Maestro2 photographs into Sudarshan built (26 Oct, D-048, migration 0024). The import from the ImageNet share has an
+      off / peek / on switch and links by SPD number. The photographs appear on Fundus reports and Retina AI, graded
+      silently, with evaluation sets per camera. 12 checks pass on the new Docker test database; browser checked; one
+      real peek worked. **Not deployed.**
+- [ ] Pavin: deploy D-048 outside clinic hours: `update.ps1`, then `scripts\setup-topcon.ps1`, then Peek, then On (RUNBOOK 13).
+- [x] Isolated test database on shichika (26 Oct, `scripts\testdb.ps1`). First run of the existing database tests:
+  - Retina AI 16, Fundus reports 10 and Remidio 13 pass. For Remidio, two out-of-date checks were fixed: the photograph
+    is open to every clinical role (D-042), and peek words the eye in plain English.
+  - **Still failing, never run before: the API test** ("appointment story lists every step") **and the WhatsApp/payments
+    test** ("activity log sentence for a refund").
 - [ ] ImageNet PC (OCT_PC, 26 Oct; OCT_PLAN section 2). Three shares give Everyone Full: `D` (all of D:\), `IMAGEnet6` and
       `Users` (C:\Users). NTFS gives Authenticated Users Modify on the OCT stores. Kaspersky blocks file sharing from the
       LAN, so the shares are limited for now; SQL Server 1433 and Remote Desktop 3389 are open to the LAN. Pavin:

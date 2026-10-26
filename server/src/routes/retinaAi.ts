@@ -15,6 +15,7 @@ import { badRequest, notFound } from "../lib/errors.js";
 import { dateStr } from "../lib/time.js";
 import { remidioReady } from "../services/remidio.js";
 import { lastPoll, pollQueue, receiverMode } from "../services/remidioReceiver.js";
+import { forgetSettledNames, lastRun, pollTopcon, topconMode, topconReady, topconSince } from "../services/topconImport.js";
 import { GRADES, IMAGE_TYPES, MAX_IMAGE_MB, agreement, gradeImage, graderHealth, graderTargets } from "../services/retinaAi.js";
 import { activeGraders, screeningCutoffs, screeningFor, type Screened } from "../services/screening.js";
 
@@ -229,14 +230,16 @@ export async function retinaAiRoutes(app: FastifyInstance) {
   app.get("/api/retina-ai/photos", async (req) => {
     need(req, "clinical.read");
     const f = z.object({ patientId: z.coerce.number().int().positive().optional(), q: z.string().trim().max(60).optional(),
-                         unmatched: z.enum(["true", "false"]).optional() }).parse(req.query);
+                         unmatched: z.enum(["true", "false"]).optional(), source: z.enum(["remidio", "topcon"]).optional() }).parse(req.query);
     const params: unknown[] = []; const where: string[] = [];
     if (f.patientId) { params.push(f.patientId); where.push(`f.patient_id = $${params.length}`); }
+    if (f.source) { params.push(f.source); where.push(`f.source = $${params.length}`); }
     if (f.unmatched === "true") where.push("f.patient_id IS NULL");
     if (f.q) { params.push(f.q); where.push(`(coalesce(p.mrd, f.mrn) ILIKE $${params.length} || '%' OR p.name ILIKE '%' || $${params.length} || '%')`); }
     const photos = await q(
       `SELECT f.id, f.captured_at AS "capturedAt", f.received_at AS "receivedAt", f.patient_id AS "patientId", p.mrd, p.name AS "patientName",
               f.mrn, f.sex_check AS "sexCheck", f.eye, f.field, f.quality, f.width, f.height, f.thumb_path IS NOT NULL AS "hasThumb",
+              f.source, f.device, f.protocol,
               (SELECT count(*)::int FROM app.dr_gradings g WHERE g.photo_id = f.id) AS "gradings"
          FROM app.fundus_photos f LEFT JOIN clinical.patient p ON p.patient_id = f.patient_id
          ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY f.captured_at DESC NULLS LAST, f.id DESC LIMIT 300`, params);
@@ -247,10 +250,11 @@ export async function retinaAiRoutes(app: FastifyInstance) {
   app.get("/api/retina-ai/remidio", async (req) => {
     need(req, "retina_ai.use");
     const [counts, recent] = await Promise.all([
-      one(`SELECT (SELECT count(*)::int FROM app.fundus_photos) AS photos,
-                  (SELECT count(*)::int FROM app.fundus_photos WHERE patient_id IS NULL) AS unmatched,
-                  (SELECT count(*)::int FROM app.fundus_photos f WHERE NOT EXISTS (SELECT 1 FROM app.dr_gradings g WHERE g.photo_id = f.id)) AS "toGrade",
-                  (SELECT max(received_at) FROM app.fundus_photos) AS "lastPhotoAt"`),
+      one(`SELECT (SELECT count(*)::int FROM app.fundus_photos WHERE source = 'remidio') AS photos,
+                  (SELECT count(*)::int FROM app.fundus_photos WHERE source = 'remidio' AND patient_id IS NULL) AS unmatched,
+                  (SELECT count(*)::int FROM app.fundus_photos f WHERE source = 'remidio'
+                      AND NOT EXISTS (SELECT 1 FROM app.dr_gradings g WHERE g.photo_id = f.id)) AS "toGrade",
+                  (SELECT max(received_at) FROM app.fundus_photos WHERE source = 'remidio') AS "lastPhotoAt"`),
       q(`SELECT at, item_type AS "itemType", outcome, message, payload FROM app.remidio_queue_log ORDER BY id DESC LIMIT 15`),
     ]);
     const unmatched = (await one<{ value: string }>(`SELECT value FROM app.settings WHERE key = 'retina.remidio_unmatched'`))?.value ?? "keep";
@@ -278,6 +282,47 @@ export async function retinaAiRoutes(app: FastifyInstance) {
   app.post("/api/retina-ai/remidio/check-now", async (req) => {
     need(req, "retina_ai.use"); need(req, "settings.manage");
     return { result: await pollQueue(req.log), lastPoll };
+  });
+
+  // ---------- fundus photographs from the Topcon Maestro2 (D-048) ----------
+  // The import: switch, start point, what it did last, counts and the latest log rows (shapes only, no patient details).
+  app.get("/api/retina-ai/topcon", async (req) => {
+    need(req, "retina_ai.use");
+    const [counts, recent, unmatched] = await Promise.all([
+      one(`SELECT count(*)::int AS photos, count(*) FILTER (WHERE patient_id IS NULL)::int AS unmatched,
+                  count(*) FILTER (WHERE NOT EXISTS (SELECT 1 FROM app.dr_gradings g WHERE g.photo_id = f.id))::int AS "toGrade",
+                  max(received_at) AS "lastPhotoAt" FROM app.fundus_photos f WHERE source = 'topcon'`),
+      q(`SELECT at, file_name AS "fileName", outcome, message, meta FROM app.topcon_import_log ORDER BY id DESC LIMIT 15`),
+      one<{ value: string }>(`SELECT value FROM app.settings WHERE key = 'retina.topcon_unmatched'`),
+    ]);
+    return { mode: await topconMode(), since: await topconSince(), unmatched: unmatched?.value ?? "keep", ...topconReady(),
+             share: config.topcon.share, lastRun, counts, recent };
+  });
+
+  app.put("/api/retina-ai/topcon", async (req) => {
+    need(req, "retina_ai.use"); need(req, "settings.manage");
+    const b = z.object({ mode: z.enum(["off", "peek", "on"]).optional(), unmatched: z.enum(["keep", "skip"]).optional(),
+                         since: z.string().datetime({ offset: true }).optional() }).parse(req.body);
+    if (!b.mode && !b.unmatched && !b.since) throw badRequest("Nothing to change");
+    if (b.since && Date.parse(b.since) > Date.now()) throw badRequest("The start point cannot be in the future");
+    // first switched on without a start point: only exams saved from now on (IMAGEnet holds years of exams)
+    const since = b.since ?? (b.mode && b.mode !== "off" && !(await topconSince()) ? new Date().toISOString() : undefined);
+    const words = [b.mode && `import ${b.mode}`, b.unmatched && `photographs without a Yarago SPD number: ${b.unmatched}`,
+                   since && `exams saved from ${new Date(since).toLocaleString("en-IN", { timeZone: config.timezone })} on`].filter(Boolean).join("; ");
+    await withTx(auditCtx(req, `Topcon Maestro2 photo import: ${words}`), async (c) => {
+      const put = (key: string, v: string) => c.query(`INSERT INTO app.settings (key, value) VALUES ($1, to_jsonb($2::text))
+                                                       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`, [key, v]);
+      if (b.mode) await put("retina.topcon_mode", b.mode);
+      if (b.unmatched) await put("retina.topcon_unmatched", b.unmatched);
+      if (since) await put("retina.topcon_since", new Date(since).toISOString());
+    });
+    if (since) forgetSettledNames();                  // exams skipped as too old may now be in range
+    return { ok: true };
+  });
+
+  app.post("/api/retina-ai/topcon/check-now", async (req) => {
+    need(req, "retina_ai.use"); need(req, "settings.manage");
+    return { result: await pollTopcon(req.log), lastRun };
   });
 
   // How often the AI grade matches doctors' grades. Blinded grades only unless asked otherwise.

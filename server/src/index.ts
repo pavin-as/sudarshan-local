@@ -5,6 +5,7 @@ import { startSummaryJob } from "./services/overview.js";
 import { startOutreachJobs } from "./services/payments.js";
 import { outboxStarted } from "./routes/whatsapp.js";
 import { startRemidioJobs } from "./services/remidioReceiver.js";
+import { startTopconJobs } from "./services/topconImport.js";
 
 const app = await buildApp();
 try {
@@ -20,12 +21,14 @@ const outreachTimers = startOutreachJobs(app.log);
 outboxStarted();
 // Remidio photo receiver and grading of new photographs (D-041); does nothing while retina.remidio_mode is "off"
 const remidioTimers = startRemidioJobs(app.log);
+// Topcon Maestro2 photographs from the ImageNet PC (D-048); does nothing while retina.topcon_mode is "off"
+const topconTimers = startTopconJobs(app.log);
 
 for (const sig of ["SIGINT", "SIGTERM"] as const) {
   process.on(sig, async () => {
     app.log.info(`${sig} received, shutting down`);
     clearInterval(summaryTimer);
-    for (const t of [...outreachTimers, ...remidioTimers]) clearInterval(t);
+    for (const t of [...outreachTimers, ...remidioTimers, ...topconTimers]) clearInterval(t);
     await app.close();
     await pool.end();
     process.exit(0);

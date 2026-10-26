@@ -516,6 +516,34 @@ shichika.**
   no OCTA vessel density. Maestro2 has no FAZ figures from Topcon at all.
 - **Pi NAS (192.168.0.107):** optional, and for de-identified sets only.
 
+### D-048 · 2026-10-26 · Accepted · Pavin ("build Step 3: bring Maestro2 fundus photographs into Sudarshan's Fundus reports and Retina AI, with the off / peek / on switch, matched by SPD number. Test it on the test database first"); Claude chose the design
+**Every new Maestro2 exam's colour fundus photograph comes into Sudarshan by itself, like a Remidio photograph (D-041):**
+it is kept on shichika, linked by SPD number, reported by doctors (D-042) and graded silently (D-046).
+- **How:** every minute the server reads IMAGEnet's exam folder through the read-only share (`\\192.168.0.152\SudarshanOCT$\Data`):
+  1. copies a new exam (`<number>.fda` + `.fds`) to an administrators-only work folder;
+  2. converts the copy with Topcon's tool (`-dcm`);
+  3. turns the colour OP photograph into a JPEG with `scripts\topcon_photo.py` (pydicom + OpenJPEG);
+  4. keeps the JPEG, a thumbnail and the OP `.dcm` in `RETINA_PHOTO_DIR`, then empties the work folder.
+
+  The infrared photograph and the OCT/OCTA objects are not kept (Step 4 of OCT_PLAN decides their storage). ImageNet is
+  never written to.
+- **Which exams:** only those saved from `retina.topcon_since` on. When the import is first switched on, the start point is
+  set to that moment (IMAGEnet holds years of exams); an admin can move it earlier. An exam is taken once it has not
+  changed for 2 minutes. An exam that fails 5 times is logged and left in IMAGEnet.
+- **Patients:** the DICOM patient ID is the SPD number (OCT_PLAN Step 1). It is linked like Remidio's MRN, and the DICOM sex
+  is checked against Yarago's. Other IDs are kept unlinked or skipped (`retina.topcon_unmatched`).
+- **Switch:** `retina.topcon_mode` off / peek / on, for admins only (Retina AI > System). Peek converts the next exam and
+  shows its shape only.
+- **Sessions:** a patient's Maestro2 photographs of one day are one fundus report session (session 0 of the day; Remidio
+  sessions keep their exam id).
+- **Measured apart:** Maestro2 is another camera. Evaluation sets have a camera (Remidio by default, so older sets keep
+  their meaning). Cut-offs chosen on one camera's validation set are refused for the other's. D-044's replacement rule
+  applies to each camera on its own photographs.
+- **The share password** is in `.env` (`scripts\setup-topcon.ps1`): the server runs as SYSTEM, which cannot use a cmdkey
+  credential saved in Pavin's sign-in.
+- **Testing:** tested on the isolated Docker test database (D-048 adds it to CLAUDE.md). It was also checked once in peek
+  mode with the real share, tool and converter on a real exam: nothing was kept and the log line was removed.
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

@@ -11,7 +11,9 @@ import { PatientPicker, type PickedPatient } from "../components/PatientPicker";
 
 const GRADES = ["No DR", "Mild NPDR", "Moderate NPDR", "Severe NPDR", "Proliferative DR"];
 const EYE: Record<string, string> = { RE: "Right eye", LE: "Left eye" };
-const SOURCE: Record<string, string> = { upload: "Uploaded", batch: "Folder import", remidio: "Remidio FOP" };
+const SOURCE: Record<string, string> = { upload: "Uploaded", batch: "Folder import", remidio: "Remidio FOP", topcon: "Topcon Maestro2" };
+/** Which camera a kept photograph came from (D-041 Remidio, D-048 Maestro2). */
+export const CAMERA: Record<string, string> = { remidio: "Remidio FOP", topcon: "Topcon Maestro2" };
 const MAX_MB = 40;
 
 interface Grading {
@@ -28,6 +30,7 @@ export interface Photo {
   id: number; capturedAt: string | null; receivedAt: string; patientId: number | null; mrd: string | null; patientName: string | null;
   mrn: string | null; sexCheck: "same" | "different" | null; eye: "RE" | "LE" | null; field: string | null; quality: string | null;
   width: number | null; height: number | null; hasThumb: boolean; gradings: number;
+  source: "remidio" | "topcon"; device: string | null; protocol: string | null;
 }
 // the models measured so far (docs/AI_EVALUATION.md), by the start of their model SHA-256
 const MODELS: Record<string, string> = { cd4b10c3: "Arko007 (unreliable)", f1a558fc: "RFM, APTOS head", b23dcc9b: "RFM, Messidor-2 head" };
@@ -43,25 +46,25 @@ function ScreeningTag({ s }: { s: Screened | null | undefined }) {
 }
 const FIELD: Record<string, string> = { MACULA: "macula", DISC: "disc", OTHER: "other field" };
 
-/** A Remidio photograph kept on shichika (D-041). */
+/** A fundus photograph kept on shichika (Remidio D-041, Maestro2 D-048). */
 export function PhotoThumb({ id, onOpen, size = 72 }: { id: number; onOpen?: () => void; size?: number }) {
   const img = <img src={`/api/retina-ai/photos/${id}/image?size=thumb`} alt="Fundus photograph" loading="lazy"
                    style={{ width: size, height: size, objectFit: "cover", borderRadius: 4, border: "1px solid var(--line)", display: "block", background: "#000" }} />;
   return onOpen ? <button type="button" className="btn-quiet" style={{ padding: 0 }} onClick={(e) => { e.stopPropagation(); onOpen(); }} aria-label="Open the photograph">{img}</button> : img;
 }
 
-export function PhotoViewer({ photo, onClose }: { photo: { id: number; label?: string }; onClose: () => void }) {
+export function PhotoViewer({ photo, onClose }: { photo: { id: number; label?: string; source?: string | null }; onClose: () => void }) {
   return (
     <Drawer wide title="Fundus photograph" sub={photo.label} onClose={onClose}>
       <img src={`/api/retina-ai/photos/${photo.id}/image`} alt="Fundus photograph, full size"
            style={{ width: "100%", maxHeight: "80vh", objectFit: "contain", background: "#000", borderRadius: 8 }} />
-      <div className="muted small">From the Remidio FOP, kept on shichika. Open it in a new tab for full resolution:{" "}
+      <div className="muted small">{photo.source ? `From the ${CAMERA[photo.source] ?? photo.source}, kept` : "Kept"} on shichika. Open it in a new tab for full resolution:{" "}
         <a href={`/api/retina-ai/photos/${photo.id}/image`} target="_blank" rel="noreferrer">full size</a>.</div>
     </Drawer>
   );
 }
-const photoLabel = (p: { patientName?: string | null; mrd?: string | null; mrn?: string | null; eye?: string | null; capturedAt?: string | null; quality?: string | null; field?: string | null }) =>
-  [p.patientName ?? (p.mrn ? `MRN ${p.mrn} (not in Yarago)` : null), p.mrd, p.eye && EYE[p.eye], p.field && FIELD[p.field],
+const photoLabel = (p: { patientName?: string | null; mrd?: string | null; mrn?: string | null; eye?: string | null; capturedAt?: string | null; quality?: string | null; field?: string | null; source?: string | null; protocol?: string | null }) =>
+  [p.patientName ?? (p.mrn ? `MRN ${p.mrn} (not in Yarago)` : null), p.mrd, p.eye && EYE[p.eye], p.field && FIELD[p.field], p.source && CAMERA[p.source], p.protocol,
    p.quality && (p.quality === "SUFFICIENT" ? "quality sufficient" : "quality INSUFFICIENT"), p.capturedAt && stamp(p.capturedAt)].filter(Boolean).join(" · ");
 interface DoctorGrade { grade: number | null; ungradable: boolean; note: string; blinded: boolean; at: string; by: string; mine: boolean }
 
@@ -82,7 +85,7 @@ function ResearchBanner() {
       <div style={{ marginTop: "0.35rem" }}><b>The current model (Arko007) is unreliable:</b> on 3,662 public test images (APTOS, 25 Oct 2026) it
         missed 3 in 10 eyes needing referral, called 1 in 4 proliferative DR eyes "No DR", and flagged 1 in 3 normal eyes. It is kept only
         for research and comparison; never use it for patient advice or screening decisions.</div>
-      <div style={{ marginTop: "0.35rem" }}><b>RFM grades Remidio photographs silently</b> (two heads, D-046), with a research screening outcome
+      <div style={{ marginTop: "0.35rem" }}><b>RFM grades Remidio and Maestro2 photographs silently</b> (two heads, D-046), with a research screening outcome
         (Refer / Uncertain / Routine) from cut-offs chosen on public data. It is not validated on Sampada photographs: the outcome
         never clears a patient (macular oedema, symptoms and image quality need the doctor) and is only compared with the doctor's report.</div>
     </div>
@@ -295,8 +298,9 @@ function PhotosTab() {
   const [text, setText] = useState("");
   const [search, setSearch] = useState("");
   const [unmatched, setUnmatched] = useState(false);
+  const [camera, setCamera] = useState("");
   const [view, setView] = useState<Photo | null>(null);
-  const qs = new URLSearchParams(Object.entries({ q: search, unmatched: unmatched ? "true" : "" }).filter(([, v]) => v)).toString();
+  const qs = new URLSearchParams(Object.entries({ q: search, unmatched: unmatched ? "true" : "", source: camera }).filter(([, v]) => v)).toString();
   const q = useQuery({ queryKey: ["retina", "photos", qs], refetchInterval: 60_000, queryFn: () => api<{ photos: Photo[] }>(`/retina-ai/photos${qs ? `?${qs}` : ""}`) });
   return (
     <section className="panel">
@@ -304,10 +308,12 @@ function PhotosTab() {
         <input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder="MRD or name" aria-label="MRD or name" />
         <button type="submit">Search</button>
         <label className="row small"><input type="checkbox" checked={unmatched} onChange={(e) => setUnmatched(e.target.checked)} /> Only MRNs not found in Yarago</label>
-        <span className="grow" /><span className="muted small">From the Remidio FOP, newest first, up to 300</span>
+        <select value={camera} onChange={(e) => setCamera(e.target.value)} aria-label="Camera">
+          <option value="">Both cameras</option><option value="remidio">Remidio FOP</option><option value="topcon">Topcon Maestro2</option></select>
+        <span className="grow" /><span className="muted small">Newest first, up to 300</span>
       </form>
       {q.error ? <div className="panel-pad"><ErrorNotice error={q.error} /></div> : !q.data ? <Loading /> : !q.data.photos.length
-        ? <div className="empty">No photographs yet. They arrive from Remidio once the receiver is on (System tab).</div>
+        ? <div className="empty">No photographs yet. They arrive from Remidio and the Maestro2 once their import is on (System tab).</div>
         : <div className="panel-pad" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: "0.8rem" }}>
             {q.data.photos.map((p) => (
               <div key={p.id} className="stack" style={{ gap: "0.25rem" }}>
@@ -315,6 +321,7 @@ function PhotosTab() {
                 <div className="small"><b>{p.patientId ? <Link to={`/patients/${p.patientId}`}>{p.patientName ?? p.mrd}</Link> : <>MRN {p.mrn ?? "—"}</>}</b>{p.patientId && <span className="muted"> {p.mrd}</span>}</div>
                 <div className="small muted">{[p.eye && EYE[p.eye], p.field && FIELD[p.field], p.capturedAt && stamp(p.capturedAt)].filter(Boolean).join(" · ")}</div>
                 <div className="small">
+                  <span className="tag" title={p.protocol ?? undefined}>{CAMERA[p.source] ?? p.source}</span>
                   {p.quality === "INSUFFICIENT" && <span className="tag alert">Quality insufficient</span>}
                   {!p.patientId && <span className="tag alert">Not in Yarago</span>}
                   {p.sexCheck === "different" && <span className="tag alert">Sex differs from Yarago</span>}
@@ -322,7 +329,7 @@ function PhotosTab() {
                 </div>
               </div>))}
           </div>}
-      {view && <PhotoViewer photo={{ id: view.id, label: photoLabel(view) }} onClose={() => setView(null)} />}
+      {view && <PhotoViewer photo={{ id: view.id, label: photoLabel(view), source: view.source }} onClose={() => setView(null)} />}
     </section>
   );
 }
@@ -530,15 +537,16 @@ function NewEvalSet({ onDone }: { onDone: (id: number | null) => void }) {
   const [excludePoor, setPoor] = useState(false);
   const [maculaOnly, setMacula] = useState(false);
   const [purpose, setPurpose] = useState<Purpose>("other");
+  const [camera, setCamera] = useState<"remidio" | "topcon">("remidio");
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
-  const qs = new URLSearchParams(Object.entries({ from, to, blindedOnly: String(blindedOnly), excludePoor: String(excludePoor), maculaOnly: String(maculaOnly), purpose }).filter(([, v]) => v)).toString();
+  const qs = new URLSearchParams(Object.entries({ from, to, blindedOnly: String(blindedOnly), excludePoor: String(excludePoor), maculaOnly: String(maculaOnly), purpose, camera }).filter(([, v]) => v)).toString();
   const preview = useQuery({ queryKey: ["retina", "eval", "candidates", qs], queryFn: () => api<any>(`/retina-ai/eval/candidates?${qs}`) });
   const p = preview.data;
   const make = async () => {
     setBusy(true); setError(null);
     try {
-      const r = await api<{ id: number }>("/retina-ai/eval/sets", { body: { name, notes, from: from || undefined, to: to || undefined, blindedOnly, excludePoor, maculaOnly, purpose } });
+      const r = await api<{ id: number }>("/retina-ai/eval/sets", { body: { name, notes, from: from || undefined, to: to || undefined, blindedOnly, excludePoor, maculaOnly, purpose, camera } });
       toast(`Draft set "${name}" made`); await qc.invalidateQueries({ queryKey: ["retina", "eval"] }); onDone(r.id);
     } catch (e) { setError(e); } finally { setBusy(false); }
   };
@@ -550,6 +558,8 @@ function NewEvalSet({ onDone }: { onDone: (id: number | null) => void }) {
         <label className="field"><span>to</span><input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
         <label className="field"><span>Role</span><select value={purpose} onChange={(e) => setPurpose(e.target.value as Purpose)}>
           {(Object.keys(PURPOSE) as Purpose[]).map((k) => <option key={k} value={k}>{PURPOSE[k]}</option>)}</select></label>
+        <label className="field"><span>Camera</span><select value={camera} onChange={(e) => setCamera(e.target.value as "remidio" | "topcon")}>
+          <option value="remidio">Remidio FOP</option><option value="topcon">Topcon Maestro2</option></select></label>
         <label className="field wide"><span>Notes (optional)</span><input value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} /></label>
       </div>
       <label className="row small"><input type="checkbox" checked={blindedOnly} onChange={(e) => setBlinded(e.target.checked)} /> Only grades the doctor gave before seeing the AI grade (recommended)</label>
@@ -680,7 +690,7 @@ function SystemTab() {
   const { grader: g, counts: c, graders } = q.data;
   return (
     <section className="panel panel-pad stack">
-      <h3>Graders switched on (each Remidio photograph is graded by every one)</h3>
+      <h3>Graders switched on (each Remidio and Maestro2 photograph is graded by every one)</h3>
       <table className="list compact">
         <thead><tr><th>Grader</th><th>Model</th><th>State</th><th>Screening cut-offs</th></tr></thead>
         <tbody>{(graders ?? []).map((x: any) => (
@@ -706,6 +716,7 @@ function SystemTab() {
       </tbody></table>
       <div className="muted small">Folder import runs on the server console: see RUNBOOK, "Retina AI".</div>
       <RemidioPanel />
+      <TopconPanel />
     </section>
   );
 }
@@ -764,6 +775,72 @@ function RemidioPanel() {
           <tr key={i}><td className="nowrap small">{stamp(x.at)}</td><td className="small">{x.itemType ?? "—"}</td><td className="small"><b>{x.outcome}</b></td>
             <td className="small">{x.message}{x.fields && <div className="muted">{x.fields.join(", ")}</div>}</td></tr>))}</tbody></table>
       </>}
+    </div>
+  );
+}
+
+// ---------- photographs from the Topcon Maestro2 (D-048) ----------
+const TOPCON_MODE_WORDS: Record<string, string> = {
+  off: "Off: Sudarshan does not look at IMAGEnet's exams",
+  peek: "Peek: converts the next new exam and shows what it holds; keeps nothing",
+  on: "On: each new exam's colour fundus photograph is kept here (IMAGEnet is only read)",
+};
+function TopconPanel() {
+  const { can } = useAuth();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["retina", "topcon"], refetchInterval: 30_000, queryFn: () => api<any>("/retina-ai/topcon") });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const [since, setSince] = useState("");
+  if (q.error) return <ErrorNotice error={q.error} />;
+  if (!q.data) return <Loading />;
+  const r = q.data, admin = can("settings.manage");
+  const change = async (body: object, words: string) => {
+    setBusy(true); setError(null);
+    try { await api("/retina-ai/topcon", { method: "PUT", body }); toast(words); await qc.invalidateQueries({ queryKey: ["retina"] }); }
+    catch (e) { setError(e); } finally { setBusy(false); }
+  };
+  const checkNow = async () => {
+    setBusy(true); setError(null);
+    try { const x = await api<{ result: string }>("/retina-ai/topcon/check-now", { method: "POST" }); toast(`Maestro2: ${x.result}`); await qc.invalidateQueries({ queryKey: ["retina"] }); }
+    catch (e) { setError(e); } finally { setBusy(false); }
+  };
+  return (
+    <div className="stack" style={{ borderTop: "1px solid var(--line)", paddingTop: "0.8rem" }}>
+      <h2>Photographs from the Topcon Maestro2</h2>
+      {!r.ready && <div className="notice">Not set up yet: missing {r.missing.join(", ")}. An admin runs <code>scripts\setup-topcon.ps1</code> on shichika (RUNBOOK 13).</div>}
+      <div className="row">
+        <span className="grow"><b>{TOPCON_MODE_WORDS[r.mode]}</b></span>
+        {admin && <div className="seg" role="group" aria-label="Maestro2 import">
+          {(["off", "peek", "on"] as const).map((m) =>
+            <button key={m} aria-pressed={r.mode === m} disabled={busy || !r.ready} onClick={() => void change({ mode: m }, `Maestro2 import ${m}`)}>{m[0].toUpperCase() + m.slice(1)}</button>)}
+        </div>}
+        {admin && r.mode !== "off" && <button disabled={busy} onClick={() => void checkNow()}>Check now</button>}
+      </div>
+      <div className="small muted">Reads {r.share} (read only) every minute. Exams saved {r.since ? <>from <b>{stamp(r.since)}</b> on</> : "from the moment the import is first switched on"} are imported, each once it has not changed for 2 minutes; IMAGEnet keeps its own copy.</div>
+      {admin && <div className="row small">
+        <label className="row small">Import exams saved from <input type="datetime-local" value={since} onChange={(e) => setSince(e.target.value)} /></label>
+        <button disabled={busy || !since} onClick={() => void change({ since: new Date(since).toISOString() }, "Start point saved")}>Set</button>
+        <span className="muted">Earlier exams are converted a few a minute; IMAGEnet holds years of them.</span>
+      </div>}
+      {admin && <label className="row small">Photographs whose patient ID is not a Yarago SPD number:
+        <select value={r.unmatched} disabled={busy} onChange={(e) => void change({ unmatched: e.target.value }, "Saved")}>
+          <option value="keep">keep them, unlinked</option><option value="skip">do not keep them</option></select></label>}
+      <ErrorNotice error={error} />
+      <table className="list compact"><tbody>
+        <tr><th>Last look</th><td>{r.lastRun.at ? `${stamp(r.lastRun.at)}: ${r.lastRun.result}` : r.lastRun.result}
+          {r.lastRun.waiting ? <span className="muted"> ({r.lastRun.waiting} exam{r.lastRun.waiting === 1 ? "" : "s"} waiting)</span> : null}
+          {r.lastRun.error && <div className="small" style={{ color: "var(--vessel)" }}>{r.lastRun.error}</div>}</td></tr>
+        <tr><th>Photographs kept</th><td>{r.counts.photos}{r.counts.unmatched ? `, ${r.counts.unmatched} not linked to a Yarago patient` : ""}{r.counts.toGrade ? `, ${r.counts.toGrade} waiting for the AI grade` : ""}{r.counts.lastPhotoAt ? `; last ${stamp(r.counts.lastPhotoAt)}` : ""}</td></tr>
+      </tbody></table>
+      {!!r.recent.length && <>
+        <div className="small"><b>Latest exams</b> (IMAGEnet file numbers and shapes only, no patient details)</div>
+        <table className="list compact"><tbody>{r.recent.map((x: any, i: number) => (
+          <tr key={i}><td className="nowrap small">{stamp(x.at)}</td><td className="small">{x.fileName}</td><td className="small"><b>{x.outcome.replace("_", " ")}</b></td>
+            <td className="small">{x.message}</td></tr>))}</tbody></table>
+      </>}
+      <div className="muted small">Maestro2 photographs are a different camera from the Remidio FOP: their AI figures are measured on their own evaluation sets (Evaluation tab, camera "Topcon Maestro2"), never mixed with Remidio's.</div>
     </div>
   );
 }

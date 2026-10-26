@@ -127,7 +127,8 @@ export async function pollQueue(log: FastifyBaseLogger): Promise<string> {
         const seen = await one(`SELECT 1 FROM app.remidio_queue_log WHERE outcome = 'peeked' AND item_type IS NOT DISTINCT FROM $1
                                    AND remidio_id IS NOT DISTINCT FROM $2`, [type || null, remidioId]);
         if (!seen) await logItem(item, type, remidioId, "peeked", "looked at, not taken", null, true);
-        return done(`peek: the next item is ${type || "of unknown type"}${photo ? ` (photograph, ${photo.eye ?? "eye not given"}, MRN ${mrnShape(photo.mrn)})` : ""}; nothing taken`);
+        const eye = photo?.eye === "RE" ? "right eye" : photo?.eye === "LE" ? "left eye" : "eye not given";
+        return done(`peek: the next item is ${type || "of unknown type"}${photo ? ` (photograph, ${eye}, MRN ${mrnShape(photo.mrn)})` : ""}; nothing taken`);
       }
       try {
         if (photo) n[await storePhoto(photo, item)]++;
@@ -191,7 +192,7 @@ async function gradeWith(key: string, target: GraderTarget, query: string, sha: 
   let graded = 0;
   {
     const todo = await q<any>(
-      `SELECT f.id, f.remidio_image_id, f.patient_id, coalesce(p.mrd, f.mrn) AS mrd, f.eye, f.file_path
+      `SELECT f.id, f.source, f.remidio_image_id, f.patient_id, coalesce(p.mrd, f.mrn) AS mrd, f.eye, f.file_path
          FROM app.fundus_photos f LEFT JOIN clinical.patient p ON p.patient_id = f.patient_id
         WHERE NOT EXISTS (SELECT 1 FROM app.dr_gradings g WHERE g.photo_id = f.id AND coalesce(g.model_sha256, '') = $1)
         ORDER BY f.id LIMIT 5`, [sha]);
@@ -206,15 +207,18 @@ async function gradeWith(key: string, target: GraderTarget, query: string, sha: 
       const r = outcome.kind === "ok" ? outcome.result : null;
       if (r && (r.modelSha256 || "") !== sha) break;   // the model changed since /health was read: read it again next round
       const modelSha = sha || null;                     // failures are recorded under the model too, so they are not retried for ever
-      await withTx(ctx(`Graded Remidio photograph #${f.id} with the research model ${key}`), async (c) => { await c.query(
+      // Remidio and Maestro2 (D-048) photographs alike; the grading keeps which camera it came from
+      const camera = f.source === "topcon" ? "Maestro2" : "Remidio";
+      const label = f.source === "topcon" ? `topcon-photo-${f.id}` : `remidio-${f.remidio_image_id}`;
+      await withTx(ctx(`Graded ${camera} photograph #${f.id} with the research model ${key}`), async (c) => { await c.query(
         `INSERT INTO app.dr_gradings (patient_id, mrd, eye, source, photo_id, status, error, ai_grade, probs, raw_outputs, calibration,
                                       image_filename, image_sha256, image_width, image_height, preprocess_ms, inference_ms,
                                       model_repo, model_commit, model_sha256, grader_version)
-         VALUES ($1,$2,$3,'remidio',$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
+         VALUES ($1,$2,$3,$21,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
         [f.patient_id, f.mrd, f.eye, f.id, outcome.kind, outcome.kind === "ok" ? null : outcome.message, r?.grade ?? null, r?.probs ?? null,
-         r?.raw ?? null, r?.calibration ?? null, `remidio-${f.remidio_image_id}${path.extname(file)}`, r?.imageSha256 ?? null,
+         r?.raw ?? null, r?.calibration ?? null, `${label}${path.extname(file)}`, r?.imageSha256 ?? null,
          r?.width ?? null, r?.height ?? null, r?.preprocessMs ?? null, r?.inferenceMs ?? null, r?.modelRepo ?? null,
-         r?.modelCommit ?? null, modelSha, r?.graderVersion ?? null]);
+         r?.modelCommit ?? null, modelSha, r?.graderVersion ?? null, f.source === "topcon" ? "topcon" : "remidio"]);
         await syncGradesForPhoto(c, Number(f.id));       // a doctor's report written before the AI graded it (D-042)
       });
       graded++;

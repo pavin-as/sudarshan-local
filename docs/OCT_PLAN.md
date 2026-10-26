@@ -222,6 +222,15 @@ Thickness is measured only once the geometry has passed. OCTA passes or fails se
 arrives,** export again and check that the extra layers and the vessel density appear.
 
 ### Step 3 - Maestro2 fundus photographs into Retina AI (build; after Gate 1 for the photograph)
+**Built and tested on 26 Oct (D-048), not deployed.**
+- On the test database: 12 checks in `test/topcon.test.ts`, with the Remidio, Fundus reports and Retina AI tests
+  unchanged.
+- In the browser: the System panel, Photographs and Fundus reports at desktop and phone width.
+- With the real pieces: one peek against the real share, tool and converter (exam 40742: Radial Macula, right eye, one
+  colour photograph; nothing kept).
+- To deploy: RUNBOOK 13.
+
+The plan as written before the build:
 - Migration: `app.fundus_photos.source` allows `'topcon'`, plus the Topcon fields (study and SOP UIDs, device, scan
   protocol, eye, field). The Remidio-only columns stay empty for Topcon rows.
 - An import job on shichika (switch off / peek / on, like D-041):

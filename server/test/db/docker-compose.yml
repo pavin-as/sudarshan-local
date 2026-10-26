@@ -1,0 +1,26 @@
+# Isolated TEST database for the API tests on shichika (Pavin, 26 Oct 2026; CLAUDE.md, TESTING.md 1).
+# Its own PostgreSQL 16 in Docker, on 127.0.0.1:55432 only, with synthetic data only. It never connects to the clinic's
+# database (postgresql-16 on 5432). Started and stopped by scripts\testdb.ps1; stopped when no test is running.
+name: sudarshan-testdb
+services:
+  db:
+    image: postgres:16.10-alpine
+    container_name: sudarshan-testdb
+    ports:
+      - "127.0.0.1:55432:5432"
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_superuser
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    secrets:
+      - pg_superuser
+    volumes:
+      - testdb:/var/lib/postgresql/data
+    mem_limit: 1g
+    cpus: 2
+    shm_size: 128m
+    restart: "no"
+secrets:
+  pg_superuser:
+    file: ${TESTDB_SECRET_FILE}
+volumes:
+  testdb:

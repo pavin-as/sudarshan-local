@@ -94,7 +94,7 @@ const pw = "Correct-Horse-9", hash = await hashPassword(pw);
 await pool.query(`BEGIN; SET LOCAL app.skip_audit = 'on';
   INSERT INTO app.users (username, full_name, role, password_hash, must_change_password) VALUES
     ('zz_test_rem_admin','ZZ Rem Admin','admin','${hash}',false), ('zz_test_rem_doc','ZZ Rem Doctor','doctor','${hash}',false),
-    ('zz_test_rem_mgr','ZZ Rem Manager','manager','${hash}',false);
+    ('zz_test_rem_mgr','ZZ Rem Manager','manager','${hash}',false), ('zz_test_rem_staff','ZZ Rem Staff','staff','${hash}',false);
   INSERT INTO yarago.tblpatientregistration (apatient_id, apatientcode, tfisrt_name, tlast_name, tsex) VALUES (${PID}, '${MRD}', 'ZZ Test', 'Remidio', 'Male');
   COMMIT;`);
 
@@ -115,7 +115,8 @@ const count = async (sql: string, p: unknown[] = []) => Number((await pool.query
 const acks = () => calls.filter((c) => c.endsWith("itemSuccessfullyHandled")).length;
 
 try {
-  const admin = await login("zz_test_rem_admin"), doc = await login("zz_test_rem_doc"), mgr = await login("zz_test_rem_mgr");
+  const admin = await login("zz_test_rem_admin"), doc = await login("zz_test_rem_doc"), mgr = await login("zz_test_rem_mgr"),
+        staff = await login("zz_test_rem_staff");
 
   console.log("switch");
   await step("off: the receiver does not touch Remidio", async () => {
@@ -207,11 +208,13 @@ try {
     assert.deepEqual(st.map((x: any) => x.key), ["arko", "rfm:aptos", "rfm:messidor"]);
     assert.equal(st[1].modelSha256, RFM_SHA.aptos); assert.ok(st[1].cutoffs);
   });
-  await step("the photograph opens for admin and doctors only; the patient's list shows it", async () => {
+  await step("the photograph opens for every clinical role, not front-desk staff (D-042); the patient's list shows it", async () => {
     const r = await call("GET", `/api/retina-ai/photos/${photoId}/image`, doc);
     assert.equal(r.status, 200); assert.deepEqual(Buffer.from(r.body as any), JPEG);
     assert.equal((await call("GET", `/api/retina-ai/photos/${photoId}/image?size=thumb`, doc)).status, 200);
-    assert.equal((await call("GET", `/api/retina-ai/photos/${photoId}/image`, mgr)).status, 403);
+    // D-042: every clinical role sees the photographs (managers too); front-desk staff do not
+    assert.equal((await call("GET", `/api/retina-ai/photos/${photoId}/image`, mgr)).status, 200);
+    assert.equal((await call("GET", `/api/retina-ai/photos/${photoId}/image`, staff)).status, 403);
     const list = (await call("GET", `/api/retina-ai/photos?patientId=${PID}`, doc)).body.photos;
     assert.equal(list.length, 1); assert.equal(list[0].patientName, "ZZ Test Remidio"); assert.equal(list[0].aiGrade, undefined);
     assert.equal((await call("GET", "/api/retina-ai/photos?unmatched=true", doc)).body.photos.some((x: any) => x.mrn === "WSD12"), true);
@@ -245,7 +248,8 @@ try {
 } finally {
   setRemidioTransport(null); setPhotoFetcher(null); setGraderTransport(null);
   await cleanup();
-  for (const s of saved) await pool.query(`UPDATE app.settings SET value = $2 WHERE key = $1`, [s.key, s.value]);
+  // pg reads jsonb back as plain values ("off"), so write them back as JSON text
+  for (const s of saved) await pool.query(`UPDATE app.settings SET value = $2::jsonb WHERE key = $1`, [s.key, JSON.stringify(s.value)]);
   rmSync(photoDir, { recursive: true, force: true });
   await app.close(); await pool.end();
 }

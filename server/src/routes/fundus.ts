@@ -10,13 +10,15 @@ import { conflict, notFound } from "../lib/errors.js";
 import { dateStr, niceDate } from "../lib/time.js";
 import { DME, DR, FINDINGS, REFERRAL, reportLine, syncReportGrades } from "../services/fundusReport.js";
 
-// sessions = linked photographs grouped by patient, day (clinic time) and Remidio exam; joined to their report
+// sessions = linked photographs grouped by patient, day (clinic time) and Remidio exam; joined to their report. Maestro2
+// photographs (D-048) have no Remidio exam: one patient's Maestro2 photographs of a day are session 0 of that day.
 const WITH_SESSIONS = `
   WITH s AS (
     SELECT f.patient_id, (coalesce(f.captured_at, f.received_at) AT TIME ZONE 'Asia/Kolkata')::date AS exam_date,
            coalesce(f.remidio_exam_id, 0) AS exam_key,
            array_agg(f.id ORDER BY f.eye NULLS LAST, f.captured_at) AS photo_ids, count(*)::int AS photos,
-           max(coalesce(f.captured_at, f.received_at)) AS last_at, bool_or(f.quality = 'INSUFFICIENT') AS any_poor
+           max(coalesce(f.captured_at, f.received_at)) AS last_at, bool_or(f.quality = 'INSUFFICIENT') AS any_poor,
+           array_agg(DISTINCT f.source) AS sources
       FROM app.fundus_photos f WHERE f.patient_id IS NOT NULL GROUP BY 1, 2, 3)`;
 const FROM_SESSIONS = `
     FROM s JOIN clinical.patient p ON p.patient_id = s.patient_id
@@ -24,7 +26,7 @@ const FROM_SESSIONS = `
     LEFT JOIN app.users ru ON ru.id = r.reported_by`;
 const SESSIONS = `${WITH_SESSIONS}
   SELECT s.patient_id AS "patientId", to_char(s.exam_date, 'YYYY-MM-DD') AS "examDate", s.exam_key AS "examKey",
-         s.photo_ids AS "photoIds", s.photos, s.last_at AS "lastAt", s.any_poor AS "anyPoor",
+         s.photo_ids AS "photoIds", s.photos, s.last_at AS "lastAt", s.any_poor AS "anyPoor", s.sources,
          p.mrd, p.name AS "patientName", p.age_years AS "ageYears", p.sex,
          r.id AS "reportId", r.re_dr, r.le_dr, r.referral, r.reported_at AS "reportedAt", ru.full_name AS "reportedBy",
          r.amended_at AS "amendedAt"
@@ -60,7 +62,8 @@ export async function fundusRoutes(app: FastifyInstance) {
     const k = z.object({ patientId: z.coerce.number().int().positive(), examDate: dateStr, examKey: z.coerce.number().int().min(0) }).parse(req.query);
     const s = await one<any>(`${SESSIONS} WHERE s.patient_id = $1 AND s.exam_date = $2 AND s.exam_key = $3`, [k.patientId, k.examDate, k.examKey]);
     if (!s) throw notFound("Photo session");
-    const photos = await q(`SELECT id, eye, field, quality, captured_at AS "capturedAt", width, height FROM app.fundus_photos WHERE id = ANY($1)
+    const photos = await q(`SELECT id, eye, field, quality, captured_at AS "capturedAt", width, height, source, device, protocol
+                              FROM app.fundus_photos WHERE id = ANY($1)
                              ORDER BY eye NULLS LAST, captured_at`, [s.photoIds]);
     const report = s.reportId ? await one(
       `SELECT r.id, r.re_dr AS "reDr", r.le_dr AS "leDr", r.re_dme AS "reDme", r.le_dme AS "leDme", r.re_findings AS "reFindings",

@@ -115,6 +115,22 @@ Failures keep the item at the head; the 10th failure of the same item logs `gave
 served by `GET /api/retina-ai/photos/:id/image` (paths only from the database, resolved inside the photo folder).
 Screens: Retina AI tabs Photographs and System (receiver), thumbnails in To grade and Records; `FundusPhotos` on the patient page.
 
+### Topcon Maestro2 photographs (D-048)
+`services/topconImport.ts` runs `pollTopcon` (every 60 s from `index.ts`, single flight, up to 3 exams, oldest first):
+- **Which exams:** it lists `<TOPCON_SHARE>\Data\*.fda`, using `pickWaiting` (pure): saved at or after
+  `retina.topcon_since`, unchanged for 2 minutes (its `.fds` too), and with no final row in `topcon_import_log`. Names
+  already settled are not looked at again while the server runs (`forgetSettledNames()` when the start point moves).
+- **Each exam:** copies the `.fda` and `.fds` into a new folder under `TOPCON_WORK_DIR`, runs the exporter (Topcon's tool,
+  `-dcm`; its exit code is -1 even on success, so a run counts when it made `.dcm` files), then the converter
+  (`scripts/topcon_photo.py` in the isolated Python), and keeps each colour OP photograph like a Remidio one (JPEG,
+  thumbnail and the OP `.dcm` in `RETINA_PHOTO_DIR`). The work folder is removed in `finally`.
+- **Replaceable in tests:** the exporter and the converter (`setTopconExporter` / `setTopconConverter`).
+- **Signing in:** the server runs as SYSTEM, so it signs in to the share with `net use` and the password from `.env`.
+  net use's own error text is never passed on, because it can repeat the password.
+- **Failures:** the 5th failure of the same exam logs `gave_up`.
+- **Grading:** `gradeNewPhotos` grades every `fundus_photos` row whatever its source.
+- **Sessions:** Maestro2 photographs form session 0 of their day. Evaluation sets carry `camera` in their criteria.
+
 ### Fundus reports (D-042)
 `routes/fundus.ts`: a session is computed, not stored: linked `fundus_photos` grouped by patient, day in clinic time and
 `coalesce(remidio_exam_id, 0)`, left-joined to its `fundus_reports` row (the same key). Reads need `clinical.read`, writes

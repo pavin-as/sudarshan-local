@@ -22,7 +22,11 @@ After a change: add a `docs/CHANGELOG.md` entry, tick `docs/STATUS.md`, and upda
 - Secrets come from `.env`; never print, log or commit them. Pushing is allowed only to the private GitHub repo
   `pavin-as/sudarshan-local` (`origin`); history was cleaned of old keys first (COMPLIANCE.md). No other remote.
 - Every app write goes through `withTx()` (server/src/db.ts) and every route starts with `need(req, "<permission>")`.
-- Tests that write use a TEST database only (`SUDARSHAN_ENV`); on shichika only read-only checks run.
+- Tests that write use a TEST database only (`SUDARSHAN_ENV`), never the clinic's database. On shichika that is only the
+  isolated Docker test database (`scripts\testdb.ps1`: 127.0.0.1:55432, synthetic data, env file
+  `D:\Sudarshan\testdb\test.env`; Pavin, 26 Oct). Everything else on shichika stays read-only checks.
+- Never build the web app into `web\dist` for a test: the live server serves it at once. Test builds go to
+  `D:\Sudarshan\testdb\web-dist` (`SUDARSHAN_WEB`).
 - shichika also runs Yarago (Tomcat7), its backup (Tomcat9_AutoDB) and other services: keep resource use modest (PostgreSQL ~4 GB, GPU work outside clinic hours).
 
 ## Stack

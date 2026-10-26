@@ -24,7 +24,11 @@ const criteriaBody = z.object({
   maculaOnly: z.boolean().default(false),            // only macula-centred photographs (the model was trained on these)
   // validation: cut-offs may be chosen on it; test: cut-offs are only applied to it. A patient is never in both (D-046).
   purpose: z.enum(["validation", "test", "other"]).default("other"),
+  // one camera per set (D-048): Maestro2 photographs are measured apart from Remidio ones; older sets are Remidio
+  camera: z.enum(["remidio", "topcon"]).default("remidio"),
 });
+export const CAMERA_WORDS: Record<string, string> = { remidio: "the Remidio FOP", topcon: "the Topcon Maestro2" };
+const cameraOf = (criteria: any) => (criteria?.camera === "topcon" ? "topcon" : "remidio");
 type Criteria = z.infer<typeof criteriaBody>;
 const OTHER_ROLE: Record<string, string> = { validation: "test", test: "validation" };
 // screening cut-offs chosen on a validation set (D-045): refer keeps >= 95% of referable eyes, clear >= 99%
@@ -44,7 +48,8 @@ async function candidates(c: Criteria) {
         AND (CASE WHEN f.eye = 'RE' THEN r.re_dr ELSE r.le_dr END) IS NOT NULL
         AND ($1::date IS NULL OR (coalesce(f.captured_at, f.received_at) AT TIME ZONE 'Asia/Kolkata')::date >= $1::date)
         AND ($2::date IS NULL OR (coalesce(f.captured_at, f.received_at) AT TIME ZONE 'Asia/Kolkata')::date <= $2::date)
-      ORDER BY f.patient_id, f.eye, f.captured_at, f.id`, [c.from ?? null, c.to ?? null]);
+        AND f.source = $3
+      ORDER BY f.patient_id, f.eye, f.captured_at, f.id`, [c.from ?? null, c.to ?? null, c.camera]);
   const left = { notBlinded: 0, poorQuality: 0, notMacula: 0, otherRole: 0 };
   // patients already in a set of the other role stay out, so validation and test never share a patient
   const taken = OTHER_ROLE[c.purpose] ? new Set((await q<{ patient_id: number }>(
@@ -143,6 +148,9 @@ async function validationFor(testId: number, validationId: number | undefined) {
   if (validationId === testId) throw badRequest("Cut-offs cannot be chosen on the set they are checked on.");
   const v = await loadSet(validationId);
   if (v.purpose !== "validation" || !v.frozenAt) throw badRequest("Cut-offs can be chosen only on a frozen validation set.");
+  const t = await loadSet(testId);
+  if (cameraOf(v.criteria) !== cameraOf(t.criteria))
+    throw badRequest(`Cut-offs chosen on photographs from ${CAMERA_WORDS[cameraOf(v.criteria)]} cannot be applied to photographs from ${CAMERA_WORDS[cameraOf(t.criteria)]}.`);
   const shared = await one<{ n: number }>(
     `SELECT count(DISTINCT a.patient_id)::int AS n FROM app.eval_set_items a JOIN app.eval_set_items b ON b.patient_id = a.patient_id
       WHERE a.set_id = $1 AND b.set_id = $2`, [testId, validationId]);
@@ -159,7 +167,8 @@ export async function evaluationRoutes(app: FastifyInstance) {
     need(req, "retina_ai.use");
     const qy = req.query as Record<string, string>;
     const c = criteriaBody.parse({ from: qy.from || undefined, to: qy.to || undefined, blindedOnly: qy.blindedOnly !== "false",
-                                   excludePoor: qy.excludePoor === "true", maculaOnly: qy.maculaOnly === "true", purpose: qy.purpose || undefined });
+                                   excludePoor: qy.excludePoor === "true", maculaOnly: qy.maculaOnly === "true", purpose: qy.purpose || undefined,
+                                   camera: qy.camera || undefined });
     const { kept, left } = await candidates(c);
     return { ...summary(kept), left };
   });
@@ -260,7 +269,7 @@ export async function evaluationRoutes(app: FastifyInstance) {
       title: `Retina AI evaluation: ${m.repo ?? "model"} on "${set.name}"`,
       dataset: [
         `Set "${set.name}" (#${set.id}), ${set.frozenAt ? `frozen ${new Date(set.frozenAt).toISOString().slice(0, 10)} by ${set.frozenBy}` : "**DRAFT (not frozen): figures may change**"}.`,
-        `${set.images} eye images of ${set.patients} patients from the Remidio FOP at Sampada VR, Tirur.`,
+        `${set.images} eye images of ${set.patients} patients from ${CAMERA_WORDS[cameraOf(c)]} at Sampada VR, Tirur.`,
         `Reference: the doctor's DR grade of that eye in the Sudarshan fundus report (D-042), copied into the set when it was made${c.blindedOnly ? "; only grades given before that doctor saw the AI grade" : "; includes grades given after seeing the AI grade"}.`,
         `Rules: photographs ${c.from ?? "from the start"} to ${c.to ?? "the day the set was made"}; ${c.excludePoor ? "Remidio-insufficient quality left out" : "all qualities"}; ${c.maculaOnly ? "macula-centred only" : "all fields"}.`,
         ...(r.notGraded ? [`${r.notGraded} image(s) without a grade from this model are left out.`] : []),

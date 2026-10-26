@@ -47,4 +47,17 @@ export const config = {
     clientAuthToken: process.env.REMIDIO_CLIENT_AUTH_TOKEN ?? "",
     site: process.env.REMIDIO_SITE ?? "TIRUR",
   },
+  // Topcon Maestro2 photographs (D-048): IMAGEnet's exams on the ImageNet PC's read-only share, converted on shichika with
+  // Topcon's DICOM OCT Export Tool and scripts\topcon_photo.py. The share password is written by scripts\setup-topcon.ps1
+  // and never logged. A share path that is not \\host\share (the tests: a local folder) is read without signing in.
+  topcon: {
+    share: process.env.TOPCON_SHARE ?? "\\\\192.168.0.152\\SudarshanOCT$",
+    dataDir: process.env.TOPCON_DATA_DIR ?? "Data",
+    user: process.env.TOPCON_SHARE_USER ?? "OCT_PC\\sudarshan_ro",
+    password: process.env.TOPCON_SHARE_PASSWORD ?? "",
+    tool: process.env.TOPCON_TOOL ?? "D:\\Sudarshan\\tools\\topcon\\DicomOctExport-3.0.0.39\\DicomOctExport.exe",
+    python: process.env.OCT_PYTHON ?? "D:\\Sudarshan\\tools\\oct-venv\\Scripts\\python.exe",
+    // copies and exports of the exam being imported (patient data, administrators only); emptied after each exam
+    workDir: process.env.TOPCON_WORK_DIR ?? "D:\\Sudarshan\\data\\oct\\work\\import",
+  },
 };

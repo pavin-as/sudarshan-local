@@ -1,4 +1,5 @@
-// Fundus reports (D-042): doctors report Remidio photographs here, per photo session (one patient, one exam), per eye.
+// Fundus reports (D-042): doctors report fundus photographs here (Remidio FOP, D-041; Topcon Maestro2, D-048), per photo
+// session (one patient, one Remidio exam, or one day's Maestro2 photographs), per eye.
 // Clinical roles read; doctors write; a correction needs a reason. The research AI grade is never shown on this page.
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -7,15 +8,16 @@ import { api } from "../api";
 import { useAuth } from "../auth";
 import { niceDate, stamp } from "../format";
 import { Drawer, ErrorNotice, Loading, useToast } from "../components/ui";
-import { PhotoThumb, PhotoViewer } from "./RetinaAi";
+import { CAMERA, PhotoThumb, PhotoViewer } from "./RetinaAi";
 
 type Words = { DR: Record<string, string>; DME: Record<string, string>; FINDINGS: Record<string, string>; REFERRAL: Record<string, string> };
 export interface Session {
-  patientId: number; examDate: string; examKey: number; photoIds: number[]; photos: number; lastAt: string; anyPoor: boolean;
+  patientId: number; examDate: string; examKey: number; photoIds: number[]; photos: number; lastAt: string; anyPoor: boolean; sources: string[];
   mrd: string; patientName: string; ageYears: number | null; sex: string | null;
   reportId: number | null; summary: string | null; reportedAt: string | null; reportedBy: string | null; amendedAt: string | null;
 }
-interface SessionPhoto { id: number; eye: "RE" | "LE" | null; field: string | null; quality: string | null; capturedAt: string | null }
+interface SessionPhoto { id: number; eye: "RE" | "LE" | null; field: string | null; quality: string | null; capturedAt: string | null;
+  source: string; protocol: string | null }
 interface Report {
   id: number; reDr: string | null; leDr: string | null; reDme: string | null; leDme: string | null; reFindings: string[]; leFindings: string[];
   reOther: string; leOther: string; referral: string; comments: string; reportedAt: string; reportedBy: string;
@@ -36,7 +38,8 @@ function SessionRows({ sessions, onOpen, showPatient = true }: { sessions: Sessi
       <tbody>{sessions.map((s) => (
         <tr key={`${s.patientId}-${s.examDate}-${s.examKey}`} className="clickable" onClick={() => onOpen(s)}>
           <td><div className="row" style={{ gap: "0.3rem", flexWrap: "nowrap" }}>{s.photoIds.slice(0, 4).map((id) => <PhotoThumb key={id} id={id} size={56} />)}</div></td>
-          <td className="nowrap">{niceDate(s.examDate, true)}<div className="muted small">{s.photos} photograph{s.photos === 1 ? "" : "s"}{s.anyPoor ? ", some of poor quality" : ""}</div></td>
+          <td className="nowrap">{niceDate(s.examDate, true)}<div className="muted small">{s.photos} photograph{s.photos === 1 ? "" : "s"}{s.anyPoor ? ", some of poor quality" : ""}</div>
+            <div className="muted small">{(s.sources ?? []).map((x) => CAMERA[x] ?? x).join(", ")}</div></td>
           {showPatient && <td><b>{s.patientName}</b> <span className="muted small">{s.mrd}</span>
             <div className="muted small">{[s.ageYears != null && `${s.ageYears} y`, s.sex].filter(Boolean).join(", ")}</div></td>}
           <td>{s.reportId ? <>{s.summary}<div className="muted small">{s.reportedBy}, {stamp(s.reportedAt)}{s.amendedAt ? " (corrected)" : ""}</div></>
@@ -58,7 +61,7 @@ export function FundusReportsPage() {
   return (
     <div className="stack" style={{ gap: "1rem" }}>
       <div className="page-head"><div className="grow"><h1>Fundus reports</h1>
-        <div className="muted">Photographs from the Remidio FOP, one row per patient and exam. Doctors write the report here (not in Remidio Connect).</div></div></div>
+        <div className="muted">Photographs from the Remidio FOP and the Topcon Maestro2, one row per patient and exam (Maestro2: one row per patient and day). Doctors write the report here (not in Remidio Connect).</div></div></div>
       <section className="panel">
         <form className="panel-head row" onSubmit={(e) => { e.preventDefault(); setSearch(text.trim()); }}>
           <div className="seg" role="group" aria-label="Which">
@@ -84,7 +87,7 @@ export function PatientFundus({ patientId }: { patientId: number }) {
   if (!q.data?.sessions.length) return null;
   return (
     <section className="panel">
-      <div className="panel-head"><h2 className="grow">Fundus photographs</h2><span className="muted small">From the Remidio FOP, newest first</span></div>
+      <div className="panel-head"><h2 className="grow">Fundus photographs</h2><span className="muted small">Remidio FOP and Topcon Maestro2, newest first</span></div>
       <SessionRows sessions={q.data.sessions} onOpen={setOpen} showPatient={false} />
       {open && <SessionDrawer s={open} onClose={() => setOpen(null)} />}
     </section>
@@ -107,10 +110,11 @@ function SessionDrawer({ s, onClose }: { s: Session; onClose: () => void }) {
             <figure key={p.id} style={{ margin: 0 }}>
               <button type="button" className="btn-quiet" style={{ padding: 0, width: "100%" }} onClick={() => setView(p)} aria-label="Open the photograph full size">
                 <img src={`/api/retina-ai/photos/${p.id}/image`} alt={`${p.eye ? EYE[p.eye] : "Eye not given"}, fundus photograph`}
-                     style={{ width: "100%", aspectRatio: "1", objectFit: "cover", background: "#000", borderRadius: 8, display: "block" }} />
+                     style={{ width: "100%", aspectRatio: "1", objectFit: "contain", background: "#000", borderRadius: 8, display: "block" }} />
               </button>
               <figcaption className="small"><b>{p.eye ? EYE[p.eye] : "Eye not given"}</b>{p.field && <span className="muted">, {p.field.toLowerCase()}</span>}
-                {p.quality === "INSUFFICIENT" && <> <span className="tag alert">Quality insufficient</span></>}</figcaption>
+                {p.quality === "INSUFFICIENT" && <> <span className="tag alert">Quality insufficient</span></>}
+                <div className="muted">{[CAMERA[p.source] ?? p.source, p.protocol].filter(Boolean).join(" · ")}</div></figcaption>
             </figure>))}
         </div>
         {q.data.report && !editing && <ReportView r={q.data.report} w={q.data.words} />}
@@ -119,7 +123,7 @@ function SessionDrawer({ s, onClose }: { s: Session; onClose: () => void }) {
           ? <ReportForm s={s} w={q.data.words} existing={editing ? q.data.report : null} onDone={() => setEditing(false)} onCancel={editing ? () => setEditing(false) : undefined} />
           : <div className="notice">Not reported yet. A doctor writes the report here.</div>)}
       </div>}
-      {view && <PhotoViewer photo={{ id: view.id, label: [view.eye && EYE[view.eye], view.field?.toLowerCase(), view.capturedAt && stamp(view.capturedAt)].filter(Boolean).join(" · ") }} onClose={() => setView(null)} />}
+      {view && <PhotoViewer photo={{ id: view.id, source: view.source, label: [view.eye && EYE[view.eye], view.field?.toLowerCase(), view.protocol, view.capturedAt && stamp(view.capturedAt)].filter(Boolean).join(" · ") }} onClose={() => setView(null)} />}
     </Drawer>
   );
 }

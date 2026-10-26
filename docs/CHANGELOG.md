@@ -5,6 +5,25 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Maestro2 fundus photographs in Sudarshan** (D-048). Each new Topcon Maestro2 exam's colour fundus photograph is read
+  from the ImageNet PC's read-only share, converted on shichika and kept like a Remidio photograph:
+  - linked to the patient by SPD number;
+  - shown on Fundus reports (one session per patient and day), the patient page and Retina AI > Photographs ("Topcon
+    Maestro2", with a camera filter);
+  - graded silently by the research models.
+
+  Retina AI > System has a new "Photographs from the Topcon Maestro2" panel: off / peek / on, a start point, and what to
+  do with IDs not in Yarago. Evaluation sets now have a camera, and cut-offs are never carried from one camera to the
+  other. Setup: after update.ps1, run `scripts\setup-topcon.ps1` (admin).
+  - Technical: migration `0024_topcon_photos.sql` (`fundus_photos` source `topcon` with DICOM UIDs, device, protocol,
+    exam file and `.dcm`; `topcon_import_log`; settings `retina.topcon_*`; `dr_gradings` source `topcon`).
+  - `services/topconImport.ts`, `scripts/topcon_photo.py`, `routes/retinaAi.ts` (topcon status/switch/check-now; photo
+    source filter; Remidio counts now Remidio only), `routes/fundus.ts` (session cameras), `routes/evaluation.ts`
+    (camera), and grading labelled by camera.
+  - Tests: `test/topcon.test.ts` (12, in `npm test`).
+- **Isolated test database on shichika** (Pavin, 26 Oct): `scripts\testdb.ps1` (Docker PostgreSQL 16 on 127.0.0.1:55432,
+  synthetic data). CLAUDE.md and TESTING.md updated. Fixed the Remidio test: the settings write-back, D-042's photo access,
+  and the peek wording ("left eye", not "LE").
 - **First Topcon exports checked** (D-047, Step 1). shichika reads OCT_PC through a read-only share, and two of today's exams
   exported to DICOM. The fundus photograph, B-scans, OCTA flow, en face slabs and Topcon's layer surfaces all open. The
   patient ID is the SPD number. Nothing reaches Sudarshan's screens yet.

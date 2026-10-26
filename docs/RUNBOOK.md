@@ -365,4 +365,23 @@ Set up on 25 Oct 2026 (Step 0).
   - On 26 Oct the share was `D:\IMAGEnet6`; live exams are in its `Data` folder.
   - If the share stops opening: check that the Kaspersky rule is still Active and at the top, and that `cmdkey /list` on
     shichika shows 192.168.0.152.
+- **Maestro2 photographs into Sudarshan** (D-048, Step 3). Once, outside clinic hours:
+  1. `update.ps1` (migration 0024, new server and screens).
+  2. In an administrator PowerShell, run `scripts\setup-topcon.ps1`. It checks the tool, the isolated Python and the
+     converter, asks for `sudarshan_ro`'s password (stored in `.env`, never shown), makes the work folder and restarts the
+     server.
+  3. Retina AI > System > Photographs from the Topcon Maestro2: **Peek**, then **Check now**. The first time, the start
+     point becomes "now", so wait for one new exam: you should see its protocol, eye and "patient ID AAA99999" and
+     "nothing kept".
+  4. Then **On**. Each new exam's colour photograph appears within a few minutes on Fundus reports, the patient page and
+     Retina AI > Photographs ("Topcon Maestro2"), and is graded silently.
+  5. Earlier exams: set "Import exams saved from" to an earlier time. They are converted 3 a minute, oldest first.
+- **Maestro2 problems** show on the System tab ("Last look"; the latest exams with their outcome):
+  - "could not sign in" or "cannot read the ImageNet exam folder": the ImageNet PC is off, the Kaspersky rule changed,
+    or the password changed (run `setup-topcon.ps1` again).
+  - "the export tool made no DICOM files": look at the newest log in `D:\Sudarshan\data\oct\work\log`. It is patient
+    data: do not copy it anywhere.
+  - An exam that fails 5 times is left in IMAGEnet ("gave up").
+- **The isolated test database** (developers): `scripts\testdb.ps1 up` / `down` / `reset`; tests with
+  `$env:SUDARSHAN_ENV='D:\Sudarshan\testdb\test.env'`. Synthetic data only.
 

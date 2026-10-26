@@ -170,7 +170,7 @@ UPDATE except `remarks`. Audited; `ai_grade`, `probs` and `raw_outputs` are hidd
 | created_at, created_by | timestamptz, integer | no, yes | NULL `created_by` for the console imports |
 | patient_id, mrd | bigint, text | yes | Yarago patient; NULL only for folder imports whose MRD is not in Yarago |
 | eye | text | yes | `RE` / `LE`; NULL = not given in metadata.csv |
-| source, batch_id | text | no, yes | `upload` / `batch` / `remidio` (0020); 0019 removed `legacy_import`, the test copy of the old grader's records |
+| source, batch_id | text | no, yes | `upload` / `batch` / `remidio` (0020) / `topcon` (0024); 0019 removed `legacy_import`, the test copy of the old grader's records |
 | status, error | text | no, yes | `ok` / `rejected` (photograph unreadable, grader's words in `error`) / `error` |
 | ai_grade | smallint | yes | 0-4, required when `ok` |
 | probs, raw_outputs | double precision[] | yes | five scores (grade 0..4); raw model outputs |
@@ -211,6 +211,25 @@ on a photograph that has none. Audited.
 | bytes, sha256, file_path | integer, text, text | no | file path relative to `RETINA_PHOTO_DIR` |
 | thumb_path | text | yes | Remidio's thumbnail |
 | meta | jsonb | yes | the queue item without its links |
+| dicom_study_uid, dicom_sop_uid | text | yes | Maestro2 (0024, D-048): the OP object's UIDs; the instance UID is unique (a re-saved exam is a duplicate) |
+| device, protocol | text | yes | Maestro2: `Maestro2`; scan protocol, e.g. `3D H/Macula/320/320/6x6mm/Angio` |
+| topcon_file, dicom_path | text | yes | Maestro2: IMAGEnet's exam file (a number, e.g. `40742.fda`); the OP `.dcm` as exported, relative to `RETINA_PHOTO_DIR` |
+
+Since 0024 `source` is `remidio` or `topcon`. A Maestro2 row has no Remidio ids or quality; `mrn` holds the DICOM patient ID
+(the SPD number), `sex_check` compares the DICOM sex with Yarago's, `meta` holds pixel spacing and the `.fda` size.
+
+### app.topcon_import_log (0024, D-048)
+What the Topcon import did with each IMAGEnet exam file (a log: no audit trigger). An exam is done once a row for its
+file name and file time has a final outcome. Messages and `meta` hold shapes (protocol, eye, patient-ID format, size),
+never names or IDs.
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| id, at | bigserial, timestamptz | no | |
+| file_name, file_bytes, file_mtime | text, bigint, timestamptz | no, yes, yes | the `.fda`; name and time identify the version |
+| outcome | text | no | stored / duplicate / skipped / no_photo / peeked / error / gave_up (final: all but peeked and error) |
+| photo_id | bigint | yes | the photograph kept or recognised |
+| message, meta | text, jsonb | yes | |
 
 ### app.fundus_reports (0021, D-042)
 The doctor's report of one photo session (patient, day, Remidio exam). Unique on (patient_id, exam_date,
