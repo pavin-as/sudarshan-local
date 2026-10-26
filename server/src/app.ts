@@ -32,6 +32,7 @@ import { paymentRoutes } from "./routes/payments.js";
 import { retinaAiRoutes } from "./routes/retinaAi.js";
 import { fundusRoutes } from "./routes/fundus.js";
 import { evaluationRoutes } from "./routes/evaluation.js";
+import { octRoutes } from "./routes/oct.js";
 import { RazorpayError } from "./services/razorpay.js";
 
 export async function buildApp(opts: { logger?: boolean } = {}): Promise<FastifyInstance> {
@@ -127,5 +128,6 @@ export async function buildApp(opts: { logger?: boolean } = {}): Promise<Fastify
   await app.register(retinaAiRoutes);
   await app.register(fundusRoutes);
   await app.register(evaluationRoutes);
+  await app.register(octRoutes);
   return app;
 }

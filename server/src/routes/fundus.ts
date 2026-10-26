@@ -18,12 +18,16 @@ const WITH_SESSIONS = `
            coalesce(f.remidio_exam_id, 0) AS exam_key,
            array_agg(f.id ORDER BY f.eye NULLS LAST, f.captured_at) AS photo_ids, count(*)::int AS photos,
            max(coalesce(f.captured_at, f.received_at)) AS last_at, bool_or(f.quality = 'INSUFFICIENT') AS any_poor,
-           array_agg(DISTINCT f.source) AS sources
+           array_agg(DISTINCT f.source) AS sources, bool_and(f.source = 'topcon') AS topcon_only
       FROM app.fundus_photos f WHERE f.patient_id IS NOT NULL GROUP BY 1, 2, 3)`;
 const FROM_SESSIONS = `
     FROM s JOIN clinical.patient p ON p.patient_id = s.patient_id
     LEFT JOIN app.fundus_reports r ON r.patient_id = s.patient_id AND r.exam_date = s.exam_date AND coalesce(r.remidio_exam_id, 0) = s.exam_key
     LEFT JOIN app.users ru ON ru.id = r.reported_by`;
+// "To report": no report yet, leaving out Maestro2 sessions from before retina.topcon_report_from (IMAGEnet's past exams,
+// D-049): they stay under All and on the patient page
+const TODO = `r.id IS NULL AND NOT (s.topcon_only AND s.exam_date < coalesce(
+  (SELECT (value #>> '{}')::date FROM app.settings WHERE key = 'retina.topcon_report_from'), '-infinity'::date))`;
 const SESSIONS = `${WITH_SESSIONS}
   SELECT s.patient_id AS "patientId", to_char(s.exam_date, 'YYYY-MM-DD') AS "examDate", s.exam_key AS "examKey",
          s.photo_ids AS "photoIds", s.photos, s.last_at AS "lastAt", s.any_poor AS "anyPoor", s.sources,
@@ -47,12 +51,12 @@ export async function fundusRoutes(app: FastifyInstance) {
     const f = z.object({ status: z.enum(["todo", "reported", "all"]).default("todo"), patientId: z.coerce.number().int().positive().optional(),
                          q: z.string().trim().max(60).optional() }).parse(req.query);
     const params: unknown[] = []; const where: string[] = [];
-    if (f.status === "todo") where.push("r.id IS NULL");
+    if (f.status === "todo") where.push(TODO);
     if (f.status === "reported") where.push("r.id IS NOT NULL");
     if (f.patientId) { params.push(f.patientId); where.push(`s.patient_id = $${params.length}`); }
     if (f.q) { params.push(f.q); where.push(`(p.mrd ILIKE $${params.length} || '%' OR p.name ILIKE '%' || $${params.length} || '%')`); }
     const rows = await q<any>(`${SESSIONS} ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY s.last_at DESC LIMIT 300`, params);
-    const todo = (await one<{ n: number }>(`${WITH_SESSIONS} SELECT count(*)::int AS n ${FROM_SESSIONS} WHERE r.id IS NULL`))?.n ?? 0;
+    const todo = (await one<{ n: number }>(`${WITH_SESSIONS} SELECT count(*)::int AS n ${FROM_SESSIONS} WHERE ${TODO}`))?.n ?? 0;
     return { sessions: rows.map(({ re_dr, le_dr, referral, ...s }) => ({ ...s, summary: s.reportId ? reportLine({ re_dr, le_dr, referral }) : null })), todo };
   });
 

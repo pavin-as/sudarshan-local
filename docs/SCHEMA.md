@@ -218,6 +218,24 @@ on a photograph that has none. Audited.
 Since 0024 `source` is `remidio` or `topcon`. A Maestro2 row has no Remidio ids or quality; `mrn` holds the DICOM patient ID
 (the SPD number), `sex_check` compares the DICOM sex with Yarago's, `meta` holds pixel spacing and the `.fda` size.
 
+### app.oct_studies (0025, D-049)
+One row per Maestro2 exam's tomography (the OPT object). Files under `OCT_DIR\<dir_path>`: `dicom\` (the exported
+DICOM) and `view\` (`b001.jpg`... B-scans, `oct.json`, `layers.bin`, `slab<n>.png`). Kept for good: trigger
+`oct_studies_guard` refuses DELETE and every UPDATE except setting `patient_id` on a scan that has none. Audited.
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| id, received_at, source | bigserial, timestamptz, text | no | source `topcon` |
+| photo_id | bigint | yes | the exam's colour photograph (scan lines are drawn on it) |
+| mrn, patient_id | text, bigint | yes | DICOM patient ID; the Yarago patient with that SPD number |
+| eye, captured_at, device, protocol | text, timestamptz, text, text | yes | |
+| kind | text | no | `oct` / `octa` (OCTA: has slabs or a flow volume) |
+| frames, rows, cols | integer | no | B-scans; pixels deep; pixels across |
+| spacing | jsonb | yes | axialMm, lateralMm, betweenMm |
+| layers, slabs | text[] | yes | Topcon's layer surfaces; OCTA slab names |
+| dicom_study_uid, opt_sop_uid | text | yes, no | the instance UID is unique (a re-saved exam is a duplicate) |
+| topcon_file, dir_path, bytes | text, text, bigint | yes, no, no | |
+
 ### app.topcon_import_log (0024, D-048)
 What the Topcon import did with each IMAGEnet exam file (a log: no audit trigger). An exam is done once a row for its
 file name and file time has a final outcome. Messages and `meta` hold shapes (protocol, eye, patient-ID format, size),
@@ -230,6 +248,7 @@ never names or IDs.
 | outcome | text | no | stored / duplicate / skipped / no_photo / peeked / error / gave_up (final: all but peeked and error) |
 | photo_id | bigint | yes | the photograph kept or recognised |
 | message, meta | text, jsonb | yes | |
+| version | integer | no | the import that did it (0025): 1 photograph only, 2 photograph and OCT; older versions are done again |
 
 ### app.fundus_reports (0021, D-042)
 The doctor's report of one photo session (patient, day, Remidio exam). Unique on (patient_id, exam_date,

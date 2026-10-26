@@ -5,6 +5,23 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Maestro2 OCT and OCTA scans in Sudarshan** (D-049). Each Maestro2 exam's OCT / OCTA scan now comes in with its
+  photograph. Exams imported this morning get theirs added. A fundus report session (and the patient page) lists the day's
+  "OCT / OCTA scans". Each opens a viewer with:
+  - the photograph with the scan lines;
+  - the B-scans, with slider, arrow keys and wheel;
+  - Topcon's layer lines;
+  - depth, brightness and contrast;
+  - for OCTA, the four en face slabs.
+
+  IMAGEnet's past exams can be imported outside clinic hours (20:00-07:00, Sundays); their sessions do not go on "To
+  report". The Jukebox archives are read once shared.
+  - Technical: migration `0025_oct_studies.sql` (`oct_studies`; `topcon_import_log.version`; settings
+    `retina.topcon_report_from`, `retina.topcon_backfill_window`).
+  - `topconImport.ts` (OCT, archives, versions, window), `backfillWindow.ts`, `routes/oct.ts`,
+    `components/OctViewer.tsx`, `topcon_photo.py --oct`, `backup.ps1` (`oct\`), `setup-topcon.ps1 -Archives`.
+  - Orthanc/OHIF evaluated on de-identified copies (`oct_deidentify.py`, `server/test/orthanc-eval`) and not adopted now.
+  - Tests: `test/topcon.test.ts` 18 checks.
 - **A new patient's story starts with "Booked"**: the temporary-ID remark (D-036) is now written after the booking, not before it (`routes/appointments.ts`); api and outreach tests updated for D-036's temporary ID (story step, `NDC_…` in log sentences), all 6 database tests pass.
 - **Maestro2 fundus photographs in Sudarshan** (D-048). Each new Topcon Maestro2 exam's colour fundus photograph is read
   from the ImageNet PC's read-only share, converted on shichika and kept like a Remidio photograph:

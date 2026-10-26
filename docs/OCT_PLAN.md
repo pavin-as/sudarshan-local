@@ -250,7 +250,33 @@ The plan as written before the build:
   - de-identified research sets: kept separately, with a checksum manifest and a record of what was done to each file.
 - A simple viewer (B-scans and en face slabs) on the patient page is optional: doctors already use ImageNet.
 
+**Step 4 built on 26 Oct (D-049), not deployed.** The import also keeps each exam's OCT / OCTA (export `-dcm -segDcm
+-enfaceSlabs` from the `.fda` alone), and Sudarshan's own OCT viewer opens from fundus report sessions and the patient
+page.
+- Safeguards for IMAGEnet's past exams: the backfill window, past sessions kept off "To report", and Jukebox archives read
+  with their subfolders.
+- Checked:
+  - 18 checks in `test/topcon.test.ts`;
+  - a real OCTA peek (exam 40745: 320 B-scans, 6 layers, 4 slabs, 15 s);
+  - a browser check of the viewer on synthetic data, at desktop and phone width.
+- Storage: about 83 MB per OCTA exam, 9 MB per radial exam. The full history needs a place decided first (D-049).
+
 ### Step 4b - Optional: evaluate Orthanc and OHIF (after Gate 2; evaluation only, not approval to install)
+**Done on 26 Oct, on de-identified copies of the two Step 1 exams** (`scripts/oct_deidentify.py`; checked: no original
+identifier or UID left, all references inside the copies still resolve). Orthanc 26.9.1 ran on 127.0.0.1:8042 with its
+DICOMweb and OHIF plugins, using 495 MB of memory.
+- **Storage:** all 16 objects were stored and returned byte for byte, with every frame.
+- **Decoding:** it previews and transcodes the B-scans, photographs and binary flow mask. It **cannot** decode the OCTA
+  flow volume or the en face slabs (JPEG 2000 lossless: no preview, transcoding to uncompressed fails with HTTP 500). It
+  can serve them only as stored.
+- **Layers:** it cannot serve Topcon's height-map layers as frames.
+- **OHIF** lists every series of the OCTA study and opens the B-scan stack ("1/320", window/level, orientation). It has no
+  scan lines on the photograph and no layer lines. How its slabs and B-scans look is for Pavin to judge: open
+  `http://127.0.0.1:8042/ohif/` on shichika while the container runs.
+- **Result: Option C without Orthanc for now** (D-049). Look again if ImageNet can send DICOM to a receiver (Topcon
+  question 5).
+
+The plan as written before the evaluation:
 Pavin's idea, added 26 Oct.
 
 **Question:** should exported DICOM be kept in an Orthanc DICOM server and viewed with OHIF inside Sudarshan, instead of

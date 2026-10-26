@@ -131,6 +131,20 @@ Screens: Retina AI tabs Photographs and System (receiver), thumbnails in To grad
 - **Grading:** `gradeNewPhotos` grades every `fundus_photos` row whatever its source.
 - **Sessions:** Maestro2 photographs form session 0 of their day. Evaluation sets carry `camera` in their criteria.
 
+### Maestro2 OCT / OCTA scans (D-049)
+- **Import:** the same pass keeps each exam's OCT (`keepOct`) after its photographs.
+  - `EXPORT_FLAGS` = `-dcm -segDcm -enfaceSlabs`.
+  - `scripts/topcon_photo.py --oct <dir>` writes the viewer files and reports the OCT's shape.
+  - `examRoots()` = the live folder plus `config.topcon.archives` (read recursively, logged as `<label>/<path>`).
+  - Exams count as done only with a final log row of this `VERSION`.
+- **Backfill window:** `services/backfillWindow.ts` (`windowOpen`, `startOfToday`). `pickWaiting` puts today's exams first
+  and past ones only while the window is open; `gradeNewPhotos` holds back past Maestro2 photographs the same way.
+- **API:** `routes/oct.ts`, all `clinical.read`: list, detail with `oct.json`'s scan lines, layers and slabs, B-scan JPEG,
+  slab PNG, `layers.bin` (int16 ×10, -1 missing, `[B-scans, surfaces, columns]`).
+- **Screens:** `components/OctViewer.tsx` (`OctViewer`, `OctScans`). B-scans are fixed-aspect images in physical
+  proportion × depth factor; SVG overlays carry the layer lines and scan lines.
+- **Sessions:** the To report list leaves out Maestro2-only sessions before `retina.topcon_report_from`.
+
 ### Fundus reports (D-042)
 `routes/fundus.ts`: a session is computed, not stored: linked `fundus_photos` grouped by patient, day in clinic time and
 `coalesce(remidio_exam_id, 0)`, left-joined to its `fundus_reports` row (the same key). Reads need `clinical.read`, writes

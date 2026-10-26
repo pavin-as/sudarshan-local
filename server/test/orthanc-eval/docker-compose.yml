@@ -1,0 +1,24 @@
+# Orthanc + OHIF evaluation (docs/OCT_PLAN.md Step 4b). Throwaway: de-identified copies only (scripts/oct_deidentify.py),
+# 127.0.0.1 only, no kept data (the container's storage goes with it), memory-limited. Not a production service.
+#   docker compose -f server/test/orthanc-eval/docker-compose.yml up -d     then  http://127.0.0.1:8042/ohif/
+#   docker compose -f server/test/orthanc-eval/docker-compose.yml down -v   when done
+name: sudarshan-orthanc-eval
+services:
+  orthanc:
+    image: orthancteam/orthanc:26.9.1
+    container_name: sudarshan-orthanc-eval
+    ports:
+      - "127.0.0.1:8042:8042"
+    environment:
+      VERBOSE_ENABLED: "true"
+      DICOM_WEB_PLUGIN_ENABLED: "true"
+      OHIF_PLUGIN_ENABLED: "true"
+      ORTHANC__NAME: "Sudarshan OCT evaluation (de-identified)"
+      # reachable only through 127.0.0.1 (above); the evaluation holds de-identified copies only
+      ORTHANC__AUTHENTICATION_ENABLED: "false"
+      ORTHANC__REMOTE_ACCESS_ALLOWED: "true"
+      ORTHANC__DICOM_SERVER_ENABLED: "false"
+      ORTHANC__OHIF__DATA_SOURCE: "dicom-web"
+    mem_limit: 1g
+    cpus: 2
+    restart: "no"

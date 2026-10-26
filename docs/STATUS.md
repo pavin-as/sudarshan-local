@@ -249,7 +249,20 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       off / peek / on switch and links by SPD number. The photographs appear on Fundus reports and Retina AI, graded
       silently, with evaluation sets per camera. 12 checks pass on the new Docker test database; browser checked; one
       real peek worked. **Not deployed.**
-- [ ] Pavin: deploy D-048 outside clinic hours: `update.ps1`, then `scripts\setup-topcon.ps1`, then Peek, then On (RUNBOOK 13).
+- [x] D-048 deployed 26 Oct; today's Maestro2 photographs are in Sudarshan.
+- [x] Maestro2 OCT / OCTA in Sudarshan built (26 Oct, D-049, migration 0025):
+  - the import keeps each exam's OCT and adds it to exams already imported;
+  - Sudarshan's own viewer;
+  - past exams only in the backfill window, kept off "To report";
+  - Jukebox archives read once shared;
+  - nightly backup of the OCT store.
+
+  18 Topcon checks pass, a real OCTA peek worked and the viewer was browser-checked. Orthanc/OHIF evaluated: not adopted
+  now. **Not deployed.**
+- [ ] Pavin: deploy D-049, then `setup-topcon.ps1` again (it adds `OCT_DIR`).
+- [ ] Pavin: judge OHIF at `http://127.0.0.1:8042/ohif/` (de-identified copies), then remove the evaluation container.
+- [ ] Pavin: decide where the full OCT history goes (about 150-300 GB; D: has about 218 GB free) before the start point is
+      set to 2021; share the Jukebox folders read-only.
 - [x] Isolated test database on shichika (26 Oct, `scripts\testdb.ps1`). First run of the existing database tests:
   - Retina AI 16, Fundus reports 10 and Remidio 13 pass. For Remidio, two out-of-date checks were fixed: the photograph
     is open to every clinical role (D-042), and peek words the eye in plain English.

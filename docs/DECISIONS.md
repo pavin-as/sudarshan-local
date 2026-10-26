@@ -544,6 +544,42 @@ it is kept on shichika, linked by SPD number, reported by doctors (D-042) and gr
 - **Testing:** tested on the isolated Docker test database (D-048 adds it to CLAUDE.md). It was also checked once in peek
   mode with the real share, tool and converter on a real exam: nothing was kept and the log line was removed.
 
+### D-049 · 2026-10-26 · Accepted · Pavin ("start step 4, along with Orthanc/OHIF evaluation"; "today's OCT work to Sudarshan ... then after clinic hours ... the whole data"); Claude chose the design
+**Maestro2 OCT and OCTA scans are kept in Sudarshan and shown in its own OCT viewer (OCT_PLAN Option C, without Orthanc
+for now). IMAGEnet's past exams can be imported outside clinic hours, Jukebox archives included.**
+- **Export:** `-dcm -segDcm -enfaceSlabs`, from the `.fda` alone. On 26 Oct a real OCTA exam gave the same 11 objects
+  with and without the `.fds`. Kept per exam in `OCT_DIR` (`D:\Sudarshan\data\oct\store`, in the nightly backup's
+  `oct\`):
+  - the DICOM (B-scans, photographs, Topcon's layer surfaces, OCTA flow volume and en face slabs);
+  - viewer files made by `scripts\topcon_photo.py`: B-scan JPEGs, scan lines on the colour photograph, layer heights,
+    slab PNGs.
+
+  The binary flow mask and the metadata stub are not kept.
+- **Records:** one `app.oct_studies` row per exam, linked to its colour photograph and the Yarago patient, kept for good
+  like the photographs.
+- **Viewer:** in each fundus report session and on the patient page. It shows the photograph with the scan lines (click
+  one to show its B-scan), the B-scans (slider, arrow keys, wheel, depth ×1-4), Topcon's layer lines (US tier, "not
+  checked by Sudarshan"), brightness and contrast, and for OCTA the four slabs (click to jump). Clinical roles
+  (`clinical.read`). IMAGEnet stays the full viewer.
+- **This morning's exams:** the import has a version. Exams done by the photograph-only version are done again: the
+  photograph is recognised, the OCT added.
+- **Past exams** (saved before today) are converted, and their photographs graded, only in `retina.topcon_backfill_window`
+  (20:00-07:00 and Sundays). Today's exams go first.
+  - Maestro2 sessions before `retina.topcon_report_from` (26 Oct) stay off the doctors' "To report" list, but remain under
+    All and on the patient page.
+  - The Jukebox archives are read with their subfolders once shared (`TOPCON_ARCHIVES`). A copy of the same exam in two
+    places is recognised by its DICOM UIDs.
+- **Orthanc + OHIF (Step 4b) on de-identified copies:**
+  - Orthanc stores and returns every object byte for byte.
+  - It cannot decode the OCTA flow and slab JPEG 2000 (no preview, transcoding fails) or serve the height-map layers.
+  - OHIF lists every series and opens the B-scan stack.
+  - It shows neither scan lines on the photograph nor Topcon's layers.
+
+  **Not adopted now.** It would add a 500 MB service without giving what the viewer needs. Look again if ImageNet can send
+  DICOM to a receiver (question 5 for Topcon), or if a standard viewer is wanted beside Sudarshan's.
+- **Storage:** about 83 MB per OCTA exam and 9 MB per radial exam. IMAGEnet's whole history (about 9,400 live exams plus
+  the Jukebox) would be roughly 150-300 GB, more than D: has free (218 GB). Pavin decides where before the full backfill.
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

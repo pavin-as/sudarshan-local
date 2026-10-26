@@ -19,6 +19,7 @@ import { fetchPhoto, getQueueItem, itemHandled, lastQueueHttp, photoFromItem, ph
 import { gradeImage, graderHealth, graderTargets, type GraderTarget } from "./retinaAi.js";
 import { activeGraders } from "./screening.js";
 import { syncGradesForPhoto } from "./fundusReport.js";
+import { backfillOpen, startOfToday } from "./backfillWindow.js";
 import { normaliseMrd } from "./retinaImport.js";
 
 export type ReceiverMode = "off" | "peek" | "on";
@@ -170,6 +171,8 @@ export async function gradeNewPhotos(log: FastifyBaseLogger): Promise<number> {
   grading = true;
   let graded = 0;
   try {
+    // Maestro2 photographs of past exams (IMAGEnet's history, D-049) are graded only in the backfill window
+    const past = { open: await backfillOpen(), today: startOfToday() };
     for (const g of await activeGraders()) {
       const target = graderTargets()[g.grader];
       if (!target?.key) continue;
@@ -178,7 +181,7 @@ export async function gradeNewPhotos(log: FastifyBaseLogger): Promise<number> {
       // the model this grader (and head) answers with; "" when a grader does not say (then: any grading without a model)
       const sha = (g.head ? health.heads?.[g.head]?.model_sha256 : health.modelSha256) ?? "";
       if (g.head && !sha) { log.warn(`photo grading: ${g.key} has no head "${g.head}"`); continue; }
-      graded += await gradeWith(g.key, target, g.head ? `head=${encodeURIComponent(g.head)}` : "", sha);
+      graded += await gradeWith(g.key, target, g.head ? `head=${encodeURIComponent(g.head)}` : "", sha, past);
     }
   } catch (e: any) {
     if (!(e instanceof HttpError && e.status === 503)) log.warn(`photo grading: ${String(e?.message ?? e).slice(0, 300)}`);
@@ -188,14 +191,15 @@ export async function gradeNewPhotos(log: FastifyBaseLogger): Promise<number> {
   return graded;
 }
 
-async function gradeWith(key: string, target: GraderTarget, query: string, sha: string): Promise<number> {
+async function gradeWith(key: string, target: GraderTarget, query: string, sha: string, past: { open: boolean; today: Date }): Promise<number> {
   let graded = 0;
   {
     const todo = await q<any>(
       `SELECT f.id, f.source, f.remidio_image_id, f.patient_id, coalesce(p.mrd, f.mrn) AS mrd, f.eye, f.file_path
          FROM app.fundus_photos f LEFT JOIN clinical.patient p ON p.patient_id = f.patient_id
         WHERE NOT EXISTS (SELECT 1 FROM app.dr_gradings g WHERE g.photo_id = f.id AND coalesce(g.model_sha256, '') = $1)
-        ORDER BY f.id LIMIT 5`, [sha]);
+          AND ($2 OR f.source <> 'topcon' OR coalesce(f.captured_at, f.received_at) >= $3)
+        ORDER BY (f.source = 'topcon' AND coalesce(f.captured_at, f.received_at) < $3), f.id LIMIT 5`, [sha, past.open, past.today]);
     for (const f of todo) {
       const file = path.join(config.retinaAi.photoDir, f.file_path);
       let outcome: Awaited<ReturnType<typeof gradeImage>>;

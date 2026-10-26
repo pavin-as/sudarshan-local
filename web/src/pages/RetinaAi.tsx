@@ -833,6 +833,7 @@ function TopconPanel() {
           {r.lastRun.waiting ? <span className="muted"> ({r.lastRun.waiting} exam{r.lastRun.waiting === 1 ? "" : "s"} waiting)</span> : null}
           {r.lastRun.error && <div className="small" style={{ color: "var(--vessel)" }}>{r.lastRun.error}</div>}</td></tr>
         <tr><th>Photographs kept</th><td>{r.counts.photos}{r.counts.unmatched ? `, ${r.counts.unmatched} not linked to a Yarago patient` : ""}{r.counts.toGrade ? `, ${r.counts.toGrade} waiting for the AI grade` : ""}{r.counts.lastPhotoAt ? `; last ${stamp(r.counts.lastPhotoAt)}` : ""}</td></tr>
+        <tr><th>OCT / OCTA scans kept</th><td>{r.counts.scans ?? 0}{r.counts.octaScans ? ` (${r.counts.octaScans} OCTA)` : ""}{r.counts.scanBytes ? `, ${(Number(r.counts.scanBytes) / 1e9).toFixed(1)} GB` : ""}</td></tr>
       </tbody></table>
       {!!r.recent.length && <>
         <div className="small"><b>Latest exams</b> (IMAGEnet file numbers and shapes only, no patient details)</div>

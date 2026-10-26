@@ -11,7 +11,11 @@
   3 the work folder D:\Sudarshan\data\oct\work\import, administrators and SYSTEM only (it holds copies of exams briefly)
   4 restart SudarshanServer so it reads the settings
   The import stays as it was (off after first install): Retina AI > System > Topcon Maestro2: Peek, then On.
+  -Archives: IMAGEnet's Jukebox folders, once shared read-only on the ImageNet PC (D-049), e.g.
+    -Archives 'E=\\192.168.0.152\SudarshanJukeboxE$;F=\\192.168.0.152\SudarshanJukeboxF$'
+  Without -Archives an existing TOPCON_ARCHIVES line is kept as it is.
 #>
+param([string]$Archives)
 $ErrorActionPreference = 'Stop'
 $App = 'D:\Sudarshan\app'
 $AppEnv = Join-Path $App '.env'
@@ -20,6 +24,7 @@ $Python = 'D:\Sudarshan\tools\oct-venv\Scripts\python.exe'
 $Share = '\\192.168.0.152\SudarshanOCT$'
 $Account = 'OCT_PC\sudarshan_ro'
 $Work = 'D:\Sudarshan\data\oct\work\import'
+$OctStore = 'D:\Sudarshan\data\oct\store'           # OCT / OCTA scans (D-049); in the nightly backup's oct\
 
 function Set-EnvValue([string]$file, [string]$key, [string]$value) {
   # rewrites the file in place, so its access rights (administrators only) stay as they are
@@ -50,11 +55,13 @@ Set-EnvValue $AppEnv 'TOPCON_SHARE_PASSWORD' ('"' + $plain + '"')
 Set-EnvValue $AppEnv 'TOPCON_TOOL' $Tool
 Set-EnvValue $AppEnv 'OCT_PYTHON' $Python
 Set-EnvValue $AppEnv 'TOPCON_WORK_DIR' $Work
+Set-EnvValue $AppEnv 'OCT_DIR' $OctStore
+if ($Archives) { Set-EnvValue $AppEnv 'TOPCON_ARCHIVES' $Archives; Write-Host "  archives: $Archives" }
 $plain = $null; $sec = $null
 Write-Host "  written to $AppEnv (password not shown); share $Share as $Account"
 
 Write-Host "`n=== 3. Work folder ===" -ForegroundColor Cyan
-New-Item -ItemType Directory -Force -Path $Work | Out-Null
+New-Item -ItemType Directory -Force -Path $Work, $OctStore | Out-Null
 & icacls 'D:\Sudarshan\data\oct' /inheritance:r /grant:r 'Administrators:(OI)(CI)F' 'SYSTEM:(OI)(CI)F' "$env:COMPUTERNAME\Admin:(OI)(CI)F" | Out-Null
 Write-Host "  $Work (administrators and SYSTEM only)"
 

@@ -9,6 +9,7 @@ import { useAuth } from "../auth";
 import { niceDate, stamp } from "../format";
 import { Drawer, ErrorNotice, Loading, useToast } from "../components/ui";
 import { CAMERA, PhotoThumb, PhotoViewer } from "./RetinaAi";
+import { OctScans } from "../components/OctViewer";
 
 type Words = { DR: Record<string, string>; DME: Record<string, string>; FINDINGS: Record<string, string>; REFERRAL: Record<string, string> };
 export interface Session {
@@ -117,6 +118,7 @@ function SessionDrawer({ s, onClose }: { s: Session; onClose: () => void }) {
                 <div className="muted">{[CAMERA[p.source] ?? p.source, p.protocol].filter(Boolean).join(" · ")}</div></figcaption>
             </figure>))}
         </div>
+        <OctScans patientId={s.patientId} date={s.examDate} />
         {q.data.report && !editing && <ReportView r={q.data.report} w={q.data.words} />}
         {q.data.report && !editing && writer && <div className="row"><button onClick={() => setEditing(true)}>Correct this report</button></div>}
         {(!q.data.report || editing) && (writer

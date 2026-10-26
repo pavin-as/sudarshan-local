@@ -59,5 +59,13 @@ export const config = {
     python: process.env.OCT_PYTHON ?? "D:\\Sudarshan\\tools\\oct-venv\\Scripts\\python.exe",
     // copies and exports of the exam being imported (patient data, administrators only); emptied after each exam
     workDir: process.env.TOPCON_WORK_DIR ?? "D:\\Sudarshan\\data\\oct\\work\\import",
+    // OCT / OCTA scans kept (D-049): each exam's DICOM and the viewer's files; administrators and SYSTEM only
+    octDir: process.env.OCT_DIR ?? "D:\\Sudarshan\\data\\oct\\store",
+    // IMAGEnet's archive folders (the Jukebox volumes), read with their subfolders: "E=\\host\share;F=\\host\share2".
+    // An exam found there is logged as <label>/<path below the share>; the live folder's exams by name alone.
+    archives: (process.env.TOPCON_ARCHIVES ?? "").split(";").map((x) => x.trim()).filter(Boolean).map((x) => {
+      const i = x.indexOf("=");
+      return i > 0 ? { label: x.slice(0, i).trim(), dir: x.slice(i + 1).trim() } : { label: x.replace(/[^A-Za-z0-9]/g, "").slice(-12), dir: x };
+    }),
   },
 };

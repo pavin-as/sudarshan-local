@@ -382,6 +382,28 @@ Set up on 25 Oct 2026 (Step 0).
   - "the export tool made no DICOM files": look at the newest log in `D:\Sudarshan\data\oct\work\log`. It is patient
     data: do not copy it anywhere.
   - An exam that fails 5 times is left in IMAGEnet ("gave up").
+- **OCT / OCTA scans** (D-049) come with each exam once the new version is deployed. Exams already imported get their OCT
+  added automatically. Doctors open a scan from the fundus report session ("OCT / OCTA scans"), or from the patient
+  page.
+- **IMAGEnet's past exams and the Jukebox** (D-049). Outside clinic hours:
+  1. On the ImageNet PC (Administrator PowerShell, in the folder holding `imagenet-share-readonly.ps1`), share each archive
+     read-only:
+     `powershell -ExecutionPolicy Bypass -File .\imagenet-share-readonly.ps1 -DataFolder E:\Jukebox -Share 'SudarshanJukeboxE$'`
+     and the same with `F:\Jukebox` and `'SudarshanJukeboxF$'`.
+
+     Then deny `sudarshan_ro` on any share made since (the earlier `Block-SmbShareAccess` line again).
+  2. On shichika (Administrator PowerShell):
+     `powershell -ExecutionPolicy Bypass -File D:\Sudarshan\app\scripts\setup-topcon.ps1 -Archives 'E=\\192.168.0.152\SudarshanJukeboxE$;F=\\192.168.0.152\SudarshanJukeboxF$'`
+  3. Retina AI > System: set "Import exams saved from" to 01/03/2021 00:00.
+     - Past exams are converted only in the backfill window (20:00-07:00 and Sundays), newest first, 3 a minute.
+     - Their photographs are graded in the same window.
+     - Their sessions do not go on "To report".
+  - Check the space first: about 83 MB per OCTA exam, 9 MB per radial exam. The whole history may need 150-300 GB, and
+    D: has about 218 GB free. The backup copies it again to `F:\SUDARSHAN_BACKUP\oct`.
+- **Orthanc / OHIF evaluation** (D-049): a throwaway container on 127.0.0.1:8042 with two de-identified exams.
+  - Open: `http://127.0.0.1:8042/ohif/`
+  - Remove: `docker compose -f D:\Sudarshan\app\server\test\orthanc-eval\docker-compose.yml down -v`, then delete
+    `D:\Sudarshan\data\oct\work\deid`.
 - **The isolated test database** (developers): `scripts\testdb.ps1 up` / `down` / `reset`; tests with
   `$env:SUDARSHAN_ENV='D:\Sudarshan\testdb\test.env'`. Synthetic data only.
 

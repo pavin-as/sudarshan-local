@@ -291,7 +291,11 @@ export async function retinaAiRoutes(app: FastifyInstance) {
     const [counts, recent, unmatched] = await Promise.all([
       one(`SELECT count(*)::int AS photos, count(*) FILTER (WHERE patient_id IS NULL)::int AS unmatched,
                   count(*) FILTER (WHERE NOT EXISTS (SELECT 1 FROM app.dr_gradings g WHERE g.photo_id = f.id))::int AS "toGrade",
-                  max(received_at) AS "lastPhotoAt" FROM app.fundus_photos f WHERE source = 'topcon'`),
+                  max(received_at) AS "lastPhotoAt",
+                  (SELECT count(*)::int FROM app.oct_studies) AS scans,
+                  (SELECT count(*)::int FROM app.oct_studies WHERE kind = 'octa') AS "octaScans",
+                  (SELECT coalesce(sum(bytes), 0)::bigint FROM app.oct_studies) AS "scanBytes"
+             FROM app.fundus_photos f WHERE source = 'topcon'`),
       q(`SELECT at, file_name AS "fileName", outcome, message, meta FROM app.topcon_import_log ORDER BY id DESC LIMIT 15`),
       one<{ value: string }>(`SELECT value FROM app.settings WHERE key = 'retina.topcon_unmatched'`),
     ]);
