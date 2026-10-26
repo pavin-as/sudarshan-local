@@ -401,6 +401,36 @@ whether it runs offline, and whether it reads Maestro2 slabs at their real scale
 - Vessel maps are overlaid on the fundus photograph and OCT.
 - A written list of limits, artefacts and clinically important differences exists.
 
+### Steps 7-10 - What Sudarshan adds beyond IMAGEnet (added 26 Oct; Pavin: "add A-D to the plan ... start with item 1")
+IMAGEnet shows more about a single scan (thickness maps, normative data, its own analyses). Sudarshan's value is putting
+the scans beside the EMR and using them for decisions and research.
+- **Step 7 (A) - Thickness linked to treatment. Built 26 Oct (D-050); the IMAGEnet check is next (RUNBOOK 13).** First
+  real scans: an OCTA cube had CST 258 µm (ILM-BM), with normal sector pattern and nasal thicker than temporal; a radial
+  scan had 394 µm.
+  - Sudarshan computes central subfield thickness (CST) and the 9 ETDRS sectors from Topcon's layer lines (ILM to BM, and
+    ILM to OS/RPE), for every macula 3D and radial scan.
+  - **Gate:** checked against IMAGEnet's CST on as many scans as Pavin gives. The values are typed into a check sheet on
+    shichika; only the agreement is reported.
+  - Then an **"injection response" chart** on the patient page: CST per eye, vision and injection dates from Yarago on one
+    timeline. It is labelled "not checked against IMAGEnet" until the gate passes.
+- **Step 8 (B) - OCT in the clinic's workflows**, after Step 7's gate:
+  - the latest CST and its change on the doctor summary (D-026), with date and source;
+  - follow-up board flags (injection team, D-038): CST rising since the last visit, or no OCT for months while on
+    injections;
+  - an OCT-based macular oedema *suggestion* on the fundus report form, which the doctor confirms (AI never writes the
+    record).
+- **Step 9 (C) - AI research, silent; extends Step 5.** Each item follows D-044 and D-045 (licences, safe loading, Sampada
+  validation sets):
+  - fluid detection (IRF, SRF, PED) on B-scans;
+  - DME screening combining the photograph (RFM) with OCT (CST and fluid);
+  - RNFL and GCL thickness for glaucoma suspects;
+  - OCTA vessel density and FAZ computed by Sudarshan (Topcon gives no FAZ for the Maestro2);
+  - non-perfusion maps (Step 6).
+- **Step 10 (D) - Clinic and research insight** (aggregates in Metabase):
+  - outcomes by treatment (CST and vision after loading doses, by drug);
+  - care gaps (overdue OCT);
+  - de-identified cohorts for audits and papers.
+
 ## 7. Questions for Topcon (with the OCTA licence visit)
 1. Can the export tool's Research (or OUS) key be issued for shichika's Hardware ID? Is it free? Can it be re-issued if
    shichika's hardware changes?

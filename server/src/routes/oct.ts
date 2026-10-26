@@ -13,6 +13,8 @@ import { notFound } from "../lib/errors.js";
 import { dateStr } from "../lib/time.js";
 
 const idParam = z.object({ id: z.coerce.number().int().positive() });
+/** The Step 7 gate: when Sudarshan's CST was checked against IMAGEnet (null = not yet; screens say so). */
+const thicknessChecked = async () => (await one<{ value: any }>(`SELECT value FROM app.settings WHERE key = 'retina.oct_thickness_checked'`))?.value ?? null;
 const COLS = `o.id, o.photo_id AS "photoId", o.patient_id AS "patientId", o.eye, o.captured_at AS "capturedAt", o.device, o.protocol,
   o.kind, o.frames, o.rows, o.cols, o.spacing, o.layers, o.slabs`;
 
@@ -53,9 +55,31 @@ export async function octRoutes(app: FastifyInstance) {
     let view: any = {};
     try { view = JSON.parse(await readFile(path.join(root, "view", "oct.json"), "utf8")); } catch { throw notFound("OCT viewer files"); }
     const photo = row.photoId ? await one<{ width: number; height: number }>(`SELECT width, height FROM app.fundus_photos WHERE id = $1`, [row.photoId]) : null;
+    const thickness = await one(`SELECT version, kind, centre, results, computed_at AS "computedAt" FROM app.oct_thickness
+                                  WHERE study_id = $1 ORDER BY version DESC LIMIT 1`, [id]);
     return { study: row, view: { scanLines: view.scanLines ?? null, linesOnColourPhoto: !!view.linesOnColourPhoto, spacing: view.spacing ?? null,
                                  layers: view.layers ?? null, slabs: (view.slabs ?? []).map((s: any, i: number) => ({ n: i + 1, label: s.label, definition: s.definition })) },
-             photo };
+             photo, thickness, checked: await thicknessChecked() };
+  });
+
+  // The "injection response" chart (D-050): CST per eye over time with the injections and the vision from Yarago.
+  app.get("/api/oct/thickness", async (req) => {
+    need(req, "clinical.read");
+    const { patientId } = z.object({ patientId: z.coerce.number().int().positive() }).parse(req.query);
+    const [points, injections, vision] = await Promise.all([
+      q(`SELECT DISTINCT ON (o.id) o.id AS "studyId", to_char(o.captured_at AT TIME ZONE 'Asia/Kolkata', 'YYYY-MM-DD') AS date,
+                o.captured_at AS "capturedAt", o.eye, o.kind, o.protocol, t.cst_ilm_bm_um AS "cstIlmBm", t.cst_ilm_rpe_um AS "cstIlmRpe",
+                t.centre ->> 'method' AS centre
+           FROM app.oct_studies o JOIN app.oct_thickness t ON t.study_id = o.id
+          WHERE o.patient_id = $1 ORDER BY o.id, t.version DESC`, [patientId]),
+      q(`SELECT to_char(treated_at, 'YYYY-MM-DD') AS date, eye, drug, injection_number_for_eye AS number
+           FROM clinical.injection WHERE patient_id = $1 AND given AND treated_at IS NOT NULL ORDER BY treated_at`, [patientId]),
+      q(`SELECT to_char(visit_date, 'YYYY-MM-DD') AS date, bcva_re AS "bcvaRe", bcva_le AS "bcvaLe",
+                bcva_logmar_re AS "logmarRe", bcva_logmar_le AS "logmarLe"
+           FROM clinical.va_iop_trend WHERE patient_id = $1 AND coalesce(bcva_re, bcva_le) IS NOT NULL ORDER BY visit_date`, [patientId]),
+    ]);
+    return { points: (points as any[]).sort((a, b) => String(a.capturedAt).localeCompare(String(b.capturedAt))), injections, vision,
+             checked: await thicknessChecked() };
   });
 
   app.get("/api/oct/studies/:id/bscan/:n", async (req, reply) => {

@@ -259,7 +259,15 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
 
   18 Topcon checks pass, a real OCTA peek worked and the viewer was browser-checked. Orthanc/OHIF evaluated: not adopted
   now. **Not deployed.**
-- [ ] Pavin: deploy D-049, then `setup-topcon.ps1` again (it adds `OCT_DIR`).
+- [x] D-049 deployed 26 Oct; OCT / OCTA scans are in Sudarshan.
+- [x] Retinal thickness built (26 Oct, D-050, migration 0026):
+  - CST and ETDRS from Topcon's layers, for macula cubes and radial scans;
+  - an ETDRS grid in the viewer;
+  - "OCT thickness and injections" on the patient page;
+  - a check sheet and comparison against IMAGEnet.
+
+  9 unit and 19 Topcon checks pass; browser-checked. Fixed a sector-boundary bug and a date-label bug.
+- [ ] Pavin: deploy D-050, then do the IMAGEnet CST check (RUNBOOK 13: sheet, Excel, compare, record).
 - [ ] Pavin: judge OHIF at `http://127.0.0.1:8042/ohif/` (de-identified copies), then remove the evaluation container.
 - [ ] Pavin: decide where the full OCT history goes (about 150-300 GB; D: has about 218 GB free) before the start point is
       set to 2021; share the Jukebox folders read-only.

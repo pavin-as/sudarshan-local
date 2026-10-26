@@ -1,6 +1,7 @@
 """Synthetic stand-in for a Topcon DICOM OCT Export Tool output folder (tests only; no real patient).
   python -I make_topcon_export.py <out folder> <json options>
-options: patientId, sex (M/F), eye (R/L), colour (true/false), sop (photograph instance UID), protocol,
+options: patientId, sex (M/F), eye (R/L), colour (true/false), sop (photograph instance UID), protocol, frames (4),
+         radial (true: the scan lines cross at the photograph's centre),
          opt (true/false: a tomography), optSop (its instance UID), octa (true/false: en face slabs), when
 Writes like the real export: an OP colour photograph (unless colour is false), an OP infrared one and, unless opt is false,
 an OPT of 4 B-scans whose scan lines lie on the colour photograph, Topcon's layer surfaces as a height-map SEG and, for
@@ -16,7 +17,7 @@ from pydicom.uid import ExplicitVRLittleEndian, generate_uid
 
 OP, OPT, OPTENF, HMSEG = ("1.2.840.10008.5.1.4.1.1.77.1.5.1", "1.2.840.10008.5.1.4.1.1.77.1.5.4",
                           "1.2.840.10008.5.1.4.1.1.77.1.5.7", "1.2.840.10008.5.1.4.1.1.66.8")
-FRAMES, ROWS, COLS = 4, 64, 32
+ROWS, COLS = 64, 32
 LAYERS = ["ILM", "RNFL/GCL", "IPL/INL", "IS/OS", "OS/RPE", "BM"]
 SLABS = ["Superficial, ILM+0.0, IPL/INL+15.6", "Deep, IPL/INL+15.6, IPL/INL+70.2", "Choriocapillaris, BM+0.0, BM+20.8",
          "Outer Retina (PAR), IPL/INL+70.2, BM+0.0"]
@@ -41,8 +42,10 @@ def base(sop_class, uid, o, study):
 
 
 def main():
+    global FRAMES
     out = Path(sys.argv[1])
     o = json.loads(sys.argv[2])
+    FRAMES = int(o.get("frames", 4))
     out.mkdir(parents=True, exist_ok=True)
     rng = np.random.default_rng(7)
     study = o.get("study", "1.2.826.0.1.3680043.10.999.1")
@@ -76,7 +79,11 @@ def main():
     for i in range(FRAMES):
         fl = Dataset()
         fl.ReferencedSOPClassUID, fl.ReferencedSOPInstanceUID = OP, colour_sop
-        fl.ReferenceCoordinates = [30.0 + i * 20, 20.0, 30.0 + i * 20, 140.0]      # row, column pairs
+        if o.get("radial"):                                   # lines through the photograph's centre (60, 80)
+            a = np.pi * i / FRAMES
+            fl.ReferenceCoordinates = [60 - 40 * np.sin(a), 80 - 40 * np.cos(a), 60 + 40 * np.sin(a), 80 + 40 * np.cos(a)]
+        else:
+            fl.ReferenceCoordinates = [30.0 + i * 20, 20.0, 30.0 + i * 20, 140.0]  # row, column pairs
         fl.OphthalmicImageOrientation = "LINEAR"
         g = Dataset(); g.OphthalmicFrameLocationSequence = [fl]
         per.append(g)

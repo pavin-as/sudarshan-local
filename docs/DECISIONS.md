@@ -580,6 +580,33 @@ for now). IMAGEnet's past exams can be imported outside clinic hours, Jukebox ar
 - **Storage:** about 83 MB per OCTA exam and 9 MB per radial exam. IMAGEnet's whole history (about 9,400 live exams plus
   the Jukebox) would be roughly 150-300 GB, more than D: has free (218 GB). Pavin decides where before the full backfill.
 
+### D-050 · 2026-10-26 · Accepted · Pavin ("add A-D to the plan ... start with item 1 ... take any number of scans' CST values from IMAGEnet for the validation"); Claude chose the method
+**Sudarshan measures retinal thickness from Topcon's own layer lines, checks it against IMAGEnet before anyone relies on
+it, and shows it beside injections and vision (OCT_PLAN Step 7).**
+- **What is measured:** central subfield thickness (CST, the central 1 mm) and the 9 ETDRS sectors (1, 3, 6 mm), ILM to BM
+  and ILM to OS/RPE (IMAGEnet offers more than one definition). It covers 3D macula cubes (32 or more B-scans) and radial
+  macula scans; other scans are not measured.
+  - **Centre:** a cube's thinnest point within 1.5 mm of the scan centre (the foveal pit); a radial scan's crossing point.
+  - **Direction:** from each scan's lines on the colour photograph. Superior is up. Nasal is the optic disc's side: the
+    image's right for a right eye (checked on Maestro2 photographs on 26 Oct).
+  - **Gaps:** a sector less than half measured is left empty, never guessed.
+- **Where it lives:** `app.oct_thickness`, one row per scan and method version. It is derived data: a new method adds
+  rows. Scans are measured after import, and every scan kept earlier is measured too.
+- **IMAGEnet's CST is not in the `.fda`** (checked on 26 Oct: its blocks hold contours, not thickness). So the check is
+  done by a person:
+  - `cli oct-thickness-sheet` writes `D:\Sudarshan\data\oct\work\cst_check.csv` (administrators only, names patients).
+  - Staff type IMAGEnet's CST next to Sudarshan's for any number of scans.
+  - `cli oct-thickness-compare` prints the agreement only: bias, SD, 95% limits, mean and largest difference, r; by
+    definition and by cubes / radial.
+  - Pavin decides whether it passes; `--record ILM-BM` then stores the result in `retina.oct_thickness_checked`.
+- **Screens:**
+  - an ETDRS grid in the OCT viewer;
+  - "OCT thickness and injections" on the patient page: CST per eye over time with Yarago's injections and best corrected
+    vision.
+
+  Both say "not yet checked against IMAGEnet" until the check is recorded, and give its figures after.
+- **Not used for decisions:** nothing is flagged or suggested from thickness until the gate passes (Steps 8-9).
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

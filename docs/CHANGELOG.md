@@ -5,6 +5,17 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Retinal thickness from the Maestro2 scans** (D-050). For macula 3D and radial scans, Sudarshan now works out central
+  subfield thickness (CST) and the ETDRS sectors from Topcon's layer lines, ILM to BM and ILM to OS/RPE.
+  - The OCT viewer shows the ETDRS grid.
+  - The patient page has "OCT thickness and injections": CST per eye over time, with injections and vision from Yarago.
+  - Both say "not yet checked against IMAGEnet" until the check is done. The check uses a sheet on shichika that staff
+    fill from IMAGEnet; the comparison prints only the agreement (RUNBOOK 13).
+  - Technical: migration `0026_oct_thickness.sql`, `services/octThickness.ts`, `services/octMeasure.ts`, CLI
+    `oct-thickness-sheet` / `oct-thickness-compare`, `GET /api/oct/thickness`, `components/InjectionResponse.tsx`, the
+    viewer's `EtdrsGrid`.
+  - Tests: `test/octThickness.unit.test.ts` (9, in `test:rules`); 1 more step in `test/topcon.test.ts` (19).
+  - OCT_PLAN Steps 7-10 added. The Orthanc evaluation was removed and its de-identified copies deleted.
 - **Fundus reports: rows coloured by camera.** Remidio FOP rows have a blue strip and tint; Topcon Maestro2 rows an orange
   one. A filled purple "OCTA" tag means the session has an OCTA scan, an outlined "OCT" tag OCT only. There's a colour key
   beside the search box, and the patient page uses the same colours.

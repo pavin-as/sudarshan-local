@@ -400,6 +400,18 @@ Set up on 25 Oct 2026 (Step 0).
      - Their sessions do not go on "To report".
   - Check the space first: about 83 MB per OCTA exam, 9 MB per radial exam. The whole history may need 150-300 GB, and
     D: has about 218 GB free. The backup copies it again to `F:\SUDARSHAN_BACKUP\oct`.
+- **Checking Sudarshan's CST against IMAGEnet** (D-050). On shichika, in an Administrator PowerShell:
+  1. Write the sheet. It measures anything not measured yet and keeps values typed in earlier:
+     `cd D:\Sudarshan\app\server; node dist/cli.js oct-thickness-sheet`
+     (only today's: add `--from 2026-10-26`).
+  2. Open `D:\Sudarshan\data\oct\work\cst_check.csv` in Excel. For as many rows as you like, find the scan in IMAGEnet
+     (patient, time, eye) and type IMAGEnet's central subfield thickness (µm) into `imagenet_cst_um`. Save as CSV.
+  3. Compare: `node dist/cli.js oct-thickness-compare`. It prints the agreement only, for each definition (ILM-BM,
+     ILM-OS/RPE).
+  4. If Pavin accepts it:
+     `node dist/cli.js oct-thickness-compare --record ILM-BM --by "Name"`
+     (or `ILM-OS/RPE`, whichever matches IMAGEnet). The screens then show the check instead of "not yet checked".
+  5. Delete the sheet afterwards: it names patients.
 - **Orthanc / OHIF evaluation** (D-049): a throwaway container on 127.0.0.1:8042 with two de-identified exams.
   - Open: `http://127.0.0.1:8042/ohif/`
   - Remove: `docker compose -f D:\Sudarshan\app\server\test\orthanc-eval\docker-compose.yml down -v`, then delete

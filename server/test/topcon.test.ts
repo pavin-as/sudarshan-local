@@ -7,7 +7,7 @@
 // (990000105, SPD99904), its exam files *99000*.fda; all removed afterwards and the import settings put back.
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,6 +19,7 @@ import { hashPassword } from "../src/lib/passwords.js";
 import { startOfToday, windowOpen } from "../src/services/backfillWindow.js";
 import { gradeNewPhotos } from "../src/services/remidioReceiver.js";
 import { setGraderTransport } from "../src/services/retinaAi.js";
+import { compareCheckSheet, measureMissing, writeCheckSheet } from "../src/services/octMeasure.js";
 import { GIVE_UP_AFTER, forgetSettledNames, pickWaiting, pollTopcon, setTopconExporter } from "../src/services/topconImport.js";
 
 if (!process.env.SUDARSHAN_ENV) { console.error("Set SUDARSHAN_ENV to a test .env file"); process.exit(2); }
@@ -69,7 +70,8 @@ const CLOSED = { from: "00:00", to: "00:00", sundays: false }, OPEN = { from: "0
 
 // ---------- fixtures ----------
 const PID = 990000103, MRD = "SPD99902", PID2 = 990000105, MRD2 = "SPD99904", FILES = "file_name LIKE '%9900%'";
-const KEYS = ["retina.topcon_mode", "retina.topcon_unmatched", "retina.topcon_since", "retina.graders", "retina.topcon_backfill_window", "retina.topcon_report_from"];
+const KEYS = ["retina.topcon_mode", "retina.topcon_unmatched", "retina.topcon_since", "retina.graders", "retina.topcon_backfill_window", "retina.topcon_report_from",
+              "retina.oct_thickness_checked"];
 const saved = (await pool.query(`SELECT key, value FROM app.settings WHERE key = ANY($1)`, [KEYS])).rows;
 const put = (key: string, v: unknown) => pool.query(`INSERT INTO app.settings (key, value) VALUES ($1, $2::jsonb)
                                                       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`, [key, JSON.stringify(v)]);
@@ -86,6 +88,7 @@ async function cleanup() {
     DELETE FROM app.dr_gradings WHERE photo_id IN (${PHOTOS});
     DELETE FROM app.fundus_reports WHERE patient_id IN (${PID}, ${PID2});
     DELETE FROM app.topcon_import_log WHERE ${FILES};
+    DELETE FROM app.oct_thickness WHERE study_id IN (SELECT id FROM app.oct_studies WHERE topcon_file LIKE '%9900%');
     DELETE FROM app.oct_studies WHERE topcon_file LIKE '%9900%';
     DELETE FROM app.fundus_photos WHERE id IN (${PHOTOS});
     ALTER TABLE app.dr_gradings ENABLE TRIGGER dr_gradings_guard; ALTER TABLE app.fundus_photos ENABLE TRIGGER fundus_photos_guard;
@@ -317,6 +320,35 @@ try {
     assert.equal(todo.length, 1, "today's session only"); assert.equal(all.length, 2, "yesterday's under All");
   });
 
+  console.log("thickness (D-050)");
+  await step("radial macula scans are measured (CST, ETDRS); the chart's data and the check against IMAGEnet", async () => {
+    const radial = { patientId: MRD2, frames: 12, radial: true, octa: false, protocol: "Radial/Macula/1024/12/6mm" };
+    exam("990011", { ...radial, eye: "L" }, 6); exam("990012", { ...radial, eye: "R" }, 5);
+    assert.equal(await pollTopcon(log), "2 stored");
+    assert.ok((await measureMissing()) >= 2);
+    const t = (await pool.query(`SELECT t.* FROM app.oct_thickness t JOIN app.oct_studies o ON o.id = t.study_id WHERE o.topcon_file = '990011.fda'`)).rows;
+    assert.equal(t.length, 1); assert.equal(t[0].kind, "radial");
+    assert.equal(t[0].cst_ilm_bm_um, 52); assert.equal(t[0].cst_ilm_rpe_um, 42);              // 20 and 16 rows of 2.6 um
+    assert.equal(await measureMissing(), 0, "measured once");
+    assert.equal((await call("GET", `/api/oct/thickness?patientId=${PID2}`, staff)).status, 403);
+    const d = (await call("GET", `/api/oct/thickness?patientId=${PID2}`, doc)).body;
+    assert.deepEqual(d.points.map((x: any) => [x.eye, x.cstIlmBm]).sort(), [["LE", 52], ["RE", 52]]);
+    assert.equal(d.checked, null);
+    const id = (await pool.query(`SELECT id FROM app.oct_studies WHERE topcon_file = '990011.fda'`)).rows[0].id;
+    assert.equal((await call("GET", `/api/oct/studies/${id}`, doc)).body.thickness.results["ILM-BM"].cstUm, 52);
+    // the check sheet: written with names for the person filling it in; read back for aggregates only
+    const sheet = path.join(tmp, "cst_check.csv");
+    const w = await writeCheckSheet({ out: sheet });
+    assert.equal(w.rows, 2);
+    const text = readFileSync(sheet, "utf8");
+    assert.ok(text.startsWith("\uFEFF") && text.includes("ZZ Test Topcon Two"));
+    writeFileSync(sheet, text.split("\r\n").map((l, i) => (i && l ? l.replace(/,,$/, i === 1 ? ",50," : ",55,") : l)).join("\r\n"));
+    assert.equal((await writeCheckSheet({ out: sheet })).filledBefore, 2, "values typed in are kept when the sheet is written again");
+    const r = await compareCheckSheet({ file: sheet, record: "ILM-BM", by: "ZZ Top Doctor" });
+    assert.equal(r.filled, 2); assert.equal(r["ILM-BM"].all.n, 2); assert.equal(r["ILM-BM"].all.biasUm, -0.5);
+    const c = (await call("GET", `/api/oct/thickness?patientId=${PID2}`, doc)).body.checked;
+    assert.equal(c.definition, "ILM-BM"); assert.equal(c.n, 2);
+  });
   console.log("grading, reports and screens");
   await step("Maestro2 photographs are graded by the research model, recorded as source topcon", async () => {
     let n = 0; for (let i = 0; i < 3; i++) n += await gradeNewPhotos(log);

@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../api";
 import { stamp } from "../format";
 import { Drawer, ErrorNotice, Loading } from "./ui";
+import { checkedWords, type ThicknessCheck } from "./InjectionResponse";
 
 interface Study {
   id: number; photoId: number | null; eye: "RE" | "LE" | null; capturedAt: string | null; device: string | null; protocol: string | null;
@@ -26,6 +27,49 @@ const LAYER_COLOURS = ["#f5c542", "#4cc9f0", "#90e0ef", "#f72585", "#ff8fab", "#
 export const protocolWords = (p: string | null) => (p ?? "protocol not given").split("/").filter((x) => !/^\d+$/.test(x)).join(" · ");
 export const octTitle = (s: OctListItem) => `${s.kind === "octa" ? "OCTA" : "OCT"} · ${s.eye ? EYE[s.eye] : "eye not given"} · ${protocolWords(s.protocol)}`;
 
+type Sectors = Record<"C" | "S1" | "N1" | "I1" | "T1" | "S2" | "N2" | "I2" | "T2", number | null>;
+interface ThicknessResult { version: number; kind: "cube" | "radial"; centre: { method: string };
+  results: Record<"ILM-BM" | "ILM-OS/RPE", { cstUm: number | null; sectorsUm: Sectors } | null> }
+
+/** The ETDRS grid (1, 3, 6 mm) with Sudarshan's thickness per sector, nasal on the disc's side as on the photograph. */
+function EtdrsGrid({ t, eye, checked }: { t: ThicknessResult; eye: "RE" | "LE" | null; checked: ThicknessCheck | null }) {
+  const [def, setDef] = useState<"ILM-BM" | "ILM-OS/RPE">("ILM-BM");
+  const r = t.results[def];
+  if (!r) return null;
+  const s = r.sectorsUm, nasalRight = eye !== "LE";
+  const R = [16, 48, 96], c = 100;                          // 1, 3, 6 mm diameters, drawn to scale
+  const at = (ring: 1 | 2, side: "S" | "N" | "I" | "T") => {
+    const rr = ring === 1 ? 32 : 72;
+    const dx = side === "N" ? (nasalRight ? rr : -rr) : side === "T" ? (nasalRight ? -rr : rr) : 0;
+    const dy = side === "S" ? -rr : side === "I" ? rr : 0;
+    return { x: c + dx, y: c + dy + 4 };
+  };
+  const v = (x: number | null) => (x == null ? "—" : String(x));
+  return (
+    <div className="stack" style={{ gap: "0.3rem", alignItems: "flex-start" }}>
+      <div className="row small" style={{ gap: "0.6rem", flexWrap: "wrap" }}>
+        <b>Thickness (µm), ETDRS grid</b>
+        <select value={def} onChange={(e) => setDef(e.target.value as any)} aria-label="Thickness definition">
+          <option value="ILM-BM">ILM to BM</option><option value="ILM-OS/RPE">ILM to OS/RPE</option></select>
+      </div>
+      <svg viewBox="0 0 200 200" style={{ width: 210, maxWidth: "100%" }} role="img" aria-label={`Central subfield ${v(r.cstUm)} micrometres`}>
+        {R.map((rad) => <circle key={rad} cx={c} cy={c} r={rad} fill="none" stroke="var(--line)" />)}
+        {[45, 135].map((a) => { const k = Math.cos((a * Math.PI) / 180);
+          return <g key={a}><line x1={c + 16 * k} y1={c - 16 * k * (a === 45 ? 1 : -1)} x2={c + 96 * k} y2={c - 96 * k * (a === 45 ? 1 : -1)} stroke="var(--line)" />
+                   <line x1={c - 16 * k} y1={c + 16 * k * (a === 45 ? 1 : -1)} x2={c - 96 * k} y2={c + 96 * k * (a === 45 ? 1 : -1)} stroke="var(--line)" /></g>; })}
+        <text x={c} y={c + 4} textAnchor="middle" fontWeight={700} fontSize={13}>{v(s.C)}</text>
+        {(["S", "N", "I", "T"] as const).flatMap((side) => [1, 2].map((ring) => { const p = at(ring as 1 | 2, side);
+          return <text key={side + ring} x={p.x} y={p.y} textAnchor="middle" fontSize={11}>{v(s[`${side}${ring}` as keyof Sectors])}</text>; }))}
+        <text x={nasalRight ? 196 : 4} y={196} textAnchor={nasalRight ? "end" : "start"} fontSize={9} fill="var(--ink-soft)">nasal</text>
+      </svg>
+      <div className="small muted" style={{ maxWidth: 360 }}>
+        Central subfield (1 mm) <b>{v(r.cstUm)} µm</b>; centre: {t.centre.method}{t.kind === "radial" ? " (radial scan: fewer samples than a cube)" : ""}.
+        {" "}Sudarshan's measurement from Topcon's layer lines. {checkedWords(checked)}
+      </div>
+    </div>
+  );
+}
+
 /** Distance from a point to a segment, for "which scan line did they click". */
 function segDist(px: number, py: number, l: number[]) {
   const [x1, y1, x2, y2] = l;
@@ -35,7 +79,8 @@ function segDist(px: number, py: number, l: number[]) {
 }
 
 export function OctViewer({ studyId, onClose }: { studyId: number; onClose: () => void }) {
-  const q = useQuery({ queryKey: ["oct", "study", studyId], queryFn: () => api<{ study: Study; view: View; photo: { width: number; height: number } | null }>(`/oct/studies/${studyId}`) });
+  const q = useQuery({ queryKey: ["oct", "study", studyId], queryFn: () => api<{ study: Study; view: View; photo: { width: number; height: number } | null;
+                                                                                    thickness: ThicknessResult | null; checked: ThicknessCheck | null }>(`/oct/studies/${studyId}`) });
   const layersQ = useQuery({
     queryKey: ["oct", "layers", studyId], enabled: !!q.data?.view.layers,
     queryFn: async () => { const r = await fetch(`/api/oct/studies/${studyId}/layers`, { credentials: "same-origin" }); if (!r.ok) throw new Error(`layers: HTTP ${r.status}`); return new Int16Array(await r.arrayBuffer()); },
@@ -155,6 +200,8 @@ export function OctViewer({ studyId, onClose }: { studyId: number; onClose: () =
               <span className="muted">Topcon's own segmentation, as exported; not checked by Sudarshan.</span></div>}
           </div>
         </div>
+
+        {q.data?.thickness && <EtdrsGrid t={q.data.thickness} eye={s.eye} checked={q.data.checked} />}
 
         {v.slabs.length > 0 && <div className="stack" style={{ gap: "0.4rem" }}>
           <b>OCTA en face slabs</b>

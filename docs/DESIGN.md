@@ -145,6 +145,18 @@ Screens: Retina AI tabs Photographs and System (receiver), thumbnails in To grad
   proportion × depth factor; SVG overlays carry the layer lines and scan lines.
 - **Sessions:** the To report list leaves out Maestro2-only sessions before `retina.topcon_report_from`.
 
+### Retinal thickness (D-050)
+- **Calculation:** `services/octThickness.ts` is pure. `computeThickness(layer grid, spacing, scan lines, eye, protocol)`
+  places every sample in mm from the scan's spacing and orients it from its scan lines on the photograph; `sectorOf` gives
+  the ETDRS sector, each boundary belonging to one sector.
+- **Running it:** `services/octMeasure.ts`:
+  - `measureMissing` runs every minute from `startTopconJobs`;
+  - `writeCheckSheet` / `compareCheckSheet` back the console commands.
+- **API and screens:**
+  - `GET /api/oct/thickness?patientId` (points, Yarago injections and vision, check state) feeds
+    `components/InjectionResponse.tsx`;
+  - `GET /api/oct/studies/:id` carries the scan's thickness for the viewer's ETDRS grid.
+
 ### Fundus reports (D-042)
 `routes/fundus.ts`: a session is computed, not stored: linked `fundus_photos` grouped by patient, day in clinic time and
 `coalesce(remidio_exam_id, 0)`, left-joined to its `fundus_reports` row (the same key). Reads need `clinical.read`, writes

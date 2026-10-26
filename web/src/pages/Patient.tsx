@@ -12,6 +12,7 @@ import { BookDialog } from "../components/BookDialog";
 import { AppointmentDrawer } from "../components/AppointmentDrawer";
 import { FollowupLogForm } from "./Followups";
 import { PatientFundus } from "./FundusReports";   // fundus photographs and the doctor's report (D-041, D-042)
+import { InjectionResponse } from "../components/InjectionResponse";   // OCT thickness with injections and vision (D-050)
 
 export function PatientsPage() {
   const nav = useNavigate();
@@ -110,7 +111,8 @@ export function PatientPage() {
             </section>
           )}
 
-          {can("clinical.read") && <PatientFundus patientId={p.patientId} />}
+          {can("clinical.read") && <InjectionResponse patientId={p.patientId} />}
+      {can("clinical.read") && <PatientFundus patientId={p.patientId} />}
 
           <section className="panel">
             <div className="panel-head"><h2 className="grow">Visits</h2><span className="muted small">{d.visits.length} shown, newest first</span></div>

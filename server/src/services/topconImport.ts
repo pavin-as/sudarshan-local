@@ -24,6 +24,7 @@ import type { FastifyBaseLogger } from "fastify";
 import { APP_ROOT, config } from "../config.js";
 import { one, q, withTx } from "../db.js";
 import { backfillOpen, startOfToday } from "./backfillWindow.js";
+import { measureMissing } from "./octMeasure.js";
 import { setting } from "./outreach.js";
 import { mrnShape, patientForMrn } from "./remidioReceiver.js";
 
@@ -368,5 +369,7 @@ export async function pollTopcon(log: FastifyBaseLogger): Promise<string> {
 }
 
 export function startTopconJobs(log: FastifyBaseLogger) {
-  return [setInterval(() => { void pollTopcon(log); }, 60_000)];
+  // thickness of kept scans (D-050): new ones within a minute, and every scan kept before this version, a few at a time
+  const measure = () => measureMissing().catch((e) => log.warn(`oct thickness: ${String(e?.message ?? e).slice(0, 200)}`));
+  return [setInterval(() => { void pollTopcon(log); }, 60_000), setInterval(() => { void measure(); }, 60_000)];
 }

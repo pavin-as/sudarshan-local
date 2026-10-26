@@ -236,6 +236,20 @@ DICOM) and `view\` (`b001.jpg`... B-scans, `oct.json`, `layers.bin`, `slab<n>.pn
 | dicom_study_uid, opt_sop_uid | text | yes, no | the instance UID is unique (a re-saved exam is a duplicate) |
 | topcon_file, dir_path, bytes | text, text, bigint | yes, no, no | |
 
+### app.oct_thickness (0026, D-050)
+Retinal thickness of an OCT scan, computed by Sudarshan from Topcon's layer lines (`services/octThickness.ts`). One row per
+scan and method version (unique). Audited.
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| id, study_id, version, computed_at | bigserial, bigint, integer, timestamptz | no | study_id references `oct_studies` |
+| kind | text | no | `cube` / `radial` |
+| centre | jsonb | no | uMm, vMm from the scan centre (u right, v down on the photograph), method |
+| cst_ilm_bm_um, cst_ilm_rpe_um | integer | yes | central subfield thickness, ILM to BM and ILM to OS/RPE |
+| results | jsonb | no | per definition: cstUm, sectorsUm (C, S1, N1, I1, T1, S2, N2, I2, T2), cover |
+
+Setting `retina.oct_thickness_checked`: null until the check against IMAGEnet is recorded (definition, n, bias, limits).
+
 ### app.topcon_import_log (0024, D-048)
 What the Topcon import did with each IMAGEnet exam file (a log: no audit trigger). An exam is done once a row for its
 file name and file time has a final outcome. Messages and `meta` hold shapes (protocol, eye, patient-ID format, size),

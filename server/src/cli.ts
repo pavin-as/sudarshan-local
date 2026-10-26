@@ -6,6 +6,8 @@
 //   node dist/cli.js retina-remidio-import [<folder>] [--dry-run] [--all]   -> keep photographs downloaded from Remidio Connect (D-041)
 //   node dist/cli.js retina-eval-external <folder> --labels <csv> [--name <name>] [--out <folder>] [--grader arko|rfm] [--head aptos|messidor|idrid]
 //                                                                                -> benchmark on a public dataset (D-043, D-044)
+//   node dist/cli.js oct-thickness-sheet [--from yyyy-mm-dd] [--out <file.csv>]  -> CST check sheet to fill from IMAGEnet (D-050)
+//   node dist/cli.js oct-thickness-compare [<file.csv>] [--record ILM-BM|ILM-OS/RPE] [--by <name>]  -> agreement (aggregates)
 import { pool, withTx } from "./db.js";
 import { hashPassword, temporaryPassword } from "./lib/passwords.js";
 import { ROLES } from "./lib/permissions.js";
@@ -14,6 +16,7 @@ import { importDownloads } from "./services/remidioImport.js";
 import { evaluateExternal } from "./services/evalExternal.js";
 import { compareRuns } from "./services/evalCompare.js";
 import { screeningReport } from "./services/evalScreening.js";
+import { compareCheckSheet, measureMissing, writeCheckSheet } from "./services/octMeasure.js";
 
 const GRADER_DIR = "D:\\classification\\sampada-retinal-ai";
 const flag = (name: string) => args.includes(name);
@@ -90,6 +93,28 @@ async function main() {
       screeningReport({ validation, test, runs, name: option("--name"), out: option("--out"),
                         referSens: option("--refer-sensitivity") ? Number(option("--refer-sensitivity")) : undefined,
                         clearSens: option("--clear-sensitivity") ? Number(option("--clear-sensitivity")) : undefined });
+      return;
+    }
+    case "oct-thickness-sheet": {
+      let n = 0, step: number;
+      do { step = await measureMissing(200); n += step; } while (step > 0);         // measure anything not measured yet
+      const r = await writeCheckSheet({ from: option("--from"), out: option("--out") });
+      console.log(`${n ? `${n} scan(s) measured now; ` : ""}${r.rows} measured macula scan(s) in ${r.out}${r.filledBefore ? ` (${r.filledBefore} IMAGEnet value(s) kept from before)` : ""}.`);
+      console.log("Open it in Excel on shichika, type IMAGEnet's central subfield thickness (µm) in imagenet_cst_um for any rows, save as CSV,");
+      console.log("then run oct-thickness-compare. The sheet names patients: keep it on shichika and delete it when the check is done.");
+      return;
+    }
+    case "oct-thickness-compare": {
+      const file = args[0] && !args[0].startsWith("--") ? args[0] : undefined;
+      const def = option("--record");
+      if (def && def !== "ILM-BM" && def !== "ILM-OS/RPE") throw new Error("--record takes ILM-BM or ILM-OS/RPE");
+      const r = await compareCheckSheet({ file, record: def as any, by: option("--by") });
+      console.log(`${r.filled} row(s) with an IMAGEnet value. Sudarshan minus IMAGEnet, in µm (bias, SD, 95% limits of agreement, mean |difference|, largest, r):`);
+      for (const d of ["ILM-BM", "ILM-OS/RPE"]) for (const k of ["all", "cubes", "radial"]) {
+        const a = r[d][k];
+        console.log(`  ${d.padEnd(10)} ${k.padEnd(6)} ${a ? `n ${a.n}: bias ${a.biasUm}, SD ${a.sdUm}, limits ${a.loaUm[0]} to ${a.loaUm[1]}, mean |d| ${a.maeUm}, largest ${a.maxAbsUm}, r ${a.r ?? "-"}` : "too few"}`);
+      }
+      if (def) console.log(`Recorded as checked (${def}).`);
       return;
     }
     default:
