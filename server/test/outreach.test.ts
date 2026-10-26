@@ -338,8 +338,8 @@ try {
     const rows = (await pool.query(`SELECT summary, changes::text AS ch FROM app.audit_log WHERE summary LIKE '%ZZ Test Out%' OR summary LIKE 'WhatsApp%'`)).rows;
     const all = rows.map((r) => r.summary).join("\n");
     for (const re of [/WhatsApp appointment reminder for .*: 1 queued \(test mode\)/, /WhatsApp sent to ZZ Test Out One/, /Payment link of ₹500 for ZZ Test Out One/,
-                      /Paid ₹500: ZZ Test Out One/, /Refund of ₹200 asked for ZZ Test Out One: Patient cancelled/, /Refund of ₹200 done/,
-                      /Payment link of ₹300 cancelled: ZZ Test Out Two \(Paid at the desk\)/]) assert.match(all, re);
+                      /Paid ₹500: ZZ Test Out One/, /Refund of ₹200 asked for ZZ Test Out One \(NDC_\d{8}_\d{6}_\d+\): Patient cancelled/, /Refund of ₹200 done/,
+                      /Payment link of ₹300 cancelled: ZZ Test Out Two \(NDC_\d{8}_\d{6}_\d+\) \(Paid at the desk\)/]) assert.match(all, re);
     const blob = JSON.stringify(rows);
     for (const secret of ["fake-aisensy-key-for-tests", "fake-razorpay-secret"]) assert.ok(!blob.includes(secret), "no key in the log");
   });

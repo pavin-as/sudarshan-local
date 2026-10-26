@@ -233,13 +233,14 @@ export async function appointmentRoutes(app: FastifyInstance) {
          b.ageYears ?? yp?.age_years ?? null, b.gender ?? yp?.sex ?? null, b.patientType ?? (patientId ? "Old" : "New"),
          b.appointmentType, b.planOfAction, b.urgency, b.familyGroup, b.fixedSlot ?? false, b.consultStart ?? null,
          b.tags ?? [], b.remarks, status, b.source ?? "booking", b.sourceRef, me.id], c);
+      // "booked" first: both events share one time, so the story shows them in the order written
+      await addEvent(c, ins!.id, me.id, "booked", null, { date: b.date, slot }, override ? `Override: ${override.reason}` : null);
       // a new patient has no MRD yet and may never come: give a temporary ID (D-036), not a real SPD number
       if (!patientId && !mrd) {
         const t = await one<{ mrd: string }>(`UPDATE app.appointments SET mrd = $2 WHERE id = $1 RETURNING mrd`,
                                              [ins!.id, tempMrd(new Date(), ins!.id)], c);
         await addEvent(c, ins!.id, me.id, "remark", null, null, `Temporary ID ${t!.mrd} (new patient, no MRD yet)`);
       }
-      await addEvent(c, ins!.id, me.id, "booked", null, { date: b.date, slot }, override ? `Override: ${override.reason}` : null);
       if (b.source === "direct_call" && b.sourceRef && /^\d+$/.test(b.sourceRef))
         await c.query(`UPDATE app.direct_calls SET status = 'booked', appointment_id = $2 WHERE id = $1`, [Number(b.sourceRef), ins!.id]);
       return { appointment: await loadOne(ins!.id, c), warnings };

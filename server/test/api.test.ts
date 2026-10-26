@@ -227,8 +227,10 @@ try {
   await step("appointment story lists every step with who did it", async () => {
     const r = await call("GET", `/api/appointments/${a1}`, doctor);
     const types = r.body.events.map((e: any) => e.type);
-    assert.deepEqual(types, ["booked", "rescheduled", "confirmed_4day", "tag_added", "remark"]);
-    assert.equal(r.body.events[4].by, "ZZ Doctor");
+    // a new patient's temporary ID (D-036) is noted right after the booking, never before it
+    assert.deepEqual(types, ["booked", "remark", "rescheduled", "confirmed_4day", "tag_added", "remark"]);
+    assert.match(r.body.events[1].note, /^Temporary ID NDC_\d{8}_\d{6}_\d+ \(new patient, no MRD yet\)$/);
+    assert.equal(r.body.events[5].by, "ZZ Doctor");
   });
   await step("day board lists bookings in slot order, waitlist last", async () => {
     const r = await call("GET", `/api/appointments?date=${D1}`, doctor);

@@ -5,6 +5,7 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **A new patient's story starts with "Booked"**: the temporary-ID remark (D-036) is now written after the booking, not before it (`routes/appointments.ts`); api and outreach tests updated for D-036's temporary ID (story step, `NDC_…` in log sentences), all 6 database tests pass.
 - **Maestro2 fundus photographs in Sudarshan** (D-048). Each new Topcon Maestro2 exam's colour fundus photograph is read
   from the ImageNet PC's read-only share, converted on shichika and kept like a Remidio photograph:
   - linked to the patient by SPD number;
