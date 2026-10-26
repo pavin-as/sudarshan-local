@@ -31,6 +31,11 @@ const TODO = `r.id IS NULL AND NOT (s.topcon_only AND s.exam_date < coalesce(
 const SESSIONS = `${WITH_SESSIONS}
   SELECT s.patient_id AS "patientId", to_char(s.exam_date, 'YYYY-MM-DD') AS "examDate", s.exam_key AS "examKey",
          s.photo_ids AS "photoIds", s.photos, s.last_at AS "lastAt", s.any_poor AS "anyPoor", s.sources,
+         -- the day's Maestro2 OCT / OCTA scans of a Maestro2 session (D-049), for the list's tags
+         (SELECT count(*)::int FROM app.oct_studies o WHERE 'topcon' = ANY(s.sources) AND o.patient_id = s.patient_id
+             AND (coalesce(o.captured_at, o.received_at) AT TIME ZONE 'Asia/Kolkata')::date = s.exam_date) AS "octScans",
+         (SELECT count(*)::int FROM app.oct_studies o WHERE 'topcon' = ANY(s.sources) AND o.patient_id = s.patient_id AND o.kind = 'octa'
+             AND (coalesce(o.captured_at, o.received_at) AT TIME ZONE 'Asia/Kolkata')::date = s.exam_date) AS "octaScans",
          p.mrd, p.name AS "patientName", p.age_years AS "ageYears", p.sex,
          r.id AS "reportId", r.re_dr, r.le_dr, r.referral, r.reported_at AS "reportedAt", ru.full_name AS "reportedBy",
          r.amended_at AS "amendedAt"

@@ -14,6 +14,7 @@ import { OctScans } from "../components/OctViewer";
 type Words = { DR: Record<string, string>; DME: Record<string, string>; FINDINGS: Record<string, string>; REFERRAL: Record<string, string> };
 export interface Session {
   patientId: number; examDate: string; examKey: number; photoIds: number[]; photos: number; lastAt: string; anyPoor: boolean; sources: string[];
+  octScans: number; octaScans: number;
   mrd: string; patientName: string; ageYears: number | null; sex: string | null;
   reportId: number | null; summary: string | null; reportedAt: string | null; reportedBy: string | null; amendedAt: string | null;
 }
@@ -32,15 +33,34 @@ export function useFundusTodo(enabled: boolean) {
   return r.data?.todo ?? 0;
 }
 
+/** The camera a session came from, as a row colour: Remidio blue, Topcon orange (a mixed session counts as Topcon). */
+const camOf = (s: Session) => ((s.sources ?? []).includes("topcon") ? "cam-topcon" : "cam-remidio");
+
+/** What the row colours and tags mean. */
+export function CameraLegend() {
+  return (
+    <div className="cam-legend" aria-label="Colour key">
+      <span><span className="swatch" style={{ background: "var(--cam-remidio)" }} />Remidio FOP</span>
+      <span><span className="swatch" style={{ background: "var(--cam-topcon)" }} />Topcon Maestro2</span>
+      <span><span className="tag octa">OCTA</span>has OCTA</span>
+      <span><span className="tag oct">OCT</span>has OCT only</span>
+    </div>
+  );
+}
+
 function SessionRows({ sessions, onOpen, showPatient = true }: { sessions: Session[]; onOpen: (s: Session) => void; showPatient?: boolean }) {
   return (
     <div className="scroll-x"><table className="list">
       <thead><tr><th>Photographs</th><th>Taken</th>{showPatient && <th>Patient</th>}<th>Report</th></tr></thead>
       <tbody>{sessions.map((s) => (
-        <tr key={`${s.patientId}-${s.examDate}-${s.examKey}`} className="clickable" onClick={() => onOpen(s)}>
+        <tr key={`${s.patientId}-${s.examDate}-${s.examKey}`} className={`clickable ${camOf(s)}`} onClick={() => onOpen(s)}>
           <td><div className="row" style={{ gap: "0.3rem", flexWrap: "nowrap" }}>{s.photoIds.slice(0, 4).map((id) => <PhotoThumb key={id} id={id} size={56} />)}</div></td>
           <td className="nowrap">{niceDate(s.examDate, true)}<div className="muted small">{s.photos} photograph{s.photos === 1 ? "" : "s"}{s.anyPoor ? ", some of poor quality" : ""}</div>
-            <div className="muted small">{(s.sources ?? []).map((x) => CAMERA[x] ?? x).join(", ")}</div></td>
+            <div className="small" style={{ marginTop: "0.2rem" }}>
+              {(s.sources ?? []).map((x) => <span key={x} className={`tag cam-${x}`}>{CAMERA[x] ?? x}</span>)}
+              {s.octaScans > 0 && <span className="tag octa" title={`${s.octaScans} OCTA scan${s.octaScans === 1 ? "" : "s"}`}>OCTA{s.octaScans > 1 ? ` ×${s.octaScans}` : ""}</span>}
+              {s.octScans - s.octaScans > 0 && <span className="tag oct" title={`${s.octScans - s.octaScans} OCT scan${s.octScans - s.octaScans === 1 ? "" : "s"}`}>OCT{s.octScans - s.octaScans > 1 ? ` ×${s.octScans - s.octaScans}` : ""}</span>}
+            </div></td>
           {showPatient && <td><b>{s.patientName}</b> <span className="muted small">{s.mrd}</span>
             <div className="muted small">{[s.ageYears != null && `${s.ageYears} y`, s.sex].filter(Boolean).join(", ")}</div></td>}
           <td>{s.reportId ? <>{s.summary}<div className="muted small">{s.reportedBy}, {stamp(s.reportedAt)}{s.amendedAt ? " (corrected)" : ""}</div></>
@@ -71,6 +91,7 @@ export function FundusReportsPage() {
           </div>
           <input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder="MRD or name" aria-label="MRD or name" />
           <button type="submit">Search</button>
+          <span className="grow" /><CameraLegend />
         </form>
         {q.error ? <div className="panel-pad"><ErrorNotice error={q.error} /></div> : !q.data ? <Loading /> : !q.data.sessions.length
           ? <div className="empty">{status === "todo" ? "Every photo session has a report." : "No photo sessions found."}</div>
@@ -88,7 +109,7 @@ export function PatientFundus({ patientId }: { patientId: number }) {
   if (!q.data?.sessions.length) return null;
   return (
     <section className="panel">
-      <div className="panel-head"><h2 className="grow">Fundus photographs</h2><span className="muted small">Remidio FOP and Topcon Maestro2, newest first</span></div>
+      <div className="panel-head row"><h2 className="grow">Fundus photographs</h2><CameraLegend /></div>
       <SessionRows sessions={q.data.sessions} onOpen={setOpen} showPatient={false} />
       {open && <SessionDrawer s={open} onClose={() => setOpen(null)} />}
     </section>

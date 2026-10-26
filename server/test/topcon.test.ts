@@ -326,6 +326,7 @@ try {
   await step("the day's Maestro2 photographs form a fundus report session the doctor can report, with its OCT scans", async () => {
     const s = (await call("GET", `/api/fundus/sessions?status=todo&patientId=${PID}`, doc)).body.sessions;
     assert.equal(s.length, 1); assert.deepEqual(s[0].sources, ["topcon"]); assert.equal(s[0].examKey, 0); assert.equal(s[0].photos, 2);
+    assert.equal(s[0].octScans, 2); assert.equal(s[0].octaScans, 1);           // for the list's OCT / OCTA tags
     const one = (await call("GET", `/api/fundus/session?patientId=${PID}&examDate=${s[0].examDate}&examKey=0`, doc)).body;
     assert.ok(one.photos.every((p: any) => p.source === "topcon" && p.protocol));
     const scans = (await call("GET", `/api/oct/studies?patientId=${PID}&date=${s[0].examDate}`, doc)).body.studies;

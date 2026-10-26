@@ -5,6 +5,12 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Fundus reports: rows coloured by camera.** Remidio FOP rows have a blue strip and tint; Topcon Maestro2 rows an orange
+  one. A filled purple "OCTA" tag means the session has an OCTA scan, an outlined "OCT" tag OCT only. There's a colour key
+  beside the search box, and the patient page uses the same colours.
+  - Technical: `routes/fundus.ts` (sessions carry `octScans`, `octaScans`), `FundusReports.tsx` (`CameraLegend`, row
+    classes), `styles.css` (`--cam-remidio`, `--cam-topcon`, `--oct`).
+  - Tests: one more assertion in `test/topcon.test.ts`.
 - **Maestro2 OCT and OCTA scans in Sudarshan** (D-049). Each Maestro2 exam's OCT / OCTA scan now comes in with its
   photograph. Exams imported this morning get theirs added. A fundus report session (and the patient page) lists the day's
   "OCT / OCTA scans". Each opens a viewer with:

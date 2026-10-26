@@ -20,6 +20,12 @@
   --disc-soft: #fdf3dc;
   --vessel: #a8321e;         /* overdue, cancel, errors */
   --vessel-soft: #f8e6e2;
+  --cam-remidio: #2b6cb0;    /* photographs from the Remidio FOP */
+  --cam-remidio-soft: #eaf2fb;
+  --cam-topcon: #b5651d;     /* photographs and scans from the Topcon Maestro2 */
+  --cam-topcon-soft: #fbf0e4;
+  --oct: #6b3fa0;            /* OCT / OCTA scans */
+  --oct-soft: #f1eafa;
   --done: #2f7650;
   --done-soft: #e3f1e8;
   --radius-s: 4px;
@@ -152,6 +158,19 @@ table.list tr:last-child td { border-bottom: 0; }
 .tag { display: inline-block; font-size: 0.78rem; padding: 0 0.4rem; border-radius: 3px; background: var(--line-soft); color: var(--ink); margin: 0 0.2rem 0.15rem 0; white-space: nowrap; }
 .tag.vip { background: var(--disc-soft); color: #7a5300; }
 .tag.alert { background: var(--vessel-soft); color: var(--vessel); }
+/* which camera a photo session came from (Fundus reports, patient page): a coloured strip and tint per row */
+table.list tr.cam-remidio td { background: var(--cam-remidio-soft); }
+table.list tr.cam-topcon td { background: var(--cam-topcon-soft); }
+table.list tr.cam-remidio td:first-child { box-shadow: inset 6px 0 0 var(--cam-remidio); padding-left: 1rem; }
+table.list tr.cam-topcon td:first-child { box-shadow: inset 6px 0 0 var(--cam-topcon); padding-left: 1rem; }
+table.list tr.cam-remidio.clickable:hover td { background: #dde9f7; }
+table.list tr.cam-topcon.clickable:hover td { background: #f7e5d2; }
+.tag.cam-remidio { background: var(--cam-remidio); color: #fff; }
+.tag.cam-topcon { background: var(--cam-topcon); color: #fff; }
+.tag.oct { background: var(--surface); color: var(--oct); box-shadow: inset 0 0 0 1px var(--oct); }
+.tag.octa { background: var(--oct); color: #fff; }
+.cam-legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; align-items: center; font-size: 0.82rem; color: var(--ink-soft); }
+.cam-legend .swatch { display: inline-block; width: 6px; height: 1rem; border-radius: 2px; vertical-align: middle; margin-right: 0.35rem; }
 .pill { font-size: 0.8rem; font-weight: 700; padding: 0.05rem 0.5rem; border-radius: 10px; white-space: nowrap; display: inline-block; }
 .pill.booked { background: var(--line-soft); color: var(--ink-soft); }
 .pill.confirmed { background: var(--action-soft); color: var(--action); }
