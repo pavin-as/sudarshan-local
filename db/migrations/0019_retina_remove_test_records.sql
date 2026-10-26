@@ -18,7 +18,9 @@ BEGIN
     ALTER TABLE app.dr_gradings DROP COLUMN legacy_record_id;
     -- once only (inside this block): 0020 widens the list again for Remidio photographs
     ALTER TABLE app.dr_gradings DROP CONSTRAINT IF EXISTS dr_gradings_source_check;
-    ALTER TABLE app.dr_gradings ADD CONSTRAINT dr_gradings_source_check CHECK (source IN ('upload', 'batch'));
+    -- every update re-runs every migration, so this must accept the sources later migrations add (0020 remidio,
+-- 0024 topcon); otherwise a re-run stops here once such gradings exist
+ALTER TABLE app.dr_gradings ADD CONSTRAINT dr_gradings_source_check CHECK (source IN ('upload', 'batch', 'remidio', 'topcon'));
   END IF;
 END $$;
 

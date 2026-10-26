@@ -72,7 +72,8 @@ DO $$ BEGIN
   END IF;
 END $$;
 ALTER TABLE app.dr_gradings DROP CONSTRAINT IF EXISTS dr_gradings_source_check;
-ALTER TABLE app.dr_gradings ADD CONSTRAINT dr_gradings_source_check CHECK (source IN ('upload', 'batch', 'remidio'));
+-- also 'topcon' (0024): every update re-runs this, and a narrower rule would stop it once Maestro2 gradings exist
+ALTER TABLE app.dr_gradings ADD CONSTRAINT dr_gradings_source_check CHECK (source IN ('upload', 'batch', 'remidio', 'topcon'));
 
 INSERT INTO app.settings (key, value, description) VALUES
   ('retina.remidio_mode', '"off"'::jsonb, 'Remidio photo receiver: off / peek (look at the next queue item, take nothing) / on'),
