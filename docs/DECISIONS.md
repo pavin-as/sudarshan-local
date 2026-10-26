@@ -607,6 +607,27 @@ it, and shows it beside injections and vision (OCT_PLAN Step 7).**
   Both say "not yet checked against IMAGEnet" until the check is recorded, and give its figures after.
 - **Not used for decisions:** nothing is flagged or suggested from thickness until the gate passes (Steps 8-9).
 
+### D-051 · 2026-10-26 · Accepted · Pavin ("first as a group ... after a week we will break that assessment for each login and give points"; "items which are measured at present under EMR completeness, both for new patients and review patients"); Claude chose the method
+**EMR daily report at 17:30, for the team first.** A page (`/emr-daily`, clinical roles) lists the day's consultations
+by MRD with the EMR completeness items (D-028) not recorded in Yarago. There is one view per screen: optometry for the
+optometrists, the doctor screen for the doctor.
+- **Rules:** structured checks, no AI. Every item is expected at every consultation, new or review. Injections and
+  lasers are left out, as on the monthly page. Visits still "checked in" or "in examination" in Yarago are listed
+  separately and not counted.
+- **One check:** `clinical.emr_visit_items()` tests each visit. The monthly page now counts from it too; on 26 Oct its
+  figures matched the stored ones exactly for the 12 earlier months.
+- **17:30:** the server keeps what was missing then (`app.emr_daily_reports`, setting `emr.daily_at`). Items saved later
+  show as "added later", so the report can be used for coaching that evening.
+- **Who:** week 1 shows no login or person. Yarago records the optometry login that saved a visit in
+  `tbl_patient_appointment_history.refuser` (last 30 days: `opto` 797, `spdopto` 13). After a week, with a personal
+  Yarago login per optometrist, scores per login follow (not built). Visits saved under the shared logins cannot be split
+  afterwards. The doctor screen stays under the doctor's login, one report for the doctor (890 of 891 visits are `sam`).
+- **Same-day data:** Yarago saves the optometry and doctor screens into the visit record without changing
+  `dtupdated_date`, the sync's change column for that table. On 26 Oct, 1 of 25 completed visits had BCVA in the mirror;
+  earlier days had 22-33 of 28-43. So each sync cycle now re-reads today's visit records by appointment id (a few dozen
+  rows, only if that column is indexed in Yarago; the log says so once if it is not).
+- **Privacy:** MRD, time and new/review only: no name and no phone. Not sent by email or WhatsApp.
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

@@ -5,6 +5,27 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **EMR daily report** (D-051). New page "EMR daily report" (clinical roles; also linked from EMR completeness):
+  - lists the day's consultations by MRD with what was not recorded in Yarago, one screen at a time (optometry for the
+    optometrists, doctor screen for the doctor);
+  - shows the most-missed items, and visits not yet marked complete in Yarago separately;
+  - at 17:30 Sudarshan keeps what was missing then; items saved later show as "added later";
+  - Print button, any past day by date; MRD only, no names.
+
+  Every item of the EMR completeness page is expected at every consultation, new or review. Week 1 is for the team:
+  no logins shown.
+  - **Sync fix:** today's visit records are re-read every cycle. Before, the optometry and doctor screens' work reached
+    Sudarshan only with the 01:00 copy, because Yarago does not update the record's change date on those saves.
+  - Technical: migration `0027_emr_daily_report.sql`:
+    - `clinical.emr_visit_items()`, which `analytics.refresh_emr_completeness()` now uses (same figures, checked on real
+      data);
+    - `app.emr_daily_reports` (audited);
+    - setting `emr.daily_at`.
+
+    Also `services/emrDaily.ts` (17:30 job), `GET /api/emr-daily`, `pages/EmrDaily.tsx`, and
+    `refresh_today_visits()` in `sync/yarago_sync.py`.
+  - Tests: `test/emrDaily.test.ts` (4 checks, in `npm test`), passed on the test database; Yarago stub columns added;
+    `real-data.ts` reads the new page. Browser-checked on synthetic data at desktop and phone width.
 - **Reading IMAGEnet's CST from a report saved as PDF** (D-050 check, trial). IMAGEnet exports no thickness numbers, so
   this tests whether one report printed to PDF can be read instead of typing the value. The manual sheet stays.
   Result on 6 of today's reports: IMAGEnet prints its results as pictures, so no CST can be read (OCT_PLAN 7, q7).

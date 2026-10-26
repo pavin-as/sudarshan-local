@@ -52,3 +52,14 @@ CREATE TABLE IF NOT EXISTS yarago.tblpurchasepaymentdetails (poid int, ninvoice 
 CREATE TABLE IF NOT EXISTS yarago.tblopticalpharmacypurchase (poid int, ainvoice text, dcdate text, orderdate text,
   nsupplierid int, isactive int, inserteddate timestamp);
 CREATE TABLE IF NOT EXISTS yarago.tbl_mst_vendor (avenid int, avendorname text);
+-- what the EMR completeness check reads (clinical.emr_visit_items, D-028 / D-051); added so an older test database gets them
+CREATE TABLE IF NOT EXISTS yarago.tbldiagnosis (adiagnosis_id int, tappt_id int, tdiagnosis_mst_id text);
+ALTER TABLE yarago.tbl_patient_appointment_history ADD COLUMN IF NOT EXISTS ucnva_r_id text,
+  ADD COLUMN IF NOT EXISTS arsph_r_id text, ADD COLUMN IF NOT EXISTS nct_right text, ADD COLUMN IF NOT EXISTS nct_left text,
+  ADD COLUMN IF NOT EXISTS pupil_right text, ADD COLUMN IF NOT EXISTS pupil_left text,
+  ADD COLUMN IF NOT EXISTS colourvision_right text, ADD COLUMN IF NOT EXISTS colourvision_left text,
+  ADD COLUMN IF NOT EXISTS familyhistory text, ADD COLUMN IF NOT EXISTS systemic_status text,
+  ADD COLUMN IF NOT EXISTS diagnosis text, ADD COLUMN IF NOT EXISTS diagnosis_right text, ADD COLUMN IF NOT EXISTS diagnosis_left text,
+  ADD COLUMN IF NOT EXISTS followup_inweeks text;
+ALTER TABLE yarago.tbloptometryexamination ADD COLUMN IF NOT EXISTS pupil_right text, ADD COLUMN IF NOT EXISTS pupil_left text,
+  ADD COLUMN IF NOT EXISTS colourvision_right text, ADD COLUMN IF NOT EXISTS colourvision_left text;

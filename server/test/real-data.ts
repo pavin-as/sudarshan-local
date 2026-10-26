@@ -70,6 +70,10 @@ try {
   await get("patients by group, Low vision first page", "/api/patient-groups/lowvision?limit=50", (b) => `${b.patients.length} of ${b.total}`);
   await get("follow-ups due next 7 days", "/api/followups?view=upcoming", (b) => `${b.followups.length}`);
   await get("activity log, latest 50", "/api/audit", (b) => `${b.entries.length} entries`);
+  await get("EMR daily report, today", "/api/emr-daily", (b) => {
+    const done = b.visits.filter((v: any) => v.statusId === 3);
+    return `${done.length} completed, ${done.filter((v: any) => !v.missing.length).length} complete; report ${b.takenAt ? "taken" : "not yet taken"}`;
+  });
   await get("WhatsApp list for tomorrow (sends nothing)", `/api/whatsapp/preview?date=${addDays(today, 1)}`,
     (b) => `${b.mode} mode, ${b.rows.filter((r: any) => r.send).length} of ${b.rows.length} would get it`);
   await get("WhatsApp sent (Sudarshan and Google app)", "/api/whatsapp/broadcasts", (b) => `${b.broadcasts.length} from Sudarshan, ${b.googleApp.length} from the Google app`);

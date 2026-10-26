@@ -1,5 +1,5 @@
 # Sudarshan - status and handoff
-Last updated: 2026-10-25. Plan: docs/PLAN.md (exported from the Claude Docs plan). Read CLAUDE.md first; the other docs are listed there.
+Last updated: 2026-10-26. Plan: docs/PLAN.md (exported from the Claude Docs plan). Read CLAUDE.md first; the other docs are listed there.
 
 ## Done (Phase A)
 - Read-only MySQL user `sudarshan_ro` on Yarago (MySQL 5.6, db `yghealthcarecombined`, 127.0.0.1:3306).
@@ -283,6 +283,17 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
   - check that the live store `D:\IMAGEnet6` (700 GB) is backed up, and that the QNAP Qsync copy of `E:\Jukebox` has
     snapshots (a sync is not a backup);
   - ask what `F:\Jukebox` is.
+
+- [x] EMR daily report built (26 Oct, D-051, migration 0027):
+  - per-MRD misses by screen; kept at 17:30, with later additions shown;
+  - the monthly page counts from the same check;
+  - the sync re-reads today's visit records.
+
+  4 checks pass on the test database; browser-checked. **Not deployed.**
+- [ ] Pavin: deploy D-051 (`update.ps1`, administrator). Then check the sync log for a line
+      "tbl_patient_appointment_history: no key or no index": if it is there, same-day data still waits for the nightly copy.
+      Next day after 17:30, open EMR daily report and compare 2-3 MRDs with Yarago.
+- [ ] Before week 2 (D-051): a personal Yarago login for every optometrist; then points per login.
 
 ## Next step
 Trial running on live Google data (D-025). Remaining, in order:

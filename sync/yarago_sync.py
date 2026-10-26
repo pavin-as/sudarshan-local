@@ -83,6 +83,7 @@ def fix_mojibake(s):
     except (UnicodeEncodeError, UnicodeDecodeError):
         return s
 UNRELIABLE_MOD = set()   # tables whose modified column matched most of the table; use id only (nightly copy covers edits)
+TODAY_SKIPPED = set()    # visit tables today's re-read cannot use (no key or no index on the visit column); logged once
 
 
 def setup_logging():
@@ -451,6 +452,29 @@ def fetch_all(mc, query, params, t):
     return [conv(r) for r in cur.fetchall()]
 
 
+def refresh_today_visits(mc, pc, schema, state):
+    """Re-read the visit tables' rows of today's appointments (a few dozen, by an indexed column). Returns rows read."""
+    pc.execute("SELECT aappoint_id FROM yarago.tblappointments "
+               "WHERE tappoint_date_time >= current_date AND tappoint_date_time < current_date + 1")
+    ids = [r[0] for r in pc.fetchall()]
+    n = 0
+    for name in VISIT_TABLES:
+        t = schema.get(name)
+        if not ids or name == "tblappointments" or not t or t.pg not in state or state[t.pg][2] != t.hash:
+            continue
+        if not t.key or not t.apptcol or t.apptcol not in t.indexed:
+            if name not in TODAY_SKIPPED:   # never scan a big table unindexed in clinic hours; say so once
+                TODAY_SKIPPED.add(name)
+                log.warning("  %s: no key or no index on its visit column (%s): today's edits arrive with the nightly copy",
+                            name, t.apptcol)
+            continue
+        ph = ",".join(["%s"] * len(ids))
+        rows = fetch_all(mc, f"SELECT * FROM {q(t.name)} WHERE {q(t.apptcol)} IN ({ph})", ids, t)
+        n += upsert(pc, t, rows)
+        pc.execute("DROP TABLE IF EXISTS tmp_sync")
+    return n
+
+
 def incremental():
     t0 = time.time()
     mc = my_conn()
@@ -513,6 +537,16 @@ def incremental():
             pg.rollback()
             warnings.append(f"{name}: {e}")
             log.exception("  %s failed", name)
+
+    # 1b. today's visit records again, by appointment id: Yarago saves the optometry and doctor screens into them without
+    # touching their modified column, so without this the day's work only arrived with the nightly copy (D-051)
+    try:
+        total += refresh_today_visits(mc, pc, schema, state)
+        pg.commit()
+    except Exception as e:
+        pg.rollback()
+        warnings.append(f"today's visits: {e}")
+        log.exception("  today's visits failed")
 
     # 2. clinical child tables (no modified date): new rows by id + all rows of changed visits
     children = [t for t in schema.values()

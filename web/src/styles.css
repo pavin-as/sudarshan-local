@@ -460,6 +460,21 @@ table.list.compact td, table.list.compact th { padding: 0.3rem 0.55rem; }
 .emr-cell.mid { background: var(--disc-soft); color: #5a3e00; }
 .emr-cell.low { background: var(--vessel-soft); color: #7a2414; }
 
+/* EMR daily report (D-051) */
+.emr-daily table.list th.right { text-align: right; }
+.emr-daily-summary { display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem; }
+.emr-daily-summary .ok-word b { color: var(--done); }
+.emr-daily-summary .miss-word b { color: var(--vessel); }
+.emr-daily-h { font-size: 1rem; margin: 0.7rem 0.7rem 0.3rem; color: var(--choroid); }
+.emr-daily-note { margin: 0 0.7rem 0.4rem; }
+.tag.emr-later { background: var(--done-soft); color: var(--done); }
+@media (max-width: 640px) { .emr-daily .tag { white-space: normal; } }
+@media print {
+  .emr-daily .panel { border: 0; box-shadow: none; break-inside: auto; }
+  .emr-daily tr { break-inside: avoid; }
+  .emr-daily .tag { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
 /* day prints (D-029) */
 .day-print { color: #222; }
 .print-head { text-align: center; border-bottom: 2px solid var(--line); padding-bottom: 0.6rem; margin-bottom: 0.8rem; }

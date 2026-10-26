@@ -1,9 +1,12 @@
 // EMR completeness per month (Phase B, D-028): the share of consultations with each item recorded in Yarago, from
 // analytics.emr_completeness (rebuilt nightly). Counts only; for the clinical team's SOP review.
+// The daily report (D-051) lists one day's consultations by MRD with what was not recorded.
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { need } from "../auth.js";
 import { one, q } from "../db.js";
+import { dateStr, todayIST } from "../lib/time.js";
+import { checkDay, reportTime } from "../services/emrDaily.js";
 
 export async function emrRoutes(app: FastifyInstance) {
   app.get("/api/emr-completeness", async (req) => {
@@ -33,5 +36,26 @@ export async function emrRoutes(app: FastifyInstance) {
       pct12: total12 ? Math.round((100 * recorded12) / total12) : null }));
     const updated = await one<{ at: string }>(`SELECT max(finished_at) AS at FROM analytics.refresh_log WHERE status = 'ok'`);
     return { months, items, group: f.group, updatedAt: updated?.at ?? null };
+  });
+
+  // EMR daily report (D-051): one day's consultations by MRD with the items not recorded, now and when the report was
+  // taken (emr.daily_at). For the team: no login or person is shown.
+  app.get("/api/emr-daily", async (req) => {
+    need(req, "clinical.read");
+    const date = z.object({ date: dateStr.optional() }).parse(req.query).date ?? todayIST();
+    const { visits, items } = await checkDay(date);
+    const mrd = new Map((await q<{ patient_id: number; mrd: string | null }>(
+      `SELECT patient_id, mrd FROM clinical.patient WHERE patient_id = ANY($1::int[])`, [visits.map((v) => v.patientId)])).map((r) => [r.patient_id, r.mrd]));
+    const report = await one<{ taken_at: string; visits: { visitId: number; statusId: number; missing: string[] }[] }>(
+      `SELECT taken_at, visits FROM app.emr_daily_reports WHERE report_date = $1`, [date]);
+    const then = new Map((report?.visits ?? []).map((v) => [v.visitId, v]));
+    const synced = await one<{ at: string }>(`SELECT max(finished_at) AS at FROM app.sync_runs WHERE status = 'ok'`);
+    return {
+      date, at: await reportTime(), takenAt: report?.taken_at ?? null, syncedAt: synced?.at ?? null, items,
+      visits: visits.map(({ patientId, ...v }) => {
+        const t = then.get(v.visitId);
+        return { ...v, mrd: mrd.get(patientId) ?? null, atReport: t ? { statusId: t.statusId, missing: t.missing } : null };
+      }),
+    };
   });
 }

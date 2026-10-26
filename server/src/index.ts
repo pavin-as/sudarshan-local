@@ -1,6 +1,7 @@
 import { buildApp } from "./app.js";
 import { config } from "./config.js";
 import { pool } from "./db.js";
+import { startEmrDailyJob } from "./services/emrDaily.js";
 import { startSummaryJob } from "./services/overview.js";
 import { startOutreachJobs } from "./services/payments.js";
 import { outboxStarted } from "./routes/whatsapp.js";
@@ -16,6 +17,8 @@ try {
 }
 // doctor summaries for the day's patients from 07:00 (local model only; not started by tests, which build the app alone)
 const summaryTimer = startSummaryJob(app.log);
+// the EMR daily report, kept once a day from emr.daily_at (17:30; D-051)
+const emrDailyTimer = startEmrDailyJob(app.log);
 // WhatsApp outbox (only what a person queued) and the Razorpay status check (D-034, D-017)
 const outreachTimers = startOutreachJobs(app.log);
 outboxStarted();
@@ -28,6 +31,7 @@ for (const sig of ["SIGINT", "SIGTERM"] as const) {
   process.on(sig, async () => {
     app.log.info(`${sig} received, shutting down`);
     clearInterval(summaryTimer);
+    clearInterval(emrDailyTimer);
     for (const t of [...outreachTimers, ...remidioTimers, ...topconTimers]) clearInterval(t);
     await app.close();
     await pool.end();

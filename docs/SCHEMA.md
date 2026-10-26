@@ -73,6 +73,11 @@ Views: `10_clinical.sql`, `20_clinical_flow_followup.sql`, `30_app_audit.sql`.
 Helper functions: `clinical.clean`, `id_list`, `list_items`, `num`, `eye`, `va_logmar`, `to_date_safe`,
 `minutes_between`; `app.audit_value_text`, `audit_field_text`, `audit_changes_text`.
 
+`clinical.emr_visit_items(p_from date, p_to date)` (migration 0027, D-051): one row per EMR completeness item per
+consultation (status 1-3, injections and lasers left out; `p_to` NULL = no limit). Columns: visit_id, patient_id,
+visit_at, status_id, is_new, screen, item, label, item_position, ok. Used by the EMR daily report and by
+`analytics.refresh_emr_completeness()`. It is plpgsql, so a full copy that rebuilds mirror tables does not drop it.
+
 Full column lists: `\d+ clinical.<view>` in psql, or the `CREATE VIEW` in `db/views/`.
 
 ## analytics (0006, D-020)
@@ -235,6 +240,17 @@ DICOM) and `view\` (`b001.jpg`... B-scans, `oct.json`, `layers.bin`, `slab<n>.pn
 | layers, slabs | text[] | yes | Topcon's layer surfaces; OCTA slab names |
 | dicom_study_uid, opt_sop_uid | text | yes, no | the instance UID is unique (a re-saved exam is a duplicate) |
 | topcon_file, dir_path, bytes | text, text, bigint | yes, no, no | |
+
+### app.emr_daily_reports (0027, D-051)
+What was missing in each consultation when the day's EMR daily report was taken (17:30, setting `emr.daily_at`). One row
+per day, written once by the server's job; audited. Ids and item keys only, no MRD or name.
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| id | bigint identity | no | |
+| report_date | date | no | unique |
+| taken_at | timestamptz | no | when the job took it (later than 17:30 if the server was down then) |
+| visits | jsonb | no | `[{"visitId", "statusId", "missing": [item keys]}]`, every visit of the day then |
 
 ### app.oct_thickness (0026, D-050)
 Retinal thickness of an OCT scan, computed by Sudarshan from Topcon's layer lines (`services/octThickness.ts`). One row per

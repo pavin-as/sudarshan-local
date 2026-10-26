@@ -12,6 +12,7 @@ import { BoardPage } from "./pages/Board";
 import { PatientPage, PatientsPage } from "./pages/Patient";
 import { DoctorSummaryPage } from "./pages/DoctorSummary";
 import { EmrCompletenessPage } from "./pages/EmrCompleteness";
+import { EmrDailyPage } from "./pages/EmrDaily";
 import { DayPrintPage } from "./pages/DayPrint";
 import { FollowupsPage } from "./pages/Followups";
 import { ActivityPage } from "./pages/Activity";
@@ -102,6 +103,7 @@ function Shell() {
         {can("messages.send") && <NavLink to="/whatsapp">WhatsApp</NavLink>}
         {can("payments.write") && <NavLink to="/payments">Payments {!!payReview && <span className="count">{payReview}</span>}</NavLink>}
         {can("clinical.read") && <NavLink to="/emr-completeness">EMR completeness</NavLink>}
+        {can("clinical.read") && <NavLink to="/emr-daily">EMR daily report</NavLink>}
         {can("clinical.read") && <NavLink to="/fundus">Fundus reports {!!fundusTodo && <span className="count">{fundusTodo}</span>}</NavLink>}
         {can("retina_ai.use") && <NavLink to="/retina-ai">Retina AI</NavLink>}
         {can("audit.read") && <NavLink to="/activity">Activity log</NavLink>}
@@ -130,6 +132,7 @@ function Shell() {
           <Route path="/patients/:id" element={<PatientPage />} />
           <Route path="/patients/:id/summary" element={<DoctorSummaryPage />} />
           <Route path="/emr-completeness" element={<EmrCompletenessPage />} />
+          <Route path="/emr-daily" element={<EmrDailyPage />} />
           <Route path="/print" element={<DayPrintPage />} />
           <Route path="/followups" element={<FollowupsPage />} />
           <Route path="/activity" element={<ActivityPage />} />

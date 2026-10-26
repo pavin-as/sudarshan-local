@@ -1,5 +1,6 @@
 // EMR completeness per month (D-028): how often each item is recorded in Yarago, by screen, against the SOP targets.
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api";
 import { stamp } from "../format";
@@ -25,6 +26,7 @@ export function EmrCompletenessPage() {
         <div><h1>EMR completeness</h1>
           <div className="muted">Share of consultations with each item recorded in Yarago, per month. For the team's SOP review; counts only.</div></div>
         <span className="grow" />
+        <Link to="/emr-daily">Daily report</Link>
         <div className="seg" role="group" aria-label="Which visits">
           <button aria-pressed={group === "all"} onClick={() => setGroup("all")}>All visits</button>
           <button aria-pressed={group === "new"} onClick={() => setGroup("new")}>New patients</button>
