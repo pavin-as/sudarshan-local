@@ -106,7 +106,13 @@ to shichika, and leave nothing behind on 152.
 5. Check the output with pydicom. Report only the tags, the numbers and whether the pixel data opens:
    - which objects were made (OP photograph, OPT B-scans, OCTA flow `x.3.1`, en face slabs `x.6.y`, segmentation `x.7.y`,
      FDA stub `x.100.1`);
-   - how the patient ID is written (the SPD number?).
+   - how the patient ID is written (the SPD number?);
+   - for each object: SOP class UID, transfer syntax, single- or multi-frame, and where the pixel spacing is (top level or
+     the per-frame functional groups);
+   - the data that places each B-scan or slab on the fundus photograph (for example the ophthalmic frame location and
+     referenced image sequences).
+
+   These answer the viewer questions in Step 4b.
 6. Render a few images and compare them on screen with the same study in ImageNet.
 
 **Gate 1:** for each study type, real images open in a viewer that is not Topcon's, and the list of what was and was not
@@ -149,6 +155,51 @@ arrives,** export again and check that the extra layers and the vessel density a
   - identifiable: `D:` or `F:` on shichika, with the QNAP backup;
   - de-identified research sets: kept separately, with a checksum manifest and a record of what was done to each file.
 - A simple viewer (B-scans and en face slabs) on the patient page is optional: doctors already use ImageNet.
+
+### Step 4b - Optional: evaluate Orthanc and OHIF (after Gate 2; evaluation only, not approval to install)
+Pavin's idea, added 26 Oct.
+
+**Question:** should exported DICOM be kept in an Orthanc DICOM server and viewed with OHIF inside Sudarshan, instead of
+plain folders and a viewer of Sudarshan's own?
+
+**Options:**
+
+| | Storage | Viewer | For | Against |
+|---|---|---|---|---|
+| A | folders (Step 4) | Sudarshan's own | simplest; already planned | no DICOM receiver, no DICOMweb, everything by hand |
+| B | Orthanc | OHIF | quick generic viewing: B-scan stack, slabs, fundus photograph, zoom, contrast, side-by-side | as far as known, no ophthalmic mode: no scan position on the fundus photograph, no height-map segmentation or AI overlays without substantial custom work |
+| C | Orthanc | small OCT viewer in Sudarshan | standard store, DICOMweb, possible receiver for ImageNet; the viewer shows what ImageNet cannot (AI, fundus reports, history) | the viewer must be built |
+
+**Leaning (26 Oct): C, decided only after the real export has been tested.**
+- OHIF stays possible as an extra generic viewer.
+- Orthanc's biggest gain would be receiving DICOM sent by ImageNet or the Maestro2 (C-STORE). That would replace copying
+  `.fda` files, and depends on Topcon's answer to question 5.
+
+**Points to check on the real export:**
+- Orthanc stores any valid DICOM uploaded through its REST API. Its network receiver may need "unknown SOP classes
+  accepted" for OPTBSV, OPTENF and height-map SEG.
+- OHIF: whether it uses the per-frame pixel spacing (B-scan aspect ratio and µm measurements), decodes Topcon's JPEG
+  transfer syntax, and shows OPT, OPTENF and OP correctly.
+- Missing features and the custom work each would need.
+
+**Deployment, if tested:**
+- Docker on shichika, bound to 127.0.0.1 with a memory limit. The index can live in PostgreSQL 16 or SQLite.
+- About 200-500 MB of RAM for Orthanc. Disk is roughly double unless Orthanc becomes the only store.
+- Sudarshan's server stands in front: its logins, `need()` permissions and audit log. Orthanc is never opened to the LAN or
+  the internet.
+- Orthanc's storage goes into the QNAP backup.
+- Licences: Orthanc core GPLv3, plugins (DICOMweb, PostgreSQL) AGPLv3, OHIF MIT. Fine for internal use; Sampada does not
+  distribute them.
+
+**Test (outside clinic hours):**
+1. A test Orthanc with no kept data receives one de-identified copied study.
+2. Check every object and frame against the files: counts and checksums of the pixel data.
+3. Connect a test OHIF through DICOMweb. Try B-scan scrolling, OCTA slabs, the fundus photograph, measurements and
+   side-by-side comparison.
+4. Compare with ImageNet for the same study. Record what works, what fails and the custom work needed.
+5. Remove the test containers and their data.
+
+**Decision then:** Pavin chooses A, B or C (a new D-number). No production change before that.
 
 ### Step 5 - OCT AI research (after Gate 2 and a de-identified set)
 1. **Pavin and Dr. Sameera choose the question first** (as D-045 did for DR). Suggestions:
@@ -236,8 +287,9 @@ whether it runs offline, and whether it reads Maestro2 slabs at their real scale
 2. Do OCTA scans captured before the OCTA licence was set export the same as later ones?
 3. Where does IMAGEnet 6 keep the `.fda` files? Is a read-only share of that folder supported?
 4. Does reading the share during clinic hours slow IMAGEnet down?
-5. Can IMAGEnet or the Maestro2 send DICOM (fundus photograph and OCT) to a DICOM receiver on shichika? That would replace
-   file copying later.
+5. Can IMAGEnet or the Maestro2 send DICOM (fundus photograph and OCT) to a DICOM receiver (C-STORE destination) on
+   shichika, for example Orthanc (Step 4b)? Which SOP classes and transfer syntaxes does it send? That would replace file
+   copying later.
 6. What does the patient ID field hold, and can the Maestro2 take a worklist from Yarago?
 
 ## 8. Questions for Pavin and the clinic
