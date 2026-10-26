@@ -237,8 +237,12 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
   - give the read-only share path on the ImageNet PC.
 
   Then Step 1 (first export of three studies).
-- [ ] ImageNet PC (OCT_PC, 26 Oct; OCT_PLAN section 2). Three shares give Everyone Full over the LAN: `D` (all of D:\),
-      `IMAGEnet6` and `Users` (C:\Users). NTFS gives Authenticated Users Modify on the OCT stores. Pavin:
+- [x] Read-only share from shichika to OCT_PC works (26 Oct): `\\192.168.0.152\SudarshanOCT$` = `D:\IMAGEnet6`. Live exams
+      are in `Data` (numbered `.fda` + `.fds`). A Kaspersky rule lets only 192.168.0.49 reach port 445. `sudarshan_ro` is
+      refused on the other shares.
+- [ ] ImageNet PC (OCT_PC, 26 Oct; OCT_PLAN section 2). Three shares give Everyone Full: `D` (all of D:\), `IMAGEnet6` and
+      `Users` (C:\Users). NTFS gives Authenticated Users Modify on the OCT stores. Kaspersky blocks file sharing from the
+      LAN, so the shares are limited for now; SQL Server 1433 and Remote Desktop 3389 are open to the LAN. Pavin:
   - ask Topcon which shares IMAGEnet viewing stations need, then remove or narrow the rest;
   - check that the live store `D:\IMAGEnet6` (700 GB) is backed up, and that the QNAP Qsync copy of `E:\Jukebox` has
     snapshots (a sync is not a backup);

@@ -355,4 +355,14 @@ Set up on 25 Oct 2026 (Step 0).
   3. On shichika, in Pavin's own PowerShell, store the password once:
      `cmdkey /add:192.168.0.152 /user:<IMAGENET-PC-NAME>\sudarshan_ro /pass`.
      After that `\\192.168.0.152\SudarshanOCT$` opens read-only.
+  4. **The firewall on OCT_PC is Kaspersky** (Windows Firewall is off there). Done 26 Oct:
+     - a Kaspersky packet rule "Sudarshan read-only share from shichika (D-047)": Allow, Inbound, TCP, local port 445,
+       remote address 192.168.0.49, at the top of the list;
+     - `Block-SmbShareAccess` denies `sudarshan_ro` on `D`, `IMAGEnet6` and `Users`, which give Everyone Full.
+
+     Kaspersky asks for a confirmation that clicks from RustDesk cannot answer: someone at OCT_PC must click Save and
+     Confirm.
+  - On 26 Oct the share was `D:\IMAGEnet6`; live exams are in its `Data` folder.
+  - If the share stops opening: check that the Kaspersky rule is still Active and at the top, and that `cmdkey /list` on
+    shichika shows 192.168.0.152.
 

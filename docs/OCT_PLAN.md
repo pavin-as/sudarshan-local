@@ -29,17 +29,23 @@ Each exam is a numbered pair: `<number>.fda` + `<number>.fds`. File names hold n
 
 | Store | Size | Dates | Notes |
 |---|---|---|---|
-| `D:\IMAGEnet6\...` (live) | 9,358 `.fda`, 700 GB | 2021-03 to 2026-10 | new exams arrive here; the exact subfolder is still to be confirmed |
+| `D:\IMAGEnet6\Data` (live) | 9,374 `.fda` (64 GB) + 9,387 `.fds` (most of the 700 GB) | 2021-04 to today | new exams arrive here, flat, by number; also `.jpg`, `.tmp` |
 | `E:\Jukebox` (archive) | 10,382 `.fda`, 762 GB | 2021-03 to 2026-09 | 180 volume folders; synced to a QNAP by Qsync |
 | `F:\Jukebox` | 3,298 `.fda`, 274 GB | 2025-06 to 2026-09 | 64 volume folders; a backup copy or a second archive? (ask Topcon) |
 
-**Risk found:** three shares give **Everyone Full** access over the network:
+**Risk found:** three shares give **Everyone Full** access:
 - `D` (all of D:\);
 - `IMAGEnet6` (D:\IMAGEnet6);
 - `Users` (C:\Users).
 
-On D:\ and the Jukebox folders, NTFS gives Authenticated Users Modify. So any account that can sign in to OCT_PC over the
-LAN can change or delete clinical OCT files, and ransomware on another PC could reach them.
+On D:\ and the Jukebox folders, NTFS gives Authenticated Users Modify.
+
+**Firewall, checked 26 Oct:** Windows Firewall is off for the Public and Private profiles (the networks are Public).
+**Kaspersky** is the firewall:
+- it blocks file sharing (445/139/135) from the LAN, which limits the shares above for now;
+- but SQL Server (1433) and Remote Desktop (3389) answer from the LAN.
+
+If Kaspersky's rules change, any account that can sign in to OCT_PC could change or delete clinical OCT files.
 
 Also: Qsync is a sync, not a backup, unless the QNAP keeps snapshots. No backup of the live `D:\IMAGEnet6` store was seen.
 
@@ -122,13 +128,21 @@ to shichika, and leave nothing behind on 152.
    `...\work` (tool temp and logs). Access is Administrators, SYSTEM and `shichika\Admin` only.
 
 ### Step 1 - First export (when the ImageNet PC is on)
-1. Pavin, on the ImageNet PC: run `scripts\imagenet-discover.ps1`, then `scripts\imagenet-share-readonly.ps1`. Then store the
-   password on shichika with `cmdkey` (RUNBOOK 13). The result is the read-only share `\\192.168.0.152\SudarshanOCT$`.
+1. ~~Pavin, on the ImageNet PC: run `scripts\imagenet-discover.ps1`, then `scripts\imagenet-share-readonly.ps1`. Then store
+   the password on shichika with `cmdkey` (RUNBOOK 13).~~ Done 26 Oct: the read-only share
+   `\\192.168.0.152\SudarshanOCT$` is `D:\IMAGEnet6`.
+   - It opens from shichika and lists 19,622 files in 1 s.
+   - `sudarshan_ro` is refused on `D`, `IMAGEnet6` and `Users`.
+   - Kaspersky packet rule on OCT_PC: allow inbound TCP 445 from 192.168.0.49 only, at the top of the list.
+   - A Windows Firewall rule for the same was also added; it is inactive while Windows Firewall is off.
+   - No write test was done, on purpose: the share's permission is Read for `sudarshan_ro` only.
    - First share the live store (the `D:\IMAGEnet6` data subfolder): new exams arrive there.
    - The Jukebox archive, which holds past years, gets a second share later, if Step 4 needs it
      (`-DataFolder E:\Jukebox -Share 'SudarshanJukebox$'`).
 2. Pavin chooses and approves three studies: one structural 3D Macula, one OCTA, and (if separate) a fundus photograph only.
-3. Copy each one to `incoming\` and record its size and SHA-256.
+   File names are numbers, so the easiest way to pick them is by time. For example, scan a staff volunteer, then Claude
+   takes the newest files.
+3. Copy each one to `incoming\`: the `.fda` **and** its `.fds` with the same number. Record each file's size and SHA-256.
 4. Run the tool with `-norun` (a plan only), then with `-allDcm`, each study into a new output folder. Record the command,
    time taken, the files produced and the log (kept in `work\`).
 5. Check the output with pydicom. Report only the tags, the numbers and whether the pixel data opens:
