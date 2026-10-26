@@ -64,7 +64,13 @@ CREATE TABLE IF NOT EXISTS app.remidio_queue_log (
 CREATE INDEX IF NOT EXISTS remidio_queue_log_at_idx ON app.remidio_queue_log (at DESC);
 
 ALTER TABLE app.dr_gradings ADD COLUMN IF NOT EXISTS photo_id bigint REFERENCES app.fundus_photos(id);
-CREATE UNIQUE INDEX IF NOT EXISTS dr_gradings_photo_idx ON app.dr_gradings (photo_id) WHERE photo_id IS NOT NULL;
+-- one grading per photograph, until 0023 (D-046) replaces this with one per photograph and model: once that has run,
+-- never make this index again (every update re-runs all migrations, and photographs then have several gradings)
+DO $$ BEGIN
+  IF to_regclass('app.dr_gradings_photo_model_idx') IS NULL THEN
+    CREATE UNIQUE INDEX IF NOT EXISTS dr_gradings_photo_idx ON app.dr_gradings (photo_id) WHERE photo_id IS NOT NULL;
+  END IF;
+END $$;
 ALTER TABLE app.dr_gradings DROP CONSTRAINT IF EXISTS dr_gradings_source_check;
 ALTER TABLE app.dr_gradings ADD CONSTRAINT dr_gradings_source_check CHECK (source IN ('upload', 'batch', 'remidio'));
 
