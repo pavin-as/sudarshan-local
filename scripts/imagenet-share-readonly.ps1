@@ -9,12 +9,14 @@
     - only if the folder does not already let ordinary signed-in accounts read it: a read-only permission entry for
       sudarshan_ro on the folder (asks first)
   Does not change, move or delete any ImageNet file, and does not touch IMAGEnet, its database or the firewall.
+  A second folder (for example the Jukebox archive) gets its own share name; the account is reused:
+    powershell -ExecutionPolicy Bypass -File imagenet-share-readonly.ps1 -DataFolder E:\Jukebox -Share 'SudarshanJukebox$'
   Undo (same window):
     Remove-SmbShare -Name 'SudarshanOCT$' -Force; Remove-LocalUser -Name sudarshan_ro
     icacls "<data folder>" /remove sudarshan_ro      (only if the permission entry was added)
 #>
+param([string]$DataFolder, [string]$Share = 'SudarshanOCT$')
 $ErrorActionPreference = 'Stop'
-$Share = 'SudarshanOCT$'
 $Account = 'sudarshan_ro'
 
 if ((Get-NetIPAddress -AddressFamily IPv4).IPAddress -contains '192.168.0.49') {
@@ -22,7 +24,9 @@ if ((Get-NetIPAddress -AddressFamily IPv4).IPAddress -contains '192.168.0.49') {
 }
 if (Get-SmbShare -Name $Share -ErrorAction SilentlyContinue) { throw "Share $Share already exists: nothing changed." }
 
-$DataFolder = (Read-Host 'DATA FOLDER from imagenet_discover.txt').Trim().Trim('"')
+if (-not $DataFolder) { $DataFolder = Read-Host 'Folder to share (the path, for example D:\IMAGEnet6\Data; YES comes later)' }
+$DataFolder = $DataFolder.Trim().Trim('"')
+if ($DataFolder -eq 'YES') { throw 'Type the folder path first (for example D:\IMAGEnet6\Data); YES is asked afterwards.' }
 if (-not (Test-Path -LiteralPath $DataFolder -PathType Container)) { throw "Folder not found: $DataFolder" }
 $count = @(Get-ChildItem -LiteralPath $DataFolder -Recurse -File -Filter *.fda -ErrorAction SilentlyContinue | Select-Object -First 50).Count
 "Folder: $DataFolder  (.fda files seen: $count$(if ($count -eq 50) {'+'}))"

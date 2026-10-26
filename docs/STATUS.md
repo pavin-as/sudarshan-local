@@ -237,6 +237,12 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
   - give the read-only share path on the ImageNet PC.
 
   Then Step 1 (first export of three studies).
+- [ ] ImageNet PC (OCT_PC, 26 Oct; OCT_PLAN section 2). Three shares give Everyone Full over the LAN: `D` (all of D:\),
+      `IMAGEnet6` and `Users` (C:\Users). NTFS gives Authenticated Users Modify on the OCT stores. Pavin:
+  - ask Topcon which shares IMAGEnet viewing stations need, then remove or narrow the rest;
+  - check that the live store `D:\IMAGEnet6` (700 GB) is backed up, and that the QNAP Qsync copy of `E:\Jukebox` has
+    snapshots (a sync is not a backup);
+  - ask what `F:\Jukebox` is.
 
 ## Next step
 Trial running on live Google data (D-025). Remaining, in order:

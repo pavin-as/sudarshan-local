@@ -21,6 +21,31 @@ User Instructions Rev F, tool v3.0.0.39) and read-only checks on shichika. This 
 | QNAP | - | Sudarshan's nightly backup (already set up); the exported photographs and DICOM go into it. |
 | Raspberry Pi NAS `nasadmin` (OpenMediaVault) | 192.168.0.107 | **Optional, later:** de-identified research sets only, once its encryption and backup are checked. It did not answer on 25 Oct. Not on the critical path. |
 
+ImageNet PC facts (`imagenet-discover.ps1`, 26 Oct 09:20). The PC is named **OCT_PC** and runs Windows 11 Pro. It also has
+10.1.1.2, probably the link to the Maestro2. SQL Server `MSSQLSERVER` holds the IMAGEnet database and is backed up by
+"SQL Backup Master".
+
+Each exam is a numbered pair: `<number>.fda` + `<number>.fds`. File names hold no patient names.
+
+| Store | Size | Dates | Notes |
+|---|---|---|---|
+| `D:\IMAGEnet6\...` (live) | 9,358 `.fda`, 700 GB | 2021-03 to 2026-10 | new exams arrive here; the exact subfolder is still to be confirmed |
+| `E:\Jukebox` (archive) | 10,382 `.fda`, 762 GB | 2021-03 to 2026-09 | 180 volume folders; synced to a QNAP by Qsync |
+| `F:\Jukebox` | 3,298 `.fda`, 274 GB | 2025-06 to 2026-09 | 64 volume folders; a backup copy or a second archive? (ask Topcon) |
+
+**Risk found:** three shares give **Everyone Full** access over the network:
+- `D` (all of D:\);
+- `IMAGEnet6` (D:\IMAGEnet6);
+- `Users` (C:\Users).
+
+On D:\ and the Jukebox folders, NTFS gives Authenticated Users Modify. So any account that can sign in to OCT_PC over the
+LAN can change or delete clinical OCT files, and ransomware on another PC could reach them.
+
+Also: Qsync is a sync, not a backup, unless the QNAP keeps snapshots. No backup of the live `D:\IMAGEnet6` store was seen.
+
+Pavin should ask Topcon which shares IMAGEnet viewing stations really need before anything is changed. Sudarshan never
+uses these shares: it uses only its own read-only `SudarshanOCT$`.
+
 shichika facts (25 Oct): Windows 11 Pro 64-bit; about 8 of 32 GB of RAM free during the day (MySQL, two Tomcats,
 PostgreSQL, Metabase, four Docker containers); GPU 1.3 of 12 GB in use; free space D: 218 GB, F: 1.38 TB. The export tool
 needs the **.NET 10 Desktop Runtime x64**, which is not installed: only .NET 6 and 8 are there.
@@ -99,6 +124,9 @@ to shichika, and leave nothing behind on 152.
 ### Step 1 - First export (when the ImageNet PC is on)
 1. Pavin, on the ImageNet PC: run `scripts\imagenet-discover.ps1`, then `scripts\imagenet-share-readonly.ps1`. Then store the
    password on shichika with `cmdkey` (RUNBOOK 13). The result is the read-only share `\\192.168.0.152\SudarshanOCT$`.
+   - First share the live store (the `D:\IMAGEnet6` data subfolder): new exams arrive there.
+   - The Jukebox archive, which holds past years, gets a second share later, if Step 4 needs it
+     (`-DataFolder E:\Jukebox -Share 'SudarshanJukebox$'`).
 2. Pavin chooses and approves three studies: one structural 3D Macula, one OCTA, and (if separate) a fundus photograph only.
 3. Copy each one to `incoming\` and record its size and SHA-256.
 4. Run the tool with `-norun` (a plan only), then with `-allDcm`, each study into a new output folder. Record the command,

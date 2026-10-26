@@ -48,7 +48,8 @@ function Mask([string]$s) { ($s -creplace '[0-9]', '9') -creplace '[^9\\.\-_ ]',
     $gb = [math]::Round(($g | Measure-Object Length -Sum).Sum / 1GB, 2)
     $span = '{0} to {1}' -f ($g.LastWriteTime | Measure-Object -Minimum).Minimum.ToString('yyyy-MM'), ($g.LastWriteTime | Measure-Object -Maximum).Maximum.ToString('yyyy-MM')
     $fda = @($g | Where-Object Extension -eq '.fda').Count
-    if ($g.Count -lt 20 -or $dirs.Count -lt 5) {
+    # a store holds many files; a handful in one or two folders may be a patient's export, so its folder stays hidden
+    if ($g.Count -lt 20 -or ($dirs.Count -lt 5 -and $g.Count -lt 100)) {
       # too few to be the ImageNet store; the full folder could name a patient, so show only the top folder
       '{0}\...  files: {1} (.fda {2})  {3} GB  {4}  [small: exports or copies]' -f $_.Name, $g.Count, $fda, $gb, $span
       return
