@@ -197,11 +197,11 @@ async function importExam(f: ExamFile, mode: "peek" | "on"): Promise<string> {
   const inDir = path.join(work, "in"), exp = path.join(work, "export"), photos = path.join(work, "photos");
   try {
     await mkdir(inDir, { recursive: true });
-    for (const name of [f.name, f.fds].filter(Boolean) as string[]) {
-      await copyFile(path.join(dir, name), path.join(inDir, name));
-      const [a, b] = await Promise.all([stat(path.join(dir, name)), stat(path.join(inDir, name))]);
-      if (a.size !== b.size) throw new Error(`the copy of ${name} is incomplete`);
-    }
+    // the .fda alone gives the fundus photograph (checked 26 Oct on a Radial and an OCTA exam); the .fds, about 90% of the
+    // bytes, stays on the ImageNet PC, so the copy reads a tenth as much from the PC that drives the Maestro2
+    await copyFile(path.join(dir, f.name), path.join(inDir, f.name));
+    const [a, b] = await Promise.all([stat(path.join(dir, f.name)), stat(path.join(inDir, f.name))]);
+    if (a.size !== b.size) throw new Error(`the copy of ${f.name} is incomplete`);
     await exporter(path.join(inDir, f.name), exp);
     const r = await converter(exp, photos);
     if (mode === "peek") {
