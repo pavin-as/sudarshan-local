@@ -5,6 +5,11 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Reading IMAGEnet's CST from a report saved as PDF** (D-050 check, trial). IMAGEnet exports no thickness numbers, so
+  this tests whether one report printed to PDF can be read instead of typing the value. The manual sheet stays.
+  Result on 6 of today's reports: IMAGEnet prints its results as pictures, so no CST can be read (OCT_PLAN 7, q7).
+  - Technical: `scripts/oct_report_pdf.py` (pypdf 5.4.0 in `tools\oct-venv`), `services/octReport.ts`, CLI
+    `oct-report-check`; 2 more checks in `test/octThickness.unit.test.ts`. Nothing is recorded as checked.
 - **Retinal thickness from the Maestro2 scans** (D-050). For macula 3D and radial scans, Sudarshan now works out central
   subfield thickness (CST) and the ETDRS sectors from Topcon's layer lines, ILM to BM and ILM to OS/RPE.
   - The OCT viewer shows the ETDRS grid.

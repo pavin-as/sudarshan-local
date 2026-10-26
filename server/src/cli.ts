@@ -8,6 +8,7 @@
 //                                                                                -> benchmark on a public dataset (D-043, D-044)
 //   node dist/cli.js oct-thickness-sheet [--from yyyy-mm-dd] [--out <file.csv>]  -> CST check sheet to fill from IMAGEnet (D-050)
 //   node dist/cli.js oct-thickness-compare [<file.csv>] [--record ILM-BM|ILM-OS/RPE] [--by <name>]  -> agreement (aggregates)
+//   node dist/cli.js oct-report-check <report.pdf> [--scan <id>]  -> IMAGEnet's CST from a report printed to PDF, checked against the scan
 import { pool, withTx } from "./db.js";
 import { hashPassword, temporaryPassword } from "./lib/passwords.js";
 import { ROLES } from "./lib/permissions.js";
@@ -17,6 +18,7 @@ import { evaluateExternal } from "./services/evalExternal.js";
 import { compareRuns } from "./services/evalCompare.js";
 import { screeningReport } from "./services/evalScreening.js";
 import { compareCheckSheet, measureMissing, writeCheckSheet } from "./services/octMeasure.js";
+import { checkReport } from "./services/octReport.js";
 
 const GRADER_DIR = "D:\\classification\\sampada-retinal-ai";
 const flag = (name: string) => args.includes(name);
@@ -115,6 +117,12 @@ async function main() {
         console.log(`  ${d.padEnd(10)} ${k.padEnd(6)} ${a ? `n ${a.n}: bias ${a.biasUm}, SD ${a.sdUm}, limits ${a.loaUm[0]} to ${a.loaUm[1]}, mean |d| ${a.maeUm}, largest ${a.maxAbsUm}, r ${a.r ?? "-"}` : "too few"}`);
       }
       if (def) console.log(`Recorded as checked (${def}).`);
+      return;
+    }
+    case "oct-report-check": {
+      if (!args[0] || args[0].startsWith("--")) throw new Error("usage: oct-report-check <IMAGEnet report.pdf> [--scan <id>]");
+      const scan = option("--scan");
+      for (const line of await checkReport(args[0], scan ? Number(scan) : undefined)) console.log(line);
       return;
     }
     default:

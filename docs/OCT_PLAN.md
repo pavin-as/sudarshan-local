@@ -441,6 +441,22 @@ the scans beside the EMR and using them for decisions and research.
    shichika, for example Orthanc (Step 4b)? Which SOP classes and transfer syntaxes does it send? That would replace file
    copying later.
 6. What does the patient ID field hold, and can the Maestro2 take a worklist from Yarago?
+7. (Step 7, 26 Oct) Can IMAGEnet 6 (v1.39.24436 here) export its own thickness results (CST, ETDRS grid, thickness map)
+   in a machine-readable form? For example CSV, DICOM Ophthalmic Thickness Map or a Structured Report, or a text-based
+   PDF report, ideally in batch. Is there a documented, read-only API or database view for them?
+   - What was checked on 26 Oct:
+     - the `.fda` holds no thickness block;
+     - the exported DICOM holds no thickness object;
+     - export tool v3 removed `-thicknessMap` / `-thicknessData`, which were its own calculation anyway;
+     - the share holds only a temporary capture-report image.
+   - IMAGEnet's web server answers on port 8080 with an internal API, but it is undocumented and needs an IMAGEnet login:
+     not used without Topcon's documentation and Pavin's approval.
+   - PDF route (trial, 26 Oct): `oct-report-check` (RUNBOOK 13) read 6 reports printed to PDF from IMAGEnet's browser
+     (Skia/PDF). Five printed exam screens: one 1286x909 picture each; the only text is the browser's header and
+     footer. IMAGEnet's Print page: the patient header (ID, dates, OD/OS) is text, the results are two 1954x3731
+     pictures. No CST, ETDRS value or layer definition is text in any of them. So PDFs cannot replace typing the
+     value; OCR of the pictures was not tried (it needs software on shichika and is not trusted for a validation).
+     Only a machine-readable or text-based export from Topcon would remove the manual step.
 
 ## 8. Questions for Pavin and the clinic
 1. ~~Run the tool on shichika?~~ Yes (D-047).

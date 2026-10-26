@@ -412,6 +412,12 @@ Set up on 25 Oct 2026 (Step 0).
      `node dist/cli.js oct-thickness-compare --record ILM-BM --by "Name"`
      (or `ILM-OS/RPE`, whichever matches IMAGEnet). The screens then show the check instead of "not yet checked".
   5. Delete the sheet afterwards: it names patients.
+  - **IMAGEnet's CST from a report saved as PDF** (trial, 26 Oct; it does not replace the sheet). Save one report as PDF
+    into `D:\Sudarshan\data\oct\work\reports\` (admin only), then:
+    `cd D:\Sudarshan\app\server; npx tsx src/cli.ts oct-report-check "D:\Sudarshan\data\oct\work\reports\<file>.pdf"`
+    It prints whether the PDF has selectable text, the eye, the layer definition and CST it found, whether the SPD
+    number, exam date and eye match one Sudarshan scan, and the difference. No names or numbers of the patient. Add
+    `--scan <id>` (the sheet's `scan`) if more than one scan matches. Delete the PDF afterwards: it names the patient.
 - **Orthanc / OHIF evaluation** (D-049): a throwaway container on 127.0.0.1:8042 with two de-identified exams.
   - Open: `http://127.0.0.1:8042/ohif/`
   - Remove: `docker compose -f D:\Sudarshan\app\server\test\orthanc-eval\docker-compose.yml down -v`, then delete

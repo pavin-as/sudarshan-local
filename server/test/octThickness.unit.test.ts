@@ -2,6 +2,7 @@
 //   npx tsx test/octThickness.unit.test.ts      (also in npm run test:rules)
 import assert from "node:assert/strict";
 import { agreement, parseCsv } from "../src/services/octMeasure.js";
+import { idInText, readReport } from "../src/services/octReport.js";
 import { computeThickness, scanKind, sectorOf, type LayerGrid } from "../src/services/octThickness.js";
 
 let passed = 0;
@@ -88,5 +89,17 @@ step("agreement with IMAGEnet: bias, SD, 95% limits, mean and largest difference
 step("the check sheet reads back as written (quotes, commas, Excel's BOM and line ends)", () => {
   const rows = parseCsv('scan,patient,imagenet_cst_um\r\n12,"ZZ, Test ""A""",255\r\n13,ZZ B,\r\n'.replace(/^/, ""));
   assert.deepEqual(rows[1], ["12", 'ZZ, Test "A"', "255"]); assert.deepEqual(rows[2], ["13", "ZZ B", ""]);
+});
+step("an IMAGEnet report's text: dates, eye, layer definition, CST candidates; IS/OS is not the left eye", () => {
+  const r = readReport("Name: ZZ Test  ID: SPD0412\nDOB 1960/03/04  Exam date 26-Oct-2026 10:41\nOD  3D Macula\n"
+    + "Retina (ILM - RPE/BM)  IS/OS\nCenter: 245 µm  Inner superior 310\nTotal volume 8.71 mm3\n");
+  assert.deepEqual(r.dates, ["1960-03-04", "2026-10-26"]); assert.deepEqual(r.eyes, ["RE"]);
+  assert.deepEqual(r.definitions, ["ILM-RPE/BM", "Retina"]); assert.deepEqual(r.cst, [{ label: "center", um: 245 }]);
+  assert.deepEqual(readReport("Left eye 04/11/2026 Central subfield thickness 0.4 mm 251").dates, ["2026-04-11", "2026-11-04"]);
+  assert.deepEqual(readReport("Left eye  CST 251").eyes, ["LE"]);
+});
+step("the report's patient ID: SPD number with or without zeros; a bare number only after an ID label", () => {
+  assert.equal(idInText("ID: SPD0412", "SPD412"), "strong"); assert.equal(idInText("Patient ID 412 ", "SPD412"), "number only");
+  assert.equal(idInText("Center 412 µm", "SPD412"), null); assert.equal(idInText("ID: SPD4120", "SPD412"), null);
 });
 console.log(`\n${passed} OCT thickness checks passed`);
