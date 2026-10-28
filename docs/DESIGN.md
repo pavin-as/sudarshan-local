@@ -327,3 +327,10 @@ Names come from the eye (choroid, optic disc, vessel), so the palette stays spec
 ### Quality floor
 Works down to phone width (nav wraps, rail stays readable); visible keyboard focus; respects reduced motion; no
 external requests (fonts, scripts) so it works without internet; contrast AA or better.
+
+### Grouped navigation (29 Oct 2026)
+Today, Day board and Patients are direct shortcuts. Other links are grouped by task: Appointments,
+Calls & messages, Clinical, Finance and Administration. Preserve per-link permission checks and hide empty
+restricted sections. Sections expand independently using buttons with aria-expanded/aria-controls; navigation
+opens the destination's section. Pending-work totals stay visible on the section header even when collapsed.
+The desktop menu scrolls separately above account controls; on phones it stacks in normal document flow.

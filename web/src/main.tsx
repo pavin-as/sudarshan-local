@@ -1,6 +1,6 @@
-import { StrictMode, useState } from "react";
+import { StrictMode, useEffect, useId, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Navigate, NavLink, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { api } from "./api";
 import { stamp } from "./format";
@@ -88,6 +88,31 @@ function useAdjustmentsToApprove(enabled: boolean) {
 
 const ROLE_WORDS: Record<string, string> = { admin: "Admin", manager: "Manager", staff: "Front desk", doctor: "Doctor", optometrist: "Optometrist", counsellor: "Counsellor" };
 
+function NavSection({ title, paths, count = 0, children }: {
+  title: string; paths: string[]; count?: number; children: ReactNode;
+}) {
+  const { pathname } = useLocation();
+  const active = paths.some((path) => pathname === path || pathname.startsWith(path + "/"));
+  const [open, setOpen] = useState(active);
+  const id = useId();
+  // Reveal the destination after navigation, including links from within a page.
+  useEffect(() => { if (active) setOpen(true); }, [pathname, active]);
+  return (
+    <section className="nav-section">
+      <h2>
+        <button type="button" className={`nav-section-toggle${active ? " contains-active" : ""}`}
+          aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}>
+          <span>{title}</span>
+          <span className="nav-section-meta">
+            {count > 0 && <span className="count" aria-label={`${count} pending items`}>{count}</span>}
+            <span aria-hidden="true">{open ? "⌄" : "›"}</span>
+          </span>
+        </button>
+      </h2>
+      <div id={id} hidden={!open} className="nav-section-links">{children}</div>
+    </section>
+  );
+}
 function Shell() {
   const { user, logout, can } = useAuth();
   const [changingPw, setChangingPw] = useState(false);
@@ -104,30 +129,44 @@ function Shell() {
     <div className="shell">
       <nav className="nav" aria-label="Main">
         <div className="brand"><span className="brand-mark" aria-hidden="true" /><div><b>Sudarshan</b><span>Sampada VR</span></div></div>
-        <NavLink to="/today">Today</NavLink>
-        <NavLink to="/" end>Day board</NavLink>
-        <NavLink to="/month">Month</NavLink>
-        {can("appointments.write") && <NavLink to="/confirm">Confirmation calls {!!due.data && <span className="count">{due.data}</span>}</NavLink>}
-        <NavLink to="/calls">Direct calls {!!calls && <span className="count">{calls}</span>}</NavLink>
-        <NavLink to="/cancelled">Cancel list {!!toCallBack && <span className="count">{toCallBack}</span>}</NavLink>
-        <NavLink to="/triage">Triage {!!triagePending && <span className="count">{triagePending}</span>}</NavLink>
-        <NavLink to="/patients">Patients</NavLink>
-        <NavLink to="/followups">Follow-up calls</NavLink>
-        {can("messages.send") && <NavLink to="/whatsapp">WhatsApp</NavLink>}
-        {can("payments.write") && <NavLink to="/payments">Payments {!!payReview && <span className="count">{payReview}</span>}</NavLink>}
-        {can("reconciliation.read") && <NavLink to="/collections">Day collection</NavLink>}
-        {can("reconciliation.read") && <NavLink to="/reconciliation">Reconciliation</NavLink>}
-        {(can("cash.deposit") || can("reconciliation.read")) && <NavLink to="/cash">Cash deposits</NavLink>}
-        {can("books.audit") && <NavLink to="/books-audit">Books audit</NavLink>}
-        {can("adjustments.submit") && <NavLink to="/adjustments">Adjustments {!!adjPending && <span className="count">{adjPending}</span>}</NavLink>}
-        {can("clinical.read") && <NavLink to="/emr-completeness">EMR completeness</NavLink>}
-        {can("clinical.read") && <NavLink to="/emr-daily">EMR daily report</NavLink>}
-        {can("clinical.read") && <NavLink to="/fundus">Fundus reports {!!fundusTodo && <span className="count">{fundusTodo}</span>}</NavLink>}
-        {can("retina_ai.use") && <NavLink to="/retina-ai">Retina AI</NavLink>}
-        {can("audit.read") && <NavLink to="/activity">Activity log</NavLink>}
-        {can("settings.manage") && <NavLink to="/calendar">Clinic calendar</NavLink>}
-        {can("settings.manage") && <NavLink to="/settings">Settings</NavLink>}
-        {can("users.manage") && <NavLink to="/users">Users</NavLink>}
+        <div className="nav-menu">
+          <div className="nav-shortcuts">
+            <NavLink to="/today">Today</NavLink>
+            <NavLink to="/" end>Day board</NavLink>
+            <NavLink to="/patients">Patients</NavLink>
+          </div>
+          <NavSection title="Appointments" paths={["/month", "/calendar"]} count={0}>
+            <NavLink to="/month">Month</NavLink>
+            {can("settings.manage") && <NavLink to="/calendar">Clinic calendar</NavLink>}
+          </NavSection>
+          <NavSection title="Calls & messages" paths={["/confirm", "/calls", "/cancelled", "/followups", "/whatsapp"]} count={due.data + calls + toCallBack}>
+            {can("appointments.write") && <NavLink to="/confirm">Confirmation calls {!!due.data && <span className="count">{due.data}</span>}</NavLink>}
+            <NavLink to="/calls">Direct calls {!!calls && <span className="count">{calls}</span>}</NavLink>
+            <NavLink to="/cancelled">Cancel list {!!toCallBack && <span className="count">{toCallBack}</span>}</NavLink>
+            <NavLink to="/followups">Follow-up calls</NavLink>
+            {can("messages.send") && <NavLink to="/whatsapp">WhatsApp</NavLink>}
+          </NavSection>
+          <NavSection title="Clinical" paths={["/triage", "/fundus", "/emr-daily", "/emr-completeness", "/retina-ai"]} count={triagePending + fundusTodo}>
+            <NavLink to="/triage">Triage {!!triagePending && <span className="count">{triagePending}</span>}</NavLink>
+            {can("clinical.read") && <NavLink to="/fundus">Fundus reports {!!fundusTodo && <span className="count">{fundusTodo}</span>}</NavLink>}
+            {can("clinical.read") && <NavLink to="/emr-daily">EMR daily report</NavLink>}
+            {can("clinical.read") && <NavLink to="/emr-completeness">EMR completeness</NavLink>}
+            {can("retina_ai.use") && <NavLink to="/retina-ai">Retina AI</NavLink>}
+          </NavSection>
+          {(can("payments.write") || can("reconciliation.read") || can("cash.deposit") || can("adjustments.submit") || can("books.audit")) && <NavSection title="Finance" paths={["/collections", "/payments", "/reconciliation", "/cash", "/adjustments", "/books-audit"]} count={payReview + (can("adjustments.submit") ? adjPending : 0)}>
+            {can("reconciliation.read") && <NavLink to="/collections">Day collection</NavLink>}
+            {can("payments.write") && <NavLink to="/payments">Payments {!!payReview && <span className="count">{payReview}</span>}</NavLink>}
+            {can("reconciliation.read") && <NavLink to="/reconciliation">Reconciliation</NavLink>}
+            {(can("cash.deposit") || can("reconciliation.read")) && <NavLink to="/cash">Cash deposits</NavLink>}
+            {can("adjustments.submit") && <NavLink to="/adjustments">Adjustments {!!adjPending && <span className="count">{adjPending}</span>}</NavLink>}
+            {can("books.audit") && <NavLink to="/books-audit">Books audit</NavLink>}
+          </NavSection>}
+          {(can("audit.read") || can("settings.manage") || can("users.manage")) && <NavSection title="Administration" paths={["/activity", "/settings", "/users"]} count={0}>
+            {can("audit.read") && <NavLink to="/activity">Activity log</NavLink>}
+            {can("settings.manage") && <NavLink to="/settings">Settings</NavLink>}
+            {can("users.manage") && <NavLink to="/users">Users</NavLink>}
+          </NavSection>}
+        </div>
         <div className="nav-foot">
           <b>{user!.fullName}</b>{ROLE_WORDS[user!.role]}
           {can("settings.manage") && <BackupStatus />}

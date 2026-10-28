@@ -524,6 +524,16 @@ Dates are when deployed on shichika.
 - Project documents: PLAN, SCHEMA, DESIGN, TESTING, RUNBOOK, COMPLIANCE, DECISIONS, CHANGELOG in `docs/`; CLAUDE.md
   points agents to them.
 
+## 2026-10-29 - Grouped sidebar
+
+- **Grouped sidebar for every role** (29 Oct 2026).
+  - Today, Day board and Patients stay one click away. Other links are grouped under Appointments, Calls & messages,
+    Clinical, Finance and Administration, with expandable sections and the existing permission checks.
+  - The current page opens its section automatically; pending counts remain visible when sections are closed.
+    Keyboard controls, a scrollable menu with account controls below it, and a stacked phone layout.
+  - Verified: web/server type checks, isolated web build, synthetic browser checks for all six roles and a doctor
+    with finance access; desktop and phone screenshots. Deployed to shichika; live assets and health verified. Post-deployment API requests returned 200 and view checks completed.
+
 ## 2026-10-19 - Web app (trial)
 - Staff can log in at `http://shichika:8484` and use: day board with live Yarago stage, booking dialog, appointment
   panel (history, confirm, reschedule, cancel with reason, link a new patient to Yarago), confirmation calls (day-before

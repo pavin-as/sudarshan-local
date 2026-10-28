@@ -40,6 +40,7 @@ with doctor 12 / 87, total 107 / 198.
 Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 7,769, returned 1,978, upcoming 242.
 
 ## Open items
+- [x] Grouped sidebar for every role (29 Oct): expandable sections, current-page reveal, pending counts and responsive layout; synthetic role/browser checks passed. Deployed to shichika; live assets, health, API responses and view checks verified.
 - [x] Appointment status labels confirmed (0004).
 - [ ] Firewall rule blocking MySQL 3306 from LAN (check no LAN client uses it first); later rotate MySQL root password.
 - [x] App schema `db/migrations/0003_app_core.sql`: users, sessions, doctors, calendar, appointments +

@@ -64,7 +64,7 @@ a { color: var(--action); }
 .shell { display: grid; grid-template-columns: 208px 1fr; min-height: 100%; }
 .nav {
   background: var(--choroid); color: #dce8ee; padding: 1rem 0.75rem; display: flex; flex-direction: column; gap: 2px;
-  position: sticky; top: 0; height: 100vh;
+  position: sticky; top: 0; height: 100vh; height: 100dvh; overflow-y: auto;
 }
 .brand { display: flex; align-items: center; gap: 0.55rem; padding: 0.2rem 0.5rem 1.1rem; color: #fff; }
 .brand-mark { width: 26px; height: 26px; border-radius: 50%; background: var(--choroid-2); position: relative; flex: none; }
@@ -77,7 +77,7 @@ a { color: var(--action); }
 .nav a:hover { background: rgba(255, 255, 255, 0.07); }
 .nav a.active { background: #fff; color: var(--choroid); font-weight: 700; }
 .nav .count { font-size: 0.8rem; background: var(--disc); color: var(--ink); border-radius: 10px; padding: 0 0.45rem; font-weight: 700; }
-.nav-foot { margin-top: auto; padding: 0.6rem; font-size: 0.85rem; color: #9fb6c3; border-top: 1px solid rgba(255,255,255,0.12); }
+.nav-foot { flex-shrink: 0; margin-top: auto; padding: 0.6rem; font-size: 0.85rem; color: #9fb6c3; border-top: 1px solid rgba(255,255,255,0.12); }
 .nav-foot b { color: #fff; display: block; }
 .nav-foot button { margin-top: 0.4rem; }
 .backup-status { margin-top: 0.45rem; font-size: 0.8rem; color: #9fb6c3; }
@@ -317,9 +317,10 @@ table.list tr.cam-topcon.clickable:hover td { background: #f7e5d2; }
 }
 @media (max-width: 760px) {
   .shell { grid-template-columns: 1fr; }
-  .nav { position: static; height: auto; flex-direction: row; flex-wrap: wrap; padding: 0.5rem; }
+  .nav { position: static; height: auto; max-height: none; flex-direction: column; padding: 0.5rem; }
   .brand { padding: 0.2rem 0.5rem; }
-  .nav-foot { margin: 0; border: 0; }
+  .nav-foot { margin: 0; }
+  .nav-shortcuts { display: flex; flex-wrap: wrap; gap: 0.25rem; }
   .main { padding: 1rem; }
   .feed li { grid-template-columns: 1fr; gap: 0.2rem; }
 }
@@ -668,4 +669,26 @@ button.recon-tile { text-align: left; cursor: pointer; font: inherit; display: f
   .collect-page .recon-tile, .collect-split i, .collect-bar-track i, .collect-hour-col i, .collect-key { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .collect-page .panel { break-inside: avoid; }
   .collect-page #day-payments { break-inside: auto; }
+}
+
+/* Grouped navigation: native buttons keep every section keyboard accessible. */
+.nav-menu { flex: 1; min-height: 0; min-width: 0; overflow-y: auto; padding-bottom: 0.75rem; scrollbar-width: thin; }
+.nav-shortcuts { padding-bottom: 0.5rem; }
+.nav-section { border-top: 1px solid rgba(255,255,255,0.12); padding: 0.3rem 0; }
+.nav-section h2 { font-size: 0.92rem; }
+.nav .nav-section-toggle {
+  width: 100%; min-height: 44px; justify-content: space-between; text-align: left;
+  padding: 0.55rem 0.6rem; border: 0; background: transparent; color: #dce8ee; font-weight: 700;
+}
+.nav .nav-section-toggle:hover { background: rgba(255,255,255,0.07); }
+.nav .nav-section-toggle.contains-active { color: #fff; box-shadow: inset 3px 0 var(--disc); }
+.nav-section-meta { display: inline-flex; align-items: center; gap: 0.5rem; }
+.nav-section-meta > span:last-child { font-size: 1.2rem; line-height: 1; }
+.nav-section-links { padding: 0.15rem 0 0.35rem 0.55rem; }
+.nav-section-links a { align-items: center; gap: 0.35rem; min-height: 42px; }
+.nav .count { flex-shrink: 0; align-self: center; }
+
+.nav > .brand { flex-shrink: 0; }
+@media (max-width: 760px) {
+  .nav-menu { flex: none; overflow-y: visible; }
 }
