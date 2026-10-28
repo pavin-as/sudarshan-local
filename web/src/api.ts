@@ -127,7 +127,8 @@ export interface FeeDay { date: string; method: "card" | "upi"; sales: number; s
 export interface FeeMonth { month: string; method: "card" | "upi"; sales: number; salesSettled: number; feesKept: number; pct: number | null; low: number; high: number; highDays: number }
 export interface FeeReport {
   days: FeeDay[]; months: FeeMonth[]; charges: { transactionId: string; date: string; amount: number; description: string | null }[];
-  totals: { cardSales: number; upiSales: number; cardFees: number; upiFees: number; charges: number; cardPct: number | null; upiPct: number | null };
+  totals: { cardSales: number; upiSales: number; cardSettled: number; upiSettled: number; cardFees: number; upiFees: number; charges: number;
+            cardPct: number | null; upiPct: number | null };
   late: { date: string; sales: number; words: string }[]; upiFeesSeen: boolean;
   fixed: { gstPct: number; servicePerMonth: number; perBatch: number; lateSettleDays: number };
 }

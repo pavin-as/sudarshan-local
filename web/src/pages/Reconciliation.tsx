@@ -83,7 +83,7 @@ export function ReconciliationPage() {
           </table></div>
         </section>
 
-        <BankFees f={d!.fees} />
+        <BankFees f={d!.fees} until={res.zoho.bankKnownUntil} />
 
         <section className="panel">
           <div className="panel-head"><h2 className="grow">Day by day</h2><span className="small muted">Open a row for the Yarago records and bank lines behind it</span></div>
@@ -176,8 +176,13 @@ export function ReconciliationPage() {
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const monthLabel = (m: string) => `${MONTH_NAMES[Number(m.slice(5, 7)) - 1]} ${m.slice(0, 4)}`;
 const pctText = (p: number | null) => (p == null ? "" : `${p.toFixed(2)}%`);
+// "1.10% of ₹2,64,710 settled (of ₹2,83,230)", or why nothing can be measured yet
+const settledWords = (settled: number, sales: number, pct: number | null, what: string, until: string | null) =>
+  !sales ? `no ${what} money in this period`
+  : !settled ? `no ${what} settlement in the bank yet${until ? ` (bank lines up to ${niceDate(until)})` : ""}: nothing to measure`
+  : `${pctText(pct)} of ${rupees(settled)} settled${settled < sales ? ` (of ${rupees(sales)}; the rest not settled or not known yet)` : ""}`;
 const FEE_EDGE: Record<string, string> = { normal: "ok", none: "ok", high: "warn", not_settled: "bad", waiting: "plain" };
-function BankFees({ f }: { f: FeeReport }) {
+function BankFees({ f, until }: { f: FeeReport; until: string | null }) {
   const [days, setDays] = useState(false);
   const [rates, setRates] = useState(false);
   if (!f.days.length && !f.charges.length) return null;
@@ -187,8 +192,9 @@ function BankFees({ f }: { f: FeeReport }) {
         <span className="small muted">HDFC settles card money less its commission (the rates under Rates, {f.fixed.gstPct}% GST included); RuPay debit and UPI are free.</span>
         <button className="btn-small" onClick={() => setRates(!rates)}>{rates ? "Hide rates" : "Rates"}</button></div>
       <div className="recon-tiles panel-pad">
-        <Tile n={f.totals.cardFees} label="Card fees kept" sub={`${pctText(f.totals.cardPct)} of ${rupees(f.totals.cardSales)} card money settled`} />
-        <Tile n={f.totals.upiFees} label="UPI fees kept" sub={f.upiFeesSeen ? `${pctText(f.totals.upiPct)} of UPI money settled` : "none in this period"} kind={f.upiFeesSeen ? "warn" : undefined} />
+        <Tile n={f.totals.cardFees} label="Card fees kept" sub={settledWords(f.totals.cardSettled, f.totals.cardSales, f.totals.cardPct, "card", until)} />
+        <Tile n={f.totals.upiFees} label="UPI fees kept" sub={settledWords(f.totals.upiSettled, f.totals.upiSales, f.totals.upiPct, "UPI", until)}
+              kind={f.upiFeesSeen ? "warn" : undefined} />
         <Tile n={f.totals.charges} label="Terminal charges" sub={f.charges.length ? f.charges.map((c) => `${dayLabel(c.date)} ${rupees(c.amount)}`).join(", ") : `₹${f.fixed.servicePerMonth} + GST a month, none dated in this period`} />
       </div>
       {!!f.late.length && <div className="notice panel-pad">{f.late.map((l) => <div key={l.date}><b>{dayLabel(l.date)}</b>: {l.words}</div>)}</div>}

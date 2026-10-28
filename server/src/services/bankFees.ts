@@ -73,7 +73,8 @@ export interface FeeMonth { month: string; method: FeeMethod; sales: number; sal
 export interface FeeReport {
   days: FeeDay[]; months: FeeMonth[];
   charges: ChargeLine[];                                    // money out the bank rules call bank charges (terminal service charge)
-  totals: { cardSales: number; upiSales: number; cardFees: number; upiFees: number; charges: number; cardPct: number | null; upiPct: number | null };
+  totals: { cardSales: number; upiSales: number; cardSettled: number; upiSettled: number; cardFees: number; upiFees: number; charges: number;
+            cardPct: number | null; upiPct: number | null };
   late: { date: string; sales: number; words: string }[];   // card days with no settlement after lateSettleDays
   upiFeesSeen: boolean;
   fixed: FeeFixed;
@@ -119,7 +120,8 @@ export function feeReport(rows: FeeDayIn[], charges: ChargeLine[], fixed: FeeFix
   return {
     days, months: [...months.values()].sort((a, b) => a.month.localeCompare(b.month) || a.method.localeCompare(b.method)),
     charges,
-    totals: { cardSales: sum(card, (d) => d.sales), upiSales: sum(upi, (d) => d.sales), cardFees, upiFees, charges: R(charges.reduce((s, c) => s + P(c.amount), 0)),
+    totals: { cardSales: sum(card, (d) => d.sales), upiSales: sum(upi, (d) => d.sales),
+              cardSettled: sum(cardSettled, (d) => d.sales), upiSettled: sum(upiSettled, (d) => d.sales), cardFees, upiFees, charges: R(charges.reduce((s, c) => s + P(c.amount), 0)),
               cardPct: pct(cardFees, sum(cardSettled, (d) => d.sales)), upiPct: pct(upiFees, sum(upiSettled, (d) => d.sales)) },
     late, upiFeesSeen: upiSettled.some((d) => (d.fee ?? 0) > 0), fixed,
   };
