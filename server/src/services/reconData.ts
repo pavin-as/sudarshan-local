@@ -126,7 +126,7 @@ export async function loadInput(from: string, to: string, today: string, book?: 
   return { from, to, today, lines, payments, refunds, bank, rules, effects, ...settings,
            zoho: { configured: zs.configured, fetchedAt: zs.fetchedAt, feedRefreshedOn: zs.feedRefreshedOn, stale: zs.stale },
            feeBands: dayBands(payments, rates, fixed.gstPct),
-           cash: { deposits: cb.deposits.map((d) => ({ id: d.id, depositedOn: d.depositedOn, coversFrom: d.coversFrom, coversTo: d.coversTo })),
+           cash: { start: cb.start, deposits: cb.deposits.map((d) => ({ id: d.id, depositedOn: d.depositedOn, coversFrom: d.coversFrom, coversTo: d.coversTo })),
                    matchedCreditIds: cb.matchedCreditIds } };
 }
 

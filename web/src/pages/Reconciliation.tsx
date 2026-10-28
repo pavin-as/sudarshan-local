@@ -184,7 +184,7 @@ function BankFees({ f }: { f: FeeReport }) {
   return (
     <section className="panel">
       <div className="panel-head"><h2 className="grow">Bank fees</h2>
-        <span className="small muted">HDFC settles card money less its commission; UPI is free up to ₹2,000 (0.40% above, from 15 Oct 2026). Rates: {f.fixed.gstPct}% GST included.</span>
+        <span className="small muted">HDFC settles card money less its commission (the rates under Rates, {f.fixed.gstPct}% GST included); RuPay debit and UPI are free.</span>
         <button className="btn-small" onClick={() => setRates(!rates)}>{rates ? "Hide rates" : "Rates"}</button></div>
       <div className="recon-tiles panel-pad">
         <Tile n={f.totals.cardFees} label="Card fees kept" sub={`${pctText(f.totals.cardPct)} of ${rupees(f.totals.cardSales)} card money settled`} />
@@ -231,7 +231,7 @@ function FeeRates() {
   const cell = (r: any, k: string, w = "6rem") => <input style={{ width: w }} value={r[k] ?? ""} onChange={(e) => setDraft({ ...draft!, rows: draft!.rows.map((x) => (x === r ? { ...x, [k]: e.target.value } : x)) })} />;
   return (
     <div className="panel-pad stack">
-      <p className="small muted" style={{ margin: 0 }}>Each set of rates is in force from its day until the next set. Placeholder: HDFC's published rates for SmartHub merchants until the bank sends the clinic's POS agreement rates.
+      <p className="small muted" style={{ margin: 0 }}>Each set of rates is in force from its day until the next set. The clinic's HDFC POS commercials (terminal 66027444), as the bank sent them on 28 Oct 2026.
         {" "}Fixed: {q.data.fixed.gstPct}% GST, ₹{q.data.fixed.servicePerMonth} terminal service charge a month, ₹{q.data.fixed.perBatch} a settlement batch, late batch after {q.data.fixed.lateSettleDays} days.</p>
       {sets.map((s) => (
         <div key={s}><div className="row"><b className="grow">In force from {niceDate(s)}</b>
@@ -262,7 +262,7 @@ function Freshness({ d }: { d: ReconResponse }) {
   const zs = d.zohoStatus;
   const z = !zs.configured ? <span><b>Zoho is not connected yet</b>: the bank side shows "Bank data not available" until an administrator runs scripts\setup-zoho.ps1 (RUNBOOK 14).</span>
     : !zs.fetchedAt ? <span><b>Zoho has not been read yet</b>: press "Fetch from Zoho".</span>
-    : <span>Zoho read {stamp(zs.fetchedAt)}{zs.stale && <b> (over {zs.staleHours} hours ago: fetch again; until then nothing is called a difference)</b>}; bank feed up to {zs.feedRefreshedOn ? niceDate(zs.feedRefreshedOn) : "unknown"}.</span>;
+    : <span>Zoho read {stamp(zs.fetchedAt)}{zs.stale && <b> (over {zs.staleHours} hours ago: fetch again; until then nothing is called a difference)</b>}; bank lines up to {zs.feedRefreshedOn ? niceDate(zs.feedRefreshedOn) : "unknown"}.</span>;
   return (
     <div className={`notice ${!zs.configured || zs.stale || zs.lastRun?.status === "failed" ? "" : "ok"}`}>
       Yarago copied {d.yaragoSyncedAt ? stamp(d.yaragoSyncedAt) : "unknown"}. {z}

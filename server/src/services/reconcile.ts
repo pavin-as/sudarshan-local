@@ -45,7 +45,7 @@ export interface ReconInput {
   tolerance: Partial<Record<Method, number>>;
   zoho: ZohoState;
   feeBands?: Record<string, FeeBand>;       // "date|method": what the bank could keep on the day's card / UPI payments
-  cash?: { deposits: { id: number; depositedOn: string; coversFrom: string; coversTo: string }[]; matchedCreditIds: string[] };   // from the cash book
+  cash?: { start?: string; deposits: { id: number; depositedOn: string; coversFrom: string; coversTo: string }[]; matchedCreditIds: string[] };   // from the cash book
 }
 
 export type RowStatus = "matched" | "within_tolerance" | "settled_less_fee" | "fee_high" | "awaiting" | "no_bank_data" | "uncertain" | "difference"
@@ -325,6 +325,9 @@ export function reconcile(inp: ReconInput): ReconResult {
   const cashDeps = inp.cash?.deposits ?? [];
   for (const r of rows) {
     if (r.method === "cash") {
+      if (inp.cash?.start && r.date < inp.cash.start) {
+        r.status = P(r.expected) === 0 ? "nothing_due" : "not_tracked"; r.note = `Before the cash book (it starts with the cash of ${shortDate(inp.cash.start)})`; continue;
+      }
       const dep = cashDeps.find((d) => r.date >= d.coversFrom && r.date <= d.coversTo);
       if (dep) { r.status = "cash_deposited"; r.deposited = r.expected; r.note = `In deposit #${dep.id} of ${shortDate(dep.depositedOn)}`; }
       else r.status = P(r.expected) === 0 && !r.matches.length ? "nothing_due" : "cash_in_hand";
@@ -364,7 +367,7 @@ export function reconcile(inp: ReconInput): ReconResult {
   const uncertainRows = period.filter((r) => r.status === "uncertain");
   const cashRows = period.filter((r) => r.method === "cash");
   const cashDeposited = sum(cashRows.filter((r) => r.status === "cash_deposited"), (r) => r.expected) + cashManual;
-  const cashInHand = sum(cashRows.filter((r) => r.status !== "cash_deposited"), (r) => r.expected) - cashManual;
+  const cashInHand = sum(cashRows.filter((r) => r.status === "cash_in_hand"), (r) => r.expected) - cashManual;
   const depositsMatched = sum(period.filter(tracksRow), (r) => r.deposited) + cashDeposited;
   const feeRows = period.filter((r) => r.status === "settled_less_fee" || r.status === "fee_high");
 

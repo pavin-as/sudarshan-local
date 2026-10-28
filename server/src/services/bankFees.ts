@@ -10,7 +10,7 @@
 export type FeeMethod = "card" | "upi";
 export type FeeKind = "debit" | "rupay_debit" | "credit" | "international" | "upi" | "upi_rupay_credit";
 export const FEE_KIND_WORDS: Record<FeeKind, string> = {
-  rupay_debit: "RuPay debit card", debit: "Debit card", credit: "Credit card", international: "International card",
+  rupay_debit: "RuPay debit card", debit: "Debit card", credit: "Credit card", international: "Business, commercial or foreign card",
   upi: "UPI", upi_rupay_credit: "UPI on a RuPay credit card",
 };
 const USUAL: Record<FeeMethod, FeeKind[]> = { card: ["rupay_debit", "debit", "credit"], upi: ["upi", "upi_rupay_credit"] };

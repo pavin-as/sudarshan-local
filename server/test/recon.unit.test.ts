@@ -236,6 +236,10 @@ check("cash stays in hand until a recorded deposit covers its day; a bank cash c
   assert.equal(r.totals.cashDeposited, 3000); assert.equal(r.totals.cashInHand, 5000);
   assert.equal(r.credits.find((c) => c.transactionId === "Z-CASH")?.state, "matched");
   assert.equal(row(r, "2026-10-09", "cheque").status, "not_tracked");
+  // days before the cash book's start are not called cash in hand
+  const early = reconcile({ ...base, cash: { start: "2026-10-09", deposits: [], matchedCreditIds: [] } });
+  assert.equal(row(early, "2026-10-08", "cash").status, "not_tracked"); assert.match(row(early, "2026-10-08", "cash").note!, /Before the cash book/);
+  assert.equal(early.totals.cashInHand, 5000);
 });
 
 // ---- D-053: net settlement and bank fees --------------------------------------------------------

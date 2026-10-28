@@ -23,7 +23,8 @@ const savedCash = (await pool.query(`SELECT key, value FROM app.settings WHERE k
 async function cleanup() {
   await pool.query(`BEGIN; SET LOCAL app.skip_audit = 'on';
     ALTER TABLE app.cash_deposits DISABLE TRIGGER cash_deposits_guard;
-    DELETE FROM app.cash_deposits WHERE recorded_by IN (SELECT id FROM app.users WHERE username LIKE 'zz_test_recon%');
+    -- the cash book is one sequence: the test needs it empty (demo deposits come back with test/seed-recon-demo.ts)
+    DELETE FROM app.cash_deposits;
     ALTER TABLE app.cash_deposits ENABLE TRIGGER cash_deposits_guard;
     DELETE FROM app.user_permissions WHERE user_id IN (SELECT id FROM app.users WHERE username LIKE 'zz_test_recon%');
     ALTER TABLE app.recon_adjustments DISABLE TRIGGER recon_adjustments_guard;
@@ -99,6 +100,8 @@ let zohoLines: any[] = [
     description: "NEFT FROM ZZ SOMEONE" },
   { transaction_id: "ZZ-CHG", account_id: "ZZACC", date: "2026-03-04", amount: 50, debit_or_credit: "credit", transaction_type: "expense", status: "uncategorized",
     description: "SMS CHARGES" },
+  { transaction_id: "ZZ-LATE", account_id: "ZZACC", date: "2026-03-10", amount: 20, debit_or_credit: "credit", transaction_type: "expense", status: "categorized",
+    description: "SMS CHARGES LATER" },
   { transaction_id: "ZZ-OLD", account_id: "ZZACC", date: "2025-12-01", amount: 9, debit_or_credit: "debit", transaction_type: "deposit", status: "categorized",
     description: "AN OLD LINE OUTSIDE EVERY PERIOD" },
 ];
@@ -204,11 +207,13 @@ try {
   await step("Zoho fetch reads only (GETs and the token refresh); a write would be stopped before leaving", async () => {
     const f = await call("POST", "/api/recon/zoho/fetch", mgr, { from: D, to: D });
     assert.equal(f.status, 200, f.body?.message); assert.equal(f.body.status, "ok");
-    assert.deepEqual([f.body.counts.lines, f.body.counts.new, f.body.counts.payments], [4, 4, 1], "categorised and uncategorised lines of the period, not the old one");
+    assert.deepEqual([f.body.counts.lines, f.body.counts.new, f.body.counts.payments], [5, 5, 1], "categorised and uncategorised lines of the period, not the old one");
     const sides = (await pool.query(`SELECT transaction_id, debit_or_credit FROM app.zoho_bank_txns WHERE transaction_id LIKE 'ZZ-%' ORDER BY 1`)).rows;
-    assert.deepEqual(sides.map((s) => `${s.transaction_id}:${s.debit_or_credit}`), ["ZZ-CARD:credit", "ZZ-CHG:debit", "ZZ-NEFT:credit", "ZZ-UPI:credit"],
+    assert.deepEqual(sides.map((s) => `${s.transaction_id}:${s.debit_or_credit}`), ["ZZ-CARD:credit", "ZZ-CHG:debit", "ZZ-LATE:debit", "ZZ-NEFT:credit", "ZZ-UPI:credit"],
                      "Zoho's 'debit' (money into the bank account) is kept as a credit on the statement");
     assert.ok(zohoCalls.some((x) => x.url.includes("Status.Uncategorized")) && zohoCalls.some((x) => x.url.includes("Status.All")));
+    const zs = (await call("GET", "/api/recon/zoho", mgr)).body.status;
+    assert.equal(zs.feedRefreshedOn, "2026-03-10", "Zoho says refreshed 28 Oct, but bank lines are known only up to the last one copied");
     assert.ok(zohoCalls.length >= 4 && zohoCalls.every((x) => x.method === "GET" || x.url.includes("/oauth/v2/token?")));
     assert.ok(!zohoCalls.some((x) => x.url.includes("zz-secret") && x.method === "GET"), "the secret only goes to the token refresh");
     assert.equal(allowed({ method: "POST", url: "https://www.zohoapis.in/books/v3/invoices?organization_id=1", headers: {} }), false);

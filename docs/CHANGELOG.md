@@ -5,6 +5,12 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **HDFC's own POS rates; bank data end; cash before the book** (D-053).
+  - Bank fees now use the clinic's HDFC commercials (terminal 66027444): RuPay debit and UPI free; other debit 0.40% up
+    to ₹2,000, 0.90% above; credit 1.60%; business, commercial and foreign 2.75%; + tax (migration
+    `0030_hdfc_pos_rates.sql`, applied 28 Oct).
+  - "Bank lines up to" is the last bank line Zoho actually gave, so days after it are "Bank data not available", not
+    differences. Cash days before the cash book's start say "Before the cash book".
 - **Access per login, cash deposits, bank fees** (D-053).
   - **Users > Access:** for each login, every page and action with a tick; the role gives the defaults, the admin
     changes them for that login only (logged). Finance is no longer part of the manager role: Dr Sameera has the full

@@ -98,9 +98,13 @@ export async function zohoStatus(): Promise<ZohoStatus> {
   const last = await one<any>(`SELECT status, started_at::text AS "startedAt", message FROM app.zoho_fetch_runs ORDER BY started_at DESC LIMIT 1`);
   const wanted = zohoAccountIds();
   const feed = await one<{ d: string | null }>(`SELECT min(feed_refreshed_on)::text AS d FROM app.zoho_bank_accounts WHERE cardinality($1::text[]) = 0 OR account_id = ANY($1)`, [wanted]);
+  // Zoho can say the feed was refreshed today while its lines stop days earlier (28 Oct 2026: refreshed 28 Oct, lines to
+  // 21 Oct): bank data is known only up to the earlier of the two
+  const lines = await one<{ d: string | null }>(`SELECT max(txn_date)::text AS d FROM app.zoho_bank_txns WHERE missing_since IS NULL AND (cardinality($1::text[]) = 0 OR account_id = ANY($1))`, [wanted]);
   const fetchedAt = ok?.finished_at ?? null;
   const stale = fetchedAt ? Date.now() - Date.parse(fetchedAt) > staleHours * 3600_000 : false;
-  return { configured: zohoConfigured(), fetchedAt, feedRefreshedOn: feed?.d ?? null, stale, staleHours, running, lastRun: last ?? null };
+  const known = [feed?.d, lines?.d].filter((d): d is string => !!d).sort()[0] ?? null;
+  return { configured: zohoConfigured(), fetchedAt, feedRefreshedOn: known, stale, staleHours, running, lastRun: last ?? null };
 }
 
 /** Every 10 minutes: fetch the last 45 days when the copy is over 2 hours old, 08:00-22:00 only. */

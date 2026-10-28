@@ -714,9 +714,17 @@ optometrists, the doctor screen for the doctor.
   up to ₹2,000, 0.90% above, at most ₹1,000; RuPay debit 0; international 3%; UPI free, 0.40% above ₹2,000 at most
   ₹300 from 15 Oct 2026; 18% GST) until the bank sends the POS agreement's rates. Card days not settled within 2 days
   are listed (HDFC's late-batch fee).
-- **Checked on real data (Sep - 10 Oct, in memory):** card 22 of 25 days settle (3 whole, 19 net, 1 above the expected
-  rate: 3 Oct, 2.57%); fees kept 0.56% in September, 1.82% in 1-10 Oct. No settlement for 9 Sep (₹18,520) and
-  26 Sep (₹1,58,305) card money.
+- **The clinic's own rates (HDFC to Pavin, 28 Oct, terminal TID 66027444; migration 0030, replacing the placeholders):**
+  RuPay domestic debit and UPI zero; other debit cards 0.40% up to ₹2,000, 0.90% above; credit cards 1.60%; business,
+  commercial and foreign cards 2.75%; all + tax; service charge ₹116 a month per terminal; rental waived. UPI from a
+  RuPay credit card is not in the bank's message: it is taken at the credit-card rate above ₹2,000.
+- **Bank data is known up to the last bank line copied**, not Zoho's feed-refresh date (28 Oct: refreshed 28 Oct, lines
+  to 21 Oct). Cash days before the cash book's start are "Before the cash book", not cash in hand.
+- **Checked on live data with these rates (1 Sep - 21 Oct):** card 30 of 32 days settled (3 whole, 26 net, 1 above
+  the credit-card rate: 3 Oct, 2.57%); fees kept 1.1% in September, 1.5% in October. No settlement for 9 Sep
+  (₹18,520) and 17 Oct (₹3,200) card money. (26 Sep, ₹1,58,305, settled: its line was uncategorised and missed before
+  the fetch fix.) UPI: 17 Oct settled ₹764.32 short of ₹73,649 (1.04%) although the agreement says UPI is free: to ask
+  the bank.
 
 ## Proposed (not yet decided)
 

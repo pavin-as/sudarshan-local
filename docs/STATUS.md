@@ -320,10 +320,11 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
   - Reconciliation > Fetch from Zoho (reads the uncategorised lines for the first time);
   - Cash deposits > Cash book settings: check the start (11 Oct) and the cash in hand before it, then have the cash
     desk record the next deposit. Cash since 11 Oct was about ₹5.2 lakh on 28 Oct, over the ₹4 lakh limit;
-  - send the HDFC POS agreement's card rates when they come (Reconciliation > Bank fees > Rates);
-  - ask HDFC whether the clinic is in its "specialised sector" programme (₹5 flat on UPI above ₹2,000 instead of
-    0.40%);
-  - look into 26 Sep (₹1,58,305 card in Yarago, no settlement) and 9 Sep (₹18,520).
+  - look into 9 Sep (₹18,520) and 17 Oct (₹3,200) card money with no settlement;
+  - ask HDFC about 17 Oct UPI: ₹764.32 kept from ₹73,649 although the agreement says UPI is free.
+- [x] D-053 deployed 28 Oct 14:00; first fetch on the fixed code read 97 uncategorised lines (bank lines to 21 Oct).
+- [x] HDFC's own rates (TID 66027444) in force (migration 0030, applied 28 Oct). The "bank lines known up to" and
+      "before the cash book" fixes are committed: **not live until `update.ps1` runs again.**
 
 ## Next step
 Trial running on live Google data (D-025). Remaining, in order:
