@@ -51,6 +51,9 @@ HOT_TABLES = [
     "tbltimerpatientwaiting", "tbldilatationpatientslist",
     "tblpatientsappointmentbillingdetails", "tbl_patient_payment_duedetails", "tbl_payment_receptionist_new",
     "tblopticalpatientpayment", "tbl_payment_injectionorlaser_procedure_for_billing",
+    # pharmacy and optical orders and their lines (D-056): with the payments above, so the day's pharmacy sales and
+    # payments reach the reconciliation together (they were nightly, so a payment waited a day for its order)
+    "tblopticalpatientorders", "tblopticalpatientorderdetails",
     # pharmacy purchases and what is paid to wholesalers (D-033): small tables, so the balance is minutes old, not a day
     "tblopticalpharmacypurchase", "tblopticalpharmacypurchasedetails", "tblpurchasepaymentdetails",
 ]

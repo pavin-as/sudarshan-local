@@ -788,6 +788,19 @@ optometrists, the doctor screen for the doctor.
 - **Live effect, 1 Sep - 27 Oct:** UPI differences 17 → 15 days, uncertain 2 → 0. The UPI days still different are
   Yarago entries to correct (for example 9 Oct, a ₹2,400 refund paid by UPI and recorded as cash).
 
+### D-056 · 2026-10-28 · Accepted · Pavin (28 Oct: "all sections ... only showing the clinic part and not pharmacy; bank deposit is combination of both"; "Yes, build it"); Claude chose the layout
+- **Pharmacy money was already counted** (since D-052) but only as part of each total, so the page read as clinic-only.
+  Every money figure on the Reconciliation page now shows its two parts: **Clinic** (clinic bills, OPD refunds) and
+  **Pharmacy & optical** (pharmacy and optical payments, sales and refunds).
+- **The bank side stays combined.** HDFC settles and the cash desk deposits clinic and pharmacy money together, so
+  matching, fees, cash deposits and adjustments still work on the day's total per method; the parts are shown beside it
+  and always add up to it.
+- **Revenue:** consultation and procedure under Clinic; pharmacy and optical under Pharmacy & optical; a subtotal each.
+  Methods are still shown per source, never split across categories (D-052).
+- **Same day:** pharmacy orders and their lines are copied every cycle like the pharmacy payments (they were nightly,
+  so a day's pharmacy payments were missing until the next morning: 32 rows on 28 Oct), and a pharmacy payment counts
+  even before its order is copied (its bill number follows).
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

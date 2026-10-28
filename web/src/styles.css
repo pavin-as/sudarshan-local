@@ -561,6 +561,11 @@ table.list tr.picked td { background: var(--action-soft); }
 .table-wrap { overflow-x: auto; }
 .recon-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 1rem; align-items: start; }
 .recon-two > .panel, .recon-page > .panel { min-width: 0; overflow-x: auto; }
+/* clinic / pharmacy split (D-056): the parts are quieter than the total they add up to */
+.muted-fig { color: var(--ink-soft); }
+table.list td.indent { padding-left: 1.4rem; }
+table.list tr.subtotal td { font-weight: 600; border-top: 1px solid var(--line); }
+table.list tr.total td { font-weight: 700; border-top: 2px solid var(--line); }
 .recon-ai { border-left: 4px solid var(--disc); background: #fffdf6; padding: 0.6rem 0.8rem; border-radius: var(--radius-s); display: flex; flex-direction: column; gap: 0.4rem; align-items: flex-start; }
 .recon-pick { border: 1px solid var(--line); border-radius: var(--radius-m); padding: 0.6rem 0.8rem; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; }
 .recon-pick legend { padding: 0 0.3rem; font-size: 0.9rem; }

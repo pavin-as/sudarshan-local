@@ -64,7 +64,7 @@ UNION ALL
 SELECT 'pharm-' || p.apayid || '-' || m.method, 'pharmacy_payment', p.apayid::text, o.billno::text, p.inserteddate::date, p.npatid,
        m.method, m.amount, m.ref
 FROM yarago.tblopticalpatientpayment p
-JOIN yarago.tblopticalpatientorders o ON o.orderid = p.orderid
+LEFT JOIN yarago.tblopticalpatientorders o ON o.orderid = p.orderid      -- D-056: counted before its order is copied (bill no. follows)
 CROSS JOIN LATERAL (VALUES ('cash', coalesce(p.cashamount, 0)::numeric, NULL::text), ('card', coalesce(p.cardamount, 0)::numeric, NULL),
                            ('cheque', coalesce(p.chequeamount, 0)::numeric, nullif(btrim(p.chequeno), '')),
                            (CASE WHEN p.otherpaymentid IN (1, 2) THEN 'upi' ELSE 'other' END, coalesce(p.otherepaymentmode, 0)::numeric,
@@ -91,5 +91,5 @@ UNION ALL
 SELECT 'pharm-' || p.apayid, 'pharmacy_refund', p.apayid::text, o.billno::text, NULL, coalesce(p.lastmodifieddate, p.inserteddate)::date,
        p.npatid, 'unrecorded', p.refundamt::numeric, true, NULL
 FROM yarago.tblopticalpatientpayment p
-JOIN yarago.tblopticalpatientorders o ON o.orderid = p.orderid
+LEFT JOIN yarago.tblopticalpatientorders o ON o.orderid = p.orderid
 WHERE coalesce(p.isactive, 1) = 1 AND coalesce(p.refundamt, 0) > 0;

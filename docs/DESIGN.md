@@ -207,7 +207,9 @@ with cut-offs from `?validation=<frozen validation set>` or the starting cut-off
   - `POST /:id/approve` and `/:id/reject`, bank rules and settings: `adjustments.approve` (admin).
 - **Screens:**
   - `pages/Reconciliation.tsx`: tiles, by method, day by day with a drawer, category and source tables, credits to look
-    at, approved adjustments, assistant, bank rules.
+    at, approved adjustments, assistant, bank rules. D-056: every money figure carries its Clinic / Pharmacy & optical
+    parts (`sourceOf()` in `reconcile.ts`: a source starting `pharmacy` is pharmacy, the rest clinic); matching stays on
+    the combined day and method.
   - `pages/Adjustments.tsx`: the request form with a preview of its effects, the lists, and the drawer with decisions,
     reversal and correction.
 

@@ -5,6 +5,16 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Reconciliation: clinic and pharmacy shown apart** (D-056).
+  - Billed and Collected tiles, By payment method, Day by day and the day drawer show Clinic and Pharmacy & optical
+    beside the total; the bank columns stay combined, as HDFC and the deposits combine them.
+  - Revenue by category is grouped Clinic / Pharmacy & optical with subtotals; Collected by source and method is one
+    grid (methods down, sources across, the total column is what reaches the bank); billed against collected has a total.
+  - Today's pharmacy payments now show the same day (orders are copied every few minutes, not nightly).
+  - Technical: `collectedBy` / `refundsBy` on rows and methods, `billedBy`, `collectedBy`, `refundsBy`,
+    `refundsUnrecordedBy` on totals and `source` on categories in `reconcile()`; `clinical.money_payment` and
+    `money_refund` LEFT JOIN the pharmacy order; `tblopticalpatientorders` and `tblopticalpatientorderdetails` are hot
+    tables in `sync/yarago_sync.py`, continuing from the nightly copy's checkpoint.
 - **UPI from every terminal, combined lines, Bharat QR, the bank's cut-off** (D-055).
   - UPI settlements from any of the clinic's merchant ids count (RY9181, EHD956, EGD494), and a day's two settlements
     are added up (5 Oct: ₹2,400 + ₹42,048).

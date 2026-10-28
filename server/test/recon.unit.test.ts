@@ -70,6 +70,27 @@ check("collected by method and by source; billed against collected per source", 
   assert.deepEqual(r.billedVsCollected.map((x) => [x.source, x.billed, x.collected, x.gap]), [["clinic_bill", 50650, 50650, 0], ["pharmacy", 14350.94, 14338, 12.94]]);
 });
 
+check("D-056: clinic and pharmacy shown apart, add up to the figures, and the bank still matches their sum", () => {
+  const withPharmRefund = OCT9();
+  withPharmRefund.refunds.push(refund("2026-10-09", "unrecorded", 300, "pharmacy_refund"));
+  const r = reconcile(withPharmRefund);
+  assert.deepEqual(r.totals.billedBy, { clinic: 50650, pharmacy: 14350.94 });
+  assert.deepEqual(r.totals.collectedBy, { clinic: 50650, pharmacy: 14338 });
+  assert.deepEqual(r.totals.refundsBy, { clinic: 2400, pharmacy: 0 });
+  assert.deepEqual(r.totals.refundsUnrecordedBy, { clinic: 0, pharmacy: 300 });
+  const upiRow = row(r, "2026-10-09", "upi"), cashRow = row(r, "2026-10-09", "cash");
+  assert.deepEqual(upiRow.collectedBy, { clinic: 13650, pharmacy: 4940 });
+  assert.deepEqual(cashRow.refundsBy, { clinic: 2400, pharmacy: 0 });
+  for (const x of [...r.rows, ...r.byMethod]) assert.equal(x.collectedBy.clinic + x.collectedBy.pharmacy, x.collected, `${"date" in x ? x.date : ""} ${x.method}`);
+  const cardM = r.byMethod.find((x) => x.method === "card")!;
+  assert.deepEqual(cardM.collectedBy, { clinic: 3850, pharmacy: 435 });
+  assert.equal(row(r, "2026-10-09", "card").status, "matched", "the 4,285 card credit matches clinic 3,850 + pharmacy 435");
+  assert.deepEqual(r.byCategory.map((c) => [c.category, c.source]), [["consultation", "clinic"], ["procedure", "clinic"], ["pharmacy", "pharmacy"]]);
+  // the split changes nothing else
+  const plain = reconcile(OCT9());
+  assert.deepEqual(plain.rows.map((x) => [x.date, x.method, x.expected, x.deposited, x.status]), r.rows.map((x) => [x.date, x.method, x.expected, x.deposited, x.status]));
+});
+
 check("bank credits: rules classify; an unknown credit is never counted; inactive rules and debits classify nothing", () => {
   assert.equal(classify(credit("2026-10-10", 1, upi("2026-10-10")), RULES)?.method, "upi");
   assert.equal(classify(credit("2026-10-10", 1, "BY CASH DEPOSIT"), RULES), null, "cash rule is off");

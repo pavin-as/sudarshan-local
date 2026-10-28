@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type FeeReport, type ReconResponse, type ReconRow, type ReconStatus } from "../api";
+import { api, type FeeReport, type MoneySource, type ReconResponse, type ReconRow, type ReconStatus, type SourceSplit } from "../api";
 import { addDays, dayLabel, niceDate, rupees, stamp, todayIST } from "../format";
 import { useAuth } from "../auth";
 import { Drawer, ErrorNotice, Loading, useToast } from "../components/ui";
@@ -12,10 +12,17 @@ import { Drawer, ErrorNotice, Loading, useToast } from "../components/ui";
 export const METHOD_WORDS: Record<string, string> = { cash: "Cash", upi: "UPI", card: "Card", cheque: "Cheque", other: "Other", unrecorded: "Not recorded" };
 const SOURCE_WORDS: Record<string, string> = { clinic_bill: "Clinic bills", pharmacy_payment: "Pharmacy and optical", pharmacy: "Pharmacy and optical",
                                                opd_refund: "Clinic refund", pharmacy_refund: "Pharmacy refund" };
+// D-056: the bank gets clinic and pharmacy money together; each figure shows where it was taken
+const SRC: Record<MoneySource, string> = { clinic: "Clinic", pharmacy: "Pharmacy & optical" };
+const PAY_SOURCE: Record<string, MoneySource> = { clinic_bill: "clinic", pharmacy_payment: "pharmacy" };
 const EDGE: Record<ReconStatus, string> = { matched: "ok", within_tolerance: "ok", settled_less_fee: "ok", fee_high: "warn", awaiting: "plain", no_bank_data: "plain",
                                             cash_in_hand: "cash", cash_deposited: "ok", not_tracked: "plain", nothing_due: "plain", uncertain: "warn", difference: "bad" };
 /** ₹1,500 or −₹1,500 */
 const r0 = (n: number) => (n < 0 ? `−${rupees(-n)}` : rupees(n));
+/** "clinic ₹X · pharmacy ₹Y" */
+const splitWords = (s: SourceSplit) => `clinic ${r0(s.clinic)} · pharmacy ${r0(s.pharmacy)}`;
+/** a source's share of a figure, blank when none */
+const SrcCell = ({ n }: { n: number }) => <td className="right fig muted-fig">{n ? r0(n) : ""}</td>;
 
 export function StatusWord({ status, words }: { status: ReconStatus; words: string }) {
   return <span className={`recon-status ${EDGE[status]}`}>{words}</span>;
@@ -53,8 +60,8 @@ export function ReconciliationPage() {
       {zs && <Freshness d={d!} />}
       {data.isLoading || !res || !t ? <Loading /> : (<>
         <div className="recon-tiles">
-          <Tile n={t.billedAdjusted} label="Billed" sub={t.adjustments.revenue ? `${r0(t.billed)} in Yarago, ${r0(t.adjustments.revenue)} adjusted` : "Yarago bills and sales"} />
-          <Tile n={t.collected} label="Collected" sub="payments in Yarago" />
+          <Tile n={t.billedAdjusted} label="Billed" sub={`${splitWords(t.billedBy)}${t.adjustments.revenue ? `; ${r0(t.adjustments.revenue)} adjusted` : ""}`} />
+          <Tile n={t.collected} label="Collected" sub={splitWords(t.collectedBy)} />
           <Tile n={t.refunds + t.adjustments.refunds} label="Refunds" sub={t.refundsUnrecorded ? `plus ${r0(t.refundsUnrecorded)} without a method` : undefined} />
           <Tile n={t.adjustments.count} label="Approved adjustments" count sub="included below, marked" to={can("adjustments.submit") ? "/adjustments?view=approved" : undefined} />
           <Tile n={t.depositsMatched} label="Reached the bank" sub="matched credits and recorded cash deposits" kind="ok" />
@@ -68,14 +75,15 @@ export function ReconciliationPage() {
         </div>
 
         <section className="panel">
-          <div className="panel-head"><h2 className="grow">By payment method</h2><span className="small muted">Expected = collected − refunds ± approved adjustments − fees</span></div>
+          <div className="panel-head"><h2 className="grow">By payment method</h2><span className="small muted">Collected = clinic + pharmacy, which the bank gets together. Expected = collected − refunds ± approved adjustments − fees</span></div>
           <div className="table-wrap"><table className="list compact">
-            <thead><tr><th>Method</th><th className="right">Collected</th><th className="right">Refunds</th><th className="right">Adjustments</th><th className="right">Fees</th>
+            <thead><tr><th style={{ minWidth: "10rem" }}>Method</th><th className="right">{SRC.clinic}</th><th className="right">{SRC.pharmacy}</th><th className="right">Collected</th><th className="right">Refunds</th><th className="right">Adjustments</th><th className="right">Fees</th>
               <th className="right">Expected</th><th className="right">Reached bank</th><th className="right">Kept by bank</th><th className="right">Not yet known</th><th className="right">Uncertain</th><th className="right">Difference</th></tr></thead>
             <tbody>{res.byMethod.map((m) => (
               <tr key={m.method}><td><b>{METHOD_WORDS[m.method]}</b>{m.method === "cash" && <div className="small muted">in hand until a deposit covers the day</div>}
                 {m.method !== "cash" && !res.trackedMethods.includes(m.method) && <div className="small muted">no bank rule</div>}</td>
-                <td className="right fig">{r0(m.collected)}</td><td className="right fig">{r0(m.refunds)}</td><td className="right fig">{m.adjustments ? r0(m.adjustments) : ""}</td>
+                <SrcCell n={m.collectedBy.clinic} /><SrcCell n={m.collectedBy.pharmacy} />
+                <td className="right fig"><b>{r0(m.collected)}</b></td><td className="right fig">{r0(m.refunds)}</td><td className="right fig">{m.adjustments ? r0(m.adjustments) : ""}</td>
                 <td className="right fig">{m.fees ? r0(m.fees) : ""}</td><td className="right fig">{r0(m.net - m.fees)}</td><td className="right fig">{r0(m.deposited)}</td>
                 <td className="right fig">{m.bankFees ? r0(m.bankFees) : ""}</td>
                 <td className="right fig">{m.notYetDue ? r0(m.notYetDue) : ""}</td><td className="right fig">{m.uncertain ? r0(m.uncertain) : ""}</td>
@@ -89,12 +97,13 @@ export function ReconciliationPage() {
           <div className="panel-head"><h2 className="grow">Day by day</h2><span className="small muted">Open a row for the Yarago records and bank lines behind it</span></div>
           {!res.rows.length ? <div className="empty">No money recorded in Yarago in this period.</div> : (
             <div className="table-wrap"><table className="list compact">
-              <thead><tr><th>Day</th><th>Method</th><th className="right">Collected</th><th className="right">Refunds</th><th className="right">Adjusted</th>
+              <thead><tr><th>Day</th><th>Method</th><th className="right">{SRC.clinic}</th><th className="right">{SRC.pharmacy}</th><th className="right">Collected</th><th className="right">Refunds</th><th className="right">Adjusted</th>
                 <th className="right">Expected</th><th className="right">Reached bank</th><th>Status</th><th /></tr></thead>
               <tbody>{res.rows.filter((r) => r.status !== "nothing_due" || r.collected || r.refunds).map((r) => (
                 <tr key={`${r.date}-${r.method}`} className={`clickable edge-${EDGE[r.status]}`} onClick={() => setOpen({ date: r.date, method: r.method })}>
                   <td className="nowrap">{dayLabel(r.date)}</td><td>{METHOD_WORDS[r.method]}</td>
-                  <td className="right fig">{r0(r.collected)}</td><td className="right fig">{r.refunds ? r0(r.refunds) : ""}</td>
+                  <SrcCell n={r.collectedBy.clinic} /><SrcCell n={r.collectedBy.pharmacy} />
+                  <td className="right fig"><b>{r0(r.collected)}</b></td><td className="right fig">{r.refunds ? r0(r.refunds) : ""}</td>
                   <td className="right fig">{r.adjCollected || r.adjRefunds || r.fees ? <span title="Approved adjustments">{r0(r.adjCollected - r.adjRefunds - r.fees)} <span className="tag">adj.</span></span> : ""}</td>
                   <td className="right fig">{r0(r.expected)}</td><td className="right fig">{r.method === "cash" && !r.deposited ? "" : r0(r.deposited)}
                     {r.bankFee ? <div className="small muted">fee {r0(r.bankFee)}</div> : null}</td>
@@ -109,23 +118,32 @@ export function ReconciliationPage() {
             <div className="panel-head"><h2 className="grow">Revenue by category</h2></div>
             <table className="list compact">
               <thead><tr><th>Category</th><th className="right">Billed in Yarago</th><th className="right">Adjusted</th><th className="right">Total</th></tr></thead>
-              <tbody>{res.byCategory.map((c) => (
-                <tr key={c.category}><td>{d!.words.categories[c.category]}</td><td className="right fig">{r0(c.billed)}</td>
-                  <td className="right fig">{c.adjustments ? r0(c.adjustments) : ""}</td><td className="right fig"><b>{r0(c.total)}</b></td></tr>))}</tbody>
+              <tbody>{(["clinic", "pharmacy"] as const).flatMap((src) => {
+                const cs = res.byCategory.filter((c) => c.source === src);
+                const add = (f: (c: typeof cs[number]) => number) => cs.reduce((s, c) => s + f(c), 0);
+                return !cs.length ? [] : [
+                  ...cs.map((c) => (
+                    <tr key={c.category}><td className="indent">{d!.words.categories[c.category]}</td><td className="right fig">{r0(c.billed)}</td>
+                      <td className="right fig">{c.adjustments ? r0(c.adjustments) : ""}</td><td className="right fig">{r0(c.total)}</td></tr>)),
+                  <tr key={`${src}-sub`} className="subtotal"><td>{SRC[src]} total</td><td className="right fig">{r0(add((c) => c.billed))}</td>
+                    <td className="right fig">{add((c) => c.adjustments) ? r0(add((c) => c.adjustments)) : ""}</td><td className="right fig"><b>{r0(add((c) => c.total))}</b></td></tr>];
+              })}</tbody>
+              <tfoot><tr className="total"><td>All revenue</td><td className="right fig">{r0(t.billed)}</td>
+                <td className="right fig">{t.adjustments.revenue ? r0(t.adjustments.revenue) : ""}</td><td className="right fig"><b>{r0(t.billedAdjusted)}</b></td></tr></tfoot>
             </table>
             <p className="small muted panel-pad">Consultation = consultation and charges; procedure = investigations, injections, lasers, other procedures and other charges.
               Payments are recorded per bill, not per line, so methods are shown per source below, never split by category.</p>
           </section>
           <section className="panel">
             <div className="panel-head"><h2 className="grow">Collected by source and method</h2></div>
-            <table className="list compact">
-              <thead><tr><th>Source</th><th>Method</th><th className="right">Collected</th></tr></thead>
-              <tbody>{res.bySourceMethod.map((s) => <tr key={`${s.source}-${s.method}`}><td>{SOURCE_WORDS[s.source] ?? s.source}</td><td>{METHOD_WORDS[s.method]}</td><td className="right fig">{r0(s.collected)}</td></tr>)}</tbody>
-            </table>
+            <SourceMethodGrid rows={res.bySourceMethod} />
             {!!res.billedVsCollected.length && <table className="list compact">
               <thead><tr><th>Source</th><th className="right">Billed</th><th className="right">Collected</th><th className="right">Unpaid, discount or advance</th></tr></thead>
               <tbody>{res.billedVsCollected.map((s) => <tr key={s.source}><td>{SOURCE_WORDS[s.source]}</td><td className="right fig">{r0(s.billed)}</td>
                 <td className="right fig">{r0(s.collected)}</td><td className="right fig">{s.gap ? r0(s.gap) : ""}</td></tr>)}</tbody>
+              {res.billedVsCollected.length > 1 && <tfoot><tr className="total"><td>Both</td>
+                {(["billed", "collected", "gap"] as const).map((k) => { const v = res.billedVsCollected.reduce((s, x) => s + x[k], 0);
+                  return <td key={k} className="right fig"><b>{v || k !== "gap" ? r0(v) : ""}</b></td>; })}</tr></tfoot>}
             </table>}
           </section>
         </div>
@@ -150,6 +168,7 @@ export function ReconciliationPage() {
           <section className="panel panel-pad">
             <h2>Refunds without a recorded method</h2>
             <p className="small muted">Yarago keeps only the amount on the pharmacy payment, so these are taken off no method and their day is the record's last change.</p>
+            <p className="small">In this period: {splitWords(t.refundsUnrecordedBy)}.</p>
             <ul>{res.refundsUnrecordedList.map((x) => <li key={x.refundId}>{dayLabel(x.onDate)}: {r0(x.amount)} ({SOURCE_WORDS[x.source]}{x.billNo ? `, bill ${x.billNo}` : ""})</li>)}</ul>
           </section>)}
 
@@ -264,6 +283,22 @@ function Tile({ n, label, sub, kind, count, to }: { n: number; label: string; su
   return to ? <Link to={to} className={`recon-tile ${kind ?? ""}`}>{body}</Link> : <div className={`recon-tile ${kind ?? ""}`}>{body}</div>;
 }
 
+// D-056: collected per method (down) and source (across); the Total column is what should reach the bank, before refunds
+function SourceMethodGrid({ rows }: { rows: ReconResponse["result"]["bySourceMethod"] }) {
+  const methods = Object.keys(METHOD_WORDS).filter((m) => rows.some((r) => r.method === m));
+  const cell = (src: MoneySource | null, m: string | null) =>
+    rows.filter((r) => (src == null || (PAY_SOURCE[r.source] ?? "clinic") === src) && (m == null || r.method === m)).reduce((s, r) => s + r.collected, 0);
+  const srcs = (["clinic", "pharmacy"] as const);
+  return (
+    <div className="table-wrap"><table className="list compact">
+      <thead><tr><th>Method</th>{srcs.map((s) => <th key={s} className="right">{SRC[s]}</th>)}<th className="right">Total</th></tr></thead>
+      <tbody>{methods.map((m) => <tr key={m}><td>{METHOD_WORDS[m]}</td>{srcs.map((s) => <td key={s} className="right fig">{cell(s, m) ? r0(cell(s, m)) : ""}</td>)}
+        <td className="right fig"><b>{r0(cell(null, m))}</b></td></tr>)}</tbody>
+      <tfoot><tr className="total"><td>All methods</td>{srcs.map((s) => <td key={s} className="right fig"><b>{r0(cell(s, null))}</b></td>)}<td className="right fig"><b>{r0(cell(null, null))}</b></td></tr></tfoot>
+    </table></div>
+  );
+}
+
 function Freshness({ d }: { d: ReconResponse }) {
   const zs = d.zohoStatus;
   const z = !zs.configured ? <span><b>Zoho is not connected yet</b>: the bank side shows "Bank data not available" until an administrator runs scripts\setup-zoho.ps1 (RUNBOOK 14).</span>
@@ -303,8 +338,12 @@ function DayDrawer({ date, method, onClose, row }: { date: string; method: strin
           <section><h3>Payments in Yarago</h3>
             {!d.payments.length ? <div className="muted small">None.</div> : <table className="list compact">
               <thead><tr><th>Patient</th><th>Bill</th><th>Source</th><th>Method</th><th className="right">Amount</th><th>Reference</th></tr></thead>
-              <tbody>{d.payments.map((p: any) => <tr key={p.id}><td>{p.patientId ? <Link to={`/patients/${p.patientId}`}>{p.name ?? "Patient"}</Link> : "-"} <span className="small muted">{p.mrd ?? ""}</span></td>
-                <td className="nowrap">{p.billNo ?? "-"}</td><td className="small">{SOURCE_WORDS[p.source]}</td><td>{METHOD_WORDS[p.method]}</td><td className="right fig">{rupees(p.amount)}</td><td className="small">{p.ref ?? ""}</td></tr>)}</tbody>
+              <tbody>{(["clinic", "pharmacy"] as const).flatMap((src) => {
+                const ps = d.payments.filter((p: any) => (PAY_SOURCE[p.source] ?? "clinic") === src);
+                return !ps.length ? [] : [...ps.map((p: any) => <tr key={p.id}><td>{p.patientId ? <Link to={`/patients/${p.patientId}`}>{p.name ?? "Patient"}</Link> : "-"} <span className="small muted">{p.mrd ?? ""}</span></td>
+                  <td className="nowrap">{p.billNo ?? "-"}</td><td className="small">{SOURCE_WORDS[p.source]}</td><td>{METHOD_WORDS[p.method]}</td><td className="right fig">{rupees(p.amount)}</td><td className="small">{p.ref ?? ""}</td></tr>),
+                  <tr key={`${src}-sub`} className="subtotal"><td colSpan={4}>{SRC[src]} total</td><td className="right fig"><b>{rupees(ps.reduce((s: number, p: any) => s + Number(p.amount), 0))}</b></td><td /></tr>];
+              })}</tbody>
             </table>}</section>
           <section><h3>Refunds in Yarago</h3>
             {!d.refunds.length ? <div className="muted small">None.</div> : <table className="list compact">

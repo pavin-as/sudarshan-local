@@ -27,6 +27,14 @@ export const METHOD_WORDS: Record<Method, string> = { cash: "Cash", upi: "UPI", 
 export type Category = "consultation" | "procedure" | "pharmacy" | "optical";
 export const CATEGORIES: Category[] = ["consultation", "procedure", "pharmacy", "optical"];
 export const CATEGORY_WORDS: Record<Category, string> = { consultation: "Consultation", procedure: "Procedure", pharmacy: "Pharmacy", optical: "Optical" };
+// Where the money was taken (D-056): the clinic's bills or the pharmacy and optical counter. The bank gets both together, so
+// matching stays per day and method; the split is shown beside it.
+export type MoneySource = "clinic" | "pharmacy";
+export const SOURCES: MoneySource[] = ["clinic", "pharmacy"];
+export const CATEGORY_SOURCE: Record<Category, MoneySource> = { consultation: "clinic", procedure: "clinic", pharmacy: "pharmacy", optical: "pharmacy" };
+export type SourceSplit = Record<MoneySource, number>;
+/** clinic_bill, opd_refund -> clinic; pharmacy_payment, pharmacy_order, pharmacy_refund -> pharmacy */
+export const sourceOf = (source: string): MoneySource => (source.startsWith("pharmacy") ? "pharmacy" : "clinic");
 export type BankClass = "upi_settlement" | "card_settlement" | "cash_deposit" | "online_settlement" | "not_clinic" | "bank_charge";
 
 export interface RevenueLine { lineId: string; source: string; sourceId: string; billNo: string | null; onDate: string; patientId: number | null; serviceGroup: string; item: string | null; amount: number }
@@ -63,6 +71,7 @@ export interface CreditRef { transactionId: string; date: string; amount: number
 export interface DayMethodRow {
   date: string; method: Method;
   collected: number; refunds: number; adjCollected: number; adjRefunds: number; fees: number;
+  collectedBy: SourceSplit; refundsBy: SourceSplit;   // collected and refunds split by where they were taken; they add up to them
   net: number;                  // collected - refunds + adjustments
   expected: number;             // net - fees: what should reach the bank (UPI, card, ...) or be in hand (cash)
   deposited: number;            // credits matched to this day (a run's credit is shared out in proportion to the days' money)
@@ -80,15 +89,16 @@ export interface ReconResult {
   zoho: ZohoState & { bankKnownUntil: string | null };
   totals: {
     billed: number; billedAdjusted: number; collected: number; refunds: number; refundsUnrecorded: number;
+    billedBy: SourceSplit; collectedBy: SourceSplit; refundsBy: SourceSplit; refundsUnrecordedBy: SourceSplit;
     adjustments: { revenue: number; collected: number; refunds: number; fees: number; deposits: number; count: number };
     netCollected: number; expectedInBank: number; depositsMatched: number; notYetDue: number; cashInHand: number; cashDeposited: number;
     bankFees: number; feeHighDays: number;
     differenceToExplain: number; uncertain: number; unclassifiedCredits: number; unmatchedCredits: number;
   };
-  byCategory: { category: Category; billed: number; adjustments: number; total: number }[];
+  byCategory: { category: Category; source: MoneySource; billed: number; adjustments: number; total: number }[];
   bySourceMethod: { source: string; method: Method; collected: number }[];
   billedVsCollected: { source: string; billed: number; collected: number; gap: number }[];
-  byMethod: { method: Method; collected: number; refunds: number; adjustments: number; fees: number; net: number; deposited: number; bankFees: number; notYetDue: number; difference: number; uncertain: number }[];
+  byMethod: { method: Method; collected: number; refunds: number; collectedBy: SourceSplit; refundsBy: SourceSplit; adjustments: number; fees: number; net: number; deposited: number; bankFees: number; notYetDue: number; difference: number; uncertain: number }[];
   rows: DayMethodRow[];
   credits: CreditRow[];
   unclassified: (BankLine & { note: string })[];
@@ -100,6 +110,13 @@ export interface ReconResult {
 // ---------- money in paise -------------------------------------------------------------------
 const P = (r: number) => Math.round(r * 100);
 const R = (p: number) => p / 100;
+const splitR = (s: SourceSplit): SourceSplit => ({ clinic: R(s.clinic), pharmacy: R(s.pharmacy) });
+/** paise per source of the items */
+function splitP<T>(xs: T[], source: (x: T) => MoneySource, amount: (x: T) => number): SourceSplit {
+  const s: SourceSplit = { clinic: 0, pharmacy: 0 };
+  for (const x of xs) s[source(x)] += amount(x);
+  return s;
+}
 export function rupees(r: number): string {
   const neg = r < 0;
   const s = Math.abs(r).toLocaleString("en-IN", { minimumFractionDigits: Number.isInteger(r) ? 0 : 2, maximumFractionDigits: 2 });
@@ -191,15 +208,17 @@ export function reconcile(inp: ReconInput): ReconResult {
   const bankTrusted = bankKnownUntil != null && !inp.zoho.stale;
 
   // ---- day x method sums (the period plus the days before it whose settlement can fall inside it) ----
-  type Acc = { collected: number; refunds: number; adjC: number; adjR: number; fees: number; manualDeposits: CreditRef[] };
+  type Acc = { collected: number; refunds: number; adjC: number; adjR: number; fees: number; manualDeposits: CreditRef[]; collectedBy: SourceSplit; refundsBy: SourceSplit };
   const acc = new Map<string, Acc>();
   const key = (d: string, m: Method) => `${d}|${m}`;
-  const get = (d: string, m: Method) => { let a = acc.get(key(d, m)); if (!a) acc.set(key(d, m), a = { collected: 0, refunds: 0, adjC: 0, adjR: 0, fees: 0, manualDeposits: [] }); return a; };
-  for (const p of inp.payments) get(p.onDate, p.method).collected += P(p.amount);
+  const get = (d: string, m: Method) => { let a = acc.get(key(d, m)); if (!a) acc.set(key(d, m), a = { collected: 0, refunds: 0, adjC: 0, adjR: 0, fees: 0, manualDeposits: [],
+                                                                                                     collectedBy: { clinic: 0, pharmacy: 0 }, refundsBy: { clinic: 0, pharmacy: 0 } }); return a; };
+  for (const p of inp.payments) { const a = get(p.onDate, p.method); a.collected += P(p.amount); a.collectedBy[sourceOf(p.source)] += P(p.amount); }
   const refundsUnrecordedList: RefundRow[] = [];
   for (const r of inp.refunds) {
     if (r.method === "unrecorded") { if (inRange(r.onDate)) refundsUnrecordedList.push(r); continue; }
-    get(r.onDate, r.method).refunds += P(r.amount);
+    const a = get(r.onDate, r.method);
+    a.refunds += P(r.amount); a.refundsBy[sourceOf(r.source)] += P(r.amount);
   }
 
   const excluded = new Map<string, Effect>();          // bank line -> approved "not clinic money"
@@ -255,6 +274,7 @@ export function reconcile(inp: ReconInput): ReconResult {
     if (net === 0 && a.fees === 0 && !a.manualDeposits.length && a.collected === 0 && a.refunds === 0) continue;
     const manualSum = a.manualDeposits.reduce((s, c) => s + P(c.amount), 0);
     rows.push({ date, method: m, collected: R(a.collected), refunds: R(a.refunds), adjCollected: R(a.adjC), adjRefunds: R(a.adjR), fees: R(a.fees),
+                collectedBy: splitR(a.collectedBy), refundsBy: splitR(a.refundsBy),
                 net: R(net), expected: R(expected), deposited: R(manualSum), bankFee: 0, band: inp.feeBands?.[k] ?? null, difference: 0,
                 status: "nothing_due", statusWords: "", matches: [...a.manualDeposits], candidates: [], windowEnd: null, note: null });
   }
@@ -501,7 +521,10 @@ export function reconcile(inp: ReconInput): ReconResult {
 
   const byMethod = METHODS.map((m) => {
     const xs = period.filter((r) => r.method === m);
-    return { method: m, collected: R(sum(xs, (r) => r.collected)), refunds: R(sum(xs, (r) => r.refunds)), adjustments: R(sum(xs, (r) => r.adjCollected) - sum(xs, (r) => r.adjRefunds)),
+    return { method: m, collected: R(sum(xs, (r) => r.collected)), refunds: R(sum(xs, (r) => r.refunds)),
+             collectedBy: { clinic: R(sum(xs, (r) => r.collectedBy.clinic)), pharmacy: R(sum(xs, (r) => r.collectedBy.pharmacy)) },
+             refundsBy: { clinic: R(sum(xs, (r) => r.refundsBy.clinic)), pharmacy: R(sum(xs, (r) => r.refundsBy.pharmacy)) },
+             adjustments: R(sum(xs, (r) => r.adjCollected) - sum(xs, (r) => r.adjRefunds)),
              fees: R(sum(xs, (r) => r.fees)), net: R(sum(xs, (r) => r.net)),
              deposited: R(m === "cash" ? cashDeposited : sum(xs, (r) => r.deposited)), bankFees: R(sum(xs, (r) => r.bankFee)),
              notYetDue: R(sum(xs.filter((r) => r.status === "awaiting" || r.status === "no_bank_data"), (r) => r.expected)),
@@ -517,6 +540,10 @@ export function reconcile(inp: ReconInput): ReconResult {
       billed: R(billedP), billedAdjusted: R(billedP + revAdjTotal),
       collected: R(payP.reduce((s, p) => s + P(p.amount), 0)),
       refunds: R(sum(period, (r) => r.refunds)), refundsUnrecorded: R(refundsUnrecordedList.reduce((s, r) => s + P(r.amount), 0)),
+      billedBy: splitR(splitP(lines, (l) => sourceOf(l.source), (l) => P(l.amount))),
+      collectedBy: splitR(splitP(payP, (p) => sourceOf(p.source), (p) => P(p.amount))),
+      refundsBy: { clinic: R(sum(period, (r) => r.refundsBy.clinic)), pharmacy: R(sum(period, (r) => r.refundsBy.pharmacy)) },
+      refundsUnrecordedBy: splitR(splitP(refundsUnrecordedList, (r) => sourceOf(r.source), (r) => P(r.amount))),
       adjustments: { revenue: R(adjTotals.revenue), collected: R(adjTotals.collected), refunds: R(adjTotals.refunds), fees: R(adjTotals.fees), deposits: R(adjTotals.deposits),
                      count: new Set(inp.effects.filter((e) => inRange(e.onDate)).map((e) => e.adjustmentId)).size },
       netCollected: R(sum(period, (r) => r.net)),
@@ -530,7 +557,7 @@ export function reconcile(inp: ReconInput): ReconResult {
       unclassifiedCredits: R(unclassified.reduce((s, b) => s + P(b.amount), 0)),
       unmatchedCredits: R(credits.filter((c) => (c.state === "unmatched" || c.state === "uncertain") && inRange(c.date) && c.method !== "cash").reduce((s, c) => s + P(c.amount), 0)),
     },
-    byCategory: CATEGORIES.map((c) => ({ category: c, billed: R(byCatP.get(c) ?? 0), adjustments: R(revenueAdj.get(c) ?? 0), total: R((byCatP.get(c) ?? 0) + (revenueAdj.get(c) ?? 0)) }))
+    byCategory: CATEGORIES.map((c) => ({ category: c, source: CATEGORY_SOURCE[c], billed: R(byCatP.get(c) ?? 0), adjustments: R(revenueAdj.get(c) ?? 0), total: R((byCatP.get(c) ?? 0) + (revenueAdj.get(c) ?? 0)) }))
       .filter((x) => x.billed || x.adjustments),
     bySourceMethod: [...srcMethod].map(([k, v]) => { const [source, method] = k.split("|"); return { source, method: method as Method, collected: R(v) }; })
       .sort((a, b) => a.source.localeCompare(b.source) || METHODS.indexOf(a.method) - METHODS.indexOf(b.method)),

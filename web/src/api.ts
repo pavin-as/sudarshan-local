@@ -91,8 +91,11 @@ export type ReconStatus = "matched" | "within_tolerance" | "settled_less_fee" | 
   | "cash_in_hand" | "cash_deposited" | "not_tracked" | "nothing_due";
 export interface CreditRef { transactionId: string; date: string; amount: number; description: string | null; how: "rule" | "approved"; adjustmentId?: number }
 export interface FeeBand { low: number; high: number; ceiling: number; payments: number }
+export type MoneySource = "clinic" | "pharmacy";
+export type SourceSplit = Record<MoneySource, number>;
 export interface ReconRow {
   date: string; method: ReconMethod; collected: number; refunds: number; adjCollected: number; adjRefunds: number; fees: number; net: number;
+  collectedBy: SourceSplit; refundsBy: SourceSplit;
   expected: number; deposited: number; bankFee: number; band: FeeBand | null; difference: number; status: ReconStatus; statusWords: string;
   matches: CreditRef[]; candidates: CreditRef[]; windowEnd: string | null; note: string | null;
 }
@@ -101,14 +104,15 @@ export interface ReconResult {
   from: string; to: string;
   zoho: { configured: boolean; fetchedAt: string | null; feedRefreshedOn: string | null; stale: boolean; bankKnownUntil: string | null };
   totals: { billed: number; billedAdjusted: number; collected: number; refunds: number; refundsUnrecorded: number;
+    billedBy: SourceSplit; collectedBy: SourceSplit; refundsBy: SourceSplit; refundsUnrecordedBy: SourceSplit;
     adjustments: { revenue: number; collected: number; refunds: number; fees: number; deposits: number; count: number };
     netCollected: number; expectedInBank: number; depositsMatched: number; notYetDue: number; cashInHand: number; cashDeposited: number;
     bankFees: number; feeHighDays: number;
     differenceToExplain: number; uncertain: number; unclassifiedCredits: number; unmatchedCredits: number };
-  byCategory: { category: string; billed: number; adjustments: number; total: number }[];
+  byCategory: { category: string; source: MoneySource; billed: number; adjustments: number; total: number }[];
   bySourceMethod: { source: string; method: ReconMethod; collected: number }[];
   billedVsCollected: { source: string; billed: number; collected: number; gap: number }[];
-  byMethod: { method: ReconMethod; collected: number; refunds: number; adjustments: number; fees: number; net: number; deposited: number; bankFees: number; notYetDue: number; difference: number; uncertain: number }[];
+  byMethod: { method: ReconMethod; collected: number; refunds: number; collectedBy: SourceSplit; refundsBy: SourceSplit; adjustments: number; fees: number; net: number; deposited: number; bankFees: number; notYetDue: number; difference: number; uncertain: number }[];
   rows: ReconRow[];
   credits: (CreditRef & { method: ReconMethod | null; class: string; ruleId: number | null; matchedTo: string[]; state: string })[];
   unclassified: { transactionId: string; date: string; amount: number; description: string | null; note: string }[];
