@@ -1,0 +1,108 @@
+// Demo data for the reconciliation screens (D-052), TEST database only: a week of synthetic Yarago bills and pharmacy
+// payments ending yesterday, Zoho bank lines as if fetched now (UPI and card settled the next day, one UPI day short by a
+// refund Yarago shows as cash, a weekend card settlement, an unknown NEFT credit), a pending and an approved request.
+// Logins (test only): demo / Demo-Pass-42 (admin), demo_mgr / Demo-Pass-42 (manager).
+//   SUDARSHAN_ENV=D:\Sudarshan\testdb\test.env npx tsx test/seed-recon-demo.ts
+import { randomUUID } from "node:crypto";
+import { pool } from "../src/db.js";
+import { hashPassword } from "../src/lib/passwords.js";
+import { addDays, todayIST } from "../src/lib/time.js";
+import { effectsFor } from "../src/services/reconcile.js";
+if (!process.env.SUDARSHAN_ENV) { console.error("Demo data goes into a TEST database only: set SUDARSHAN_ENV to a test .env"); process.exit(2); }
+
+const c = await pool.connect();
+await c.query("BEGIN"); await c.query("SET LOCAL app.skip_audit='on'");
+const h = await hashPassword("Demo-Pass-42");
+for (const [u, n, r] of [["demo", "Fameesha K", "admin"], ["demo_mgr", "Basith M", "manager"]])
+  await c.query(`INSERT INTO app.users (username, full_name, role, password_hash, must_change_password) VALUES ($1,$2,$3,$4,false)
+                 ON CONFLICT (username) DO UPDATE SET password_hash = $4, role = $3, must_change_password = false, is_active = true`, [u, n, r, h]);
+const mgr = (await c.query(`SELECT id FROM app.users WHERE username = 'demo_mgr'`)).rows[0].id;
+const adm = (await c.query(`SELECT id FROM app.users WHERE username = 'demo'`)).rows[0].id;
+
+// clear an earlier demo (ids 98xxxxxxx, Zoho ZD-*)
+await c.query(`ALTER TABLE app.recon_adjustments DISABLE TRIGGER recon_adjustments_guard; ALTER TABLE app.recon_adjustment_effects DISABLE TRIGGER recon_effects_guard`);
+await c.query(`DELETE FROM app.recon_adjustment_effects WHERE adjustment_id IN (SELECT id FROM app.recon_adjustments WHERE submitted_by IN ($1, $2))`, [mgr, adm]);
+await c.query(`DELETE FROM app.recon_adjustments WHERE kind = 'reversal' AND submitted_by IN ($1, $2)`, [mgr, adm]);
+await c.query(`DELETE FROM app.recon_adjustments WHERE submitted_by IN ($1, $2)`, [mgr, adm]);
+await c.query(`ALTER TABLE app.recon_adjustments ENABLE TRIGGER recon_adjustments_guard; ALTER TABLE app.recon_adjustment_effects ENABLE TRIGGER recon_effects_guard`);
+for (const t of ["tblpatientsappointmentbillingdetails WHERE abilling_id", "tbl_payment_receptionist_new WHERE trow_id", "tbl_payment_lab WHERE trow_id",
+                 "tbl_payment_injectionorlaser_procedure_for_billing WHERE trow_id", "tblopticalpatientpayment WHERE apayid", "tblopticalpatientorders WHERE orderid",
+                 "tblopticalpatientorderdetails WHERE odid", "tblpatientopdrefunddetails WHERE aoprefundid", "tblpatientregistration WHERE apatient_id"])
+  await c.query(`DELETE FROM yarago.${t} BETWEEN 980000000 AND 989999999`);
+await c.query(`DELETE FROM app.zoho_bank_txns WHERE transaction_id LIKE 'ZD-%'; DELETE FROM app.zoho_customer_payments WHERE payment_id LIKE 'ZD-%'`);
+
+const today = todayIST();
+const names = ["TEST Ayisha", "TEST Rafi", "TEST Lakshmi", "TEST Joseph", "TEST Sreeja", "TEST Kareem", "TEST Fathima", "TEST Gopalan"];
+for (const [i, n] of names.entries())
+  await c.query(`INSERT INTO yarago.tblpatientregistration (apatient_id, apatientcode, tfisrt_name) VALUES ($1, $2, $3)`, [980000001 + i, `SPD9${8100 + i}`, n]);
+await c.query(`INSERT INTO yarago.tbl_mst_category (acatid, acategoryname) VALUES (3, 'Eye Drops') ON CONFLICT DO NOTHING`);
+
+let id = 980000100;
+const bank: [string, number, string][] = [];
+const openDays = [7, 6, 5, 4, 3, 2, 1].map((k) => addDays(today, -k)).filter((d) => new Date(d + "T00:00:00Z").getUTCDay() !== 0);   // closed on Sundays
+const refundDay = openDays[openDays.length - 4], corrDay = openDays[openDays.length - 3];
+for (let k = 7; k >= 1; k--) {
+  const d = addDays(today, -k);
+  if (!openDays.includes(d)) continue;
+  const bills: [string, number][] = [["cash", 500 + k * 100], ["cash", 1500], ["upi", 1200 + k * 50], ["upi", 3000], ["card", k % 2 ? 4500 + k * 35 : 0], ["cash", 13000 - k * 300]];
+  let upi = 0, card = 0;
+  for (const [j, [m, amt]] of bills.entries()) {
+    if (!amt) continue;
+    const b = ++id, p = 980000001 + ((k + j) % names.length);
+    await c.query(`INSERT INTO yarago.tblpatientsappointmentbillingdetails (abilling_id, npatient_id, totalamount, discountamount, billingdate, active, id_billno,
+                     id_nbillid, cashamount, cardamount, chequeamount, otherpaymentamt, notherpaymenttype) VALUES ($1,$2,$3,0,$4,1,$5,$1,$6,$7,0,$8,$9)`,
+                  [b, p, amt, `${d} ${10 + j}:00`, `D${b - 980000000}`, m === "cash" ? amt : 0, m === "card" ? amt : 0, m === "upi" ? amt : 0, m === "upi" ? 1 : null]);
+    const table = j % 3 === 0 ? ["tbl_payment_receptionist_new", "chargepaidamount"] : j % 3 === 1 ? ["tbl_payment_lab", "labpaidamount"] : ["tbl_payment_injectionorlaser_procedure_for_billing", "procedureamount"];
+    await c.query(`INSERT INTO yarago.${table[0]} (trow_id, nbillid, tdateofpayment, patient_id, ${table[1]}, active) VALUES ($1,$1,$2,$3,$4,1)`, [b, `${d} ${10 + j}:00`, p, amt]);
+    if (m === "upi") upi += amt; if (m === "card") card += amt;
+  }
+  // pharmacy: one cash and one UPI sale
+  for (const [m, amt] of [["cash", 640], ["upi", 1180]] as const) {
+    const o = ++id;
+    await c.query(`INSERT INTO yarago.tblopticalpatientorders (orderid, billno, npatid, isactive, inserteddate) VALUES ($1,$2,$3,1,$4)`, [o, o - 980000000, 980000001 + k, `${d} 12:00`]);
+    await c.query(`INSERT INTO yarago.tblopticalpatientorderdetails (odid, orderid, ncategoryid, totamount, isactive, inserteddate) VALUES ($1,$1,3,$2,1,$3)`, [o, amt, `${d} 12:00`]);
+    await c.query(`INSERT INTO yarago.tblopticalpatientpayment (apayid, orderid, npatid, atotalamount, cashamount, otherpaymentid, otherepaymentmode, isactive, inserteddate)
+                   VALUES ($1,$1,$2,$3,$4,$5,$6,1,$7)`, [o, 980000001 + k, amt, m === "cash" ? amt : 0, m === "upi" ? 1 : -1, m === "upi" ? amt : 0, `${d} 12:00`]);
+    if (m === "upi") upi += amt;
+  }
+  const next = addDays(d, 1), dd = `${next.slice(8, 10)}/${next.slice(5, 7)}/${next.slice(2, 4)}`;
+  if (d === refundDay) {   // a 400 refund Yarago shows as cash, really paid back by UPI: the settlement is 400 short
+    await c.query(`INSERT INTO yarago.tblpatientopdrefunddetails (aoprefundid, npatientid, nbillid, billno, refundamount, paymentmode, isrefunded, refunddate, cashamount, isactive)
+                   VALUES ($1,$2,$3,$4,400,'1',1,$5,400,1)`, [980000900, 980000003, id - 4, `D${id - 4 - 980000000}`, `${d} 16:00`]);
+    upi -= 400;
+  }
+  if (d === corrDay) upi += 1500;   // 1,500 entered as cash in Yarago was paid by UPI (the approved correction below): the bank has it
+  if (next < today) bank.push([`ZD-UPI-${d}`, upi, `UPI SETTLEMENT -RYX181- ${dd} Ref Num: XXXXXXXXXXX0000`]);
+  if (card && next < today) bank.push([`ZD-CARD-${d}`, card, `XXXX7444TERMINAL 1 CARDS SETTL. ${dd} Ref Num: XXXXXXXXXXX0000`]);
+}
+bank.push([`ZD-NEFT`, 25000, "NEFT CR-HDFC0000001-TEST SOMEONE-RENT"]);
+for (const [tid, amt, desc] of bank) {
+  const date = tid === "ZD-NEFT" ? addDays(today, -3) : addDays(tid.slice(-10), 1);
+  await c.query(`INSERT INTO app.zoho_bank_txns (transaction_id, account_id, txn_date, amount, debit_or_credit, transaction_type, zoho_status, description, raw, raw_hash)
+                 VALUES ($1,'ZDACC',$2,$3,'credit','deposit','uncategorized',$4,'{}','demo')`, [tid, date, amt, desc]);
+}
+await c.query(`INSERT INTO app.zoho_bank_accounts (account_id, account_name, account_type, feed_refreshed_on) VALUES ('ZDACC','TEST Current Account','bank',$1)
+               ON CONFLICT (account_id) DO UPDATE SET feed_refreshed_on = $1`, [today]);
+await c.query(`INSERT INTO app.zoho_fetch_runs (date_from, date_to, status, finished_at, counts) VALUES ($1, $2, 'ok', now(), '{"lines": ${bank.length}}')`, [addDays(today, -20), today]);
+
+// one approved request (a method correction) and one waiting (the UPI refund), as a manager would send them
+const d3 = corrDay, d4 = refundDay;
+const ins = async (b: any, effects: any[], status: string) => {
+  const r = await c.query(`INSERT INTO app.recon_adjustments (request_key, kind, on_date, amount, source_method, recorded_method, actual_method, yarago_source, yarago_id,
+                             bill_no, patient_id, reason, submitted_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
+                           [randomUUID(), b.kind, b.onDate, b.amount, b.sourceMethod ?? null, b.recordedMethod ?? null, b.actualMethod ?? null, b.yaragoSource, b.yaragoId,
+                            b.billNo, b.patientId, b.reason, mgr]);
+  for (const [i, e] of effects.entries())
+    await c.query(`INSERT INTO app.recon_adjustment_effects (adjustment_id, position, on_date, measure, category, method, amount, words) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+                  [r.rows[0].id, i + 1, e.onDate, e.measure, e.category, e.method, e.amount, e.words]);
+  if (status === "approved") await c.query(`UPDATE app.recon_adjustments SET status = 'approved', reviewed_by = $2, reviewed_at = now() WHERE id = $1`, [r.rows[0].id, adm]);
+};
+const cashBill = (await c.query(`SELECT id_nbillid, id_billno, npatient_id FROM yarago.tblpatientsappointmentbillingdetails WHERE billingdate::date = $1 AND cashamount = 1500 LIMIT 1`, [d3])).rows[0];
+const mc = { kind: "method_correction", onDate: d3, amount: 1500, recordedMethod: "cash", actualMethod: "upi", yaragoSource: "clinic_bill", yaragoId: String(cashBill.id_nbillid),
+             billNo: cashBill.id_billno, patientId: cashBill.npatient_id, reason: "TEST demo: entered as cash at the desk; the patient paid by UPI (GPay screenshot seen)" };
+await ins(mc, effectsFor(mc as any), "approved");
+const rf = { kind: "refund_method", onDate: d4, amount: 400, sourceMethod: "upi", recordedMethod: "cash", actualMethod: "upi", yaragoSource: "opd_refund", yaragoId: "980000900",
+             billNo: null, patientId: 980000003, reason: "TEST demo: the refund for the cancelled OCT went back by UPI; Yarago shows cash" };
+await ins(rf, effectsFor(rf as any), "pending");
+await c.query("COMMIT"); c.release(); await pool.end();
+console.log(`Reconciliation demo data in place: ${bank.length} bank lines; log in as demo or demo_mgr (Demo-Pass-42).`);

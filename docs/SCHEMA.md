@@ -766,3 +766,25 @@ Staff logins. Passwords bcrypt; NULL hash = must be given a temporary password. 
 | last_login_at | timestamp with time zone | yes |  |
 | created_at | timestamp with time zone | no | now() |
 | updated_at | timestamp with time zone | no | now() |
+
+## Money reconciliation (0028, D-052)
+
+Views (`db/views/40_money.sql`, re-applied with the others):
+- `clinical.money_bill`: the latest row per clinic bill.
+- `clinical.money_revenue_line`: clinic bill lines and pharmacy/optical sale lines, by service group.
+- `clinical.money_payment`: one row per method on a clinic bill or a pharmacy/optical payment.
+- `clinical.money_refund`: clinic refunds by method; pharmacy refunds with method `unrecorded`.
+
+| Table | One row per | Notes |
+|---|---|---|
+| `app.zoho_fetch_runs` | Zoho fetch | range, status, counts, message; not audited |
+| `app.zoho_bank_accounts` | Zoho bank account read | `feed_refreshed_on`: bank lines after this day are not known yet |
+| `app.zoho_bank_txns` | Zoho bank-feed line | copy with `raw` and `raw_hash`; `missing_since` when Zoho no longer lists it; never deleted; not audited |
+| `app.zoho_bank_txn_versions` | earlier version of a changed line | |
+| `app.zoho_customer_payments` | the bookkeeper's Zoho payment | a cross-check only, never counted |
+| `app.recon_bank_rules` | bank rule | regex over the description → class and method, settlement window; audited |
+| `app.recon_adjustments` | adjustment request | `request_key` unique; status pending → approved / rejected / withdrawn, approved → reversed; `reverses_id`, `replaces_id`, `paired_with`, `reversed_by`; `self_approved`. Guard trigger: content fixed after submission, no backward moves, no delete. Unique indexes: one live reversal, no duplicate correction of a record, one classification per bank line. Audited |
+| `app.recon_adjustment_effects` | signed effect of a request | measure revenue / collected / refund / fee / deposit / excluded; written at submission, never changed (trigger); audited |
+| `app.recon_assistant_log` | assistant answer | exactly what the model saw, its answer, the number check, and who asked |
+
+Settings: `recon.category_map`, `recon.tolerance`, `recon.stale_hours`, `ai.recon_model`. No Zoho keys in tables (`.env`).

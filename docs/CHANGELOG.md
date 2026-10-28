@@ -5,6 +5,38 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Money reconciliation** (D-052). Two new pages for managers and the admin.
+  - **Reconciliation:** for any period up to 92 days, it shows:
+    - what Yarago billed (consultation, procedure, pharmacy, optical) and collected, by method;
+    - refunds;
+    - approved adjustments, each one marked;
+    - what reached the bank (from Zoho Books);
+    - what is not known yet;
+    - cash not yet deposited;
+    - the difference left to explain.
+
+    Each day and method has a status in words. A row opens to show the Yarago bills (with links to the patient) and the
+    Zoho bank lines behind it. Unrecognised bank credits are listed and never counted. There is also an optional
+    "Ask the assistant" panel (local model), and bank rules that the admin can change.
+  - **Adjustments:** a request for what the records do not show: refund paid another way, wrong method, wrong amount,
+    wrong day, payment missing from Yarago, a fee, or classifying a bank credit. Before it is sent, the request shows
+    what it will change. It waits for the admin's approval, and the admin can reject it with a reason. A mistake is
+    corrected by a reversal, which also needs approval. Every step is in the activity log.
+  - **Before use:** the admin runs `scripts\setup-zoho.ps1` (RUNBOOK 14). Until then the bank side shows "Bank data not
+    available".
+  - Technical:
+    - migration `0028_reconciliation.sql`: Zoho copies, bank rules, adjustments with frozen effects and guard triggers,
+      the assistant log, and settings;
+    - views `db/views/40_money.sql`: `clinical.money_bill`, `money_revenue_line`, `money_payment` and `money_refund`;
+    - services: `reconcile.ts` (pure), `reconData.ts`, `adjustments.ts`, `zohoBooks.ts` (read only), `zohoSync.ts`
+      (two-hourly job) and `reconAssistant.ts`;
+    - routes in `routes/reconciliation.ts`, and the new permissions `reconciliation.read`, `adjustments.submit` and
+      `adjustments.approve`;
+    - pages `Reconciliation.tsx` and `Adjustments.tsx`.
+  - Tests:
+    - `test/recon.unit.test.ts`: 18 checks, in `test:rules`;
+    - `test/recon.test.ts`: 14 checks, in `npm test`. Both passed on the test database.
+    - Demo data: `test/seed-recon-demo.ts`. Browser-checked at desktop and phone width. `real-data.ts` reads the page.
 - **EMR daily report** (D-051). New page "EMR daily report" (clinical roles; also linked from EMR completeness):
   - lists the day's consultations by MRD with what was not recorded in Yarago, one screen at a time (optometry for the
     optometrists, doctor screen for the doctor);

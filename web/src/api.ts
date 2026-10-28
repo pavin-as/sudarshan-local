@@ -25,7 +25,8 @@ export async function api<T = any>(path: string, opts: { method?: string; body?:
 export type Role = "admin" | "doctor" | "manager" | "staff" | "optometrist" | "counsellor";
 export type Permission = "users.manage" | "settings.manage" | "appointments.read" | "appointments.write" |
   "patients.read" | "clinical.read" | "followups.write" | "audit.read" |
-  "messages.send" | "messages.broadcast" | "payments.write" | "payments.refund" | "retina_ai.use" | "fundus.report";
+  "messages.send" | "messages.broadcast" | "payments.write" | "payments.refund" | "retina_ai.use" | "fundus.report" |
+  "reconciliation.read" | "adjustments.submit" | "adjustments.approve";
 
 export interface User { id: number; username: string; fullName: string; role: Role; mustChangePassword: boolean; permissions: Permission[] }
 
@@ -83,3 +84,48 @@ export interface PaymentStatusInfo { mode: OutreachMode; modeWords: string; defa
   keyMode: "test" | "live" | "unknown" | null; problem: string | null; lastCheck: { at: string; checked: number; changed: number; error: string | null } | null }
 export interface WhatsAppStatus { mode: OutreachMode; modeWords: string; keySet: boolean; testNumbers: number; queued: number;
   templates: { key: string; label: string; kind: "appointment" | "payment"; ready: boolean }[] }
+
+// Money reconciliation (D-052): figures always come from the server's reconcile()
+export type ReconMethod = "cash" | "upi" | "card" | "cheque" | "other";
+export type ReconStatus = "matched" | "within_tolerance" | "awaiting" | "no_bank_data" | "uncertain" | "difference" | "cash_in_hand" | "not_tracked" | "nothing_due";
+export interface CreditRef { transactionId: string; date: string; amount: number; description: string | null; how: "rule" | "approved"; adjustmentId?: number }
+export interface ReconRow {
+  date: string; method: ReconMethod; collected: number; refunds: number; adjCollected: number; adjRefunds: number; fees: number; net: number;
+  expected: number; deposited: number; difference: number; status: ReconStatus; statusWords: string; matches: CreditRef[]; candidates: CreditRef[];
+  windowEnd: string | null; note: string | null;
+}
+export interface ReconEffect { adjustmentId: number; onDate: string; measure: string; category: string | null; method: ReconMethod | null; amount: number; zohoTxnId: string | null; words: string; selfApproved?: boolean; kind?: string }
+export interface ReconResult {
+  from: string; to: string;
+  zoho: { configured: boolean; fetchedAt: string | null; feedRefreshedOn: string | null; stale: boolean; bankKnownUntil: string | null };
+  totals: { billed: number; billedAdjusted: number; collected: number; refunds: number; refundsUnrecorded: number;
+    adjustments: { revenue: number; collected: number; refunds: number; fees: number; deposits: number; count: number };
+    netCollected: number; expectedInBank: number; depositsMatched: number; notYetDue: number; cashInHand: number; cashDeposited: number;
+    differenceToExplain: number; uncertain: number; unclassifiedCredits: number; unmatchedCredits: number };
+  byCategory: { category: string; billed: number; adjustments: number; total: number }[];
+  bySourceMethod: { source: string; method: ReconMethod; collected: number }[];
+  billedVsCollected: { source: string; billed: number; collected: number; gap: number }[];
+  byMethod: { method: ReconMethod; collected: number; refunds: number; adjustments: number; fees: number; net: number; deposited: number; notYetDue: number; difference: number; uncertain: number }[];
+  rows: ReconRow[];
+  credits: (CreditRef & { method: ReconMethod | null; class: string; ruleId: number | null; matchedTo: string[]; state: string })[];
+  unclassified: { transactionId: string; date: string; amount: number; description: string | null; note: string }[];
+  refundsUnrecordedList: { refundId: string; source: string; billNo: string | null; onDate: string; amount: number }[];
+  effects: ReconEffect[];
+  trackedMethods: ReconMethod[];
+}
+export interface ZohoStatus { configured: boolean; fetchedAt: string | null; feedRefreshedOn: string | null; stale: boolean; staleHours: number; running: boolean;
+  lastRun: { status: string; startedAt: string; message: string | null } | null }
+export interface ReconResponse { result: ReconResult; yaragoSyncedAt: string | null; zohoStatus: ZohoStatus; pendingAdjustments: number;
+  words: { methods: Record<string, string>; categories: Record<string, string>; statuses: Record<string, string>; kinds: Record<string, string> } }
+export type AdjKind = "refund_method" | "method_correction" | "amount_correction" | "date_correction" | "missing_entry" | "payment_fee" | "bank_credit" | "reversal";
+export type AdjStatus = "pending" | "approved" | "rejected" | "withdrawn" | "reversed";
+export interface Adjustment {
+  id: number; kind: AdjKind; status: AdjStatus; onDate: string; otherDate: string | null; amount: number; recordedAmount: number | null; category: string | null;
+  sourceMethod: ReconMethod | null; recordedMethod: ReconMethod | null; actualMethod: ReconMethod | null; bankClass: "clinic" | "not_clinic" | null;
+  yaragoSource: string | null; yaragoId: string | null; billNo: string | null; patientId: number | null; mrd: string | null; patientName: string | null;
+  zohoTxnId: string | null; reason: string; refs: string | null; submittedBy: number; submittedByName: string; submittedAt: string;
+  reviewedBy: number | null; reviewedByName: string | null; reviewedAt: string | null; reviewNote: string | null; rejectionReason: string | null;
+  selfApproved: boolean; withdrawnAt: string | null; reversesId: number | null; replacesId: number | null; pairedWith: number | null; reversedBy: number | null;
+  replacementId: number | null;
+  effects: { onDate: string; measure: string; category: string | null; method: string | null; amount: number; zohoTxnId: string | null; words: string }[];
+}

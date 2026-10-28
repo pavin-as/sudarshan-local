@@ -628,6 +628,58 @@ optometrists, the doctor screen for the doctor.
   rows, only if that column is indexed in Yarago; the log says so once if it is not).
 - **Privacy:** MRD, time and new/review only: no name and no phone. Not sent by email or WhatsApp.
 
+### D-052 · 2026-10-28 · Accepted · Pavin (the reconciliation brief; answers 28 Oct: Zoho Books API read-only, "Manager + admin by role", admin self-approval "Yes, with a flag"); Claude chose the rules
+**Money reconciliation: Yarago against the Zoho bank, with approved adjustments.** Pages "Reconciliation" and
+"Adjustments" (manager and admin). METRICS.md "Reconciliation" has every definition.
+- **Zoho access:** Sudarshan reads the Zoho Books REST API with its own Self Client and READ scopes only
+  (`scripts/setup-zoho.ps1`, keys in `.env`). The Claude-side Zoho MCP cannot be used by the server: it has no
+  bank-transaction tool, and it also exposes create and delete tools. The client refuses every request except a GET and
+  the token refresh. A copy of the bank lines is kept in `app.zoho_*`, refreshed every two hours 08:00-22:00 and on demand.
+  A changed line keeps its old version; a line that is gone is marked, never deleted.
+- **What Zoho holds (checked 28 Oct, read only):**
+  - Basith enters one "Patients" invoice per clinic day, about 12 days late, with two lines: "Consultation Fee" (all
+    clinic services) and "Sales of Medicines" (pharmacy and optical).
+  - Cash is paid into Petty Cash. UPI and card arrive in the current account the next day, as
+    `UPI SETTLEMENT -RYX181- dd/mm/yy` and `...TERMINAL 1 CARDS SETTL. dd/mm/yy`, with no fee taken out.
+  - 1 Sep - 10 Oct: Yarago matched Zoho for card on 32 of 33 days, UPI on 21 and cash on 18. The rest were refunds and
+    method mix-ups (for example ₹14,553 entered as cash on 16 Sep, paid by UPI). On 9 Oct the UPI settlement was ₹2,400
+    short: a refund Yarago shows as cash had been paid back by UPI.
+- **Rules:**
+  - Matching is per day and method, because Yarago records no UPI or card reference (0 of 878 UPI bills).
+  - A credit counts only through a bank rule or an approved classification. Unrecognised credits are listed and never
+    counted.
+  - A match is made only when it is the only possibility both ways. Otherwise the day is "Uncertain", with the candidates
+    listed.
+  - "Waiting for settlement", "Bank data not available" and "Cash not yet deposited" are not differences.
+  - Payment methods are shown per source (clinic bill, pharmacy), never split across categories.
+- **Adjustments:**
+  - A manager or admin sends a request; it counts only once an admin approves it.
+  - What it changes (its "effects") is worked out once when it is sent and then fixed. The tally sums the effects of
+    approved requests, so nothing is "applied" and nothing can be applied twice.
+  - The same form sent twice is one request. The same correction to the same record cannot be pending or approved twice.
+  - Of two approvals at once, one wins.
+  - An approved request is changed only by an approved reversal, which may carry a replacement.
+  - Rejecting needs a reason.
+  - The admin may approve their own request with a note, and it is then shown as "self-approved" (Pavin, 28 Oct; there
+    is one admin).
+  - A trigger refuses edits to what was sent, backward status moves and deletion. Yarago and Zoho are never written.
+- **Kinds:**
+  - refund by another method (the UPI or card payment stays collected; the refund counts against the method actually
+    used);
+  - payment method correction;
+  - amount correction;
+  - date correction;
+  - payment missing from Yarago;
+  - fee or bank charge;
+  - classify a bank credit.
+
+  References are text: Sudarshan stores no attachments.
+- **Assistant (optional):** the local model (`ai.recon_model`, Ollama) explains the result shown. It sees no names, MRDs,
+  bill numbers, bank wording or typed explanations. Its text is shown only if every number in it is in what it was
+  given, and every answer is logged (`app.recon_assistant_log`). It calculates, changes and approves nothing.
+- **Categories:** consultation = Consultation & charges. Procedure = investigations, injections, lasers, other
+  procedures and other charges. Pharmacy and optical as D-032. The mapping is the setting `recon.category_map`.
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

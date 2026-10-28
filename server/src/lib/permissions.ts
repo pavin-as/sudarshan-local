@@ -15,17 +15,22 @@ export type Permission =
   | "payments.write"        // make, send, check and cancel Razorpay payment links
   | "payments.refund"       // refund a payment (Google app decision: director / admin only)
   | "retina_ai.use"         // grade fundus photographs with the research DR model, see and grade results (D-040)
-  | "fundus.report";        // write and correct the doctor's fundus report (D-042); reading it needs clinical.read
+  | "fundus.report"         // write and correct the doctor's fundus report (D-042); reading it needs clinical.read
+  | "reconciliation.read"   // the money reconciliation: Yarago against the Zoho bank, its records and the assistant (D-052)
+  | "adjustments.submit"    // ask for a correction or adjustment to the reconciliation; withdraw or ask to reverse one
+  | "adjustments.approve";  // approve or reject adjustment requests; change the bank rules (D-052: admin only)
 
 const ALL: Permission[] = ["users.manage", "settings.manage", "appointments.read", "appointments.write",
   "patients.read", "clinical.read", "followups.write", "audit.read",
   "messages.send", "messages.broadcast", "payments.write", "payments.refund"];
 
 // retina_ai.use is given by name, not through ALL, so managers do not get it (D-040: admin and doctors only);
-// fundus.report only to doctors (D-042: only doctors write reports)
+// fundus.report only to doctors (D-042: only doctors write reports); the reconciliation by name too (D-052: managers
+// read and submit, only admins approve)
+const RECON: Permission[] = ["reconciliation.read", "adjustments.submit"];
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
-  admin: [...ALL, "retina_ai.use"],
-  manager: ALL.filter((p) => p !== "users.manage" && p !== "payments.refund"),
+  admin: [...ALL, "retina_ai.use", ...RECON, "adjustments.approve"],
+  manager: [...ALL.filter((p) => p !== "users.manage" && p !== "payments.refund"), ...RECON],
   staff: ["appointments.read", "appointments.write", "patients.read", "followups.write", "messages.send", "payments.write"],
   counsellor: ["appointments.read", "appointments.write", "patients.read", "clinical.read", "followups.write", "messages.send", "payments.write"],
   doctor: ["appointments.read", "patients.read", "clinical.read", "retina_ai.use", "fundus.report"],

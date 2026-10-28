@@ -63,3 +63,32 @@ ALTER TABLE yarago.tbl_patient_appointment_history ADD COLUMN IF NOT EXISTS ucnv
   ADD COLUMN IF NOT EXISTS followup_inweeks text;
 ALTER TABLE yarago.tbloptometryexamination ADD COLUMN IF NOT EXISTS pupil_right text, ADD COLUMN IF NOT EXISTS pupil_left text,
   ADD COLUMN IF NOT EXISTS colourvision_right text, ADD COLUMN IF NOT EXISTS colourvision_left text;
+-- what the money reconciliation reads (db/views/40_money.sql, D-052)
+CREATE TABLE IF NOT EXISTS yarago.tblpatientsappointmentbillingdetails (abilling_id int PRIMARY KEY, npatient_id int,
+  nappointmentid int, totalamount numeric, discountamount numeric, billingdate timestamp, checknumber text, active int,
+  id_billno text, id_nbillid int, cashamount numeric, cardamount numeric, chequeamount numeric, otherpaymentamt numeric,
+  notherpaymenttype int, otherpaymentref text, currentdueamount numeric, ncollectedbyuser text);
+CREATE TABLE IF NOT EXISTS yarago.tbl_payment_receptionist_new (trow_id int PRIMARY KEY, nbillid int, tdateofpayment timestamp,
+  patient_id int, appoint_id int, chargetypeid int, chargepaidamount numeric, active int);
+CREATE TABLE IF NOT EXISTS yarago.tbl_mst_chargetype (typeid int PRIMARY KEY, chargetypename text);
+CREATE TABLE IF NOT EXISTS yarago.tbl_payment_lab (trow_id int PRIMARY KEY, nbillid int, tdateofpayment timestamp, patient_id int,
+  appoint_id int, labtypeid int, labpaidamount numeric, active int);
+CREATE TABLE IF NOT EXISTS yarago.tbl_mst_labstudies (id int PRIMARY KEY, labtestname text);
+CREATE TABLE IF NOT EXISTS yarago.tbl_payment_injectionorlaser_procedure_for_billing (trow_id int PRIMARY KEY, nbillid int,
+  tdateofpayment timestamp, patient_id int, appoint_id int, procedureid int, procedureamount numeric, active int);
+CREATE TABLE IF NOT EXISTS yarago.tbl_mst_sub_surgical_types (subsurgid int PRIMARY KEY, subsurgicaltypename text);
+CREATE TABLE IF NOT EXISTS yarago.tbl_payment_others_details (others_id int PRIMARY KEY, nbillid int, dateofpayment timestamp,
+  npatient_id int, nappoint_id int, amount numeric, active int);
+CREATE TABLE IF NOT EXISTS yarago.tblopticalpatientorders (orderid int PRIMARY KEY, billno bigint, npatid int, napptid int,
+  isactive int, cancelleddate timestamp, inserteddate timestamp);
+CREATE TABLE IF NOT EXISTS yarago.tblopticalpatientorderdetails (odid int PRIMARY KEY, orderid int, ncategoryid int,
+  nproductid int, nsuppid int, nqty int, cancelledqty int, totamount numeric, taxamount numeric, discrsamt numeric,
+  cancelledamt numeric, isactive int, inserteddate timestamp);
+CREATE TABLE IF NOT EXISTS yarago.tbl_mst_category (acatid int PRIMARY KEY, acategoryname text);
+CREATE TABLE IF NOT EXISTS yarago.tblopticalpatientpayment (apayid int PRIMARY KEY, orderid int, npatid int, napptid int,
+  atotalamount numeric, cashamount numeric, cardamount numeric, chequeamount numeric, chequeno text, otherpaymentid int,
+  otherepaymentmode numeric, referencenumber text, refundamt numeric, isactive int, inserteddate timestamp,
+  lastmodifieddate timestamp);
+CREATE TABLE IF NOT EXISTS yarago.tblpatientopdrefunddetails (aoprefundid int PRIMARY KEY, npatientid int, napptid int,
+  nbillid int, billno text, refundamount numeric, refundtype int, refundreason text, paymentmode text, isrefunded int,
+  refunddate timestamp, cashamount numeric, chequeamount numeric, cardamount numeric, isactive int);

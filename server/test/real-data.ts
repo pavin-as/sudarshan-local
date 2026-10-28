@@ -78,6 +78,14 @@ try {
     (b) => `${b.mode} mode, ${b.rows.filter((r: any) => r.send).length} of ${b.rows.length} would get it`);
   await get("WhatsApp sent (Sudarshan and Google app)", "/api/whatsapp/broadcasts", (b) => `${b.broadcasts.length} from Sudarshan, ${b.googleApp.length} from the Google app`);
   await get("payment links, open", "/api/payments", (b) => `${b.payments.length} open, ${b.counts.review} to check`);
+  // money reconciliation (D-052): totals only, no records
+  await get("reconciliation, last 7 days", `/api/recon?from=${addDays(today, -7)}&to=${addDays(today, -1)}`, (b) => {
+    const t = b.result.totals, rows = b.result.rows as any[];
+    const by = (s: string) => rows.filter((r) => r.status === s).length;
+    return `${rows.length} day-method rows: ${by("matched")} matched, ${by("difference")} differences, ${by("uncertain")} uncertain, ${by("awaiting") + by("no_bank_data")} not known; ` +
+           `Zoho ${b.zohoStatus.configured ? (b.zohoStatus.fetchedAt ? "read" : "not read yet") : "not connected"}; ${t.adjustments.count} adjustments`;
+  });
+  await get("adjustments waiting for approval", "/api/adjustments?status=pending", (b) => `${b.pending}`);
   // Retina AI (D-040): only the reads that log nothing (the records list and a grading's page log the AI grades shown)
   await get("Retina AI status and grader", "/api/retina-ai/status",
     (b) => `grader ${b.grader.ready ? "ready" : b.grader.reachable ? "not ready" : "not reachable"}, key ${b.grader.keySet ? "set" : "NOT set"}; ${b.counts.graded} graded, ${b.counts.notGraded} not graded`);

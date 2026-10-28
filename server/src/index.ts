@@ -7,6 +7,7 @@ import { startOutreachJobs } from "./services/payments.js";
 import { outboxStarted } from "./routes/whatsapp.js";
 import { startRemidioJobs } from "./services/remidioReceiver.js";
 import { startTopconJobs } from "./services/topconImport.js";
+import { startZohoJobs } from "./services/zohoSync.js";
 
 const app = await buildApp();
 try {
@@ -26,13 +27,15 @@ outboxStarted();
 const remidioTimers = startRemidioJobs(app.log);
 // Topcon Maestro2 photographs from the ImageNet PC (D-048); does nothing while retina.topcon_mode is "off"
 const topconTimers = startTopconJobs(app.log);
+// read-only copy of the Zoho bank lines for the reconciliation (D-052); does nothing until setup-zoho.ps1 has run
+const zohoTimers = startZohoJobs(app.log);
 
 for (const sig of ["SIGINT", "SIGTERM"] as const) {
   process.on(sig, async () => {
     app.log.info(`${sig} received, shutting down`);
     clearInterval(summaryTimer);
     clearInterval(emrDailyTimer);
-    for (const t of [...outreachTimers, ...remidioTimers, ...topconTimers]) clearInterval(t);
+    for (const t of [...outreachTimers, ...remidioTimers, ...topconTimers, ...zohoTimers]) clearInterval(t);
     await app.close();
     await pool.end();
     process.exit(0);

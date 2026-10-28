@@ -86,3 +86,23 @@ Dates are clinic dates (Asia/Kolkata).
 - **Patient geography:** no PIN code, city or state is recorded for any patient (address is free text).
 - **Diagnosis:** see Case mix above.
 - **Surgery advised, not done:** no surgery advice recorded in the last 12 months.
+
+## Reconciliation (D-052)
+
+Live, not from the analytics schema. Read from the Yarago mirror (`db/views/40_money.sql`), the Zoho copy (`app.zoho_*`)
+and the effects of approved adjustments. Calculated by `server/src/services/reconcile.ts`; every rule below has a test in
+`test/recon.unit.test.ts`.
+
+| Figure | Definition |
+|---|---|
+| Billed | Clinic bill lines (as "Billed" under Money) plus pharmacy and optical sale lines after cancellations, on the line's day. Approved revenue adjustments are added. Categories: consultation = Consultation & charges; procedure = investigations, injections, lasers, other procedures, other charges; pharmacy and optical as D-032 (setting `recon.category_map`). |
+| Collected | Each payment method on a clinic bill (latest row per bill) and on a pharmacy/optical payment, on its day. UPI = Yarago's "other payment" of type UPI or PayTm. |
+| Refunds | Clinic refunds (`tblpatientopdrefunddetails`) by the method recorded. Pharmacy refunds have no method or date in Yarago: they are listed as "without a method" and taken off no method. |
+| Expected | Collected − refunds ± approved adjustments − approved fees, per day and method. For UPI and card this should reach the bank; cash is in hand. |
+| Reached the bank | Bank credits that a bank rule recognises (or an approved classification names), matched to a day. The match is a single credit equal to the day (within `recon.tolerance`), or one credit equal to 2-3 consecutive days, dated within the rule's window (default 0-3 days after). A match is made only when it is the only possibility both ways. |
+| Not yet known | Days whose settlement window has not closed, or lies after the last bank-feed refresh, or while the Zoho copy is older than `recon.stale_hours` (24). Never a difference. |
+| Uncertain | Days with more than one possible credit, or credits that fit more than one day. Never matched by Sudarshan. |
+| Difference to explain | Expected minus what reached the bank, for days whose window has closed inside known bank data. |
+| Cash not yet deposited | Net cash minus bank credits recognised as cash deposits. |
+| Bank credits not counted | Credits no rule or approved classification recognises. |
+| Unpaid, discount or advance | Billed minus collected per source. Yarago keeps one running due per patient, so this is not split further. |

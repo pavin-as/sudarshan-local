@@ -295,6 +295,24 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       Next day after 17:30, open EMR daily report and compare 2-3 MRDs with Yarago.
 - [ ] Before week 2 (D-051): a personal Yarago login for every optometrist; then points per login.
 
+- [x] Money reconciliation built (28 Oct, D-052, migration 0028):
+  - Yarago revenue, payments and refunds against the Zoho bank, per day and method, with status words;
+  - adjustment requests with admin approval, reversal and audit trail;
+  - Zoho read through its API, read only;
+  - optional local assistant.
+
+  18 + 14 checks pass on the test database; browser-checked with synthetic data at desktop and phone width.
+  **Not deployed.**
+- [ ] Pavin:
+  - deploy D-052 (`update.ps1`, administrator, outside clinic hours);
+  - create the Zoho Self Client and run `scripts\setup-zoho.ps1` (RUNBOOK 14);
+  - press Fetch from Zoho, then check a few past days against the bank statement;
+  - check the first real fetch's line fields (debit/credit, description). The script prints counts; tell Claude if it
+    warns about missing fields.
+- [ ] Pavin: the bank's wording for a cash deposit, so the cash-deposit rule can be switched on.
+- [ ] Pavin: whether optical should stay a separate category or count under pharmacy ("Sales of Medicines" in Zoho holds
+      both). For now it is shown separately.
+
 ## Next step
 Trial running on live Google data (D-025). Remaining, in order:
 1. **Shadow run** (Phase C gate): staff keep booking in the Google app; daily comparison of the day board, cancel list,

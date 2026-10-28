@@ -425,3 +425,31 @@ Set up on 25 Oct 2026 (Step 0).
 - **The isolated test database** (developers): `scripts\testdb.ps1 up` / `down` / `reset`; tests with
   `$env:SUDARSHAN_ENV='D:\Sudarshan\testdb\test.env'`. Synthetic data only.
 
+
+## 14. Money reconciliation and Zoho Books (D-052)
+- **Connect Zoho (once, administrator, about 5 minutes).** Sudarshan only reads from Zoho.
+  1. In https://api-console.zoho.in choose Add Client > Self Client > Create, and note the Client ID and Client Secret.
+  2. Self Client > Generate Code, with the scope exactly `ZohoBooks.banking.READ,ZohoBooks.customerpayments.READ,ZohoBooks.settings.READ`
+     and 10 minutes. Copy the code.
+  3. Run, in an administrator PowerShell:
+     `powershell -ExecutionPolicy Bypass -File D:\Sudarshan\app\scripts\setup-zoho.ps1`
+     Paste the ID, the secret and the code when asked (the secret and the code are not shown). Choose the current account
+     that receives the UPI and card settlements.
+     The script refuses a code with anything but READ scopes. It prints counts only, writes `ZOHO_*` to `.env` and
+     restarts the server.
+  4. In Sudarshan go to Reconciliation and press **Fetch from Zoho**. After that the copy refreshes by itself every two
+     hours from 08:00 to 22:00.
+- **The Claude-side Zoho connector** has create and delete tools. Sudarshan never uses it. If it stays connected for
+  Claude, consider limiting its tools in Zoho's MCP console.
+- **Bank rules** (Reconciliation > Bank rules, admin) say which bank wording counts as clinic money. UPI (`RYX181`) and card
+  (`TERMINAL 1`) are on. The cash-deposit rule is off until the bank's wording for a cash deposit is known: check one on the
+  statement, then change the pattern and switch it on.
+- **Daily use:** managers check yesterday's rows. A "Difference" is something to look into, and opening the row shows the
+  bills and bank lines behind it. When the records do not tell the whole story, send an adjustment; the admin approves it
+  under Adjustments > To approve. "Waiting for settlement" and "Cash not yet deposited" are normal.
+- **The assistant** needs Ollama running on shichika (it is installed; models `qwen3.5:9b`, `gemma4:12b`). Start it from
+  the Start menu or with `ollama serve`. While it is not running, the panel says so and nothing else is affected.
+  Ollama uses the GPU, which Yarago shares, so ask it questions sparingly during clinic hours.
+- **If Zoho fails:** the page shows the last failure. "Zoho refused the sign-in" means the Self Client was deleted or the
+  token revoked: run setup-zoho.ps1 again. Until a fetch succeeds, nothing is called a difference ("Bank data not
+  available").

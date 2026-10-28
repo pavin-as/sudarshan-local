@@ -182,6 +182,35 @@ The doctor's grade (`my-grade`, and fundus reports through `syncReportGrades`) i
 photograph. `routes/evaluation.ts` adds a screening block per model (`evalScreening.ts`; rows clustered by patient code),
 with cut-offs from `?validation=<frozen validation set>` or the starting cut-offs.
 
+### Money reconciliation (D-052)
+- **Calculation:** `services/reconcile.ts` is pure: `reconcile(input)` (no clock, no database) and `effectsFor(request)`.
+  `services/reconData.ts` builds the input from the money views, the Zoho copy, the bank rules, the settings and the effects
+  of approved requests (approved, and reversed with their approved reversal, which net to nothing). Pages only show the result.
+- **Zoho:** `services/zohoBooks.ts` holds only the REST calls, behind `setZohoTransport`. `allowed()` lets through GETs
+  to the Books API and the token refresh, nothing else. `services/zohoSync.ts` copies lines into `app.zoho_*` (single
+  flight; `startZohoJobs` every 10 minutes, fetching when the copy is over 2 hours old, 08:00-22:00).
+- **Adjustments:** `services/adjustments.ts`.
+  - `submit` checks the request against its Yarago record and Zoho line, works out its effects once, and inserts the
+    request and its effects in one transaction. An advisory lock serialises the duplicate check. The same `request_key`
+    returns the first request.
+  - `approve` / `reject` / `withdraw` lock the row and change only a pending one, so a second decision is a 409.
+  - An approved reversal marks the original `reversed` and approves its paired replacement in the same transaction.
+  - The guard triggers in 0028 back all of this up in the database.
+- **Assistant:** `services/reconAssistant.ts` (Ollama, `ai.recon_model`). Its input comes from `modelInput()`: totals and
+  statuses with no names, MRDs, bill numbers or bank wording. Its answer passes a number check (`checkNumbers`, which
+  allows thousands separators). Ollama down → 503 with plain words.
+- **API:** `routes/reconciliation.ts`.
+  - `GET /api/recon`, `/detail`, `/zoho-lines` and `/bank-rules`, and `POST /zoho/fetch` and `/assistant`: all
+    `reconciliation.read`.
+  - `GET /api/recon/search` and `/api/adjustments`, and `POST /api/adjustments`, `/preview`, `/:id/withdraw` and
+    `/:id/reverse`: `adjustments.submit`.
+  - `POST /:id/approve` and `/:id/reject`, bank rules and settings: `adjustments.approve` (admin).
+- **Screens:**
+  - `pages/Reconciliation.tsx`: tiles, by method, day by day with a drawer, category and source tables, credits to look
+    at, approved adjustments, assistant, bank rules.
+  - `pages/Adjustments.tsx`: the request form with a preview of its effects, the lists, and the drawer with decisions,
+    reversal and correction.
+
 ### Adding a feature (checklist)
 1. Read DECISIONS.md and COMPLIANCE.md; if the feature conflicts, ask first.
 2. Migration (if needed) + SCHEMA.md; audit triggers for new tables.

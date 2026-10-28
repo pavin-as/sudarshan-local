@@ -85,6 +85,13 @@ Sudarshan never changes Yarago. Corrections to patient details are made in Yarag
     Never send clinical detail (plan, diagnosis, notes) in a WhatsApp template or to Razorpay. Phone numbers are not
     written to the server log (message ids only).
 
+**Money and Zoho (D-052)**
+16. Sudarshan only **reads** Zoho Books: a Self Client with READ scopes, and a client that refuses any request but a GET
+    and the token refresh. It sends Zoho dates and account ids, never patient data. Zoho keys live in `.env` only.
+17. Original Yarago and Zoho records are never changed. Corrections are adjustment requests, which count only once an
+    admin approves them, and which cannot be edited or deleted afterwards (trigger). Bank descriptions copied from Zoho
+    can carry payers' names: they stay on shichika and are never given to the assistant.
+
 **Network**
 12. Clinic LAN only. The server port is open to the local subnet only. Nothing on shichika is reachable from the internet
     (Razorpay is polled, not called back).

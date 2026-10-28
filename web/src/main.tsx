@@ -28,6 +28,8 @@ import { MonthPage } from "./pages/Month";
 import { SettingsPage } from "./pages/Settings";
 import { WhatsAppPage } from "./pages/WhatsApp";
 import { PaymentsPage } from "./pages/Payments";
+import { ReconciliationPage } from "./pages/Reconciliation";
+import { AdjustmentsPage } from "./pages/Adjustments";
 import { RetinaAiPage } from "./pages/RetinaAi";
 import { FundusReportsPage, useFundusTodo } from "./pages/FundusReports";
 
@@ -74,6 +76,13 @@ function usePaymentCounts(enabled: boolean) {
   return r.data?.counts.review ?? 0;
 }
 
+// adjustment requests waiting for an admin (D-052): a number on the menu for admins
+function useAdjustmentsToApprove(enabled: boolean) {
+  const r = useQuery({ queryKey: ["adjustments", "pending-count"], enabled, refetchInterval: 5 * 60_000,
+                       queryFn: () => api<{ pending: number }>("/adjustments?status=pending") });
+  return r.data?.pending ?? 0;
+}
+
 const ROLE_WORDS: Record<string, string> = { admin: "Admin", manager: "Manager", staff: "Front desk", doctor: "Doctor", optometrist: "Optometrist", counsellor: "Counsellor" };
 
 function Shell() {
@@ -87,6 +96,7 @@ function Shell() {
   const triagePending = useTriage("pending").data?.pending ?? 0;
   const payReview = usePaymentCounts(can("payments.write"));
   const fundusTodo = useFundusTodo(can("fundus.report"));
+  const adjPending = useAdjustmentsToApprove(can("adjustments.approve"));
   return (
     <div className="shell">
       <nav className="nav" aria-label="Main">
@@ -102,6 +112,8 @@ function Shell() {
         <NavLink to="/followups">Follow-up calls</NavLink>
         {can("messages.send") && <NavLink to="/whatsapp">WhatsApp</NavLink>}
         {can("payments.write") && <NavLink to="/payments">Payments {!!payReview && <span className="count">{payReview}</span>}</NavLink>}
+        {can("reconciliation.read") && <NavLink to="/reconciliation">Reconciliation</NavLink>}
+        {can("adjustments.submit") && <NavLink to="/adjustments">Adjustments {!!adjPending && <span className="count">{adjPending}</span>}</NavLink>}
         {can("clinical.read") && <NavLink to="/emr-completeness">EMR completeness</NavLink>}
         {can("clinical.read") && <NavLink to="/emr-daily">EMR daily report</NavLink>}
         {can("clinical.read") && <NavLink to="/fundus">Fundus reports {!!fundusTodo && <span className="count">{fundusTodo}</span>}</NavLink>}
@@ -138,6 +150,8 @@ function Shell() {
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/users" element={<UsersPage />} />
+          <Route path="/reconciliation" element={<ReconciliationPage />} />
+          <Route path="/adjustments" element={<AdjustmentsPage />} />
           <Route path="/whatsapp" element={<WhatsAppPage />} />
           <Route path="/payments" element={<PaymentsPage />} />
           <Route path="/retina-ai" element={<RetinaAiPage />} />

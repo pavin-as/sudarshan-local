@@ -12,8 +12,8 @@
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "cli": "node dist/cli.js",
-    "test": "tsx test/api.test.ts && tsx test/outreach.test.ts && tsx test/retina.test.ts && tsx test/remidio.test.ts && tsx test/fundus.test.ts && tsx test/topcon.test.ts && tsx test/emrDaily.test.ts",
-    "test:rules": "tsx test/rules.test.ts && tsx test/triage.test.ts && tsx test/summary.test.ts && tsx test/followups.test.ts && tsx test/early.test.ts && tsx test/outreach.unit.test.ts && tsx test/arrival.unit.test.ts && tsx test/retina.unit.test.ts && tsx test/evaluation.unit.test.ts && tsx test/octThickness.unit.test.ts"
+    "test": "tsx test/api.test.ts && tsx test/outreach.test.ts && tsx test/retina.test.ts && tsx test/remidio.test.ts && tsx test/fundus.test.ts && tsx test/topcon.test.ts && tsx test/emrDaily.test.ts && tsx test/recon.test.ts",
+    "test:rules": "tsx test/rules.test.ts && tsx test/triage.test.ts && tsx test/summary.test.ts && tsx test/followups.test.ts && tsx test/early.test.ts && tsx test/outreach.unit.test.ts && tsx test/arrival.unit.test.ts && tsx test/retina.unit.test.ts && tsx test/evaluation.unit.test.ts && tsx test/octThickness.unit.test.ts && tsx test/recon.unit.test.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
