@@ -801,6 +801,31 @@ optometrists, the doctor screen for the doctor.
   so a day's pharmacy payments were missing until the next morning: 32 rows on 28 Oct), and a pharmacy payment counts
   even before its order is copied (its bill number follows).
 
+### D-057 · 2026-10-28 · Accepted · Pavin (28 Oct: "a quick way to see current day collection (there will be no reconciliation in that) ... on one glance a summary look which could be clicked to understand the details"; access: "Finance only"); Claude chose the layout
+- **A Day collection page**: one day's money as Yarago recorded it, today by default and refreshed every minute. It
+  has no bank and no matching; the Reconciliation page does that.
+- **At a glance:**
+  - the total collected, with patients, bills, payments, first and last time, and the same weekday a week before
+    (for today, up to the same time of day);
+  - Clinic and Pharmacy & optical;
+  - one tile per method, split by source;
+  - what it was billed for (Yarago's service groups, then items);
+  - the hours of the day;
+  - "Worth a look": refunds, discounts, money left due, billed against collected.
+- **On click:**
+  - a source, method or hour opens its payments (time, patient, MRD, bill, source, method, amount, reference), with
+    subtotals and a search;
+  - a service opens its items, and an item opens its lines by patient;
+  - any payment or line opens the whole bill or pharmacy order: lines (pharmacy products by name), discount, due,
+    every payment and refund.
+  - "Print day sheet" prints the summary and the full list.
+- **Finance only** (`reconciliation.read`): the page shows the day's cash, and the cash desk records deposits blind
+  (D-053).
+- **Not shown: who took the money.** Yarago's "collected by" is the same for every clinic bill ("For SampadaVR
+  Speciality Eye Care"), and all pharmacy payments come from one shared login.
+- **Colours:** clinic is blue (#2b6cb0) and pharmacy is brown (#b5651d) wherever the two appear. The pair passes the
+  colour-blind separation check, and the legend and labels never rely on colour alone.
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

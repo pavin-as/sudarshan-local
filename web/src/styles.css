@@ -614,3 +614,58 @@ table.list tr.edge-cash td:first-child { box-shadow: inset 4px 0 0 var(--cash); 
   .audit-sheet .audit-box { width: 2.2rem; }
   .audit-sheet-summary td { font-size: 9pt; }
 }
+
+/* Day collection (D-057). Clinic and pharmacy keep one colour each everywhere (checked for colour-blind separation) */
+:root { --src-clinic: #2b6cb0; --src-pharmacy: #b5651d; }
+.collect-key { display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 2px; background: var(--line); vertical-align: -0.05rem; margin-right: 0.3rem; }
+.collect-key.clinic, .collect-src.clinic .collect-key { background: var(--src-clinic); }
+.collect-key.pharmacy, .collect-src.pharmacy .collect-key { background: var(--src-pharmacy); }
+.collect-legend { display: flex; gap: 0.8rem; color: var(--ink-soft); }
+.collect-hero { display: flex; flex-wrap: wrap; gap: 1rem 2rem; align-items: center; justify-content: space-between; }
+.collect-hero-n { font-size: 2.2rem; font-weight: 700; color: var(--choroid); line-height: 1.1; }
+.collect-hero-l { font-weight: 700; }
+.collect-sources { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.collect-src { display: grid; grid-template-columns: auto 1fr; justify-items: start; gap: 0.1rem 0.3rem; align-items: center; text-align: left; min-width: 11rem;
+               background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); padding: 0.5rem 0.8rem; color: inherit; cursor: pointer; }
+.collect-src:hover, .collect-tile:hover { border-color: var(--action); }
+.collect-src b { grid-column: 1 / -1; font-size: 1.25rem; color: var(--choroid); }
+.collect-src .muted { grid-column: 1 / -1; }
+button.recon-tile { text-align: left; cursor: pointer; font: inherit; display: flex; flex-direction: column; align-items: stretch; gap: 0.2rem; }
+.recon-tile.picked { border-color: var(--action); box-shadow: 0 0 0 2px var(--action-soft); }
+.collect-split { display: flex; gap: 2px; height: 6px; margin: 0.15rem 0; }
+.collect-split i { display: block; border-radius: 3px; min-width: 4px; }
+.collect-split i.clinic, .collect-bar-track i.clinic, .collect-hour-col i.clinic { background: var(--src-clinic); }
+.collect-split i.pharmacy, .collect-bar-track i.pharmacy, .collect-hour-col i.pharmacy { background: var(--src-pharmacy); }
+.collect-bars { display: flex; flex-direction: column; gap: 0.8rem; padding: 0.6rem 0.8rem; }
+.collect-bars-head { display: flex; justify-content: space-between; border-bottom: 1px solid var(--line-soft); padding-bottom: 0.15rem; }
+.collect-bar-row { display: grid; grid-template-columns: minmax(8rem, 11rem) 1fr auto; gap: 0.6rem; align-items: center; width: 100%; background: none; border: 0;
+                   padding: 0.3rem 0.2rem; font: inherit; color: inherit; cursor: pointer; text-align: left; border-radius: var(--radius-s); }
+.collect-bar-row:hover { background: var(--action-soft); }
+.collect-bar-track { height: 10px; }
+.collect-bar-track i { display: block; height: 100%; border-radius: 0 4px 4px 0; min-width: 3px; }
+.collect-bar-n { min-width: 5.5rem; text-align: right; }
+.collect-items { margin: 0 0 0.4rem 1.2rem; width: calc(100% - 1.2rem); }
+.collect-hours { display: flex; align-items: stretch; gap: 4px; height: 150px; }
+.collect-hour { flex: 1; display: flex; flex-direction: column; align-items: stretch; gap: 0; background: none; border: 0; padding: 0 1px; cursor: pointer; font: inherit; color: var(--ink-soft); border-radius: var(--radius-s); min-width: 0; }
+.collect-hour:hover:not(:disabled), .collect-hour.picked { background: var(--action-soft); }
+.collect-hour:disabled { cursor: default; }
+.collect-hour-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; }
+.collect-hour-col i { display: block; min-height: 2px; }
+.collect-hour-col i:first-child { border-radius: 4px 4px 0 0; }
+.collect-hour-l { font-size: 0.75rem; text-align: center; padding-top: 0.2rem; border-top: 1px solid var(--line); }
+.collect-attn { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 0.6rem 1.2rem; padding: 0.4rem 0.8rem 0.8rem; }
+.collect-attn h3 { margin: 0.3rem 0; font-size: 0.95rem; display: flex; justify-content: space-between; }
+.collect-page .panel-head { flex-wrap: wrap; }
+@media (max-width: 600px) {
+  .collect-bar-row { grid-template-columns: 1fr auto; grid-template-areas: "label n" "track track"; row-gap: 0.15rem; }
+  .collect-bar-label { grid-area: label; }
+  .collect-bar-n { grid-area: n; }
+  .collect-bar-track { grid-area: track; }
+  .collect-hero-n { font-size: 1.8rem; }
+  .collect-src { min-width: 0; flex: 1; }
+}
+@media print {
+  .collect-page .recon-tile, .collect-split i, .collect-bar-track i, .collect-hour-col i, .collect-key { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .collect-page .panel { break-inside: avoid; }
+  .collect-page #day-payments { break-inside: auto; }
+}

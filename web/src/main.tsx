@@ -29,6 +29,7 @@ import { SettingsPage } from "./pages/Settings";
 import { WhatsAppPage } from "./pages/WhatsApp";
 import { PaymentsPage } from "./pages/Payments";
 import { ReconciliationPage } from "./pages/Reconciliation";
+import { CollectionsPage } from "./pages/Collections";
 import { AdjustmentsPage } from "./pages/Adjustments";
 import { CashPage } from "./pages/Cash";
 import { BooksAuditPage } from "./pages/BooksAudit";
@@ -114,6 +115,7 @@ function Shell() {
         <NavLink to="/followups">Follow-up calls</NavLink>
         {can("messages.send") && <NavLink to="/whatsapp">WhatsApp</NavLink>}
         {can("payments.write") && <NavLink to="/payments">Payments {!!payReview && <span className="count">{payReview}</span>}</NavLink>}
+        {can("reconciliation.read") && <NavLink to="/collections">Day collection</NavLink>}
         {can("reconciliation.read") && <NavLink to="/reconciliation">Reconciliation</NavLink>}
         {(can("cash.deposit") || can("reconciliation.read")) && <NavLink to="/cash">Cash deposits</NavLink>}
         {can("books.audit") && <NavLink to="/books-audit">Books audit</NavLink>}
@@ -154,6 +156,7 @@ function Shell() {
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/users" element={<UsersPage />} />
+          <Route path="/collections" element={<CollectionsPage />} />
           <Route path="/reconciliation" element={<ReconciliationPage />} />
           <Route path="/adjustments" element={<AdjustmentsPage />} />
           <Route path="/cash" element={<CashPage />} />

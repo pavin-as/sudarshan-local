@@ -774,6 +774,8 @@ Views (`db/views/40_money.sql`, re-applied with the others):
 - `clinical.money_revenue_line`: clinic bill lines and pharmacy/optical sale lines, by service group.
 - `clinical.money_payment`: one row per method on a clinic bill or a pharmacy/optical payment.
 - `clinical.money_refund`: clinic refunds by method; pharmacy refunds with method `unrecorded`.
+- D-057 added, as last columns: `money_bill.billed_at`; `money_payment.at` (bill or pharmacy payment time) and
+  `bill_key` (clinic bill id or pharmacy order id, matching `money_revenue_line.source_id`); `money_refund.at`.
 
 | Table | One row per | Notes |
 |---|---|---|

@@ -232,6 +232,19 @@ with cut-offs from `?validation=<frozen validation set>` or the starting cut-off
 - **Zoho:** `listBankTransactions` reads `Status.All` and `Status.Uncategorized`, newest first, until a page is before
   the period (Zoho ignores date filters), and turns Zoho's ledger side round (`debit` = money in).
 
+### Day collection (D-057)
+- **Summary:** `services/collections.ts` is pure: `daySummary(input)` gives totals (by source), methods, service groups
+  with items, hours (first to last, empty ones kept; untimed payments counted but not placed), billed against collected,
+  discounts and dues of clinic bills, and the day's payments, refunds and lines with patient MRD and name.
+- **Data:** `services/collectionsData.ts`: `loadDay()` reads the money views for one day, plus last week's same day (up
+  to the same time when it is today); `loadBill()` gives a clinic bill (from the views) or a pharmacy order (order
+  lines with `tbl_mst_product` names, after cancellations), with every payment and refund on it.
+- **API:** `routes/collections.ts`: `GET /api/collections/day?date=` and `GET /api/collections/bill?source=&key=`, both
+  `reconciliation.read`. Never the cash desk: its deposits are blind.
+- **Screen:** `pages/Collections.tsx`: headline and source cards, method tiles, service bars, hour bars, "Worth a look",
+  the payment list (filtered by the card, tile or hour clicked), a lines drawer and a bill drawer; print hides the
+  controls. Source colours are `--src-clinic` and `--src-pharmacy`.
+
 ### Books audit (D-054)
 - **Checks:** `services/booksAudit.ts` is pure: `booksAudit(input)` returns each check (group, title, target, level,
   due, not due yet, amount, words, items with what to do). Work dated after `today − dueDays` is "not due yet" and

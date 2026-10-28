@@ -5,6 +5,15 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Day collection (new page, finance only)** (D-057).
+  - What the day brought in, at a glance: the total with clinic and pharmacy, each method, what it was for, the hours,
+    and refunds, discounts and money left due. Today refreshes every minute; any other day can be picked.
+  - Every part opens the detail: the payments (with search), the items and patients behind a service, and the whole
+    bill or pharmacy order with its products, payments and refunds. "Print day sheet" for the day's end.
+  - Technical: `services/collections.ts` (pure `daySummary`), `services/collectionsData.ts`, `routes/collections.ts`
+    (`GET /api/collections/day`, `/bill`, `reconciliation.read`); `pages/Collections.tsx`; the money views gain `at`
+    (payment and refund time), `bill_key` (clinic bill or pharmacy order) and `money_bill.billed_at`, as last columns;
+    `nowHHMMIST()`; `test/collections.unit.test.ts` (in `test:rules`); stub `yarago.tbl_mst_product`.
 - **Reconciliation: clinic and pharmacy shown apart** (D-056).
   - Billed and Collected tiles, By payment method, Day by day and the day drawer show Clinic and Pharmacy & optical
     beside the total; the bank columns stay combined, as HDFC and the deposits combine them.

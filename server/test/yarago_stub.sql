@@ -92,3 +92,5 @@ CREATE TABLE IF NOT EXISTS yarago.tblopticalpatientpayment (apayid int PRIMARY K
 CREATE TABLE IF NOT EXISTS yarago.tblpatientopdrefunddetails (aoprefundid int PRIMARY KEY, npatientid int, napptid int,
   nbillid int, billno text, refundamount numeric, refundtype int, refundreason text, paymentmode text, isrefunded int,
   refunddate timestamp, cashamount numeric, chequeamount numeric, cardamount numeric, isactive int);
+-- the Day collection's bill detail names pharmacy products (D-057)
+CREATE TABLE IF NOT EXISTS yarago.tbl_mst_product (aprodid int PRIMARY KEY, aproductname text);

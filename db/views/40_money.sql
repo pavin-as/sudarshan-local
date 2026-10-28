@@ -5,6 +5,9 @@
 --   money_payment:      one row per payment method on a clinic bill or a pharmacy/optical payment.
 --   money_refund:       one row per refund (OPD refunds by method; pharmacy refunds: method and date not recorded).
 -- Methods: cash, card, cheque, upi (Yarago "other payment" UPI or PayTm), other.
+-- D-057 (Day collection): payments and refunds carry their time (at) and payments the bill or pharmacy order they
+-- belong to (bill_key: the clinic bill id or the pharmacy order id, as money_revenue_line.source_id). New columns go last
+-- (CREATE OR REPLACE VIEW can only add columns at the end).
 
 CREATE OR REPLACE VIEW clinical.money_bill AS
 SELECT DISTINCT ON (b.id_nbillid)
@@ -13,7 +16,7 @@ SELECT DISTINCT ON (b.id_nbillid)
        coalesce(b.cashamount, 0)::numeric AS cash, coalesce(b.cardamount, 0)::numeric AS card, coalesce(b.chequeamount, 0)::numeric AS cheque,
        coalesce(b.otherpaymentamt, 0)::numeric AS other_amount, b.notherpaymenttype AS other_type,
        nullif(btrim(b.otherpaymentref), '') AS other_ref, nullif(btrim(b.checknumber), '') AS cheque_no,
-       coalesce(b.currentdueamount, 0)::numeric AS due_after, b.ncollectedbyuser AS collected_by
+       coalesce(b.currentdueamount, 0)::numeric AS due_after, b.ncollectedbyuser AS collected_by, b.billingdate AS billed_at
 FROM yarago.tblpatientsappointmentbillingdetails b
 WHERE coalesce(b.active, 1) = 1 AND b.id_nbillid IS NOT NULL AND b.billingdate IS NOT NULL
 ORDER BY b.id_nbillid, b.abilling_id DESC;
@@ -55,14 +58,14 @@ WHERE coalesce(d.isactive, 1) = 1 AND coalesce(o.isactive, 1) = 1 AND o.cancelle
 
 CREATE OR REPLACE VIEW clinical.money_payment AS
 SELECT 'bill-' || b.bill_id || '-' || m.method AS payment_id, 'clinic_bill'::text AS source, b.bill_id::text AS source_id, b.bill_no,
-       b.on_date, b.patient_id, m.method, m.amount, m.ref
+       b.on_date, b.patient_id, m.method, m.amount, m.ref, b.billed_at AS at, b.bill_id::text AS bill_key
 FROM clinical.money_bill b
 CROSS JOIN LATERAL (VALUES ('cash', b.cash, NULL::text), ('card', b.card, NULL), ('cheque', b.cheque, b.cheque_no),
                            (CASE WHEN b.other_type IN (1, 2) THEN 'upi' ELSE 'other' END, b.other_amount, b.other_ref)) m(method, amount, ref)
 WHERE m.amount <> 0
 UNION ALL
 SELECT 'pharm-' || p.apayid || '-' || m.method, 'pharmacy_payment', p.apayid::text, o.billno::text, p.inserteddate::date, p.npatid,
-       m.method, m.amount, m.ref
+       m.method, m.amount, m.ref, p.inserteddate, p.orderid::text
 FROM yarago.tblopticalpatientpayment p
 LEFT JOIN yarago.tblopticalpatientorders o ON o.orderid = p.orderid      -- D-056: counted before its order is copied (bill no. follows)
 CROSS JOIN LATERAL (VALUES ('cash', coalesce(p.cashamount, 0)::numeric, NULL::text), ('card', coalesce(p.cardamount, 0)::numeric, NULL),
@@ -74,7 +77,7 @@ WHERE coalesce(p.isactive, 1) = 1 AND p.inserteddate IS NOT NULL AND m.amount <>
 CREATE OR REPLACE VIEW clinical.money_refund AS
 SELECT 'opd-' || r.aoprefundid || '-' || m.method AS refund_id, 'opd_refund'::text AS source, r.aoprefundid::text AS source_id,
        r.billno AS bill_no, r.nbillid::text AS bill_id, r.refunddate::date AS on_date, r.npatientid AS patient_id, m.method, m.amount,
-       false AS date_uncertain, nullif(btrim(r.refundreason), '') AS reason
+       false AS date_uncertain, nullif(btrim(r.refundreason), '') AS reason, r.refunddate AS at
 FROM yarago.tblpatientopdrefunddetails r
 CROSS JOIN LATERAL (
   SELECT * FROM (VALUES ('cash', coalesce(r.cashamount, 0)::numeric), ('card', coalesce(r.cardamount, 0)::numeric),
@@ -89,7 +92,7 @@ UNION ALL
 -- pharmacy/optical refunds: Yarago keeps only the amount on the payment row, so the day is the row's last change and the
 -- method is not recorded; shown as uncertain and never taken off any method's expected money
 SELECT 'pharm-' || p.apayid, 'pharmacy_refund', p.apayid::text, o.billno::text, NULL, coalesce(p.lastmodifieddate, p.inserteddate)::date,
-       p.npatid, 'unrecorded', p.refundamt::numeric, true, NULL
+       p.npatid, 'unrecorded', p.refundamt::numeric, true, NULL, coalesce(p.lastmodifieddate, p.inserteddate)
 FROM yarago.tblopticalpatientpayment p
 LEFT JOIN yarago.tblopticalpatientorders o ON o.orderid = p.orderid
 WHERE coalesce(p.isactive, 1) = 1 AND coalesce(p.refundamt, 0) > 0;
