@@ -4,7 +4,7 @@
 import { one, q, withTx } from "../db.js";
 import { addDays, isoWeekday, todayIST } from "../lib/time.js";
 import { booksAudit, DEFAULT_AUDIT, type AuditBankLine, type AuditResult, type AuditSettings } from "./booksAudit.js";
-import { loadRules } from "./reconData.js";
+import { BANK_COLS, BANK_FROM, loadRules } from "./reconData.js";
 import { zohoAccountIds } from "./zohoBooks.js";
 
 const isDate = (d: unknown): d is string => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d);
@@ -33,10 +33,8 @@ export async function loadAudit(today = todayIST()): Promise<AuditResult & { las
   const from = settings.from < settings.qualityFrom ? settings.from : settings.qualityFrom;
   const [rules, bank, pay, ref, canInv, canExp, last] = await Promise.all([
     loadRules(),
-    q<AuditBankLine>(`SELECT transaction_id AS "transactionId", account_id AS "accountId", txn_date AS "date", amount::float AS amount, debit_or_credit AS "debitOrCredit",
-                             description, zoho_status AS "zohoStatus", missing_since IS NOT NULL AS missing, transaction_type AS type,
-                             nullif(raw->>'offset_account_name', '') AS "offsetAccount"
-                        FROM app.zoho_bank_txns WHERE txn_date BETWEEN $1 AND $2 AND (cardinality($3::text[]) = 0 OR account_id = ANY($3))`,
+    q<AuditBankLine>(`SELECT ${BANK_COLS}, t.transaction_type AS type, nullif(t.raw->>'offset_account_name', '') AS "offsetAccount"
+                        FROM ${BANK_FROM} WHERE t.txn_date BETWEEN $1 AND $2 AND (cardinality($3::text[]) = 0 OR t.account_id = ANY($3))`,
                      [settings.from, today, zohoAccountIds()]),
     q<{ d: string; a: number; uc: number }>(`SELECT on_date AS d, sum(amount)::float AS a, coalesce(sum(amount) FILTER (WHERE method IN ('upi','card')), 0)::float AS uc
                                                FROM clinical.money_payment WHERE on_date BETWEEN $1 AND $2 GROUP BY 1`, [settings.from, today]),

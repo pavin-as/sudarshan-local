@@ -443,8 +443,8 @@ Set up on 25 Oct 2026 (Step 0).
      hours from 08:00 to 22:00.
 - **The Claude-side Zoho connector** has create and delete tools. Sudarshan never uses it. If it stays connected for
   Claude, consider limiting its tools in Zoho's MCP console.
-- **Bank rules** (Reconciliation > Bank rules, admin) say which bank wording counts as clinic money. UPI (`RYX181` from
-  the feed, `RY9181` from a PDF statement), card (`TERMINAL 1`) and cash deposits (`CASH DEPOSIT BY`) are on; the
+- **Bank rules** (Reconciliation > Bank rules, admin) say which bank wording counts as clinic money. UPI (any merchant id:
+  RY9181, masked RYX181 in the feed, EHD956, EGD494), card (`TERMINAL 1`) and cash deposits (`CASH DEPOSIT BY`) are on; the
   terminals' service, low-usage and settlement charges are `bank_charge`. Rules match with spaces collapsed.
 - **When Zoho's bank feed breaks** (Yodlee, as from 21 Oct 2026): import HDFC's statement into Zoho (Banking > the
   account > Import statement, PDF, CSV or XLSX) from the day after the last line, then Fetch from Zoho. A line imported
@@ -470,7 +470,7 @@ Set up on 25 Oct 2026 (Step 0).
   the Start menu or with `ollama serve`. While it is not running, the panel says so and nothing else is affected.
   Ollama uses the GPU, which Yarago shares, so ask it questions sparingly during clinic hours.
 - **Books audit (D-054; admin and Dr Sameera):** every Friday open Books audit, press Fetch from Zoho, then **Print
-  Basith's sheet** and give it to him. It lists only work dated over a week ago, oldest first, with what to do and a box
+  Audit sheet** and give it to Basith. It lists only work dated over a week ago, oldest first, with what to do and a box
   to tick. The score and each week's trend show whether the backlog is shrinking. The admin changes the targets under
   Books audit > Targets. Checks marked "Not measured" need the invoice and expense scopes (step 2 above).
 - **If Zoho fails:** the page shows the last failure. "Zoho refused the sign-in" means the Self Client was deleted or the

@@ -11,7 +11,8 @@
 //  5. Bank credits count only when a bank rule or an approved classification says they are clinic money.
 //  6. A day's UPI / card money is matched to credits of its method dated within its settlement window: a single credit
 //     equal to it, or less by no more than the dearest fee the bank could keep on the day's payments (D-053: HDFC settles
-//     card money net), within tolerance; else one credit equal to a run of up to 3 consecutive days. A match is made only
+//     card money net), within tolerance; else 2-3 credits of one date together (one per merchant id); else one credit
+//     equal to a run of up to 3 consecutive days; then a day's card and UPI together (Bharat QR). A match is made only
 //     when it is the only possibility both ways; otherwise the day is Uncertain and its candidates are listed. What the
 //     bank kept is the day's bank fee: Settled less bank fee, or Fee higher than expected above the dearest usual rate.
 //  7. A day without a match is a Difference only once its window has closed inside known bank data; before that it is
@@ -31,7 +32,8 @@ export type BankClass = "upi_settlement" | "card_settlement" | "cash_deposit" | 
 export interface RevenueLine { lineId: string; source: string; sourceId: string; billNo: string | null; onDate: string; patientId: number | null; serviceGroup: string; item: string | null; amount: number }
 export interface PaymentRow { paymentId: string; source: string; sourceId: string; billNo: string | null; onDate: string; patientId: number | null; method: Method; amount: number; ref: string | null }
 export interface RefundRow { refundId: string; source: string; sourceId: string; billNo: string | null; onDate: string; patientId: number | null; method: Method | "unrecorded"; amount: number; dateUncertain: boolean }
-export interface BankLine { transactionId: string; accountId: string; date: string; amount: number; debitOrCredit: "credit" | "debit"; description: string | null; zohoStatus: string | null; missing: boolean }
+export interface BankLine { transactionId: string; accountId: string; date: string; amount: number; debitOrCredit: "credit" | "debit"; description: string | null; zohoStatus: string | null; missing: boolean;
+                            zohoMode?: string | null }   // the bookkeeper's payment mode when the line is a Zoho customer payment ("UPI Payment", "Card Swipe")
 export interface BankRule { id: number; position: number; pattern: string; class: BankClass; method: Method | null; windowDays: number; isActive: boolean }
 export type Measure = "revenue" | "collected" | "refund" | "fee" | "deposit" | "excluded";
 export interface Effect { adjustmentId: number; onDate: string; measure: Measure; category: Category | null; method: Method | null; amount: number; zohoTxnId: string | null; words: string; selfApproved?: boolean; kind?: string }
@@ -109,6 +111,13 @@ export const shortDate = (d: string) => `${Number(d.slice(8, 10))} ${MONTHS[Numb
 /** Which rule (if any) makes a bank credit clinic money. First active rule by position whose pattern matches. */
 export function classify(line: BankLine, rules: BankRule[]): BankRule | null {
   if (line.debitOrCredit !== "credit" || line.missing) return null;
+  // Several statement lines the bookkeeper matched to one customer payment come back from Zoho as that payment, with no
+  // description (6 Oct 2026: ₹2,400 from EHD956 + ₹42,048 from RY9181 = ₹44,448): its payment mode says what it is
+  if (!(line.description ?? "").trim() && line.zohoMode) {
+    const m: Method | null = /upi/i.test(line.zohoMode) ? "upi" : /card|swipe/i.test(line.zohoMode) ? "card" : null;
+    return m ? [...rules].sort((a, b) => a.position - b.position || a.id - b.id)
+      .find((r) => r.isActive && r.method === m && (r.class === "upi_settlement" || r.class === "card_settlement")) ?? null : null;
+  }
   return firstRule(line, rules.filter((r) => r.class !== "bank_charge"));
 }
 
@@ -277,6 +286,34 @@ export function reconcile(inp: ReconInput): ReconResult {
         r.matches.push(c); r.deposited = c.amount; changed = true;
       }
     }
+    // (a2) 2-3 credits on one day = one day's money: one settlement from each merchant id (the clinic's UPI comes through
+    //      RY9181 and EHD956), unique both ways and none of them fitting another day alone
+    const combos = (r: DayMethodRow) => {
+      const byDate = new Map<string, CreditRow[]>();
+      for (const c of free()) if (c.date >= r.date && c.date <= r.windowEnd!) byDate.set(c.date, [...(byDate.get(c.date) ?? []), c]);
+      const out: CreditRow[][] = [];
+      for (const cs of byDate.values()) {
+        if (cs.length < 2 || cs.length > 6) continue;
+        for (let mask = 1; mask < 1 << cs.length; mask++) {
+          const set = cs.filter((_, i) => mask & (1 << i));
+          if (set.length >= 2 && set.length <= 3 && inBand(set.reduce((s, c) => s + P(c.amount), 0), P(r.expected), ceiling(r))) out.push(set);
+        }
+      }
+      return out;
+    };
+    for (let changed = true; changed;) {
+      changed = false;
+      for (const r of open()) {
+        const sets = combos(r);
+        if (sets.length !== 1) continue;
+        const set = sets[0];
+        if (open().some((o) => o !== r && (combos(o).some((x) => x.some((c) => set.includes(c))) || set.some((c) => fits(o, c))))) continue;
+        for (const c of set) { c.state = "matched"; c.matchedTo = [r.date]; r.matches.push(c); }
+        r.deposited = R(set.reduce((s, c) => s + P(c.amount), 0));
+        r.note = `${set.length} settlements on ${shortDate(set[0].date)} together: ${set.map((c) => rupees(c.amount)).join(" + ")}`;
+        changed = true;
+      }
+    }
     // (b) one credit = a run of 2-3 consecutive open days (no more than 3 calendar days apart in total), unique both ways
     const runsFor = (c: CreditRow) => {
       const od = open().filter((r) => r.date <= c.date);
@@ -312,6 +349,35 @@ export function reconcile(inp: ReconInput): ReconResult {
           r.note = `One credit of ${rupees(c.amount)} on ${shortDate(c.date)} covers ${run.map((x) => shortDate(x.date)).join(", ")}`;
         });
         changed = true;
+      }
+    }
+    // (b2) two consecutive open days settled by two credits that together equal them: a payment made after the bank's
+    //      cut-off settles with the next day (2 and 3 Sep 2026: ₹596 and ₹793 in Yarago, ₹691 and ₹698 in the bank).
+    //      Unique for the pair, and neither credit fits another open day alone
+    for (let changed = true; changed;) {
+      changed = false;
+      const od = open();
+      for (let i = 0; i + 1 < od.length; i++) {
+        const [r1, r2] = [od[i], od[i + 1]];
+        if (daysBetween(r1.date, r2.date) > 3) continue;
+        const exp = P(r1.expected) + P(r2.expected), ceil = ceiling(r1) + ceiling(r2);
+        const pairs: [CreditRow, CreditRow][] = [];
+        for (const c1 of free()) for (const c2 of free())
+          if (c1.date < c2.date && c1.date >= r1.date && c1.date <= r1.windowEnd! && c2.date >= r2.date && c2.date <= r2.windowEnd!
+              && inBand(P(c1.amount) + P(c2.amount), exp, ceil)) pairs.push([c1, c2]);
+        if (pairs.length !== 1) continue;
+        const [c1, c2] = pairs[0];
+        if (open().some((o) => o !== r1 && o !== r2 && (fits(o, c1) || fits(o, c2)))) continue;
+        const kept = exp - P(c1.amount) - P(c2.amount);
+        const share1 = ceil > 0 ? Math.round(kept * ceiling(r1) / ceil) : Math.round(kept * P(r1.expected) / exp);
+        const words = `${rupees(c1.amount)} on ${shortDate(c1.date)} and ${rupees(c2.amount)} on ${shortDate(c2.date)} settle ${shortDate(r1.date)} and ${shortDate(r2.date)} together: `
+          + `${rupees(R(Math.abs(P(c1.amount) - P(r1.expected))))} went into the ${P(c1.amount) > P(r1.expected) ? "first" : "next"} day's settlement (the bank's cut-off)`;
+        for (const [r, c, share] of [[r1, c1, share1], [r2, c2, kept - share1]] as const) {
+          c.state = "matched"; c.matchedTo = [r1.date, r2.date];
+          r.matches.push(c); r.deposited = R(P(r.expected) - share); r.note = words;
+        }
+        changed = true;
+        break;
       }
     }
     // (c) what is left: candidates (uncertain), waiting, no data, or a difference
@@ -352,6 +418,37 @@ export function reconcile(inp: ReconInput): ReconResult {
         : near.length ? `${near.length} credits in the window, none equal to the day or short of it by a possible fee` : "No bank credit in the settlement window";
     }
   }
+  // Bharat QR: a card paid on the clinic's QR code settles with the UPI money, less the card fee, so that day's UPI
+  // settlement is MORE than its UPI and the card settlement less than its card (3 Oct 2026: UPI ₹20,117 settled as
+  // ₹20,128.85; card ₹32,739 as ₹31,897.77). When a day's UPI is a difference with one credit above it, and the same
+  // day's card has one credit on the same date (matched alone or not), the two are taken together: card + UPI less no
+  // more than both days' dearest fees. What the bank kept is shared by the fee each could carry.
+  if (tracked.includes("upi") && tracked.includes("card")) {
+    const creditOf = (id: string) => credits.find((c) => c.transactionId === id);
+    for (const u of rows.filter((r) => r.method === "upi" && r.status === "difference" && !r.matches.length && r.candidates.length === 1)) {
+      const uc = creditOf(u.candidates[0].transactionId);
+      const k = rows.find((r) => r.method === "card" && r.date === u.date);
+      if (!uc || uc.state === "matched" || !k || P(uc.amount) <= P(u.expected) + tol("upi")) continue;
+      const kc = k.matches.length === 1 && k.matches[0].how === "rule" ? creditOf(k.matches[0].transactionId)
+        : !k.matches.length && k.status === "difference" && k.candidates.length === 1 ? creditOf(k.candidates[0].transactionId) : undefined;
+      if (!kc || kc.date !== uc.date || (kc.state === "matched" && (kc.matchedTo.length !== 1 || kc.matchedTo[0] !== k.date))) continue;
+      const t = Math.max(tol("upi"), tol("card"));
+      const exp = P(u.expected) + P(k.expected), got = P(uc.amount) + P(kc.amount);
+      const ceil = P(u.band?.ceiling ?? 0) + P(k.band?.ceiling ?? 0), high = P(u.band?.high ?? 0) + P(k.band?.high ?? 0);
+      if (got > exp + t || got < exp - ceil - t) continue;
+      const kept = Math.max(0, exp - got);
+      const cardShare = ceil > 0 ? Math.round(kept * P(k.band?.ceiling ?? 0) / ceil) : kept;
+      const status: RowStatus = kept <= t ? "matched" : kept <= high + t ? "settled_less_fee" : "fee_high";
+      const words = `Card and UPI settled together (Bharat QR): ${rupees(kc.amount)} card + ${rupees(uc.amount)} UPI on ${shortDate(uc.date)} for ${rupees(k.expected)} card + ${rupees(u.expected)} UPI`
+        + (kept > t ? `. Bank kept ${rupees(R(kept))} (${Math.round(kept / exp * 10000) / 100}%)` : "");
+      for (const [r, c, share] of [[k, kc, cardShare], [u, uc, kept - cardShare]] as const) {
+        c.state = "matched"; c.matchedTo = [r.date];
+        r.matches = [c]; r.candidates = []; r.deposited = R(P(r.expected) - share); r.bankFee = R(share); r.difference = 0;
+        r.status = status; r.note = words;
+      }
+    }
+  }
+
   // cash: in hand until a recorded deposit covers the day (the cash book checks the deposit as a whole, not per day)
   const cashDeps = inp.cash?.deposits ?? [];
   for (const r of rows) {

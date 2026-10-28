@@ -507,4 +507,47 @@ check("books audit: expense narration, vendor, receipt, vague account, Petty Cas
   assert.equal(empty.score, Math.round((26 / 28) * 100));
 });
 
+// ---------- several merchant ids, lines the bookkeeper combined, Bharat QR, the bank's cut-off (28 Oct 2026) ----------
+const ANY_UPI: BankRule[] = [{ ...RULES[0], pattern: "UPI SETTLEMENT\\s*-[A-Z0-9]{6}-" }, RULES[1]];
+check("a day's UPI in two settlements (one per merchant id) is matched; a line Zoho gives without a description is known by the bookkeeper's payment mode", () => {
+  const two = reconcile(input({ from: "2026-10-05", to: "2026-10-05", rules: ANY_UPI, payments: [pay("2026-10-05", "upi", 36600), pay("2026-10-05", "upi", 7848)],
+    bank: [credit("2026-10-06", 2400, "UPI SETTLEMENT -EHD956- 06/10/26"), credit("2026-10-06", 42048, "UPI SETTLEMENT -RY9181- 06/10/26")] }));
+  assert.equal(row(two, "2026-10-05", "upi").status, "matched");
+  assert.match(row(two, "2026-10-05", "upi").note!, /2 settlements on 6 Oct together: ₹2,400 \+ ₹42,048/);
+  const combined = { ...credit("2026-10-06", 44448, ""), description: null, zohoStatus: "categorized", zohoMode: "UPI Payment" };
+  assert.equal(classify(combined, ANY_UPI)?.class, "upi_settlement");
+  assert.equal(classify({ ...combined, zohoMode: "Card Swipe" }, ANY_UPI)?.class, "card_settlement");
+  assert.equal(classify({ ...combined, zohoMode: "Cash" }, ANY_UPI), null, "cash is not a settlement");
+  const one = reconcile(input({ from: "2026-10-05", to: "2026-10-05", rules: ANY_UPI, payments: [pay("2026-10-05", "upi", 44448)], bank: [combined] }));
+  assert.equal(row(one, "2026-10-05", "upi").status, "matched");
+});
+
+check("Bharat QR: card money settled with the UPI, less the card fee, is taken together with the day's card (3 Oct 2026)", () => {
+  const D = "2026-10-03", N = "2026-10-04";
+  const r = reconcile(input({ from: D, to: D, rules: ANY_UPI, payments: [pay(D, "upi", 20117), pay(D, "card", 32739)],
+    // UPI's band: payments above ₹2,000 could be a RuPay credit card on UPI (1.60% + GST)
+    feeBands: { [`${D}|card`]: { low: 0, high: 618.12, ceiling: 1062.4, payments: 10 }, [`${D}|upi`]: { low: 0, high: 302.11, ceiling: 302.11, payments: 23 } },
+    bank: [credit(N, 20128.85, "UPI SETTLEMENT -RYX181- 04/10/26"), credit(N, 31897.77, "XXXX7444TERMINAL 1 CARDS SETTL. 04/10/26")] }));
+  const u = row(r, D, "upi"), k = row(r, D, "card");
+  assert.deepEqual([u.status, k.status], ["settled_less_fee", "settled_less_fee"], "not a UPI difference and a card fee above expected");
+  assert.equal(Math.round((u.bankFee + k.bankFee) * 100) / 100, 829.38);
+  assert.match(u.note!, /Card and UPI settled together \(Bharat QR\).*Bank kept ₹829.38 \(1.57%\)/);
+  // a UPI settlement short of the day is never taken together with the card: that is a difference to explain
+  const short = reconcile(input({ from: D, to: D, rules: ANY_UPI, payments: [pay(D, "upi", 20117), pay(D, "card", 32739)],
+    feeBands: { [`${D}|card`]: { low: 0, high: 618.12, ceiling: 1062.4, payments: 10 } },
+    bank: [credit(N, 19717, "UPI SETTLEMENT -RYX181- 04/10/26"), credit(N, 32339, "XXXX7444TERMINAL 1 CARDS SETTL. 04/10/26")] }));
+  assert.equal(row(short, D, "upi").status, "difference");
+});
+
+check("the bank's cut-off: two days settled by two credits that together equal them (2 and 3 Sep 2026)", () => {
+  const r = reconcile(input({ from: "2026-09-02", to: "2026-09-03", rules: ANY_UPI, payments: [pay("2026-09-02", "upi", 596), pay("2026-09-03", "upi", 793)],
+    bank: [credit("2026-09-03", 691, "UPI SETTLEMENT -RYX181- 03/09/26"), credit("2026-09-04", 698, "UPI SETTLEMENT -RYX181- 04/09/26")] }));
+  assert.deepEqual([row(r, "2026-09-02", "upi").status, row(r, "2026-09-03", "upi").status], ["matched", "matched"]);
+  assert.match(row(r, "2026-09-02", "upi").note!, /₹95 went into the first day's settlement/);
+  // not when they do not add up
+  const off = reconcile(input({ from: "2026-09-02", to: "2026-09-03", rules: ANY_UPI, payments: [pay("2026-09-02", "upi", 596), pay("2026-09-03", "upi", 793)],
+    bank: [credit("2026-09-03", 691, "UPI SETTLEMENT -RYX181- 03/09/26"), credit("2026-09-04", 650, "UPI SETTLEMENT -RYX181- 04/09/26")] }));
+  assert.equal(row(off, "2026-09-02", "upi").status, "difference");
+});
+
 console.log(`\n${passed} reconciliation checks passed`);

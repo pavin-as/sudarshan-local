@@ -43,11 +43,15 @@ export async function feeFixed(): Promise<FeeFixed> {
   return { gstPct: Number(v.gstPct ?? 18), servicePerMonth: Number(v.servicePerMonth ?? 99), perBatch: Number(v.perBatch ?? 1), lateSettleDays: Number(v.lateSettleDays ?? 2) };
 }
 
-const BANK_COLS = `transaction_id AS "transactionId", account_id AS "accountId", txn_date AS "date", amount::float AS amount, debit_or_credit AS "debitOrCredit",
-                   description, zoho_status AS "zohoStatus", missing_since IS NOT NULL AS missing`;
+// a categorised money-in line is the bookkeeper's customer payment (same id): its mode names the method when Zoho gives
+// the line no description (several statement lines matched to one payment)
+export const BANK_COLS = `t.transaction_id AS "transactionId", t.account_id AS "accountId", t.txn_date AS "date", t.amount::float AS amount,
+                   t.debit_or_credit AS "debitOrCredit", t.description, t.zoho_status AS "zohoStatus", t.missing_since IS NOT NULL AS missing,
+                   p.payment_mode AS "zohoMode"`;
+export const BANK_FROM = `app.zoho_bank_txns t LEFT JOIN app.zoho_customer_payments p ON p.payment_id = t.transaction_id`;
 /** The bank lines dated from..to, each once: a line Zoho holds twice (a statement imported over the feed) counts once. */
 export const bankLines = async (from: string, to: string) =>
-  splitRepeats(await q<BankLine>(`SELECT ${BANK_COLS} FROM app.zoho_bank_txns WHERE txn_date BETWEEN $1 AND $2 AND (cardinality($3::text[]) = 0 OR account_id = ANY($3))`,
+  splitRepeats(await q<BankLine>(`SELECT ${BANK_COLS} FROM ${BANK_FROM} WHERE t.txn_date BETWEEN $1 AND $2 AND (cardinality($3::text[]) = 0 OR t.account_id = ANY($3))`,
                                  [from, to, zohoAccountIds()])).lines;
 
 /** Bank charges (money out a bank_charge rule names) dated from..to. */

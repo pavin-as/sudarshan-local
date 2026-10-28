@@ -5,12 +5,22 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **UPI from every terminal, combined lines, Bharat QR, the bank's cut-off** (D-055).
+  - UPI settlements from any of the clinic's merchant ids count (RY9181, EHD956, EGD494), and a day's two settlements
+    are added up (5 Oct: ₹2,400 + ₹42,048).
+  - A Zoho line with no description (the bookkeeper matched several bank lines to one payment) is recognised by the
+    payment's mode.
+  - Card and UPI settled together are matched as one (Bharat QR card payments settle with the UPI, less the card fee).
+  - Two days settled by two credits that add up are matched (a payment after the bank's cut-off).
+  - Books audit: the print button is "Print Audit sheet".
+  - Technical: migration `0032_upi_merchant_ids.sql`; `BankLine.zohoMode` (joined from `zoho_customer_payments`); steps
+    (a2), (b2) and the Bharat QR step in `reconcile()`.
 - **Books audit; HDFC statements imported by PDF** (D-054).
   - **Books audit (new page, admin and Dr Sameera):** how well Zoho Books is kept, checked every day and scored each
     week: bank statement up to date and complete, no line imported twice, bank lines categorised (money in and out),
     clinic money booked as the right kind, a Patients invoice for every clinic day matching Yarago and fully paid,
     expenses with a narration, vendor, receipt, a clear account and none from Petty Cash. Only work over a week old
-    counts (Basith comes weekly). "Print Basith's sheet" prints what is due, with a box to tick.
+    counts (Basith comes weekly). "Print Audit sheet" prints what is due, with a box to tick.
   - **Statements imported by PDF** (Yodlee's feed broke on 21 Oct): the UPI and card settlements in them are recognised
     (double spaces, RY9181), and a line Zoho holds twice counts once. 22-27 Oct card fees now show.
   - **Wording:** a card day with no settlement lists the possible causes (late batch, a bank line missing from Zoho, a

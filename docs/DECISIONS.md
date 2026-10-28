@@ -728,7 +728,7 @@ optometrists, the doctor screen for the doctor.
 
 ### D-054 · 2026-10-28 · Accepted · Pavin (28 Oct: "a page to understand and audit how well Zoho Books is maintained … so I can [have] Basith clean up his work"; Basith gets no login, Pavin or Dr Sameera print his sheet every Friday, he comes once a week, "set all targets accordingly"); Claude chose the checks
 - **Books audit page** (permission `books.audit`: the admin, and Dr Sameera by migration 0031). It measures how well
-  Zoho Books is kept, from Sudarshan's read-only copy, and prints Basith's sheet.
+  Zoho Books is kept, from Sudarshan's read-only copy, and prints the audit sheet for Basith.
 - **Weekly targets:** work dated more than 7 days ago (`dueDays`) must be done; newer work is "not due yet" and never
   makes a check amber or red. Each check is green (nothing due), amber (a few, usually up to 3) or red. "Not measured"
   when Zoho has not let Sudarshan read that part. Score = 2 points per green check, 1 per amber, of 2 per measured check.
@@ -763,6 +763,30 @@ optometrists, the doctor screen for the doctor.
     match: the bank paid more than Yarago shows (₹1,370.60 card, ₹2,800 and ₹569.79 UPI).
   - The daily "Patients" invoices end at 10 Oct, entered 12-15 days late; 26 Sep (₹2,59,074) is unpaid in Zoho.
   - Expenses paid from Petty Cash in Sep-Oct (food, fuel, flowers) although all clinic cash is banked.
+
+### D-055 · 2026-10-28 · Accepted · Pavin (28 Oct: "we have three POS machines but one terminal ID … UPI has Bharat QR and UPI QR, and Bharat QR has charges"; 5 Oct = ₹2,400 from EHD956 + ₹42,048 from RY9181); Claude chose the rules
+- **The bank shows three terminals, each with its own merchant id**, not one:
+  - TID 66027444, merchant RY9181: almost all card and UPI money; ₹116.82 service charge a month, small settlement
+    charges.
+  - TID 64061321, merchant EGD494: no money since April 2026 (card to 24 Apr, UPI to 31 Mar), yet ₹116.82 service
+    charge + ₹588.82 low-usage charge every month since July 2026 (₹705.64 a month).
+  - TID 69348544, merchant EHD956: a little UPI and card (17 and 30 Jul, 5 Oct); ₹1.18-3.54 settlement charges in the
+    months it is used.
+- **Matching (services/reconcile.ts), in this order after a single credit:**
+  - 2-3 credits of one date together equal one day (one settlement per merchant id);
+  - one credit for a run of 2-3 days (as before);
+  - two consecutive days settled by two credits that together equal them (a payment after the bank's cut-off settles
+    with the next day: 2 and 3 Sep, ₹95 moved);
+  - Bharat QR: when a day's UPI settlement is MORE than its UPI and the same day's card has one credit on the same date,
+    card and UPI are taken together, less no more than both days' dearest fees (3 Oct: ₹829.38 kept, 1.57%, where card
+    alone looked like 2.57%). A UPI settlement short of the day is never explained this way.
+  Each needs the pairing to be the only possibility; otherwise the day stays a difference or uncertain.
+- **Lines the bookkeeper combined:** when several statement lines are matched to one customer payment, Zoho lists that
+  payment with no description (7 such lines since 1 Sep). It is recognised by the payment's mode in Zoho ("UPI Payment",
+  "Card Swipe").
+- **The UPI rule takes any merchant id** (`UPI SETTLEMENT -XXXXXX-`, migration 0032).
+- **Live effect, 1 Sep - 27 Oct:** UPI differences 17 → 15 days, uncertain 2 → 0. The UPI days still different are
+  Yarago entries to correct (for example 9 Oct, a ₹2,400 refund paid by UPI and recorded as cash).
 
 ## Proposed (not yet decided)
 

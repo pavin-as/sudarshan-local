@@ -326,11 +326,14 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
 - [x] HDFC's own rates (TID 66027444) in force (migration 0030, applied 28 Oct). The "bank lines known up to" and
       "before the cash book" fixes and the fee tile's wording were deployed by `update.ps1` at 14:26, 28 Oct.
 - [x] Books audit and PDF statement fixes built (28 Oct, D-054, migration 0031): 33 + 18 checks pass, `api.test.ts`
-      passes, browser-checked with synthetic data at desktop and phone width. **Not committed, not deployed.**
-- [ ] Pavin, after deploying D-054 (`update.ps1`, outside clinic hours):
-  - run `scripts\setup-zoho.ps1` again with the invoice and expense scopes (RUNBOOK 14), then Books audit > Fetch from
-    Zoho;
-  - every Friday: Fetch from Zoho, Print Basith's sheet;
+      passes, browser-checked with synthetic data at desktop and phone width. Deployed 28 Oct (612c70a); Zoho scopes
+      for invoices and expenses added. First full read: 159 invoices, 206 expenses; score 33.
+- [x] UPI from every terminal, combined lines, Bharat QR, the bank's cut-off (D-055, migration 0032): 36 + 18 checks
+      pass. With "Print Audit sheet": **not live until `update.ps1` runs again.**
+- [ ] Pavin: ask HDFC to close terminal 64061321 (EGD494) if it is not one of the three machines in use: ₹705.64 a month
+      since July 2026. Check which terminal each of the three machines is (the TID is on its settlement slip).
+- [ ] Pavin:
+  - every Friday: Fetch from Zoho, Print Audit sheet;
   - decide about the second card terminal (TID 64061321, EGD494): ₹116.82 + ₹588.82 low-usage charge a month;
   - while Yodlee's feed is broken, import HDFC's statement into Zoho each week.
 

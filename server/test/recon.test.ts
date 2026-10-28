@@ -459,8 +459,10 @@ try {
     assert.equal((await call("PUT", "/api/books-audit/settings", admin, set)).status, 200);
     const b = (await call("GET", "/api/books-audit", admin)).body.audit;
     const petty = b.checks.find((c: any) => c.key === "exp_petty");
-    assert.equal(petty.due, 1, "the ZZ expense paid from Petty Cash is due once the rules start before it");
-    assert.match(petty.items[0].todo, /Petty Cash/);
+    // (the demo data of test/seed-recon-demo.ts may add its own)
+    const zz = petty.items.find((i: any) => i.date === D && /misc/.test(i.what));
+    assert.ok(zz, "the ZZ expense paid from Petty Cash is due once the rules start before it");
+    assert.match(zz.todo, /Petty Cash/);
   });
 } finally {
   setZohoTransport(null);

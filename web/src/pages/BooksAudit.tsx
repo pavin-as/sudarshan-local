@@ -1,5 +1,5 @@
 // The Books audit (D-054): how well Zoho Books is kept, from Sudarshan's read-only copy of Zoho. Basith comes once a
-// week; Pavin or Dr Sameera prints his sheet every Friday ("Print Basith's sheet": the print-only part below lists what
+// week; Pavin or Dr Sameera prints his sheet every Friday ("Print Audit sheet": the print-only part below lists what
 // is due, with a box to tick). Work dated up to dueDays ago is due; newer work is "not due yet".
 import { Fragment, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -33,7 +33,7 @@ export function BooksAuditPage() {
           <div className="muted">How well Zoho Books is kept, from Sudarshan's read-only copy of Zoho. Basith comes once a week: work dated up to {a ? niceDate(a.dueBefore) : "a week ago"} should be done; newer work is not due yet.</div></div>
         <span className="grow" />
         <button onClick={() => fetchZoho.mutate()} disabled={fetchZoho.isPending || !d?.zohoStatus.configured}>{fetchZoho.isPending ? "Reading Zoho…" : "Fetch from Zoho"}</button>
-        <button className="btn-primary" onClick={() => window.print()} disabled={!a}>Print Basith's sheet</button>
+        <button className="btn-primary" onClick={() => window.print()} disabled={!a}>Print Audit sheet</button>
       </div>
       {q.error && <ErrorNotice error={q.error} />}
       {fetchZoho.error && <ErrorNotice error={fetchZoho.error} />}
