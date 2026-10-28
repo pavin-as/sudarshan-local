@@ -433,7 +433,7 @@ Set up on 25 Oct 2026 (Step 0).
      and 10 minutes. Copy the code.
   3. Run, in an administrator PowerShell:
      `powershell -ExecutionPolicy Bypass -File D:\Sudarshan\app\scripts\setup-zoho.ps1`
-     Paste the ID, the secret and the code when asked (the secret and the code are not shown). Choose the current account
+     Paste the Client ID when asked. For the Client Secret and then the code, copy each one in the API console and press Enter: the script reads it from the clipboard, never shows it, and clears the clipboard (Ctrl+V does not paste at a hidden prompt). Choose the current account
      that receives the UPI and card settlements.
      The script refuses a code with anything but READ scopes. It prints counts only, writes `ZOHO_*` to `.env` and
      restarts the server.
@@ -441,9 +441,20 @@ Set up on 25 Oct 2026 (Step 0).
      hours from 08:00 to 22:00.
 - **The Claude-side Zoho connector** has create and delete tools. Sudarshan never uses it. If it stays connected for
   Claude, consider limiting its tools in Zoho's MCP console.
-- **Bank rules** (Reconciliation > Bank rules, admin) say which bank wording counts as clinic money. UPI (`RYX181`) and card
-  (`TERMINAL 1`) are on. The cash-deposit rule is off until the bank's wording for a cash deposit is known: check one on the
-  statement, then change the pattern and switch it on.
+- **Bank rules** (Reconciliation > Bank rules, admin) say which bank wording counts as clinic money. UPI (`RYX181`), card
+  (`TERMINAL 1`) and cash deposits (`CASH DEPOSIT BY`) are on; the terminal's monthly service charge is a `bank_charge`.
+- **Who sees finance (D-053):** Users > Access, per login. "Record cash deposits" = the cash desk (blind: no Yarago
+  figures); "Finance, full view" = reconciliation, cash book and bank fees (Dr Sameera). Only the admin approves
+  adjustments, voids deposits and changes rates. A change applies at the login's next click.
+- **Cash deposits:** whoever takes the cash to the bank records it the same day under Cash deposits, from the slip: the
+  day, "cash up to and including" (normally yesterday), the amount and the slip number. A wrong entry: the admin voids it
+  (with the reason) and it is recorded again. Keep cash in hand under ₹4,00,000: the banner turns amber from ₹3,00,000
+  and red at the limit, so bank about once a week. Finance sees each deposit's check; "Short", "Excess" or "Not found in
+  the bank" needs a look the same week. The cash book's start and limits are under Cash deposits > Cash book settings.
+- **Bank fees:** Reconciliation > Bank fees shows what HDFC kept from card (and, from 15 Oct 2026, UPI above ₹2,000)
+  money, per day and month. When HDFC sends the POS agreement's rates, enter them under Bank fees > Rates > "Copy as new
+  rates" with the day they apply from. A card day "not settled within 2 days" means the terminal batch was not settled:
+  settle it daily (HDFC charges 0.5% or ₹499 on late batches).
 - **Daily use:** managers check yesterday's rows. A "Difference" is something to look into, and opening the row shows the
   bills and bank lines behind it. When the records do not tell the whole story, send an adjustment; the admin approves it
   under Adjustments > To approve. "Waiting for settlement" and "Cash not yet deposited" are normal.

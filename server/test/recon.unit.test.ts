@@ -2,6 +2,9 @@
 import assert from "node:assert/strict";
 import { AdjustmentRefused, categoryOf, classify, effectsFor, reconcile, reversalEffects, type BankLine, type BankRule, type Effect,
          type EffectDraft, type PaymentRow, type ReconInput, type RefundRow, type RevenueLine } from "../src/services/reconcile.js";
+import { dayBands, feeOn, feeReport, paymentBand, ratesOn, type FeeRate } from "../src/services/bankFees.js";
+import { cashBook, deskView, type CashBookInput, type CashDeposit } from "../src/services/cashBook.js";
+import { effectivePermissions, PERMISSIONS } from "../src/lib/permissions.js";
 
 let passed = 0;
 function check(name: string, fn: () => void) {
@@ -220,11 +223,178 @@ check("refunds without a recorded method are listed as uncertain and taken off n
   assert.equal(row(r, "2026-10-09", "cash").expected, 1000);
 });
 
-check("cash stays in hand until a cash deposit is matched; cheque without a rule is not tracked", () => {
+check("cash stays in hand until a recorded deposit covers its day; a bank cash credit alone deposits nothing; cheque without a rule is not tracked", () => {
   const rules = RULES.map((x) => (x.id === 3 ? { ...x, isActive: true } : x));
-  const r = reconcile(input({ rules, payments: [pay("2026-10-09", "cash", 5000), pay("2026-10-09", "cheque", 700)], bank: [credit("2026-10-09", 3000, "BY CASH DEP TIRUR")] }));
-  assert.equal(r.totals.cashDeposited, 3000); assert.equal(r.totals.cashInHand, 2000);
+  const base = input({ from: "2026-10-08", to: "2026-10-09", rules, payments: [pay("2026-10-08", "cash", 3000), pay("2026-10-09", "cash", 5000), pay("2026-10-09", "cheque", 700)],
+                       bank: [credit("2026-10-10", 3000, "BY CASH DEP TIRUR", "Z-CASH")] });
+  const r0 = reconcile(base);
+  assert.equal(r0.totals.cashDeposited, 0); assert.equal(r0.totals.cashInHand, 8000);
+  assert.equal(r0.credits.find((c) => c.transactionId === "Z-CASH")?.state, "unmatched", "shown to look at: not recorded by the cash desk");
+  const r = reconcile({ ...base, cash: { deposits: [{ id: 4, depositedOn: "2026-10-10", coversFrom: "2026-10-01", coversTo: "2026-10-08" }], matchedCreditIds: ["Z-CASH"] } });
+  assert.equal(row(r, "2026-10-08", "cash").status, "cash_deposited"); assert.match(row(r, "2026-10-08", "cash").note!, /deposit #4 of 10 Oct/);
+  assert.equal(row(r, "2026-10-09", "cash").status, "cash_in_hand");
+  assert.equal(r.totals.cashDeposited, 3000); assert.equal(r.totals.cashInHand, 5000);
+  assert.equal(r.credits.find((c) => c.transactionId === "Z-CASH")?.state, "matched");
   assert.equal(row(r, "2026-10-09", "cheque").status, "not_tracked");
+});
+
+// ---- D-053: net settlement and bank fees --------------------------------------------------------
+const RATES: FeeRate[] = [
+  { effectiveFrom: "2020-01-01", method: "card", kind: "rupay_debit", amountAbove: 0, amountUpto: null, ratePct: 0, capRupees: null, flatRupees: null },
+  { effectiveFrom: "2020-01-01", method: "card", kind: "debit", amountAbove: 0, amountUpto: 2000, ratePct: 0.4, capRupees: null, flatRupees: null },
+  { effectiveFrom: "2020-01-01", method: "card", kind: "debit", amountAbove: 2000, amountUpto: null, ratePct: 0.9, capRupees: 1000, flatRupees: null },
+  { effectiveFrom: "2020-01-01", method: "card", kind: "credit", amountAbove: 0, amountUpto: null, ratePct: 1.85, capRupees: null, flatRupees: null },
+  { effectiveFrom: "2020-01-01", method: "card", kind: "international", amountAbove: 0, amountUpto: null, ratePct: 3, capRupees: null, flatRupees: null },
+  { effectiveFrom: "2020-01-01", method: "upi", kind: "upi", amountAbove: 0, amountUpto: null, ratePct: 0, capRupees: null, flatRupees: null },
+  { effectiveFrom: "2026-10-15", method: "card", kind: "credit", amountAbove: 0, amountUpto: null, ratePct: 1.85, capRupees: null, flatRupees: null },
+  { effectiveFrom: "2026-10-15", method: "upi", kind: "upi", amountAbove: 0, amountUpto: 2000, ratePct: 0, capRupees: null, flatRupees: null },
+  { effectiveFrom: "2026-10-15", method: "upi", kind: "upi", amountAbove: 2000, amountUpto: null, ratePct: 0.4, capRupees: 300, flatRupees: null },
+];
+const withBands = (p: ReconInput) => ({ ...p, feeBands: dayBands(p.payments, RATES, 18) });
+
+check("fee rates: the set in force on the day, bands per payment, caps, and UPI's fee from 15 Oct 2026", () => {
+  assert.equal(ratesOn(RATES, "2026-10-14").length, 6); assert.equal(ratesOn(RATES, "2026-10-15").length, 3);
+  assert.equal(feeOn(5000, "card", "debit", ratesOn(RATES, "2026-10-09")), 4500, "0.9% of ₹5,000 = ₹45 (paise)");
+  assert.equal(feeOn(200000, "card", "debit", ratesOn(RATES, "2026-10-09")), 100000, "capped at ₹1,000");
+  assert.equal(feeOn(1500, "card", "debit", ratesOn(RATES, "2026-10-09")), 600, "0.4% up to ₹2,000");
+  const b = paymentBand(1000, "card", "2026-10-09", RATES, 18);
+  assert.deepEqual(b, { low: 0, high: Math.round(1850 * 1.18), ceiling: Math.round(3000 * 1.18) }, "RuPay debit free; credit 1.85% + GST; international 3% + GST");
+  assert.deepEqual(paymentBand(5000, "upi", "2026-10-14", RATES, 18), { low: 0, high: 0, ceiling: 0 }, "no UPI fee before 15 Oct");
+  assert.equal(paymentBand(5000, "upi", "2026-10-16", RATES, 18).high, Math.round(2000 * 1.18), "0.4% above ₹2,000 from 15 Oct");
+  assert.equal(paymentBand(100000, "upi", "2026-10-16", RATES, 18).high, Math.round(30000 * 1.18), "capped at ₹300 + GST");
+  assert.equal(paymentBand(1500, "upi", "2026-10-16", RATES, 18).high, 0, "nothing up to ₹2,000");
+  const bands = dayBands([pay("2026-10-09", "card", 1000), pay("2026-10-09", "card", 3000), pay("2026-10-09", "cash", 900)], RATES, 18);
+  assert.deepEqual(Object.keys(bands), ["2026-10-09|card"]); assert.equal(bands["2026-10-09|card"].payments, 2);
+});
+
+check("HDFC card settles net (23 Sep 2026: ₹11,458 in Yarago, ₹11,391.74 in the bank): settled less the bank fee, not a difference", () => {
+  const p = withBands(input({ from: "2026-09-23", to: "2026-09-23",
+    payments: [pay("2026-09-23", "card", 2500), pay("2026-09-23", "card", 3958), pay("2026-09-23", "card", 5000)],
+    bank: [credit("2026-09-24", 11391.74, card("2026-09-24"), "Z-NET")] }));
+  const r = reconcile(p), c = row(r, "2026-09-23", "card");
+  assert.equal(c.status, "settled_less_fee"); assert.equal(c.bankFee, 66.26); assert.equal(c.difference, 0); assert.equal(c.deposited, 11391.74);
+  assert.match(c.note!, /Bank kept ₹66.26 \(0.58%\)/);
+  assert.equal(r.totals.bankFees, 66.26); assert.equal(r.totals.differenceToExplain, 0);
+  assert.equal(r.byMethod.find((m) => m.method === "card")?.bankFees, 66.26);
+  // without the rates the same credit is a difference: the band is what explains it
+  assert.equal(row(reconcile({ ...p, feeBands: {} }), "2026-09-23", "card").status, "difference");
+});
+
+check("a fee above the dearest usual card is flagged; one above the international ceiling is a difference", () => {
+  const base = (amount: number) => withBands(input({ payments: [pay("2026-10-09", "card", 10000)], bank: [credit("2026-10-10", amount, card("2026-10-10"))] }));
+  assert.equal(row(reconcile(base(9800)), "2026-10-09", "card").status, "settled_less_fee", "2% kept: within 1.85% + GST");
+  const high = reconcile(base(9700));
+  assert.equal(row(high, "2026-10-09", "card").status, "fee_high", "3% kept: above 2.18%, within 3.54%");
+  assert.equal(high.totals.feeHighDays, 1);
+  assert.equal(row(reconcile(base(9500)), "2026-10-09", "card").status, "difference", "5% short: not a fee");
+  assert.equal(row(reconcile(base(10100)), "2026-10-09", "card").status, "difference", "more than the day's money is never a fee");
+});
+
+check("a weekend run settled net shares the fee by what each day could carry", () => {
+  const r = reconcile(withBands(input({ from: "2026-10-03", to: "2026-10-04",
+    payments: [pay("2026-10-03", "card", 6000), pay("2026-10-04", "card", 4000)], bank: [credit("2026-10-05", 9850, card("2026-10-05"))] })));
+  const a = row(r, "2026-10-03", "card"), b = row(r, "2026-10-04", "card");
+  assert.equal(a.status, "settled_less_fee"); assert.equal(b.status, "settled_less_fee");
+  assert.equal(a.bankFee + b.bankFee, 150); assert.equal(a.bankFee, 90); assert.equal(a.deposited + b.deposited, 9850);
+});
+
+check("fee report: per day and month, effective rate, charges, late card batches", () => {
+  const p = withBands(input({ from: "2026-09-23", to: "2026-09-26",
+    payments: [pay("2026-09-23", "card", 11458), pay("2026-09-23", "upi", 42563), pay("2026-09-24", "card", 3200)],
+    bank: [credit("2026-09-24", 11391.74, card("2026-09-24")), credit("2026-09-24", 42563, upi("2026-09-24"))] }));
+  const r = reconcile(p);
+  const settled = new Set(["matched", "within_tolerance", "settled_less_fee", "fee_high"]);
+  const f = feeReport(r.rows.map((x) => ({ date: x.date, method: x.method, expected: x.expected, deposited: x.deposited, bankFee: x.bankFee, status: x.status, band: x.band, matched: settled.has(x.status) })),
+                      [{ transactionId: "Z-SC", date: "2026-09-15", amount: 116.82, description: "Service Charges-SEP26" }],
+                      { gstPct: 18, servicePerMonth: 99, perBatch: 1, lateSettleDays: 2 }, "2026-10-11");
+  assert.equal(f.totals.cardFees, 66.26); assert.equal(f.totals.cardPct, 0.58); assert.equal(f.totals.upiFees, 0); assert.equal(f.totals.upiPct, 0);
+  assert.equal(f.totals.charges, 116.82); assert.equal(f.upiFeesSeen, false);
+  assert.deepEqual(f.months.map((m) => [m.month, m.method, m.sales, m.feesKept]), [["2026-09", "card", 14658, 66.26], ["2026-09", "upi", 42563, 0]]);
+  assert.deepEqual(f.late.map((l) => l.date), ["2026-09-24"], "the ₹3,200 card day never settled");
+  assert.equal(f.days.find((d) => d.date === "2026-09-23" && d.method === "card")?.state, "normal");
+});
+
+// ---- D-053: the cash book ------------------------------------------------------------------------
+const CASH_RULES = RULES.map((x) => (x.id === 3 ? { ...x, pattern: "^CASH DEPOSIT BY\\b", isActive: true } : x));
+let depId = 0;
+const dep = (depositedOn: string, coversTo: string, amount: number, extra: Partial<CashDeposit> = {}): CashDeposit =>
+  ({ id: ++depId, depositedOn, coversTo, amount, slipNo: null, note: null, recordedBy: 2, recordedByName: "Manager", recordedAt: `${depositedOn} 12:00`,
+     status: "recorded", voidReason: null, voidedByName: null, voidedAt: null, ...extra });
+const cashCredit = (date: string, amount: number, id = `c${++n}`) => credit(date, amount, "CASH DEPOSIT BY - SYAMILI - TIRUR", id);
+const bookInput = (p: Partial<CashBookInput>): CashBookInput => ({
+  start: "2026-10-11", opening: 0, bankFrom: "2026-10-18", today: "2026-10-28",
+  days: [{ date: "2026-10-12", net: 42336 }, { date: "2026-10-13", net: 57772 }, { date: "2026-10-14", net: 48245 }, { date: "2026-10-15", net: 63828 },
+         { date: "2026-10-16", net: 48327 }, { date: "2026-10-17", net: 43541 }, { date: "2026-10-19", net: 15085 }, { date: "2026-10-21", net: 23696 }],
+  deposits: [], bank: [], rules: CASH_RULES, limits: { warnAt: 300000, limit: 400000, carryBand: 99 },
+  bankKnownUntil: "2026-10-28", bankTrusted: true, ...p });
+
+check("cash book: the drawer's carry rolls forward; rounding within ₹99 is normal; more is short or excess", () => {
+  const b = cashBook(bookInput({ deposits: [dep("2026-10-15", "2026-10-14", 148300), dep("2026-10-20", "2026-10-17", 204000), dep("2026-10-23", "2026-10-21", 39000)] }));
+  const [a, c, d] = b.deposits;
+  assert.equal(a.coversFrom, "2026-10-11"); assert.equal(a.yaragoCash, 148353); assert.equal(a.carryOut, 53); assert.equal(a.check, "ok");
+  assert.match(a.checkWords, /₹53 kept in the drawer/);
+  assert.equal(c.coversFrom, "2026-10-15"); assert.equal(c.carryIn, 53); assert.equal(c.yaragoCash, 155696); assert.equal(c.carryOut, -48251);
+  assert.equal(c.check, "excess", "₹2,04,000 banked against ₹1,55,749 in the drawer");
+  assert.equal(d.carryIn, -48251); assert.equal(d.carryOut, -48470);
+  const short = cashBook(bookInput({ deposits: [dep("2026-10-15", "2026-10-14", 148000)] }));
+  assert.equal(short.deposits[0].check, "short"); assert.match(short.deposits[0].checkWords, /₹353 less banked/);
+});
+
+check("cash book: a deposit is found in the bank only by an exact, unique cash-deposit credit within 3 days; a near amount is shown, not matched", () => {
+  const ok = cashBook(bookInput({ deposits: [dep("2026-10-20", "2026-10-17", 304049)], bank: [cashCredit("2026-10-20", 304049, "Z-D1")] }));
+  assert.equal(ok.deposits[0].bank, "found"); assert.deepEqual(ok.matchedCreditIds, ["Z-D1"]); assert.equal(ok.unrecorded.length, 0);
+  // 17 Oct 2026: the clinic remembered ₹3,53,150; the bank shows ₹3,52,150
+  const typo = cashBook(bookInput({ deposits: [dep("2026-10-20", "2026-10-17", 304149)], bank: [cashCredit("2026-10-20", 304049, "Z-D2")] }));
+  assert.equal(typo.deposits[0].bank, "not_found"); assert.match(typo.deposits[0].bankWords, /the bank shows ₹3,04,049 on 20 Oct/);
+  assert.deepEqual(typo.unrecorded.map((u) => u.transactionId), ["Z-D2"]);
+  const later = cashBook(bookInput({ deposits: [dep("2026-10-20", "2026-10-17", 304049)], bank: [cashCredit("2026-10-24", 304049)] }));
+  assert.equal(later.deposits[0].bank, "not_found", "4 days later is outside the window");
+  const waiting = cashBook(bookInput({ deposits: [dep("2026-10-27", "2026-10-21", 38781)], bankKnownUntil: "2026-10-27" }));
+  assert.equal(waiting.deposits[0].bank, "waiting");
+  const stale = cashBook(bookInput({ deposits: [dep("2026-10-20", "2026-10-17", 304049)], bankTrusted: false }));
+  assert.equal(stale.deposits[0].bank, "no_bank_data");
+  const two = cashBook(bookInput({ deposits: [dep("2026-10-20", "2026-10-17", 304049)], bank: [cashCredit("2026-10-20", 304049), cashCredit("2026-10-21", 304049)] }));
+  assert.equal(two.deposits[0].bank, "uncertain");
+  const early = cashBook(bookInput({ bank: [cashCredit("2026-10-17", 352150)] }));
+  assert.equal(early.unrecorded.length, 0, "credits before bankFrom (the 17 Oct deposit of 1-10 Oct cash) are not expected in the book");
+});
+
+check("cash in hand, its age and the ₹4,00,000 limit; voided deposits do not count", () => {
+  const none = cashBook(bookInput({}));
+  assert.equal(none.inHand.amount, 342830); assert.equal(none.inHand.level, "soon"); assert.equal(none.inHand.firstCashDay, "2026-10-12");
+  assert.equal(none.inHand.daysSinceLastDeposit, null);
+  const over = cashBook(bookInput({ days: [...bookInput({}).days, { date: "2026-10-22", net: 60000 }] }));
+  assert.equal(over.inHand.level, "over"); assert.match(over.inHand.levelWords, /Over the ₹4,00,000 limit/);
+  const after = cashBook(bookInput({ deposits: [dep("2026-10-20", "2026-10-17", 304000), dep("2026-10-19", "2026-10-16", 1, { status: "voided", voidReason: "typed wrong" })] }));
+  assert.equal(after.deposits.length, 1); assert.equal(after.voided.length, 1);
+  assert.equal(after.inHand.amount, 304049 - 304000 + 15085 + 23696); assert.equal(after.inHand.level, "ok");
+  assert.equal(after.inHand.since, "2026-10-18"); assert.equal(after.inHand.daysSinceLastDeposit, 8);
+  assert.equal(after.days.find((d) => d.date === "2026-10-13")?.depositId, after.deposits[0].id);
+});
+
+check("the cash desk's view is blind: no Yarago cash, carry, check or amount in hand", () => {
+  const b = cashBook(bookInput({ deposits: [dep("2026-10-20", "2026-10-17", 304149)], bank: [cashCredit("2026-10-20", 304049)] }));
+  const desk = JSON.stringify(deskView(b));
+  for (const hidden of ["yaragoCash", "carryIn", "carryOut", "checkWords", "possible", "342830", "304049"])
+    assert.ok(!desk.includes(hidden), `desk view must not include ${hidden}`);
+  const v = deskView(b);
+  assert.equal(v.deposits[0].amount, 304149, "the desk sees what it recorded");
+  assert.equal(v.deposits[0].bankWords, "Not found in the bank: tell the admin");
+  assert.equal(v.inHand.level, "ok"); assert.equal(v.nextCoversFrom, "2026-10-18");
+  assert.equal(deskView(cashBook(bookInput({}))).inHand.level, "soon", "the desk sees the level in words, not the amount");
+});
+
+// ---- D-053: access per login ---------------------------------------------------------------------
+check("access: role defaults with a login's own changes; finance only by name; admins always have everything", () => {
+  assert.ok(!effectivePermissions("manager").includes("reconciliation.read"), "managers no longer get finance by role");
+  assert.ok(!effectivePermissions("doctor").includes("reconciliation.read"));
+  const sameera = effectivePermissions("doctor", { "reconciliation.read": true, "adjustments.submit": true });
+  assert.ok(sameera.includes("reconciliation.read") && sameera.includes("fundus.report"));
+  const desk = effectivePermissions("manager", { "cash.deposit": true, "audit.read": false });
+  assert.ok(desk.includes("cash.deposit") && !desk.includes("reconciliation.read") && !desk.includes("audit.read"));
+  assert.deepEqual(effectivePermissions("admin", { "users.manage": false, "fundus.report": true }), PERMISSIONS.filter((p) => p !== "fundus.report"),
+                   "an admin cannot be limited, nor given fundus reports (D-042)");
+  assert.ok(!effectivePermissions("staff", { "nonsense.perm": true } as any).includes("nonsense.perm" as any));
 });
 
 check("a reversal's effects cancel the original exactly", () => {

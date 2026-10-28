@@ -4,7 +4,7 @@ import { COOKIE, auditCtx, createSession, revokeSessions, setSessionCookie } fro
 import { one, withTx } from "../db.js";
 import { HttpError, badRequest } from "../lib/errors.js";
 import { hashPassword, passwordProblem, verifyPassword } from "../lib/passwords.js";
-import { ROLE_PERMISSIONS } from "../lib/permissions.js";
+import { effectivePermissions, type Overrides } from "../lib/permissions.js";
 
 // Brute-force guard: 5 wrong passwords per username+computer in 15 minutes, then wait.
 const WINDOW_MS = 15 * 60 * 1000, MAX_FAILS = 5;
@@ -27,7 +27,8 @@ export async function authRoutes(app: FastifyInstance) {
       throw new HttpError(429, "too_many_attempts", "Too many wrong passwords. Wait 15 minutes or ask the admin to reset it.");
 
     const u = await one<any>(
-      `SELECT id, username, full_name, role, password_hash, must_change_password, is_active
+      `SELECT id, username, full_name, role, password_hash, must_change_password, is_active,
+              (SELECT jsonb_object_agg(p.permission, p.allowed) FROM app.user_permissions p WHERE p.user_id = users.id) AS overrides
          FROM app.users WHERE username = $1`, [username]);
     const ok = await verifyPassword(password, u?.is_active ? u.password_hash : null);
     if (!u || !ok) {
@@ -46,7 +47,7 @@ export async function authRoutes(app: FastifyInstance) {
     });
     setSessionCookie(reply, sid);
     return { user: { id: u.id, username: u.username, fullName: u.full_name, role: u.role,
-                     mustChangePassword: u.must_change_password, permissions: ROLE_PERMISSIONS[u.role as keyof typeof ROLE_PERMISSIONS] } };
+                     mustChangePassword: u.must_change_password, permissions: effectivePermissions(u.role, (u.overrides ?? {}) as Overrides) } };
   });
 
   app.post("/api/auth/logout", { config: { public: true } }, async (req, reply) => {
@@ -59,7 +60,7 @@ export async function authRoutes(app: FastifyInstance) {
   app.get("/api/auth/me", { config: { allowWhilePasswordChangeDue: true } }, async (req) => {
     const u = req.user!;
     return { user: { id: u.id, username: u.username, fullName: u.fullName, role: u.role,
-                     mustChangePassword: u.mustChangePassword, permissions: ROLE_PERMISSIONS[u.role] } };
+                     mustChangePassword: u.mustChangePassword, permissions: u.permissions } };
   });
 
   app.post("/api/auth/change-password", { config: { allowWhilePasswordChangeDue: true } }, async (req) => {

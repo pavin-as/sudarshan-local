@@ -26,7 +26,7 @@ export type Role = "admin" | "doctor" | "manager" | "staff" | "optometrist" | "c
 export type Permission = "users.manage" | "settings.manage" | "appointments.read" | "appointments.write" |
   "patients.read" | "clinical.read" | "followups.write" | "audit.read" |
   "messages.send" | "messages.broadcast" | "payments.write" | "payments.refund" | "retina_ai.use" | "fundus.report" |
-  "reconciliation.read" | "adjustments.submit" | "adjustments.approve";
+  "reconciliation.read" | "cash.deposit" | "adjustments.submit" | "adjustments.approve";
 
 export interface User { id: number; username: string; fullName: string; role: Role; mustChangePassword: boolean; permissions: Permission[] }
 
@@ -87,12 +87,14 @@ export interface WhatsAppStatus { mode: OutreachMode; modeWords: string; keySet:
 
 // Money reconciliation (D-052): figures always come from the server's reconcile()
 export type ReconMethod = "cash" | "upi" | "card" | "cheque" | "other";
-export type ReconStatus = "matched" | "within_tolerance" | "awaiting" | "no_bank_data" | "uncertain" | "difference" | "cash_in_hand" | "not_tracked" | "nothing_due";
+export type ReconStatus = "matched" | "within_tolerance" | "settled_less_fee" | "fee_high" | "awaiting" | "no_bank_data" | "uncertain" | "difference"
+  | "cash_in_hand" | "cash_deposited" | "not_tracked" | "nothing_due";
 export interface CreditRef { transactionId: string; date: string; amount: number; description: string | null; how: "rule" | "approved"; adjustmentId?: number }
+export interface FeeBand { low: number; high: number; ceiling: number; payments: number }
 export interface ReconRow {
   date: string; method: ReconMethod; collected: number; refunds: number; adjCollected: number; adjRefunds: number; fees: number; net: number;
-  expected: number; deposited: number; difference: number; status: ReconStatus; statusWords: string; matches: CreditRef[]; candidates: CreditRef[];
-  windowEnd: string | null; note: string | null;
+  expected: number; deposited: number; bankFee: number; band: FeeBand | null; difference: number; status: ReconStatus; statusWords: string;
+  matches: CreditRef[]; candidates: CreditRef[]; windowEnd: string | null; note: string | null;
 }
 export interface ReconEffect { adjustmentId: number; onDate: string; measure: string; category: string | null; method: ReconMethod | null; amount: number; zohoTxnId: string | null; words: string; selfApproved?: boolean; kind?: string }
 export interface ReconResult {
@@ -101,11 +103,12 @@ export interface ReconResult {
   totals: { billed: number; billedAdjusted: number; collected: number; refunds: number; refundsUnrecorded: number;
     adjustments: { revenue: number; collected: number; refunds: number; fees: number; deposits: number; count: number };
     netCollected: number; expectedInBank: number; depositsMatched: number; notYetDue: number; cashInHand: number; cashDeposited: number;
+    bankFees: number; feeHighDays: number;
     differenceToExplain: number; uncertain: number; unclassifiedCredits: number; unmatchedCredits: number };
   byCategory: { category: string; billed: number; adjustments: number; total: number }[];
   bySourceMethod: { source: string; method: ReconMethod; collected: number }[];
   billedVsCollected: { source: string; billed: number; collected: number; gap: number }[];
-  byMethod: { method: ReconMethod; collected: number; refunds: number; adjustments: number; fees: number; net: number; deposited: number; notYetDue: number; difference: number; uncertain: number }[];
+  byMethod: { method: ReconMethod; collected: number; refunds: number; adjustments: number; fees: number; net: number; deposited: number; bankFees: number; notYetDue: number; difference: number; uncertain: number }[];
   rows: ReconRow[];
   credits: (CreditRef & { method: ReconMethod | null; class: string; ruleId: number | null; matchedTo: string[]; state: string })[];
   unclassified: { transactionId: string; date: string; amount: number; description: string | null; note: string }[];
@@ -115,8 +118,46 @@ export interface ReconResult {
 }
 export interface ZohoStatus { configured: boolean; fetchedAt: string | null; feedRefreshedOn: string | null; stale: boolean; staleHours: number; running: boolean;
   lastRun: { status: string; startedAt: string; message: string | null } | null }
-export interface ReconResponse { result: ReconResult; yaragoSyncedAt: string | null; zohoStatus: ZohoStatus; pendingAdjustments: number;
+export interface ReconResponse { result: ReconResult; fees: FeeReport; cash: CashSummary; yaragoSyncedAt: string | null; zohoStatus: ZohoStatus; pendingAdjustments: number;
   words: { methods: Record<string, string>; categories: Record<string, string>; statuses: Record<string, string>; kinds: Record<string, string> } }
+
+// Bank fees and the cash book (D-053)
+export interface FeeDay { date: string; method: "card" | "upi"; sales: number; settled: number | null; fee: number | null; pct: number | null; low: number; high: number;
+  state: "normal" | "high" | "none" | "not_settled" | "waiting"; words: string }
+export interface FeeMonth { month: string; method: "card" | "upi"; sales: number; salesSettled: number; feesKept: number; pct: number | null; low: number; high: number; highDays: number }
+export interface FeeReport {
+  days: FeeDay[]; months: FeeMonth[]; charges: { transactionId: string; date: string; amount: number; description: string | null }[];
+  totals: { cardSales: number; upiSales: number; cardFees: number; upiFees: number; charges: number; cardPct: number | null; upiPct: number | null };
+  late: { date: string; sales: number; words: string }[]; upiFeesSeen: boolean;
+  fixed: { gstPct: number; servicePerMonth: number; perBatch: number; lateSettleDays: number };
+}
+export type CashLevel = "ok" | "soon" | "over";
+export interface CashInHand { amount: number; since: string; firstCashDay: string | null; level: CashLevel; levelWords: string;
+  lastDeposit: { id: number; depositedOn: string; coversTo: string } | null; daysSinceLastDeposit: number | null }
+export interface CashLimits { warnAt: number; limit: number; carryBand: number }
+export interface CashSummary { inHand: CashInHand; limits: CashLimits; coveredUntil: string | null; problems: number; unrecorded: number }
+export interface BankRef { transactionId: string; date: string; amount: number; description: string | null }
+export interface DepositCheck {
+  id: number; depositedOn: string; coversFrom: string; coversTo: string; amount: number; slipNo: string | null; note: string | null;
+  recordedByName: string; recordedAt: string; yaragoCash: number; carryIn: number; carryOut: number;
+  check: "ok" | "short" | "excess"; checkWords: string; bank: "found" | "waiting" | "not_found" | "uncertain" | "no_bank_data"; bankWords: string;
+  credit: BankRef | null; possible: BankRef[];
+}
+export interface DeskDeposit { id: number; depositedOn: string; coversFrom: string; coversTo: string; amount: number; slipNo: string | null; note: string | null;
+  recordedByName: string; recordedAt: string; bank: DepositCheck["bank"]; bankWords: string }
+export interface CashDesk {
+  coveredUntil: string | null; nextCoversFrom: string; start: string;
+  inHand: Omit<CashInHand, "amount" | "since">;
+  deposits: DeskDeposit[];
+  voided: { id: number; depositedOn: string; coversTo: string; amount: number; voidReason: string | null; voidedByName: string | null }[];
+}
+export interface CashBookFull {
+  start: string; opening: number; coveredUntil: string | null; deposits: DepositCheck[];
+  voided: (DeskDeposit & { voidReason: string | null; voidedByName: string | null; voidedAt: string | null })[];
+  beforeStart: DeskDeposit[]; inHand: CashInHand; unrecorded: BankRef[]; days: { date: string; net: number; depositId: number | null }[]; limits: CashLimits;
+}
+export interface CashResponse { full: boolean; desk: CashDesk; book?: CashBookFull;
+  settings?: { start: string; opening: number; bankFrom: string; limits: CashLimits }; zohoStatus?: ZohoStatus }
 export type AdjKind = "refund_method" | "method_correction" | "amount_correction" | "date_correction" | "missing_entry" | "payment_fee" | "bank_credit" | "reversal";
 export type AdjStatus = "pending" | "approved" | "rejected" | "withdrawn" | "reversed";
 export interface Adjustment {

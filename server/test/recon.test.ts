@@ -19,8 +19,13 @@ const B_UPI = 990000301, B_CASH = 990000302, B_CARD = 990000303, B_CARD2 = 99000
 const BILLS = [B_UPI, B_CASH, B_CARD, B_CARD2];
 for (const k of ["ZOHO_CLIENT_ID", "ZOHO_CLIENT_SECRET", "ZOHO_REFRESH_TOKEN", "ZOHO_ORG_ID", "ZOHO_BANK_ACCOUNTS", "ZOHO_DC"]) delete process.env[k];
 
+const savedCash = (await pool.query(`SELECT key, value FROM app.settings WHERE key IN ('cash.book','cash.limits')`)).rows;
 async function cleanup() {
   await pool.query(`BEGIN; SET LOCAL app.skip_audit = 'on';
+    ALTER TABLE app.cash_deposits DISABLE TRIGGER cash_deposits_guard;
+    DELETE FROM app.cash_deposits WHERE recorded_by IN (SELECT id FROM app.users WHERE username LIKE 'zz_test_recon%');
+    ALTER TABLE app.cash_deposits ENABLE TRIGGER cash_deposits_guard;
+    DELETE FROM app.user_permissions WHERE user_id IN (SELECT id FROM app.users WHERE username LIKE 'zz_test_recon%');
     ALTER TABLE app.recon_adjustments DISABLE TRIGGER recon_adjustments_guard;
     ALTER TABLE app.recon_adjustment_effects DISABLE TRIGGER recon_effects_guard;
     DELETE FROM app.audit_log WHERE entity_type IN ('recon_adjustments','recon_adjustment_effects','recon_bank_rules')
@@ -49,6 +54,7 @@ async function cleanup() {
     DELETE FROM yarago.tblpatientopdrefunddetails WHERE aoprefundid = ${REFUND};
     DELETE FROM yarago.tblpatientregistration WHERE apatient_id IN (${P1}, ${P2}, ${P3});
     COMMIT;`);
+  for (const s of savedCash) await pool.query(`UPDATE app.settings SET value = $2 WHERE key = $1`, [s.key, s.value]);
 }
 await cleanup();
 const pw = "Correct-Horse-9", hash = await hashPassword(pw);
@@ -56,7 +62,8 @@ await pool.query(`BEGIN; SET LOCAL app.skip_audit = 'on';
   INSERT INTO app.users (username, full_name, role, password_hash, must_change_password) VALUES
     ('zz_test_recon_admin','ZZ Recon Admin','admin','${hash}',false), ('zz_test_recon_mgr','ZZ Recon Manager','manager','${hash}',false),
     ('zz_test_recon_staff','ZZ Recon Staff','staff','${hash}',false), ('zz_test_recon_opt','ZZ Recon Optometrist','optometrist','${hash}',false),
-    ('zz_test_recon_doc','ZZ Recon Doctor','doctor','${hash}',false);
+    ('zz_test_recon_doc','ZZ Recon Doctor','doctor','${hash}',false),
+    ('zz_test_recon_mgr2','ZZ Recon Manager No Finance','manager','${hash}',false), ('zz_test_recon_desk','ZZ Recon Cash Desk','manager','${hash}',false);
   INSERT INTO yarago.tblpatientregistration (apatient_id, apatientcode, tfisrt_name) VALUES
     (${P1}, 'SPD99921', 'ZZ Test Upi'), (${P2}, 'SPD99922', 'ZZ Test Cash'), (${P3}, 'SPD99923', 'ZZ Test Card');
   -- bill 301: investigation 1,500 paid by UPI; 302: consultation 5,000 cash; 303 and 304: procedures 2,000 and 3,000 by card
@@ -80,24 +87,30 @@ const yaragoHash = async () => (await pool.query(`SELECT md5(string_agg(t::text,
 const yaragoBefore = await yaragoHash();
 
 // ---- fake Zoho: records every request; only GETs to the Books API and the token refresh are possible ----
+// As the real one (checked 28 Oct 2026): money in is "debit" (the ledger's side), Status.All lists categorised lines and
+// Status.Uncategorized the rest, newest first, whatever dates are asked for.
 const zohoCalls: ZohoRequest[] = [];
 let zohoLines: any[] = [
-  { transaction_id: "ZZ-UPI", account_id: "ZZACC", date: NEXT, amount: 1000, debit_or_credit: "credit", transaction_type: "deposit", status: "uncategorized",
+  { transaction_id: "ZZ-UPI", account_id: "ZZACC", date: NEXT, amount: 1000, debit_or_credit: "debit", transaction_type: "deposit", status: "uncategorized",
     description: "UPI SETTLEMENT -RYX181- 03/03/26 Ref Num: XXXX" },
-  { transaction_id: "ZZ-CARD", account_id: "ZZACC", date: NEXT, amount: 5000, debit_or_credit: "credit", transaction_type: "deposit", status: "uncategorized",
+  { transaction_id: "ZZ-CARD", account_id: "ZZACC", date: NEXT, amount: 5000, debit_or_credit: "debit", transaction_type: "customer_payment", status: "categorized",
     description: "XXXX7444TERMINAL 1 CARDS SETTL. 03/03/26" },
-  { transaction_id: "ZZ-NEFT", account_id: "ZZACC", date: NEXT, amount: 25000, debit_or_credit: "credit", transaction_type: "deposit", status: "uncategorized",
+  { transaction_id: "ZZ-NEFT", account_id: "ZZACC", date: NEXT, amount: 25000, debit_or_credit: "debit", transaction_type: "deposit", status: "uncategorized",
     description: "NEFT FROM ZZ SOMEONE" },
-  { transaction_id: "ZZ-CHG", account_id: "ZZACC", date: "2026-03-04", amount: 50, debit_or_credit: "debit", transaction_type: "expense", status: "uncategorized",
+  { transaction_id: "ZZ-CHG", account_id: "ZZACC", date: "2026-03-04", amount: 50, debit_or_credit: "credit", transaction_type: "expense", status: "uncategorized",
     description: "SMS CHARGES" },
+  { transaction_id: "ZZ-OLD", account_id: "ZZACC", date: "2025-12-01", amount: 9, debit_or_credit: "debit", transaction_type: "deposit", status: "categorized",
+    description: "AN OLD LINE OUTSIDE EVERY PERIOD" },
 ];
+const listed = (filter: string | null) => zohoLines.filter((l) => (filter === "Status.Uncategorized" ? l.status === "uncategorized" : l.status !== "uncategorized"))
+  .sort((a, b) => b.date.localeCompare(a.date));
 setZohoTransport(async (req) => {
   zohoCalls.push(req);
   assert.ok(allowed(req), `only reads reach Zoho: ${req.method} ${req.url.split("?")[0]}`);
   if (req.method === "POST") return { status: 200, data: { access_token: "zz-token", expires_in: 3600 } };
   const path = new URL(req.url).pathname;
   if (path.endsWith("/bankaccounts")) return { status: 200, data: { code: 0, bankaccounts: [{ account_id: "ZZACC", account_name: "ZZ Current", account_type: "bank", feeds_last_refresh_date: "2026-10-28", bank_balance: 1 }], page_context: { has_more_page: false } } };
-  if (path.endsWith("/banktransactions")) return { status: 200, data: { code: 0, banktransactions: zohoLines, page_context: { has_more_page: false } } };
+  if (path.endsWith("/banktransactions")) return { status: 200, data: { code: 0, banktransactions: listed(new URL(req.url).searchParams.get("filter_by")), page_context: { has_more_page: false } } };
   if (path.endsWith("/customerpayments")) return { status: 200, data: { code: 0, customerpayments: [{ payment_id: "ZZ-CP1", date: D, payment_mode: "Cash", amount: 5000, account_name: "Petty Cash" }], page_context: { has_more_page: false } } };
   return { status: 404, data: { code: 1, message: "no such path in the fake" } };
 });
@@ -136,16 +149,39 @@ const cardCashRefund = (amount = 1000) => ({ requestKey: randomUUID(), kind: "re
 try {
   const admin = await login("zz_test_recon_admin"), mgr = await login("zz_test_recon_mgr");
   const staff = await login("zz_test_recon_staff"), opt = await login("zz_test_recon_opt"), doc = await login("zz_test_recon_doc");
+  const mgr2 = await login("zz_test_recon_mgr2"), desk = await login("zz_test_recon_desk");
+  const uid = async (u: string) => Number((await pool.query(`SELECT id FROM app.users WHERE username = $1`, [u])).rows[0].id);
   let upiAdj = 0, cardAdj = 0;
 
-  await step("who may: managers and admins read and submit; only admins approve or change bank rules; others are refused", async () => {
-    for (const c of [staff, opt, doc]) {
+  await step("access per login (D-053): no finance by role; the admin gives it to one login, takes one away, and it is logged", async () => {
+    assert.equal((await call("GET", `/api/recon?from=${D}&to=${D}`, mgr)).status, 403, "a manager has no finance by role");
+    const cat = await call("GET", "/api/users/access", admin);
+    assert.equal(cat.status, 200); assert.ok(cat.body.permissions.some((p: any) => p.key === "cash.deposit" && /blind/.test(p.label)));
+    assert.equal((await call("GET", "/api/users/access", mgr)).status, 403);
+    const g = await call("PUT", `/api/users/${await uid("zz_test_recon_mgr")}/access`, admin, { overrides: { "reconciliation.read": true, "adjustments.submit": true } });
+    assert.equal(g.status, 200, g.body?.message); assert.ok(g.body.user.permissions.includes("reconciliation.read"));
+    const d = await call("PUT", `/api/users/${await uid("zz_test_recon_desk")}/access`, admin, { overrides: { "cash.deposit": true, "audit.read": false } });
+    assert.equal(d.status, 200, d.body?.message);
+    assert.deepEqual(Object.keys(d.body.user.overrides).sort(), ["audit.read", "cash.deposit"], "only differences from the role are kept");
+    assert.equal((await call("PUT", `/api/users/${await uid("zz_test_recon_admin")}/access`, admin, { overrides: { "users.manage": false } })).status, 400, "an admin cannot be limited");
+    assert.equal((await call("PUT", `/api/users/${await uid("zz_test_recon_desk")}/access`, mgr, { overrides: {} })).status, 403);
+    const me = (await call("GET", "/api/auth/me", desk)).body.user.permissions;
+    assert.ok(me.includes("cash.deposit") && !me.includes("audit.read") && !me.includes("reconciliation.read"), "takes effect at once, no new login");
+    const log = (await pool.query(`SELECT summary FROM app.audit_log WHERE entity_type = 'user_permissions' AND summary LIKE 'Access for ZZ Recon Cash Desk%' ORDER BY id DESC LIMIT 1`)).rows[0];
+    assert.match(log.summary, /\+ Record cash deposits.*− See the activity log/);
+  });
+
+  await step("who may: finance logins read and submit; only admins approve or change bank rules; others are refused", async () => {
+    for (const c of [staff, opt, doc, mgr2, desk]) {
       assert.equal((await call("GET", `/api/recon?from=${D}&to=${D}`, c)).status, 403);
       assert.equal((await call("POST", "/api/adjustments", c, upiRefundFix())).status, 403);
       assert.equal((await call("POST", "/api/adjustments/1/approve", c, {})).status, 403);
       assert.equal((await call("GET", `/api/recon/detail?date=${D}`, c)).status, 403);
       assert.equal((await call("POST", "/api/recon/zoho/fetch", c, { from: D, to: D })).status, 403);
+      assert.equal((await call("GET", "/api/recon/fee-rates", c)).status, 403);
     }
+    for (const c of [staff, opt, doc, mgr2]) assert.equal((await call("GET", "/api/cash", c)).status, 403);
+    assert.equal((await call("PUT", "/api/recon/fee-rates", mgr, { effectiveFrom: D, rows: [] })).status, 403);
     assert.equal((await call("GET", `/api/recon?from=${D}&to=${D}`, mgr)).status, 200);
     assert.equal((await call("POST", "/api/adjustments/1/approve", mgr, {})).status, 403);
     assert.equal((await call("POST", "/api/recon/bank-rules", mgr, { position: 50, pattern: "ZZ", class: "not_clinic", method: null, windowDays: 1, isActive: false })).status, 403);
@@ -168,7 +204,11 @@ try {
   await step("Zoho fetch reads only (GETs and the token refresh); a write would be stopped before leaving", async () => {
     const f = await call("POST", "/api/recon/zoho/fetch", mgr, { from: D, to: D });
     assert.equal(f.status, 200, f.body?.message); assert.equal(f.body.status, "ok");
-    assert.deepEqual([f.body.counts.lines, f.body.counts.new, f.body.counts.payments], [4, 4, 1]);
+    assert.deepEqual([f.body.counts.lines, f.body.counts.new, f.body.counts.payments], [4, 4, 1], "categorised and uncategorised lines of the period, not the old one");
+    const sides = (await pool.query(`SELECT transaction_id, debit_or_credit FROM app.zoho_bank_txns WHERE transaction_id LIKE 'ZZ-%' ORDER BY 1`)).rows;
+    assert.deepEqual(sides.map((s) => `${s.transaction_id}:${s.debit_or_credit}`), ["ZZ-CARD:credit", "ZZ-CHG:debit", "ZZ-NEFT:credit", "ZZ-UPI:credit"],
+                     "Zoho's 'debit' (money into the bank account) is kept as a credit on the statement");
+    assert.ok(zohoCalls.some((x) => x.url.includes("Status.Uncategorized")) && zohoCalls.some((x) => x.url.includes("Status.All")));
     assert.ok(zohoCalls.length >= 4 && zohoCalls.every((x) => x.method === "GET" || x.url.includes("/oauth/v2/token?")));
     assert.ok(!zohoCalls.some((x) => x.url.includes("zz-secret") && x.method === "GET"), "the secret only goes to the token refresh");
     assert.equal(allowed({ method: "POST", url: "https://www.zohoapis.in/books/v3/invoices?organization_id=1", headers: {} }), false);
@@ -188,6 +228,28 @@ try {
     const all = await call("GET", `/api/recon/detail?date=${D}`, mgr);
     assert.deepEqual(all.body.refunds.map((x: any) => [x.billNo, x.method, x.amount]), [["ZB301", "cash", 500]]);
     assert.equal(all.body.payments.length, 4);
+    const full = await call("GET", `/api/recon?from=${D}&to=${D}`, mgr);
+    assert.equal(full.body.fees.totals.cardSales, 5000); assert.equal(full.body.fees.totals.cardFees, 0);
+    assert.ok(full.body.cash.inHand && full.body.cash.limits.limit === 400000);
+  });
+
+  await step("a card settlement short by a possible fee is settled less the bank fee; the rates are the admin's to change", async () => {
+    const rates = await call("GET", "/api/recon/fee-rates", mgr);
+    assert.equal(rates.status, 200); assert.ok(rates.body.rates.length >= 8); assert.equal(rates.body.fixed.gstPct, 18);
+    zohoLines = zohoLines.map((l) => (l.transaction_id === "ZZ-CARD" ? { ...l, amount: 4950 } : l));
+    await call("POST", "/api/recon/zoho/fetch", mgr, { from: D, to: D });
+    let r = await recon(mgr);
+    assert.equal(row(r, "card").status, "settled_less_fee"); assert.equal(row(r, "card").bankFee, 50); assert.equal(row(r, "card").difference, 0);
+    assert.equal(r.totals.bankFees, 50);
+    // with no card rates at all the same 50 is a difference
+    const none = await call("PUT", "/api/recon/fee-rates", admin, { effectiveFrom: "2026-01-01", rows: [{ method: "card", kind: "credit", amountAbove: 0, amountUpto: null, ratePct: 0, capRupees: null, flatRupees: null }] });
+    assert.equal(none.status, 200, none.body?.message);
+    r = await recon(mgr);
+    assert.equal(row(r, "card").status, "difference");
+    await pool.query(`BEGIN; SET LOCAL app.skip_audit = 'on'; DELETE FROM app.bank_fee_rates WHERE effective_from = '2026-01-01'; COMMIT;`);
+    zohoLines = zohoLines.map((l) => (l.transaction_id === "ZZ-CARD" ? { ...l, amount: 5000 } : l));
+    await call("POST", "/api/recon/zoho/fetch", mgr, { from: D, to: D });
+    assert.equal(row(await recon(mgr), "card").status, "matched");
   });
 
   await step("a request waits: pending changes nothing; the same form sent twice is one request; a duplicate is refused", async () => {
@@ -293,10 +355,11 @@ try {
 
   await step("Yarago records are never changed; a changed Zoho line keeps its old version; a vanished one is marked, not deleted", async () => {
     assert.equal(await yaragoHash(), yaragoBefore);
+    const versionsBefore = Number((await pool.query(`SELECT count(*) n FROM app.zoho_bank_txn_versions WHERE transaction_id = 'ZZ-UPI'`)).rows[0].n);
     zohoLines = zohoLines.filter((l) => l.transaction_id !== "ZZ-CHG").map((l) => (l.transaction_id === "ZZ-UPI" ? { ...l, status: "categorized" } : l));
     const f = await call("POST", "/api/recon/zoho/fetch", mgr, { from: D, to: D });
     assert.equal(f.body.counts.changed, 1); assert.equal(f.body.counts.missing, 1);
-    assert.equal(Number((await pool.query(`SELECT count(*) n FROM app.zoho_bank_txn_versions WHERE transaction_id = 'ZZ-UPI'`)).rows[0].n), 1);
+    assert.equal(Number((await pool.query(`SELECT count(*) n FROM app.zoho_bank_txn_versions WHERE transaction_id = 'ZZ-UPI'`)).rows[0].n), versionsBefore + 1);
     assert.ok((await pool.query(`SELECT missing_since FROM app.zoho_bank_txns WHERE transaction_id = 'ZZ-CHG'`)).rows[0].missing_since);
   });
 
@@ -321,6 +384,47 @@ try {
     assert.equal(bad.body.status, "failed"); assert.equal(bad.body.text, null); assert.match(bad.body.error, /7777/);
     const log = (await pool.query(`SELECT input::text FROM app.recon_assistant_log WHERE id = $1`, [ok.body.id])).rows[0].input;
     assert.ok(!/SPD999|ZZ Test|ZB30|RYX181|NEFT/.test(log), "the model saw no MRD, name, bill number or bank wording");
+  });
+
+  await step("cash deposits (D-053): recorded blind by the cash desk, checked against Yarago and the bank by finance; voided only by an admin", async () => {
+    const s = await call("PUT", "/api/cash/settings", admin, { start: D, bankFrom: D, opening: 0 });
+    assert.equal(s.status, 200, s.body?.message);
+    assert.equal((await call("PUT", "/api/cash/settings", mgr, { start: D })).status, 403);
+    // the cash of 2 Mar is 3,700 (5,000 less the refunds approved above); the desk banks 3,650 (rounding) and the bank shows it the next day
+    zohoLines = [...zohoLines, { transaction_id: "ZZ-CASH", account_id: "ZZACC", date: NEXT, amount: 3650, debit_or_credit: "debit", transaction_type: "transfer_fund",
+                                 status: "uncategorized", description: "CASH DEPOSIT BY - ZZ DESK - TIRUR" }];
+    await call("POST", "/api/recon/zoho/fetch", mgr, { from: D, to: D });
+    const v0 = await call("GET", "/api/cash", desk);
+    assert.equal(v0.status, 200); assert.equal(v0.body.full, false); assert.equal(v0.body.book, undefined); assert.equal(v0.body.desk.nextCoversFrom, D);
+    const body = { requestKey: randomUUID(), depositedOn: NEXT, coversTo: D, amount: 3650, slipNo: "ZZ-SLIP-1" };
+    assert.equal((await call("POST", "/api/cash/deposits", mgr2, body)).status, 403);
+    assert.equal((await call("POST", "/api/cash/deposits", mgr, body)).status, 403, "the finance view alone does not record deposits");
+    const a = await call("POST", "/api/cash/deposits", desk, body);
+    assert.equal(a.status, 201, a.body?.message);
+    assert.equal((await call("POST", "/api/cash/deposits", desk, body)).status, 200, "the same form sent twice is one deposit");
+    const again = await call("POST", "/api/cash/deposits", desk, { ...body, requestKey: randomUUID() });
+    assert.equal(again.status, 409); assert.match(again.body.message, /already in deposit/);
+    assert.equal((await call("POST", "/api/cash/deposits", desk, { ...body, requestKey: randomUUID(), coversTo: "2026-03-05" })).status, 400, "cash from after the deposit day");
+    const dv = await call("GET", "/api/cash", desk);
+    assert.ok(!/3700|yaragoCash|carry|checkWords/.test(JSON.stringify(dv.body)), "the desk never sees Yarago's cash or the check");
+    assert.equal(dv.body.desk.deposits[0].bank, "found"); assert.equal(dv.body.desk.deposits[0].amount, 3650);
+    const fv = await call("GET", "/api/cash", mgr);
+    assert.equal(fv.body.full, true);
+    const dep = fv.body.book.deposits[0];
+    assert.deepEqual([dep.yaragoCash, dep.carryOut, dep.check, dep.bank], [3700, 50, "ok", "found"]);
+    const r = await recon(mgr);
+    assert.equal(row(r, "cash").status, "cash_deposited"); assert.equal(r.totals.cashInHand, 0);
+    assert.equal(r.credits.find((c: any) => c.transactionId === "ZZ-CASH")?.state, "matched");
+    // kept as recorded by the database; only an admin voids it, with a reason
+    await assert.rejects(pool.query(`UPDATE app.cash_deposits SET amount = 1 WHERE id = ${a.body.id}`), (e: any) => e.code === "23514");
+    await assert.rejects(pool.query(`DELETE FROM app.cash_deposits WHERE id = ${a.body.id}`), (e: any) => e.code === "23514");
+    assert.equal((await call("POST", `/api/cash/deposits/${a.body.id}/void`, desk, { reason: "typed wrong" })).status, 403);
+    assert.equal((await call("POST", `/api/cash/deposits/${a.body.id}/void`, admin, { reason: "" })).status, 400);
+    assert.equal((await call("POST", `/api/cash/deposits/${a.body.id}/void`, admin, { reason: "ZZ test: slip number wrong" })).status, 200);
+    assert.equal((await call("POST", `/api/cash/deposits/${a.body.id}/void`, admin, { reason: "ZZ test: again" })).status, 409);
+    const after = await recon(mgr);
+    assert.equal(row(after, "cash").status, "cash_in_hand"); assert.equal(after.totals.cashInHand, 3700);
+    assert.equal(after.credits.find((c: any) => c.transactionId === "ZZ-CASH")?.state, "unmatched", "a cash deposit no recorded deposit explains is shown");
   });
 } finally {
   setZohoTransport(null);

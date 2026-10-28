@@ -91,6 +91,9 @@ Sudarshan never changes Yarago. Corrections to patient details are made in Yarag
 17. Original Yarago and Zoho records are never changed. Corrections are adjustment requests, which count only once an
     admin approves them, and which cannot be edited or deleted afterwards (trigger). Bank descriptions copied from Zoho
     can carry payers' names: they stay on shichika and are never given to the assistant.
+18. Finance is given per login, never by role alone (D-053). The cash desk sees no Yarago cash figure: the server builds
+    its answers from the desk view only. A recorded cash deposit cannot be edited or deleted (trigger); only an admin
+    voids one, with a reason, and both stay in the activity log.
 
 **Network**
 12. Clinic LAN only. The server port is open to the local subnet only. Nothing on shichika is reachable from the internet

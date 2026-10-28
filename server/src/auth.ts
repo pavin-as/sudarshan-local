@@ -4,7 +4,7 @@ import fp from "fastify-plugin";
 import { config } from "./config.js";
 import { one, pool, q } from "./db.js";
 import { HttpError, forbidden } from "./lib/errors.js";
-import { can, type Permission, type Role } from "./lib/permissions.js";
+import { effectivePermissions, type Overrides, type Permission, type Role } from "./lib/permissions.js";
 
 export const COOKIE = "sudarshan_sid";
 
@@ -15,6 +15,7 @@ export interface SessionUser {
   role: Role;
   mustChangePassword: boolean;
   sessionId: string;
+  permissions: Permission[];       // the role's defaults with this login's own changes (D-053), read on every request
 }
 
 declare module "fastify" {
@@ -63,12 +64,14 @@ export const authPlugin = fp(async function authPlugin(app: FastifyInstance) {
     const sid = req.cookies[COOKIE];
     if (sid && UUID_RE.test(sid)) {
       const s = await one<any>(
-        `SELECT s.id, s.last_seen_at, u.id AS user_id, u.username, u.full_name, u.role, u.must_change_password
+        `SELECT s.id, s.last_seen_at, u.id AS user_id, u.username, u.full_name, u.role, u.must_change_password,
+                (SELECT jsonb_object_agg(p.permission, p.allowed) FROM app.user_permissions p WHERE p.user_id = u.id) AS overrides
            FROM app.sessions s JOIN app.users u ON u.id = s.user_id
           WHERE s.id = $1 AND s.revoked_at IS NULL AND s.expires_at > now() AND u.is_active`, [sid]);
       if (s) {
         req.user = { id: s.user_id, username: s.username, fullName: s.full_name, role: s.role,
-                     mustChangePassword: s.must_change_password, sessionId: s.id };
+                     mustChangePassword: s.must_change_password, sessionId: s.id,
+                     permissions: effectivePermissions(s.role, (s.overrides ?? {}) as Overrides) };
         if (Date.now() - new Date(s.last_seen_at).getTime() > TOUCH_EVERY_MS) {
           // sliding expiry; sessions are not audited
           void pool.query(`UPDATE app.sessions SET last_seen_at = now(), expires_at = now() + make_interval(hours => $2) WHERE id = $1`,
@@ -89,9 +92,20 @@ export const authPlugin = fp(async function authPlugin(app: FastifyInstance) {
 export function need(req: FastifyRequest, p: Permission): SessionUser {
   const u = req.user;
   if (!u) throw new HttpError(401, "not_logged_in", "Please log in");
-  if (!can(u.role, p)) throw forbidden();
+  if (!u.permissions.includes(p)) throw forbidden();
   return u;
 }
+
+/** Use inside a handler: throws 403 unless the logged-in user has at least one of the permissions. */
+export function needAny(req: FastifyRequest, ps: Permission[]): SessionUser {
+  const u = req.user;
+  if (!u) throw new HttpError(401, "not_logged_in", "Please log in");
+  if (!ps.some((p) => u.permissions.includes(p))) throw forbidden();
+  return u;
+}
+
+/** Whether the user has a permission (for showing more or less, never instead of need()). */
+export const has = (u: SessionUser | null | undefined, p: Permission) => !!u?.permissions.includes(p);
 
 export function auditCtx(req: FastifyRequest, summary?: string) {
   return { userId: req.user?.id ?? null, requestId: req.id, source: "web" as const, summary };

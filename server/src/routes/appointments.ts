@@ -1,11 +1,10 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { PoolClient } from "pg";
 import { z } from "zod";
-import { auditCtx, need } from "../auth.js";
+import { auditCtx, has, need } from "../auth.js";
 import { one, q, withTx } from "../db.js";
 import { badRequest, conflict, notFound } from "../lib/errors.js";
 import { tempMrd } from "../services/tempMrd.js";
-import { can } from "../lib/permissions.js";
 import { dateStr, niceDate, timeStr } from "../lib/time.js";
 import { APPT_AGE_TEXT } from "../lib/text.js";
 import { doctorsOnDate } from "../services/calendar.js";
@@ -150,7 +149,7 @@ async function lockRow(c: PoolClient, id: number) {
 
 function overrideFor(req: FastifyRequest, o: { reason: string } | null | undefined): Override | null {
   if (!o) return null;
-  if (!can(req.user!.role, "settings.manage")) throw badRequest("Only a manager or admin can book over a full day, a taken slot, a held HFA slot, the early booking limit or a full waiting list");
+  if (!has(req.user, "settings.manage")) throw badRequest("Only a manager or admin can book over a full day, a taken slot, a held HFA slot, the early booking limit or a full waiting list");
   return o;
 }
 

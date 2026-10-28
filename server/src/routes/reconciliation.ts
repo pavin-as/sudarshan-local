@@ -8,7 +8,8 @@ import { badRequest, HttpError } from "../lib/errors.js";
 import { addDays, dateStr, todayIST } from "../lib/time.js";
 import { adjustmentTrail, approve, listAdjustments, loadAdjustment, pendingCount, prepare, reject, requestReversal, submit, withdraw,
          type SubmitBody } from "../services/adjustments.js";
-import { dayDetail, loadInput, loadRules, reconSettings, searchRecords, zohoLines } from "../services/reconData.js";
+import { bankCharges, dayDetail, feeFixed, loadCashBook, loadFeeRates, loadInput, loadRules, reconSettings, searchRecords, zohoLines } from "../services/reconData.js";
+import { FEE_KIND_WORDS, feeReport, type FeeKind } from "../services/bankFees.js";
 import { AssistantUnavailable, explain } from "../services/reconAssistant.js";
 import { CATEGORIES, CATEGORY_WORDS, KIND_WORDS, METHOD_WORDS, METHODS, reconcile, STATUS_WORDS, type Method } from "../services/reconcile.js";
 import { ZohoError } from "../services/zohoBooks.js";
@@ -42,10 +43,48 @@ export async function reconciliationRoutes(app: FastifyInstance) {
   app.get("/api/recon", async (req) => {
     need(req, "reconciliation.read");
     const r = range.parse(req.query);
-    const result = reconcile(await loadInput(r.from, r.to, todayIST()));
-    const last = await q(`SELECT max(finished_at)::text AS at FROM app.sync_runs WHERE status = 'ok'`);
-    return { result, yaragoSyncedAt: last[0]?.at ?? null, words: { methods: METHOD_WORDS, categories: CATEGORY_WORDS, statuses: STATUS_WORDS, kinds: KIND_WORDS },
-             zohoStatus: await zohoStatus(), pendingAdjustments: await pendingCount() };
+    const today = todayIST();
+    const book = await loadCashBook(today);
+    const result = reconcile(await loadInput(r.from, r.to, today, book));
+    const [last, charges, fixed, zs] = await Promise.all([q(`SELECT max(finished_at)::text AS at FROM app.sync_runs WHERE status = 'ok'`),
+                                                          loadRules().then((rules) => bankCharges(r.from, r.to, rules)), feeFixed(), zohoStatus()]);
+    const settled = new Set(["matched", "within_tolerance", "settled_less_fee", "fee_high"]);
+    const fees = feeReport(result.rows.map((x) => ({ date: x.date, method: x.method, expected: x.expected, deposited: x.deposited, bankFee: x.bankFee,
+                                                     status: x.status, band: x.band, matched: settled.has(x.status) })), charges, fixed, result.zoho.bankKnownUntil);
+    const cash = { inHand: book.inHand, limits: book.limits, coveredUntil: book.coveredUntil,
+                   problems: book.deposits.filter((d) => d.check !== "ok" || d.bank === "not_found" || d.bank === "uncertain").length,
+                   unrecorded: book.unrecorded.length };
+    return { result, fees, cash, yaragoSyncedAt: last[0]?.at ?? null, words: { methods: METHOD_WORDS, categories: CATEGORY_WORDS, statuses: STATUS_WORDS, kinds: KIND_WORDS },
+             zohoStatus: zs, pendingAdjustments: await pendingCount() };
+  });
+
+  // ---- bank fee rates (D-053): admins change them; a set is in force from its day until the next set ----
+  app.get("/api/recon/fee-rates", async (req) => {
+    need(req, "reconciliation.read");
+    return { rates: await loadFeeRates(), fixed: await feeFixed(), kinds: FEE_KIND_WORDS };
+  });
+
+  const rateRow = z.object({
+    method: z.enum(["card", "upi"]), kind: z.enum(Object.keys(FEE_KIND_WORDS) as [FeeKind, ...FeeKind[]]),
+    amountAbove: z.number().min(0).max(10_000_000), amountUpto: z.number().min(0).max(10_000_000).nullable(),
+    ratePct: z.number().min(0).max(10), capRupees: z.number().min(0).max(100_000).nullable(), flatRupees: z.number().min(0).max(100_000).nullable(),
+    note: z.string().trim().max(200).nullable().optional(),
+  }).refine((x) => x.amountUpto == null || x.amountUpto > x.amountAbove, "‘Up to’ must be more than ‘above’");
+  app.put("/api/recon/fee-rates", async (req) => {
+    need(req, "adjustments.approve");
+    const b = z.object({ effectiveFrom: dateStr, rows: z.array(rateRow).min(1).max(40),
+                         fixed: z.object({ gstPct: z.number().min(0).max(40), servicePerMonth: z.number().min(0).max(10_000), perBatch: z.number().min(0).max(1000),
+                                           lateSettleDays: z.number().int().min(0).max(10) }).optional() }).parse(req.body);
+    const keys = b.rows.map((x) => `${x.method}|${x.kind}|${x.amountAbove}`);
+    if (new Set(keys).size !== keys.length) throw badRequest("Two rows have the same method, kind and ‘above’ amount");
+    await withTx(auditCtx(req, `Bank fee rates in force from ${b.effectiveFrom} set (${b.rows.length} rows)${b.fixed ? `; GST ${b.fixed.gstPct}%, service ₹${b.fixed.servicePerMonth} a month` : ""}`), async (c) => {
+      await c.query(`DELETE FROM app.bank_fee_rates WHERE effective_from = $1`, [b.effectiveFrom]);
+      for (const x of b.rows)
+        await c.query(`INSERT INTO app.bank_fee_rates (effective_from, method, kind, amount_above, amount_upto, rate_pct, cap_rupees, flat_rupees, note)
+                       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`, [b.effectiveFrom, x.method, x.kind, x.amountAbove, x.amountUpto, x.ratePct, x.capRupees, x.flatRupees, x.note ?? null]);
+      if (b.fixed) await c.query(`INSERT INTO app.settings (key, value) VALUES ('recon.fee_fixed', $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`, [JSON.stringify(b.fixed)]);
+    });
+    return { rates: await loadFeeRates(), fixed: await feeFixed() };
   });
 
   app.get("/api/recon/detail", async (req) => {
@@ -164,7 +203,7 @@ export async function reconciliationRoutes(app: FastifyInstance) {
 
   const ruleBody = z.object({
     position: z.number().int().min(0).max(1000), pattern: z.string().trim().min(3).max(200).refine((p) => { try { new RegExp(p, "i"); return true; } catch { return false; } }, "That pattern is not valid"),
-    class: z.enum(["upi_settlement", "card_settlement", "cash_deposit", "online_settlement", "not_clinic"]), method: method.nullable(),
+    class: z.enum(["upi_settlement", "card_settlement", "cash_deposit", "online_settlement", "not_clinic", "bank_charge"]), method: method.nullable(),
     windowDays: z.number().int().min(0).max(10), isActive: z.boolean(), note: z.string().trim().max(200).nullable().optional(),
   }).refine((r) => r.class === "not_clinic" || r.method, "Choose the payment method the bank money is for");
 

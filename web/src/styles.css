@@ -28,6 +28,8 @@
   --oct-soft: #f1eafa;
   --done: #2f7650;
   --done-soft: #e3f1e8;
+  --cash: #4a4f9c;           /* cash not yet deposited (D-053): its own colour, never the red of a difference */
+  --cash-soft: #ececf8;
   --radius-s: 4px;
   --radius-m: 8px;
   --shadow-pop: 0 10px 30px rgba(23, 37, 47, 0.18);
@@ -568,3 +570,21 @@ table.list tr.picked td { background: var(--action-soft); }
 .pill.adj-rejected { background: var(--vessel-soft); color: var(--vessel); }
 .pill.adj-withdrawn, .pill.adj-reversed { background: var(--line-soft); color: var(--ink-soft); }
 .btn .count { margin-left: 0.35rem; font-size: 0.8rem; background: var(--disc); color: var(--ink); border-radius: 10px; padding: 0 0.45rem; font-weight: 700; }
+
+/* Cash book, bank fees, access (D-053). Cash in hand: blue within the limit, amber near it, red over it */
+.recon-tile.cash { border-left-color: var(--cash); background: var(--cash-soft); }
+.recon-tile.cash .recon-tile-n { color: var(--cash); }
+.recon-tile.cash.soon { border-left-color: var(--disc); background: var(--disc-soft); }
+.recon-tile.cash.soon .recon-tile-n { color: #7a5300; }
+.recon-tile.cash.over { border-left-color: var(--vessel); background: var(--vessel-soft); }
+.recon-tile.cash.over .recon-tile-n { color: var(--vessel); }
+.recon-status.cash { background: var(--cash-soft); color: var(--cash); }
+table.list tr.edge-cash td:first-child { box-shadow: inset 4px 0 0 var(--cash); }
+.cash-banner { border-radius: var(--radius-m); padding: 0.75rem 1rem; border-left: 6px solid var(--cash); background: var(--cash-soft); display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; align-items: baseline; }
+.cash-banner b.big { font-size: 1.2rem; color: var(--cash); }
+.cash-banner.soon { border-left-color: var(--disc); background: var(--disc-soft); }
+.cash-banner.soon b.big { color: #7a5300; }
+.cash-banner.over { border-left-color: var(--vessel); background: var(--vessel-soft); }
+.cash-banner.over b.big { color: var(--vessel); }
+.access-table td { vertical-align: top; }
+.access-table tr.access-finance td { background: var(--cash-soft); }

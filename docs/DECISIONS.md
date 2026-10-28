@@ -641,6 +641,7 @@ optometrists, the doctor screen for the doctor.
     clinic services) and "Sales of Medicines" (pharmacy and optical).
   - Cash is paid into Petty Cash. UPI and card arrive in the current account the next day, as
     `UPI SETTLEMENT -RYX181- dd/mm/yy` and `...TERMINAL 1 CARDS SETTL. dd/mm/yy`, with no fee taken out.
+    (Corrected by D-053: that was the bookkeeper's payments; the bank lines show card settled net of the fee.)
   - 1 Sep - 10 Oct: Yarago matched Zoho for card on 32 of 33 days, UPI on 21 and cash on 18. The rest were refunds and
     method mix-ups (for example ₹14,553 entered as cash on 16 Sep, paid by UPI). On 9 Oct the UPI settlement was ₹2,400
     short: a refund Yarago shows as cash had been paid back by UPI.
@@ -679,6 +680,43 @@ optometrists, the doctor screen for the doctor.
   given, and every answer is logged (`app.recon_assistant_log`). It calculates, changes and approves nothing.
 - **Categories:** consultation = Consultation & charges. Procedure = investigations, injections, lasers, other
   procedures and other charges. Pharmacy and optical as D-032. The mapping is the setting `recon.category_map`.
+
+### D-053 · 2026-10-28 · Accepted · Pavin (answers 28 Oct: all cash banked, rounded to ₹10/50/100; a manager records each deposit, blind; cash in hand never over ₹4,00,000, in its own colour; finance per login, only Dr Sameera and chosen managers; HDFC POS; use HDFC's published rates until the bank's); Claude chose the rules
+**Per-login access, the cash book, and bank fees.** Migration 0029.
+- **Access per login:** a login has its role's permissions plus the admin's changes for that login
+  (`app.user_permissions`; only differences are stored, audited, applied on the next request). Users > Access lists
+  every permission by page. An admin's access is fixed (everything but writing fundus reports, D-042). Finance is no
+  longer part of the manager role. Dr Sameera (`sam@sampada`) gets the full finance view and adjustments by name
+  (migration); managers are chosen on the Users page.
+- **Finance levels:** cash desk (`cash.deposit`: records deposits, sees only its deposits and the limit in words);
+  full view (`reconciliation.read`: reconciliation, cash book with checks, bank fees); approve (`adjustments.approve`:
+  admin; adjustments, bank rules, fee rates, cash settings, voiding a deposit).
+- **Cash book:** the desk records each deposit (day, cash up to which day, amount, slip) without seeing Yarago's cash.
+  Yarago cash of the covered days + the drawer's carry - the deposit is carried forward; within ±₹99 (setting
+  `cash.limits.carryBand`) it is rounding, beyond it Short or Excess. A deposit is "in the bank" when exactly one
+  cash-deposit credit of the same amount is dated within 3 days after it. A recorded deposit never changes; an admin
+  voids a wrong one with a reason. Cash in hand: blue (`--cash`) below ₹3,00,000, amber from it, red at ₹4,00,000.
+  The book starts with the cash of 11 Oct 2026 (the 17 Oct deposit covered 1-10 Oct); setting `cash.book`.
+- **What the first live Zoho read showed (28 Oct, read only):**
+  - Zoho lists a bank account's lines from the ledger's side: money in is "debit". 0028 read it the other way;
+    0029 turns the stored lines round from Zoho's own field, and the fetch now does.
+  - Zoho ignores date filters on bank lines and leaves uncategorised feed lines out of `Status.All` (175 lines, up to
+    21 Oct, among them every cash deposit since September). The fetch now reads both lists, newest first, and stops at
+    the period.
+  - HDFC settles **card net of its commission** (23 Sep: ₹11,458 in Yarago, ₹11,391.74 in the bank; 0-2.6% a day). UPI
+    arrives whole but for a few rupees. Cash deposits read "CASH DEPOSIT BY - name - TIRUR" (rule switched on). The
+    terminal's service charge is ₹116.82 (₹99 + GST) on the 15th of each month (rule `bank_charge`).
+- **Bank fees:** a card or UPI credit matches its day when it equals the day's money or is less by no more than the
+  dearest fee the bank could keep on that day's payments (international card rate, GST included; Yarago does not
+  record the card type). What was kept is shown as the day's bank fee: "Settled less bank fee", or "Fee higher than
+  expected" above the dearest usual card (credit). Uniqueness both ways still applies. Rates are rows in
+  `app.bank_fee_rates` in force from a day; seeded from HDFC's published SmartHub schedule (credit 1.85%; debit 0.40%
+  up to ₹2,000, 0.90% above, at most ₹1,000; RuPay debit 0; international 3%; UPI free, 0.40% above ₹2,000 at most
+  ₹300 from 15 Oct 2026; 18% GST) until the bank sends the POS agreement's rates. Card days not settled within 2 days
+  are listed (HDFC's late-batch fee).
+- **Checked on real data (Sep - 10 Oct, in memory):** card 22 of 25 days settle (3 whole, 19 net, 1 above the expected
+  rate: 3 Oct, 2.57%); fees kept 0.56% in September, 1.82% in 1-10 Oct. No settlement for 9 Sep (₹18,520) and
+  26 Sep (₹1,58,305) card money.
 
 ## Proposed (not yet decided)
 

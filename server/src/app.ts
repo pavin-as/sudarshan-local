@@ -34,6 +34,7 @@ import { fundusRoutes } from "./routes/fundus.js";
 import { evaluationRoutes } from "./routes/evaluation.js";
 import { octRoutes } from "./routes/oct.js";
 import { reconciliationRoutes } from "./routes/reconciliation.js";
+import { cashRoutes } from "./routes/cash.js";
 import { RazorpayError } from "./services/razorpay.js";
 
 export async function buildApp(opts: { logger?: boolean } = {}): Promise<FastifyInstance> {
@@ -131,5 +132,6 @@ export async function buildApp(opts: { logger?: boolean } = {}): Promise<Fastify
   await app.register(evaluationRoutes);
   await app.register(octRoutes);
   await app.register(reconciliationRoutes);
+  await app.register(cashRoutes);
   return app;
 }

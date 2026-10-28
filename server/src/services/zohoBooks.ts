@@ -75,7 +75,9 @@ async function all(path: string, listKey: string, params: Record<string, string 
 }
 
 export interface ZBankAccount { accountId: string; name: string; type: string; feedRefreshedOn: string | null; balance: number | null }
-export interface ZBankTxn { transactionId: string; accountId: string; date: string; amount: number; debitOrCredit: "credit" | "debit"; type: string | null;
+export interface ZBankTxn { transactionId: string; accountId: string; date: string; amount: number;
+                            debitOrCredit: "credit" | "debit";      // the bank statement's side: credit = money in
+                            type: string | null;
                             status: string | null; description: string | null; reference: string | null; payee: string | null; raw: any }
 export interface ZCustomerPayment { paymentId: string; date: string; mode: string | null; amount: number; accountId: string | null; accountName: string | null;
                                     description: string | null; reference: string | null; invoiceNumbers: string | null; raw: any }
@@ -89,14 +91,37 @@ export async function listBankAccounts(): Promise<ZBankAccount[]> {
                             feedRefreshedOn: dateOrNull(a.feeds_last_refresh_date), balance: a.bank_balance == null ? null : Number(a.bank_balance) }));
 }
 
+/** Pages of a bank account's lines, newest first, until a page is wholly before `from`. Zoho ignores date filters on
+ *  this list (checked 28 Oct 2026: date_start, date.start and from_date all return the whole history). */
+async function bankPages(accountId: string, filter: string, from: string): Promise<any[]> {
+  const out: any[] = [];
+  for (let page = 1; page <= 50; page++) {
+    const d = await get("/banktransactions", { account_id: accountId, filter_by: filter, sort_column: "date", sort_order: "D", page, per_page: 200 });
+    const rows: any[] = Array.isArray(d?.banktransactions) ? d.banktransactions : [];
+    out.push(...rows);
+    if (!d?.page_context?.has_more_page || rows.every((t) => (dateOrNull(t.date) ?? "") < from)) return out;
+  }
+  throw new ZohoError("Zoho returned more than 10,000 bank lines: choose a shorter period");
+}
+
+/** A bank account's lines dated from..to: categorised ones (Status.All leaves out the feed lines the bookkeeper has not
+ *  categorised yet) and uncategorised ones. Zoho's debit_or_credit is the ledger's side (money in DEBITS the bank
+ *  account); Sudarshan keeps the statement's side, so money in is "credit". */
 export async function listBankTransactions(accountId: string, from: string, to: string): Promise<ZBankTxn[]> {
-  const rows = await all("/banktransactions", "banktransactions", { account_id: accountId, date_start: from, date_end: to, filter_by: "Status.All" });
-  return rows.filter((t) => dateOrNull(t.date)).map((t) => {
-    const dc = String(t.debit_or_credit ?? "").toLowerCase();
-    return { transactionId: String(t.transaction_id ?? t.imported_transaction_id), accountId: String(t.account_id ?? accountId), date: dateOrNull(t.date)!,
-             amount: Math.abs(Number(t.amount ?? 0)), debitOrCredit: dc === "debit" ? "debit" : "credit", type: str(t.transaction_type), status: str(t.status),
-             description: str(t.description ?? t.payee), reference: str(t.reference_number), payee: str(t.payee), raw: t };
-  });
+  const rows = [...await bankPages(accountId, "Status.All", from), ...await bankPages(accountId, "Status.Uncategorized", from)];
+  const seen = new Set<string>();
+  const out: ZBankTxn[] = [];
+  for (const t of rows) {
+    const date = dateOrNull(t.date);
+    const id = String(t.transaction_id ?? t.imported_transaction_id);
+    if (!date || date < from || date > to || seen.has(id)) continue;
+    seen.add(id);
+    const moneyIn = String(t.debit_or_credit ?? "").toLowerCase() === "debit";
+    out.push({ transactionId: id, accountId: String(t.account_id ?? accountId), date, amount: Math.abs(Number(t.amount ?? 0)),
+               debitOrCredit: moneyIn ? "credit" : "debit", type: str(t.transaction_type), status: str(t.status),
+               description: str(t.description ?? t.payee), reference: str(t.reference_number), payee: str(t.payee), raw: t });
+  }
+  return out;
 }
 
 export async function listCustomerPayments(from: string, to: string): Promise<ZCustomerPayment[]> {

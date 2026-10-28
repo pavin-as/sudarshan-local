@@ -5,6 +5,27 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Access per login, cash deposits, bank fees** (D-053).
+  - **Users > Access:** for each login, every page and action with a tick; the role gives the defaults, the admin
+    changes them for that login only (logged). Finance is no longer part of the manager role: Dr Sameera has the full
+    finance view; choose the managers who record cash deposits.
+  - **Cash deposits (new page):** the cash desk records each deposit from the slip without seeing Yarago's cash. Finance
+    sees each deposit checked: Yarago cash of the days, the drawer's carry (±₹99 rounding), Short or Excess, and whether
+    the bank shows it. Cash not yet deposited has its own colour: blue, amber from ₹3,00,000, red at ₹4,00,000.
+  - **Reconciliation:** card money settled net of HDFC's commission now matches, with the fee shown ("Settled less bank
+    fee"; "Fee higher than expected" above the credit-card rate). New "Bank fees" section: kept per day and month,
+    effective rate, terminal charges, late card batches; the admin changes the rates. Cash rows say "Deposited" once a
+    recorded deposit covers the day.
+  - **Fixes from the first live Zoho read:** money in was read as money out; uncategorised bank lines (all cash deposits
+    since September) were missed; Zoho's date filter is ignored, so every fetch read the whole history.
+  - Technical: migration `0029_finance_access_cash.sql` (`user_permissions`, `cash_deposits` with guard trigger,
+    `bank_fee_rates`, bank-rule class `bank_charge`, settings `cash.book`, `cash.limits`, `recon.fee_fixed`, Zoho
+    direction corrected in place); `services/bankFees.ts` and `services/cashBook.ts` (pure); `routes/cash.ts`;
+    `need()` reads each login's permissions; `/api/users/access`, `PUT /api/users/:id/access`, `/api/recon/fee-rates`;
+    pages `Cash.tsx`, Users access dialog; `setup-zoho.ps1` counts money in correctly.
+  - Tests: `recon.unit.test.ts` 28 checks (fees, cash book, blind view, access); `recon.test.ts` 17 checks (access API,
+    net card settlement, blind deposits, voiding, guards, Zoho's real conventions). Every `npm test` file and
+    `test:rules` pass. Browser-checked as admin and as the cash desk, desktop and phone width.
 - **Money reconciliation** (D-052). Two new pages for managers and the admin.
   - **Reconciliation:** for any period up to 92 days, it shows:
     - what Yarago billed (consultation, procedure, pharmacy, optical) and collected, by method;

@@ -788,3 +788,18 @@ Views (`db/views/40_money.sql`, re-applied with the others):
 | `app.recon_assistant_log` | assistant answer | exactly what the model saw, its answer, the number check, and who asked |
 
 Settings: `recon.category_map`, `recon.tolerance`, `recon.stale_hours`, `ai.recon_model`. No Zoho keys in tables (`.env`).
+
+`app.zoho_bank_txns.debit_or_credit` is the bank statement's side (credit = money in). Zoho's own field, in `raw`, is the
+ledger's side, the other way round (0029 corrected the stored lines).
+
+## Access per login, cash book, bank fees (0029, D-053)
+
+| Table | One row per | Notes |
+|---|---|---|
+| `app.user_permissions` | a login's change to its role's defaults | `allowed` true = given, false = taken away; unique (user, permission); only differences kept; audited |
+| `app.cash_deposits` | cash deposit recorded by the cash desk | `deposited_on`, `covers_to` (cash up to and including), `amount`, `slip_no`, `request_key` unique; status recorded → voided (admin, reason). Guard trigger: content fixed, no un-voiding, no delete. Unique `covers_to` among recorded. Audited |
+| `app.bank_fee_rates` | rate row of a set in force from `effective_from` | method card / upi; kind debit, rupay_debit, credit, international, upi, upi_rupay_credit; `amount_above` < payment ≤ `amount_upto`; `rate_pct`, `cap_rupees`, `flat_rupees`; before GST; audited |
+
+`app.recon_bank_rules.class` may also be `bank_charge` (money out: the terminal's service charge).
+Settings: `cash.book` (`start`, `opening`, `bankFrom`), `cash.limits` (`warnAt`, `limit`, `carryBand`), `recon.fee_fixed`
+(`gstPct`, `servicePerMonth`, `perBatch`, `lateSettleDays`).

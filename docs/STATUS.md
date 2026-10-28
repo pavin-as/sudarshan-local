@@ -309,9 +309,21 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
   - press Fetch from Zoho, then check a few past days against the bank statement;
   - check the first real fetch's line fields (debit/credit, description). The script prints counts; tell Claude if it
     warns about missing fields.
-- [ ] Pavin: the bank's wording for a cash deposit, so the cash-deposit rule can be switched on.
+- [x] The bank's wording for a cash deposit: "CASH DEPOSIT BY - name - TIRUR" (found in Zoho; rule on in 0029).
 - [ ] Pavin: whether optical should stay a separate category or count under pharmacy ("Sales of Medicines" in Zoho holds
       both). For now it is shown separately.
+- [x] Access per login, cash deposits (blind), bank fees built (28 Oct, D-053, migration 0029); Zoho fetch fixed
+      (direction, uncategorised lines, date filter). 28 + 17 checks pass; every test file passes. **Not deployed.**
+- [ ] Pavin, after deploying D-053 (`update.ps1`, outside clinic hours):
+  - Users > Access: tick "Record cash deposits" for the manager(s) who take cash to the bank; check Dr Sameera's
+    finance access;
+  - Reconciliation > Fetch from Zoho (reads the uncategorised lines for the first time);
+  - Cash deposits > Cash book settings: check the start (11 Oct) and the cash in hand before it, then have the cash
+    desk record the next deposit. Cash since 11 Oct was about ₹5.2 lakh on 28 Oct, over the ₹4 lakh limit;
+  - send the HDFC POS agreement's card rates when they come (Reconciliation > Bank fees > Rates);
+  - ask HDFC whether the clinic is in its "specialised sector" programme (₹5 flat on UPI above ₹2,000 instead of
+    0.40%);
+  - look into 26 Sep (₹1,58,305 card in Yarago, no settlement) and 9 Sep (₹18,520).
 
 ## Next step
 Trial running on live Google data (D-025). Remaining, in order:

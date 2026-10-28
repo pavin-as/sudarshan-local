@@ -30,6 +30,7 @@ import { WhatsAppPage } from "./pages/WhatsApp";
 import { PaymentsPage } from "./pages/Payments";
 import { ReconciliationPage } from "./pages/Reconciliation";
 import { AdjustmentsPage } from "./pages/Adjustments";
+import { CashPage } from "./pages/Cash";
 import { RetinaAiPage } from "./pages/RetinaAi";
 import { FundusReportsPage, useFundusTodo } from "./pages/FundusReports";
 
@@ -113,6 +114,7 @@ function Shell() {
         {can("messages.send") && <NavLink to="/whatsapp">WhatsApp</NavLink>}
         {can("payments.write") && <NavLink to="/payments">Payments {!!payReview && <span className="count">{payReview}</span>}</NavLink>}
         {can("reconciliation.read") && <NavLink to="/reconciliation">Reconciliation</NavLink>}
+        {(can("cash.deposit") || can("reconciliation.read")) && <NavLink to="/cash">Cash deposits</NavLink>}
         {can("adjustments.submit") && <NavLink to="/adjustments">Adjustments {!!adjPending && <span className="count">{adjPending}</span>}</NavLink>}
         {can("clinical.read") && <NavLink to="/emr-completeness">EMR completeness</NavLink>}
         {can("clinical.read") && <NavLink to="/emr-daily">EMR daily report</NavLink>}
@@ -152,6 +154,7 @@ function Shell() {
           <Route path="/users" element={<UsersPage />} />
           <Route path="/reconciliation" element={<ReconciliationPage />} />
           <Route path="/adjustments" element={<AdjustmentsPage />} />
+          <Route path="/cash" element={<CashPage />} />
           <Route path="/whatsapp" element={<WhatsAppPage />} />
           <Route path="/payments" element={<PaymentsPage />} />
           <Route path="/retina-ai" element={<RetinaAiPage />} />

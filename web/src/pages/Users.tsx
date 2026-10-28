@@ -11,10 +11,20 @@ const ROLES: [string, string, string][] = [
   ["counsellor", "Counsellor", "front desk, plus clinical details"],
   ["optometrist", "Optometrist", "sees the board and clinical details"],
   ["doctor", "Doctor", "sees the board, clinical details and summaries; adds remarks"],
-  ["manager", "Manager", "everything except users: calendar, capacity, activity log"],
-  ["admin", "Admin", "everything, including users"],
+  ["manager", "Manager", "everything except users and finance: calendar, capacity, activity log"],
+  ["admin", "Admin", "everything, including users and finance"],
 ];
 const roleName = (r: string) => ROLES.find((x) => x[0] === r)?.[1] ?? r;
+
+// D-053: what a login has beyond or below its role, in a word or two for the list
+function accessTags(u: any) {
+  const p: string[] = u.permissions ?? [];
+  const tags: string[] = [];
+  if (p.includes("reconciliation.read")) tags.push("Finance");
+  else if (p.includes("cash.deposit")) tags.push("Cash desk");
+  if (p.includes("adjustments.approve") && u.role !== "admin") tags.push("Approves");
+  return tags;
+}
 
 export function UsersPage() {
   const { user: me } = useAuth();
@@ -24,6 +34,7 @@ export function UsersPage() {
   const [changingOwn, setChangingOwn] = useState(false);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<any>(null);
+  const [access, setAccess] = useState<any>(null);
   const [shown, setShown] = useState<{ name: string; username: string; pw: string } | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [form, setForm] = useState({ username: "", fullName: "", role: "staff" });
@@ -50,23 +61,26 @@ export function UsersPage() {
         <span className="grow" /><button className="btn-primary" onClick={() => { setError(null); setAdding(true); }}>Add user</button>
       </div>
       <div className="panel">
-        {q.isLoading ? <Loading /> : (
+        {q.isLoading ? <Loading /> : (<div className="table-wrap">
           <table className="list">
-            <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Login</th><th>Last login</th><th /></tr></thead>
+            <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Access</th><th>Login</th><th>Last login</th><th /></tr></thead>
             <tbody>{(q.data ?? []).map((u) => (
               <tr key={u.id} style={{ opacity: u.isActive ? 1 : 0.55 }}>
                 <td><b>{u.fullName}</b>{!u.isActive && <span className="tag">inactive</span>}</td>
                 <td>{u.username}</td><td>{roleName(u.role)}</td>
+                <td className="small">{accessTags(u).map((t) => <span key={t} className="tag">{t}</span>)}
+                  {u.role !== "admin" && Object.keys(u.overrides ?? {}).length > 0 && <span className="muted"> {Object.keys(u.overrides).length} change{Object.keys(u.overrides).length === 1 ? "" : "s"} from role</span>}</td>
                 <td className="small">{!u.hasPassword ? <span className="overdue">no password yet</span> : u.mustChangePassword ? "temporary password" : "own password"}</td>
                 <td className="small">{u.lastLoginAt ? stamp(u.lastLoginAt) : "never"}</td>
                 <td className="right nowrap">
                   {u.id === me?.id
                     ? <button className="btn-small" onClick={() => setChangingOwn(true)}>Change password</button>
                     : <button className="btn-small" onClick={() => void reset(u)}>{u.hasPassword ? "Reset password" : "Give password"}</button>}{" "}
-                  <button className="btn-small" onClick={() => { setError(null); setEditing({ ...u }); }}>Edit</button>
+                  <button className="btn-small" onClick={() => { setError(null); setEditing({ ...u }); }}>Edit</button>{" "}
+                  <button className="btn-small" onClick={() => setAccess(u)}>Access</button>
                 </td>
               </tr>))}</tbody>
-          </table>)}
+          </table></div>)}
       </div>
 
       {changingOwn && <ChangePasswordDialog onClose={() => setChangingOwn(false)} />}
@@ -92,7 +106,63 @@ export function UsersPage() {
           <ErrorNotice error={error} />
         </Dialog>
       )}
+      {access && <AccessDialog user={access} onClose={() => setAccess(null)} onSaved={() => { setAccess(null); void qc.invalidateQueries({ queryKey: ["users"] }); }} />}
     </>
+  );
+}
+
+// D-053: which pages a login sees and what it may do there. The role gives the defaults; ticking or unticking one
+// here changes this login only. Saved changes apply at the login's next click, with no need to log in again.
+function AccessDialog({ user, onClose, onSaved }: { user: any; onClose: () => void; onSaved: () => void }) {
+  const toast = useToast();
+  const cat = useQuery({ queryKey: ["users-access"], queryFn: () => api<{ permissions: { key: string; page: string; label: string }[]; roleDefaults: Record<string, string[]> }>("/users/access") });
+  const [on, setOn] = useState<Set<string>>(new Set(user.permissions ?? []));
+  const [error, setError] = useState<unknown>(null);
+  const [saving, setSaving] = useState(false);
+  const admin = user.role === "admin";
+  const defaults = new Set(cat.data?.roleDefaults[user.role] ?? []);
+  const changed = (cat.data?.permissions ?? []).filter((p) => on.has(p.key) !== defaults.has(p.key));
+  const save = async () => {
+    setError(null); setSaving(true);
+    try {
+      const overrides = Object.fromEntries((cat.data?.permissions ?? []).map((p) => [p.key, on.has(p.key)]));
+      const r = await api<{ changed: boolean }>(`/users/${user.id}/access`, { method: "PUT", body: { overrides } });
+      toast(r.changed ? `Access for ${user.fullName} saved` : "Nothing changed"); onSaved();
+    } catch (e) { setError(e); } finally { setSaving(false); }
+  };
+  const toggle = (k: string) => setOn((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
+  const finance = (k: string) => ["cash.deposit", "reconciliation.read", "adjustments.submit", "adjustments.approve"].includes(k);
+  return (
+    <Dialog title={`Access for ${user.fullName}`} onClose={onClose}
+            foot={admin ? <button onClick={onClose}>Close</button> : <>
+              <button onClick={() => setOn(new Set(defaults))} disabled={!changed.length}>Back to the role's defaults</button>
+              <span className="grow" />
+              <button className="btn-primary" onClick={() => void save()} disabled={saving || !cat.data}>{saving ? "Saving…" : "Save access"}</button></>}>
+      {cat.isLoading ? <Loading /> : cat.error ? <ErrorNotice error={cat.error} /> : (
+        <div className="stack" style={{ gap: "0.6rem" }}>
+          <p className="small muted" style={{ margin: 0 }}>
+            {admin ? "An admin always has every page and action (except writing fundus reports, which only doctors do). Change the role to limit this login."
+              : <>{roleName(user.role)} role defaults are marked <i>role</i>. Tick or untick to change this login only.
+                {" "}Finance: <b>Cash desk</b> records deposits without seeing Yarago's figures; <b>Finance, full view</b> sees everything (Dr Sameera).</>}
+          </p>
+          <table className="list compact access-table">
+            <thead><tr><th>Page</th><th>Can</th><th /></tr></thead>
+            <tbody>{cat.data!.permissions.map((p) => {
+              const differs = on.has(p.key) !== defaults.has(p.key);
+              return (
+                <tr key={p.key} className={finance(p.key) ? "access-finance" : undefined}>
+                  <td className="small">{p.page}</td>
+                  <td><label className="check" style={{ margin: 0 }}>
+                    <input type="checkbox" checked={on.has(p.key)} disabled={admin} onChange={() => toggle(p.key)} />
+                    <span>{p.label}</span></label></td>
+                  <td className="small nowrap">{defaults.has(p.key) ? <span className="muted">role</span> : null}{differs && <span className="tag alert">{on.has(p.key) ? "given" : "taken away"}</span>}</td>
+                </tr>);
+            })}</tbody>
+          </table>
+          {!admin && changed.length > 0 && <div className="small">{changed.length} change{changed.length === 1 ? "" : "s"} from the {roleName(user.role).toLowerCase()} role. Recorded in the activity log.</div>}
+          <ErrorNotice error={error} />
+        </div>)}
+    </Dialog>
   );
 }
 

@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type ReconResponse, type ReconRow, type ReconStatus } from "../api";
+import { api, type FeeReport, type ReconResponse, type ReconRow, type ReconStatus } from "../api";
 import { addDays, dayLabel, niceDate, rupees, stamp, todayIST } from "../format";
 import { useAuth } from "../auth";
 import { Drawer, ErrorNotice, Loading, useToast } from "../components/ui";
@@ -12,8 +12,8 @@ import { Drawer, ErrorNotice, Loading, useToast } from "../components/ui";
 export const METHOD_WORDS: Record<string, string> = { cash: "Cash", upi: "UPI", card: "Card", cheque: "Cheque", other: "Other", unrecorded: "Not recorded" };
 const SOURCE_WORDS: Record<string, string> = { clinic_bill: "Clinic bills", pharmacy_payment: "Pharmacy and optical", pharmacy: "Pharmacy and optical",
                                                opd_refund: "Clinic refund", pharmacy_refund: "Pharmacy refund" };
-const EDGE: Record<ReconStatus, string> = { matched: "ok", within_tolerance: "ok", awaiting: "plain", no_bank_data: "plain", cash_in_hand: "plain",
-                                            not_tracked: "plain", nothing_due: "plain", uncertain: "warn", difference: "bad" };
+const EDGE: Record<ReconStatus, string> = { matched: "ok", within_tolerance: "ok", settled_less_fee: "ok", fee_high: "warn", awaiting: "plain", no_bank_data: "plain",
+                                            cash_in_hand: "cash", cash_deposited: "ok", not_tracked: "plain", nothing_due: "plain", uncertain: "warn", difference: "bad" };
 /** ₹1,500 or −₹1,500 */
 const r0 = (n: number) => (n < 0 ? `−${rupees(-n)}` : rupees(n));
 
@@ -57,9 +57,11 @@ export function ReconciliationPage() {
           <Tile n={t.collected} label="Collected" sub="payments in Yarago" />
           <Tile n={t.refunds + t.adjustments.refunds} label="Refunds" sub={t.refundsUnrecorded ? `plus ${r0(t.refundsUnrecorded)} without a method` : undefined} />
           <Tile n={t.adjustments.count} label="Approved adjustments" count sub="included below, marked" to={can("adjustments.submit") ? "/adjustments?view=approved" : undefined} />
-          <Tile n={t.depositsMatched} label="Reached the bank" sub="matched credits" kind="ok" />
+          <Tile n={t.depositsMatched} label="Reached the bank" sub="matched credits and recorded cash deposits" kind="ok" />
+          <Tile n={t.bankFees} label="Kept by the bank" sub={t.feeHighDays ? `${t.feeHighDays} day(s) above the expected rate` : "card and UPI fees, from net settlements"} kind={t.feeHighDays ? "warn" : undefined} />
           <Tile n={t.notYetDue} label="Not yet known" sub="waiting for settlement or bank data" />
-          <Tile n={t.cashInHand} label="Cash not yet deposited" sub={t.cashDeposited ? `${r0(t.cashDeposited)} deposited` : "cash is not banked daily"} />
+          <Tile n={d!.cash.inHand.amount} label="Cash not yet deposited" to="/cash" kind={`cash ${d!.cash.inHand.level === "ok" ? "" : d!.cash.inHand.level}`}
+                sub={`${d!.cash.inHand.levelWords}${d!.cash.inHand.daysSinceLastDeposit != null ? `; last deposit ${d!.cash.inHand.daysSinceLastDeposit} day(s) ago` : ""} (all days, not only this period)`} />
           <Tile n={t.uncertain} label="Uncertain" sub="more than one possible credit" kind={t.uncertain ? "warn" : undefined} />
           <Tile n={t.differenceToExplain} label="Difference to explain" sub="window closed, no matching credit" kind={t.differenceToExplain ? "bad" : "ok"} />
           <Tile n={t.unclassifiedCredits} label="Bank credits not counted" sub="no rule or classification" kind={t.unclassifiedCredits ? "warn" : undefined} />
@@ -69,16 +71,19 @@ export function ReconciliationPage() {
           <div className="panel-head"><h2 className="grow">By payment method</h2><span className="small muted">Expected = collected − refunds ± approved adjustments − fees</span></div>
           <div className="table-wrap"><table className="list compact">
             <thead><tr><th>Method</th><th className="right">Collected</th><th className="right">Refunds</th><th className="right">Adjustments</th><th className="right">Fees</th>
-              <th className="right">Expected</th><th className="right">Reached bank</th><th className="right">Not yet known</th><th className="right">Uncertain</th><th className="right">Difference</th></tr></thead>
+              <th className="right">Expected</th><th className="right">Reached bank</th><th className="right">Kept by bank</th><th className="right">Not yet known</th><th className="right">Uncertain</th><th className="right">Difference</th></tr></thead>
             <tbody>{res.byMethod.map((m) => (
-              <tr key={m.method}><td><b>{METHOD_WORDS[m.method]}</b>{m.method === "cash" && <div className="small muted">in hand until deposited</div>}
+              <tr key={m.method}><td><b>{METHOD_WORDS[m.method]}</b>{m.method === "cash" && <div className="small muted">in hand until a deposit covers the day</div>}
                 {m.method !== "cash" && !res.trackedMethods.includes(m.method) && <div className="small muted">no bank rule</div>}</td>
                 <td className="right fig">{r0(m.collected)}</td><td className="right fig">{r0(m.refunds)}</td><td className="right fig">{m.adjustments ? r0(m.adjustments) : ""}</td>
                 <td className="right fig">{m.fees ? r0(m.fees) : ""}</td><td className="right fig">{r0(m.net - m.fees)}</td><td className="right fig">{r0(m.deposited)}</td>
+                <td className="right fig">{m.bankFees ? r0(m.bankFees) : ""}</td>
                 <td className="right fig">{m.notYetDue ? r0(m.notYetDue) : ""}</td><td className="right fig">{m.uncertain ? r0(m.uncertain) : ""}</td>
                 <td className={`right fig ${m.difference ? "bad-text" : ""}`}>{m.difference ? r0(m.difference) : ""}</td></tr>))}</tbody>
           </table></div>
         </section>
+
+        <BankFees f={d!.fees} />
 
         <section className="panel">
           <div className="panel-head"><h2 className="grow">Day by day</h2><span className="small muted">Open a row for the Yarago records and bank lines behind it</span></div>
@@ -91,7 +96,8 @@ export function ReconciliationPage() {
                   <td className="nowrap">{dayLabel(r.date)}</td><td>{METHOD_WORDS[r.method]}</td>
                   <td className="right fig">{r0(r.collected)}</td><td className="right fig">{r.refunds ? r0(r.refunds) : ""}</td>
                   <td className="right fig">{r.adjCollected || r.adjRefunds || r.fees ? <span title="Approved adjustments">{r0(r.adjCollected - r.adjRefunds - r.fees)} <span className="tag">adj.</span></span> : ""}</td>
-                  <td className="right fig">{r0(r.expected)}</td><td className="right fig">{r.method === "cash" && !r.deposited ? "" : r0(r.deposited)}</td>
+                  <td className="right fig">{r0(r.expected)}</td><td className="right fig">{r.method === "cash" && !r.deposited ? "" : r0(r.deposited)}
+                    {r.bankFee ? <div className="small muted">fee {r0(r.bankFee)}</div> : null}</td>
                   <td><StatusWord status={r.status} words={r.statusWords} />{r.note && <div className="small muted">{r.note}</div>}</td>
                   <td className="right"><button className="btn-small" onClick={(e) => { e.stopPropagation(); setOpen({ date: r.date, method: r.method }); }}>Open</button></td>
                 </tr>))}</tbody>
@@ -133,7 +139,9 @@ export function ReconciliationPage() {
                 {res.unclassified.map((u) => <CreditRow key={u.transactionId} id={u.transactionId} date={u.date} amount={u.amount} text={u.description} state="Not classified" canAsk={can("adjustments.submit")} />)}
                 {res.credits.filter((c) => c.state === "unmatched" || c.state === "uncertain").map((c) =>
                   <CreditRow key={c.transactionId} id={c.transactionId} date={c.date} amount={c.amount} text={c.description}
-                             state={`${METHOD_WORDS[c.method ?? "other"]} settlement, ${c.state === "uncertain" ? "could be more than one day" : "not matched to a day"}`} canAsk={can("adjustments.submit")} />)}
+                             state={c.method === "cash" ? "Cash deposit not recorded by the cash desk (Cash deposits page)"
+                               : `${METHOD_WORDS[c.method ?? "other"]} settlement, ${c.state === "uncertain" ? "could be more than one day" : "not matched to a day"}`}
+                             canAsk={can("adjustments.submit") && c.method !== "cash"} />)}
               </tbody>
             </table>
           </section>)}
@@ -164,7 +172,88 @@ export function ReconciliationPage() {
   );
 }
 
-function Tile({ n, label, sub, kind, count, to }: { n: number; label: string; sub?: string; kind?: "ok" | "warn" | "bad"; count?: boolean; to?: string }) {
+// D-053: what the bank kept from card and UPI money (net settlements) against the rates, and the terminal's charges
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const monthLabel = (m: string) => `${MONTH_NAMES[Number(m.slice(5, 7)) - 1]} ${m.slice(0, 4)}`;
+const pctText = (p: number | null) => (p == null ? "" : `${p.toFixed(2)}%`);
+const FEE_EDGE: Record<string, string> = { normal: "ok", none: "ok", high: "warn", not_settled: "bad", waiting: "plain" };
+function BankFees({ f }: { f: FeeReport }) {
+  const [days, setDays] = useState(false);
+  const [rates, setRates] = useState(false);
+  if (!f.days.length && !f.charges.length) return null;
+  return (
+    <section className="panel">
+      <div className="panel-head"><h2 className="grow">Bank fees</h2>
+        <span className="small muted">HDFC settles card money less its commission; UPI is free up to ₹2,000 (0.40% above, from 15 Oct 2026). Rates: {f.fixed.gstPct}% GST included.</span>
+        <button className="btn-small" onClick={() => setRates(!rates)}>{rates ? "Hide rates" : "Rates"}</button></div>
+      <div className="recon-tiles panel-pad">
+        <Tile n={f.totals.cardFees} label="Card fees kept" sub={`${pctText(f.totals.cardPct)} of ${rupees(f.totals.cardSales)} card money settled`} />
+        <Tile n={f.totals.upiFees} label="UPI fees kept" sub={f.upiFeesSeen ? `${pctText(f.totals.upiPct)} of UPI money settled` : "none in this period"} kind={f.upiFeesSeen ? "warn" : undefined} />
+        <Tile n={f.totals.charges} label="Terminal charges" sub={f.charges.length ? f.charges.map((c) => `${dayLabel(c.date)} ${rupees(c.amount)}`).join(", ") : `₹${f.fixed.servicePerMonth} + GST a month, none dated in this period`} />
+      </div>
+      {!!f.late.length && <div className="notice panel-pad">{f.late.map((l) => <div key={l.date}><b>{dayLabel(l.date)}</b>: {l.words}</div>)}</div>}
+      <div className="table-wrap"><table className="list compact">
+        <thead><tr><th>Month</th><th>Method</th><th className="right">Money</th><th className="right">Settled</th><th className="right">Kept by bank</th><th className="right">Rate</th>
+          <th className="right">Expected if all debit / all credit</th><th>Days above expected</th></tr></thead>
+        <tbody>{f.months.map((m) => (
+          <tr key={`${m.month}-${m.method}`} className={m.highDays ? "edge-warn" : undefined}><td>{monthLabel(m.month)}</td><td>{m.method === "card" ? "Card" : "UPI"}</td>
+            <td className="right fig">{rupees(m.sales)}</td><td className="right fig">{rupees(m.salesSettled)}</td><td className="right fig"><b>{rupees(m.feesKept)}</b></td>
+            <td className="right fig">{pctText(m.pct)}</td><td className="right fig small">{rupees(m.low)} – {rupees(m.high)}</td><td>{m.highDays || ""}</td></tr>))}</tbody>
+      </table></div>
+      <div className="panel-pad"><button className="btn-small" onClick={() => setDays(!days)}>{days ? "Hide days" : "Day by day"}</button></div>
+      {days && <div className="table-wrap"><table className="list compact">
+        <thead><tr><th>Day</th><th>Method</th><th className="right">Money</th><th className="right">Settled</th><th className="right">Kept</th><th className="right">Rate</th><th>What it means</th></tr></thead>
+        <tbody>{f.days.map((x) => <tr key={`${x.date}-${x.method}`} className={`edge-${FEE_EDGE[x.state]}`}><td className="nowrap">{dayLabel(x.date)}</td><td>{x.method === "card" ? "Card" : "UPI"}</td>
+          <td className="right fig">{rupees(x.sales)}</td><td className="right fig">{x.settled != null ? rupees(x.settled) : ""}</td><td className="right fig">{x.fee != null ? rupees(x.fee) : ""}</td>
+          <td className="right fig">{pctText(x.pct)}</td><td className="small">{x.words}</td></tr>)}</tbody>
+      </table></div>}
+      {rates && <FeeRates />}
+    </section>
+  );
+}
+
+function FeeRates() {
+  const { can } = useAuth();
+  const q = useQuery({ queryKey: ["fee-rates"], queryFn: () => api<{ rates: any[]; fixed: FeeReport["fixed"]; kinds: Record<string, string> }>("/recon/fee-rates") });
+  const qc = useQueryClient();
+  const toast = useToast();
+  const [draft, setDraft] = useState<{ effectiveFrom: string; rows: any[] } | null>(null);
+  const save = useMutation({
+    mutationFn: () => api("/recon/fee-rates", { method: "PUT", body: { effectiveFrom: draft!.effectiveFrom, rows: draft!.rows.map((r) => ({
+      method: r.method, kind: r.kind, amountAbove: Number(r.amountAbove), amountUpto: r.amountUpto === "" || r.amountUpto == null ? null : Number(r.amountUpto),
+      ratePct: Number(r.ratePct), capRupees: r.capRupees === "" || r.capRupees == null ? null : Number(r.capRupees),
+      flatRupees: r.flatRupees === "" || r.flatRupees == null ? null : Number(r.flatRupees), note: r.note ?? null })) } }),
+    onSuccess: () => { toast("Fee rates saved"); setDraft(null); void qc.invalidateQueries({ queryKey: ["fee-rates"] }); void qc.invalidateQueries({ queryKey: ["recon"] }); },
+    onError: (e: any) => toast(e.message, "err"),
+  });
+  if (!q.data) return <Loading />;
+  const sets = [...new Set(q.data.rates.map((r) => r.effectiveFrom))].sort().reverse();
+  const cell = (r: any, k: string, w = "6rem") => <input style={{ width: w }} value={r[k] ?? ""} onChange={(e) => setDraft({ ...draft!, rows: draft!.rows.map((x) => (x === r ? { ...x, [k]: e.target.value } : x)) })} />;
+  return (
+    <div className="panel-pad stack">
+      <p className="small muted" style={{ margin: 0 }}>Each set of rates is in force from its day until the next set. Placeholder: HDFC's published rates for SmartHub merchants until the bank sends the clinic's POS agreement rates.
+        {" "}Fixed: {q.data.fixed.gstPct}% GST, ₹{q.data.fixed.servicePerMonth} terminal service charge a month, ₹{q.data.fixed.perBatch} a settlement batch, late batch after {q.data.fixed.lateSettleDays} days.</p>
+      {sets.map((s) => (
+        <div key={s}><div className="row"><b className="grow">In force from {niceDate(s)}</b>
+          {can("adjustments.approve") && !draft && <button className="btn-small" onClick={() => setDraft({ effectiveFrom: todayIST(), rows: q.data!.rates.filter((r) => r.effectiveFrom === s).map((r) => ({ ...r })) })}>Copy as new rates</button>}</div>
+          <table className="list compact"><thead><tr><th>Payment</th><th className="right">Above</th><th className="right">Up to</th><th className="right">Rate</th><th className="right">At most</th><th>Note</th></tr></thead>
+            <tbody>{q.data!.rates.filter((r) => r.effectiveFrom === s).map((r) => <tr key={r.id}><td>{q.data!.kinds[r.kind]}</td><td className="right fig">{rupees(r.amountAbove)}</td>
+              <td className="right fig">{r.amountUpto != null ? rupees(r.amountUpto) : ""}</td><td className="right fig">{r.flatRupees != null ? `₹${r.flatRupees} flat` : `${r.ratePct}%`}</td>
+              <td className="right fig">{r.capRupees != null ? rupees(r.capRupees) : ""}</td><td className="small muted">{r.note}</td></tr>)}</tbody></table></div>))}
+      {draft && <div className="stack">
+        <label className="field"><span>New rates in force from</span><input type="date" value={draft.effectiveFrom} onChange={(e) => setDraft({ ...draft, effectiveFrom: e.target.value })} /></label>
+        <div className="table-wrap"><table className="list compact"><thead><tr><th>Payment</th><th>Above ₹</th><th>Up to ₹</th><th>Rate %</th><th>At most ₹</th><th>Flat ₹</th><th /></tr></thead>
+          <tbody>{draft.rows.map((r, i) => <tr key={i}><td>{q.data!.kinds[r.kind]}</td><td>{cell(r, "amountAbove")}</td><td>{cell(r, "amountUpto")}</td><td>{cell(r, "ratePct", "4.5rem")}</td>
+            <td>{cell(r, "capRupees")}</td><td>{cell(r, "flatRupees", "4.5rem")}</td>
+            <td><button className="btn-small" onClick={() => setDraft({ ...draft, rows: draft.rows.filter((x) => x !== r) })}>Remove</button></td></tr>)}</tbody></table></div>
+        <div className="row"><span className="grow" /><button onClick={() => setDraft(null)}>Cancel</button>
+          <button className="btn-primary" disabled={save.isPending} onClick={() => save.mutate()}>Save rates from {niceDate(draft.effectiveFrom)}</button></div>
+      </div>}
+    </div>
+  );
+}
+
+function Tile({ n, label, sub, kind, count, to }: { n: number; label: string; sub?: string; kind?: string; count?: boolean; to?: string }) {
   const body = <><div className="recon-tile-n fig">{count ? n : rupees(n)}</div><div className="recon-tile-l">{label}</div>{sub && <div className="small muted">{sub}</div>}</>;
   return to ? <Link to={to} className={`recon-tile ${kind ?? ""}`}>{body}</Link> : <div className={`recon-tile ${kind ?? ""}`}>{body}</div>;
 }
@@ -255,7 +344,7 @@ function Assistant({ from, to }: { from: string; to: string }) {
 }
 
 const CLASS_WORDS: Record<string, string> = { upi_settlement: "UPI settlement", card_settlement: "Card settlement", cash_deposit: "Cash deposit",
-                                              online_settlement: "Online payments settlement", not_clinic: "Not clinic money" };
+                                              online_settlement: "Online payments settlement", not_clinic: "Not clinic money", bank_charge: "Bank charge (money out)" };
 function BankRules() {
   const { can } = useAuth();
   const admin = can("adjustments.approve");

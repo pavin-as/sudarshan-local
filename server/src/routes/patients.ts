@@ -2,10 +2,9 @@
 // follow-ups; clinical detail (vision, IOP, diagnosis, findings, injections) needs clinical.read.
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { need } from "../auth.js";
+import { has, need } from "../auth.js";
 import { one, q } from "../db.js";
 import { notFound } from "../lib/errors.js";
-import { can } from "../lib/permissions.js";
 
 const idParam = z.object({ id: z.coerce.number().int().positive() });
 
@@ -41,7 +40,7 @@ export async function patientRoutes(app: FastifyInstance) {
               language, vip_category AS "vipCategory", registered_at AS "registeredAt"
          FROM clinical.patient WHERE patient_id = $1`, [id]);
     if (!patient) throw notFound("Patient");
-    const clinical = can(me.role, "clinical.read");
+    const clinical = has(me, "clinical.read");
 
     const [visits, due, followup, followupActions, appointments] = await Promise.all([
       q(`SELECT visit_id AS "visitId", to_char(visit_date,'YYYY-MM-DD') AS date, visit_type AS "visitType", doctor, status,

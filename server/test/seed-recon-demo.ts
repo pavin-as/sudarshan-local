@@ -1,7 +1,9 @@
 // Demo data for the reconciliation screens (D-052), TEST database only: a week of synthetic Yarago bills and pharmacy
 // payments ending yesterday, Zoho bank lines as if fetched now (UPI and card settled the next day, one UPI day short by a
 // refund Yarago shows as cash, a weekend card settlement, an unknown NEFT credit), a pending and an approved request.
-// Logins (test only): demo / Demo-Pass-42 (admin), demo_mgr / Demo-Pass-42 (manager).
+// D-053: card settled net of ~0.9% (as HDFC does), the terminal's monthly charge, a cash deposit recorded by the desk.
+// Logins (test only), password Demo-Pass-42: demo (admin), demo_mgr (manager given finance, full view),
+// demo_desk (manager given the cash desk only: blind deposits).
 //   SUDARSHAN_ENV=D:\Sudarshan\testdb\test.env npx tsx test/seed-recon-demo.ts
 import { randomUUID } from "node:crypto";
 import { pool } from "../src/db.js";
@@ -13,11 +15,18 @@ if (!process.env.SUDARSHAN_ENV) { console.error("Demo data goes into a TEST data
 const c = await pool.connect();
 await c.query("BEGIN"); await c.query("SET LOCAL app.skip_audit='on'");
 const h = await hashPassword("Demo-Pass-42");
-for (const [u, n, r] of [["demo", "Fameesha K", "admin"], ["demo_mgr", "Basith M", "manager"]])
+for (const [u, n, r] of [["demo", "Fameesha K", "admin"], ["demo_mgr", "Basith M", "manager"], ["demo_desk", "Syama T", "manager"]])
   await c.query(`INSERT INTO app.users (username, full_name, role, password_hash, must_change_password) VALUES ($1,$2,$3,$4,false)
                  ON CONFLICT (username) DO UPDATE SET password_hash = $4, role = $3, must_change_password = false, is_active = true`, [u, n, r, h]);
 const mgr = (await c.query(`SELECT id FROM app.users WHERE username = 'demo_mgr'`)).rows[0].id;
 const adm = (await c.query(`SELECT id FROM app.users WHERE username = 'demo'`)).rows[0].id;
+const desk = (await c.query(`SELECT id FROM app.users WHERE username = 'demo_desk'`)).rows[0].id;
+await c.query(`DELETE FROM app.user_permissions WHERE user_id IN ($1, $2)`, [mgr, desk]);
+await c.query(`INSERT INTO app.user_permissions (user_id, permission, allowed, set_by) VALUES ($1,'reconciliation.read',true,$3), ($1,'adjustments.submit',true,$3),
+               ($2,'cash.deposit',true,$3)`, [mgr, desk, adm]);
+await c.query(`ALTER TABLE app.cash_deposits DISABLE TRIGGER cash_deposits_guard`);
+await c.query(`DELETE FROM app.cash_deposits WHERE recorded_by IN ($1, $2, $3)`, [mgr, adm, desk]);
+await c.query(`ALTER TABLE app.cash_deposits ENABLE TRIGGER cash_deposits_guard`);
 
 // clear an earlier demo (ids 98xxxxxxx, Zoho ZD-*)
 await c.query(`ALTER TABLE app.recon_adjustments DISABLE TRIGGER recon_adjustments_guard; ALTER TABLE app.recon_adjustment_effects DISABLE TRIGGER recon_effects_guard`);
@@ -44,7 +53,7 @@ const refundDay = openDays[openDays.length - 4], corrDay = openDays[openDays.len
 for (let k = 7; k >= 1; k--) {
   const d = addDays(today, -k);
   if (!openDays.includes(d)) continue;
-  const bills: [string, number][] = [["cash", 500 + k * 100], ["cash", 1500], ["upi", 1200 + k * 50], ["upi", 3000], ["card", k % 2 ? 4500 + k * 35 : 0], ["cash", 13000 - k * 300]];
+  const bills: [string, number][] = [["cash", 500 + k * 100], ["cash", 1500], ["upi", 1200 + k * 650], ["upi", 3000], ["card", k % 2 ? 2500 + k * 900 : 0], ["cash", 13000 - k * 300]];
   let upi = 0, card = 0;
   for (const [j, [m, amt]] of bills.entries()) {
     if (!amt) continue;
@@ -73,14 +82,28 @@ for (let k = 7; k >= 1; k--) {
   }
   if (d === corrDay) upi += 1500;   // 1,500 entered as cash in Yarago was paid by UPI (the approved correction below): the bank has it
   if (next < today) bank.push([`ZD-UPI-${d}`, upi, `UPI SETTLEMENT -RYX181- ${dd} Ref Num: XXXXXXXXXXX0000`]);
-  if (card && next < today) bank.push([`ZD-CARD-${d}`, card, `XXXX7444TERMINAL 1 CARDS SETTL. ${dd} Ref Num: XXXXXXXXXXX0000`]);
+  // HDFC keeps its commission from the card settlement (about 0.9% on these days)
+  if (card && next < today) bank.push([`ZD-CARD-${d}`, Math.round(card * (1 - 0.0089) * 100) / 100, `XXXX7444TERMINAL 1 CARDS SETTL. ${dd} Ref Num: XXXXXXXXXXX0000`]);
 }
 bank.push([`ZD-NEFT`, 25000, "NEFT CR-HDFC0000001-TEST SOMEONE-RENT"]);
+// the cash desk banks the first three open days' cash, rounded down to ₹50, the next day
+const cashOf = async (from: string, to: string) => Number((await c.query(
+  `SELECT coalesce((SELECT sum(amount) FROM clinical.money_payment WHERE method = 'cash' AND on_date BETWEEN $1 AND $2), 0)
+        - coalesce((SELECT sum(amount) FROM clinical.money_refund WHERE method = 'cash' AND on_date BETWEEN $1 AND $2), 0) AS n`, [from, to])).rows[0].n);
+const depTo = openDays[2], depOn = addDays(depTo, 1);
+const depAmt = Math.floor((await cashOf(openDays[0], depTo)) / 50) * 50;
+bank.push([`ZD-CASH-${depOn}`, depAmt, "CASH DEPOSIT BY - SYAMA - TIRUR"]);
 for (const [tid, amt, desc] of bank) {
-  const date = tid === "ZD-NEFT" ? addDays(today, -3) : addDays(tid.slice(-10), 1);
+  const date = tid === "ZD-NEFT" ? addDays(today, -3) : tid.startsWith("ZD-CASH") ? depOn : addDays(tid.slice(-10), 1);
   await c.query(`INSERT INTO app.zoho_bank_txns (transaction_id, account_id, txn_date, amount, debit_or_credit, transaction_type, zoho_status, description, raw, raw_hash)
                  VALUES ($1,'ZDACC',$2,$3,'credit','deposit','uncategorized',$4,'{}','demo')`, [tid, date, amt, desc]);
 }
+// the terminal's monthly service charge, money out
+await c.query(`INSERT INTO app.zoho_bank_txns (transaction_id, account_id, txn_date, amount, debit_or_credit, transaction_type, zoho_status, description, raw, raw_hash)
+               VALUES ('ZD-SC','ZDACC',$1,116.82,'debit','expense','uncategorized','Service Charges-OCT26-XXXXXXX0000-RYX181','{}','demo')`, [openDays[3]]);
+await c.query(`UPDATE app.settings SET value = $1 WHERE key = 'cash.book'`, [JSON.stringify({ start: openDays[0], opening: 0, bankFrom: openDays[0] })]);
+await c.query(`INSERT INTO app.cash_deposits (request_key, deposited_on, covers_to, amount, slip_no, recorded_by) VALUES ($1,$2,$3,$4,'TEST-0412',$5)`,
+              [randomUUID(), depOn, depTo, depAmt, desk]);
 await c.query(`INSERT INTO app.zoho_bank_accounts (account_id, account_name, account_type, feed_refreshed_on) VALUES ('ZDACC','TEST Current Account','bank',$1)
                ON CONFLICT (account_id) DO UPDATE SET feed_refreshed_on = $1`, [today]);
 await c.query(`INSERT INTO app.zoho_fetch_runs (date_from, date_to, status, finished_at, counts) VALUES ($1, $2, 'ok', now(), '{"lines": ${bank.length}}')`, [addDays(today, -20), today]);
@@ -105,4 +128,4 @@ const rf = { kind: "refund_method", onDate: d4, amount: 400, sourceMethod: "upi"
              billNo: null, patientId: 980000003, reason: "TEST demo: the refund for the cancelled OCT went back by UPI; Yarago shows cash" };
 await ins(rf, effectsFor(rf as any), "pending");
 await c.query("COMMIT"); c.release(); await pool.end();
-console.log(`Reconciliation demo data in place: ${bank.length} bank lines; log in as demo or demo_mgr (Demo-Pass-42).`);
+console.log(`Reconciliation demo data in place: ${bank.length} bank lines; log in as demo, demo_mgr or demo_desk (Demo-Pass-42).`);

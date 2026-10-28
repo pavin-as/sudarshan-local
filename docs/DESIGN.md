@@ -211,6 +211,25 @@ with cut-offs from `?validation=<frozen validation set>` or the starting cut-off
   - `pages/Adjustments.tsx`: the request form with a preview of its effects, the lists, and the drawer with decisions,
     reversal and correction.
 
+### Access per login, cash book, bank fees (D-053)
+- **Access:** `lib/permissions.ts` keeps the role defaults and `PERMISSION_INFO` (page and words per permission).
+  `effectivePermissions(role, overrides)`: an admin's set is fixed. The session lookup in `auth.ts` reads the login's
+  `app.user_permissions` on every request, so `need()` / `needAny()` / `has()` use `req.user.permissions`; never check
+  `role` for a permission. Users page: `AccessDialog` (`GET /api/users/access`, `PUT /api/users/:id/access`).
+- **Bank fees:** `services/bankFees.ts` is pure: `ratesOn`, `feeOn`, `paymentBand`, `dayBands` (fee range per day and
+  method, given to `reconcile()` as `feeBands`) and `feeReport` (days, months, charges, late batches). `reconcile()`
+  accepts a credit short by up to the ceiling and reports `bankFee`.
+- **Cash book:** `services/cashBook.ts` is pure: `cashBook(input)` (deposit checks, carry, bank match, cash in hand) and
+  `deskView(book)`, the only thing a cash-desk login is sent. `reconData.loadCashBook` builds the input;
+  `reconcile()` gets the covered days (`cash`) so cash rows say Deposited.
+- **API:** `routes/cash.ts`: `GET /api/cash` (cash.deposit or reconciliation.read; the full book only with the latter),
+  `POST /api/cash/deposits` (cash.deposit; advisory lock, `request_key`), `POST /api/cash/deposits/:id/void` and
+  `PUT /api/cash/settings` (adjustments.approve). `GET/PUT /api/recon/fee-rates` in `routes/reconciliation.ts`.
+- **Screens:** `pages/Cash.tsx` (banner in the cash colour, deposit form with a confirm step, desk list or checked book,
+  settings); `Reconciliation.tsx` gains the cash tile, "Kept by the bank", and the Bank fees section with rates.
+- **Zoho:** `listBankTransactions` reads `Status.All` and `Status.Uncategorized`, newest first, until a page is before
+  the period (Zoho ignores date filters), and turns Zoho's ledger side round (`debit` = money in).
+
 ### Adding a feature (checklist)
 1. Read DECISIONS.md and COMPLIANCE.md; if the feature conflicts, ask first.
 2. Migration (if needed) + SCHEMA.md; audit triggers for new tables.
