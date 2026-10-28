@@ -230,6 +230,22 @@ with cut-offs from `?validation=<frozen validation set>` or the starting cut-off
 - **Zoho:** `listBankTransactions` reads `Status.All` and `Status.Uncategorized`, newest first, until a page is before
   the period (Zoho ignores date filters), and turns Zoho's ledger side round (`debit` = money in).
 
+### Books audit (D-054)
+- **Checks:** `services/booksAudit.ts` is pure: `booksAudit(input)` returns each check (group, title, target, level,
+  due, not due yet, amount, words, items with what to do). Work dated after `today − dueDays` is "not due yet" and
+  never colours a check. `weakNarration()` decides a narration is only the bank's text.
+- **Repeats:** `splitRepeats()` / `lineShape()` in `reconcile.ts`: a bank line Zoho holds twice counts once wherever
+  bank lines are read (`reconData.bankLines`, used by the reconciliation and the cash book).
+- **Data:** `services/booksAuditData.ts`: `loadAudit()` (Zoho copies, bank rules, Yarago payments less refunds per day),
+  `saveAuditSnapshot()` after each fetch (the Zoho job; the page's fetch), `auditTrend()` (last snapshot of each
+  Saturday-to-Friday week). Invoices and expenses count as readable only when the last good fetch copied them.
+- **API:** `routes/booksAudit.ts`: `GET /api/books-audit`, `POST /api/books-audit/fetch` (books.audit; reads Zoho from the
+  audit's start), `PUT /api/books-audit/settings` (adjustments.approve).
+- **Screen:** `pages/BooksAudit.tsx`: score tiles, weekly trend, a table per group with the items behind each check,
+  targets (admin), and a print-only sheet (`.audit-sheet`, A4 portrait) of what is due with a box to tick.
+- **Zoho:** `listInvoices`, `listExpenses`; a refused read for lack of a scope is `ZohoError.denied`, recorded as -1 in
+  the run's counts, and the fetch goes on.
+
 ### Adding a feature (checklist)
 1. Read DECISIONS.md and COMPLIANCE.md; if the feature conflicts, ask first.
 2. Migration (if needed) + SCHEMA.md; audit triggers for new tables.

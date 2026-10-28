@@ -5,6 +5,8 @@ import { AdjustmentRefused, categoryOf, classify, effectsFor, reconcile, reversa
 import { dayBands, feeOn, feeReport, paymentBand, ratesOn, type FeeRate } from "../src/services/bankFees.js";
 import { cashBook, deskView, type CashBookInput, type CashDeposit } from "../src/services/cashBook.js";
 import { effectivePermissions, PERMISSIONS } from "../src/lib/permissions.js";
+import { lineShape, splitRepeats } from "../src/services/reconcile.js";
+import { booksAudit, DEFAULT_AUDIT, weakNarration, type AuditBankLine, type AuditInput } from "../src/services/booksAudit.js";
 
 let passed = 0;
 function check(name: string, fn: () => void) {
@@ -412,6 +414,97 @@ check("a reversal's effects cancel the original exactly", () => {
 
 check("same input, same answer (no hidden state, no clock)", () => {
   assert.deepEqual(reconcile(OCT9()), reconcile(OCT9()));
+});
+
+// ---------- a statement imported by PDF over the feed (28 Oct 2026), and the Books audit (D-054) ----------
+check("a PDF statement's lines match the rules (double spaces, RY9181 spelt out) and a line imported twice counts once", () => {
+  const rules: BankRule[] = [{ ...RULES[0], pattern: "UPI SETTLEMENT\\s*-RY[X9]181-" }, RULES[1]];
+  const pdfUpi = credit("2026-10-22", 20901.79, "UPI  SETTLEMENT  -RY9181-  22/10/26");
+  const pdfCard = credit("2026-10-22", 18599.6, "66027444TERMINAL  1  CARDS  SETTL.  22/10/26");
+  assert.equal(classify(pdfUpi, rules)?.class, "upi_settlement"); assert.equal(classify(pdfCard, rules)?.class, "card_settlement");
+  assert.equal(lineShape("UPI SETTLEMENT -RYX181- 21/10/26 Ref Num: XXXXXXXXXXX0000"), lineShape("UPI  SETTLEMENT  -RY9181-  21/10/26"));
+  assert.equal(lineShape("XXXX7444TERMINAL 1 CARDS SETTL. 02/09/26 Ref Num: X"), lineShape("66027444TERMINAL 1 CARDS SETTL. 02/09/26"));
+  assert.notEqual(lineShape("NEFT DR-KLGBXXXX157-LEELA K T-NETBANK"), lineShape("NEFT DR-IDIB000T139-DIVYA OPTOMETRY-NETBANK"), "two people paid the same amount are not one line");
+  const feed = { ...credit("2026-10-21", 281, "UPI SETTLEMENT -RYX181- 21/10/26 Ref Num: XXXXXXXXXXX0000", "1274340000002395002"), zohoStatus: "categorized" };
+  const pdf = credit("2026-10-21", 281, "UPI  SETTLEMENT  -RY9181-  21/10/26", "1274340000002399001");
+  const { lines, repeats } = splitRepeats([pdf, feed, pdfUpi]);
+  assert.deepEqual(lines.map((l) => l.transactionId).sort(), [feed.transactionId, pdfUpi.transactionId].sort(), "the categorised copy is kept");
+  assert.equal(repeats.length, 1); assert.equal(repeats[0].copy.transactionId, pdf.transactionId);
+  // counted once by the reconciliation: one exact match, not "uncertain"
+  const r = reconcile(input({ from: "2026-10-20", to: "2026-10-20", rules, payments: [pay("2026-10-20", "upi", 281)], bank: lines }));
+  assert.equal(row(r, "2026-10-20", "upi").status, "matched");
+});
+
+const AL = (date: string, amount: number, side: "credit" | "debit", description: string, extra: Partial<AuditBankLine> = {}): AuditBankLine =>
+  ({ transactionId: `a${++n}`, accountId: "A", date, amount, debitOrCredit: side, description, zohoStatus: "uncategorized", missing: false, type: "uncategorized", offsetAccount: null, ...extra });
+const AUDIT_RULES: BankRule[] = [{ ...RULES[0], pattern: "UPI SETTLEMENT\\s*-RY[X9]181-" }, RULES[1],
+  { id: 3, position: 30, pattern: "^CASH DEPOSIT BY\\b", class: "cash_deposit", method: "cash", windowDays: 3, isActive: true },
+  { id: 4, position: 40, pattern: "^(SERVICE|LOW USAGE|SETTLEMENT) CHARGES?-[A-Z]{3}[0-9X]{2}-", class: "bank_charge", method: "card", windowDays: 0, isActive: true }];
+const audit = (p: Partial<AuditInput>) => booksAudit({ today: "2026-10-30", settings: { ...DEFAULT_AUDIT, from: "2026-10-01", qualityFrom: "2026-10-01" },
+  rules: AUDIT_RULES, bank: [], clinicDays: [], invoices: [], expenses: [], ...p });
+const C = (r: ReturnType<typeof booksAudit>, key: string) => r.checks.find((c) => c.key === key)!;
+
+check("books audit: only work older than a week is due (Basith comes weekly); newer work is 'not due yet', never amber or red", () => {
+  const r = audit({ bank: [AL("2026-10-29", 9851.96, "credit", "UPI  SETTLEMENT  -RY9181-  29/10/26"), AL("2026-10-17", 352150, "credit", "CASH DEPOSIT BY - SYAMILI - TIRUR"),
+                           AL("2026-10-15", 116.82, "debit", "SERVICE CHARGES-SEPXX-XXXXX444-RY9181 Ref Num: X")] });
+  assert.equal(r.dueBefore, "2026-10-23");
+  const inn = C(r, "uncat_in");
+  assert.deepEqual([inn.due, inn.notDue, inn.level], [1, 1, "amber"]);
+  assert.match(inn.items[0].todo, /Transfer from Petty Cash/, "a cash deposit is a transfer from Petty Cash");
+  assert.match(C(r, "uncat_out").items[0].todo, /Bank Fees and Charges/, "the masked terminal charge is a bank charge");
+  const fresh = audit({ bank: [AL("2026-10-29", 9851.96, "credit", "UPI SETTLEMENT -RYX181- 29/10/26")] });
+  assert.equal(C(fresh, "uncat_in").level, "green");
+});
+
+check("books audit: bank behind, days missing from the statement, lines twice, clinic money of the wrong kind", () => {
+  const days = [{ date: "2026-10-05", collected: 50000, upiCard: 20000 }, { date: "2026-10-06", collected: 40000, upiCard: 15000 }];
+  const bank = [AL("2026-10-05", 100, "debit", "X"), AL("2026-10-06", 100, "debit", "Y"), AL("2026-10-09", 100, "debit", "Z"), AL("2026-10-20", 5, "debit", "LAST"),
+                AL("2026-10-12", 30887.83, "credit", "UPI SETTLEMENT -RYX181- 11/10/26", { zohoStatus: "categorized", type: "deposit", offsetAccount: "General Income" }),
+                AL("2026-10-02", 2897, "credit", "UPI SETTLEMENT -RYX181- 01/10/26 Ref Num: X", { zohoStatus: "categorized", type: "customer_payment" }),
+                AL("2026-10-02", 2897, "credit", "UPI SETTLEMENT -RY9181- 01/10/26")];
+  const r = audit({ clinicDays: days, bank });
+  assert.equal(C(r, "bank_current").level, "red", "10 days behind");
+  assert.match(C(r, "bank_current").items[0].todo, /from 21 Oct/);
+  assert.deepEqual(C(r, "bank_gaps").items.map((i) => i.date), ["2026-10-07"], "6 Oct's UPI and card had no bank line on 7 or 8 Oct; 5 Oct's settled on 6 Oct");
+  assert.equal(C(r, "repeats").due, 1); assert.equal(C(r, "repeats").level, "red");
+  assert.match(C(r, "repeats").items[0].todo, /uncategorised copy.*categorised already/);
+  assert.equal(C(r, "uncat_in").due, 0, "the copy is a repeat, not money to categorise");
+  assert.match(C(r, "wrong_type").items[0].what, /UPI settlement ₹30,887.83 booked as deposit \(General Income\)/);
+});
+
+check("books audit: daily Patients invoice missing, differing from Yarago, unpaid, entered late; not measured without the scope", () => {
+  const days = [{ date: "2026-10-08", collected: 66864, upiCard: 20000 }, { date: "2026-10-09", collected: 64988, upiCard: 22875 }, { date: "2026-10-10", collected: 80128, upiCard: 30000 }];
+  const inv = (number: string, date: string, total: number, balance: number, createdOn: string) =>
+    ({ id: number, number, date, customer: "Patients", status: balance ? "overdue" : "paid", total, balance, createdOn });
+  const r = audit({ clinicDays: days, invoices: [inv("INV-0784", "2026-10-08", 66864, 0, "2026-10-22"), inv("INV-0785", "2026-10-09", 62588, 0, "2026-10-22"),
+                                                 { ...inv("X", "2026-10-10", 5, 5, "2026-10-22"), customer: "Eyegear Optics" }] });
+  assert.deepEqual(C(r, "invoice_missing").items.map((i) => i.date), ["2026-10-10"], "another customer's invoice is not the Patients invoice");
+  assert.match(C(r, "invoice_amount").items[0].what, /INV-0785 9 Oct: ₹62,588 in Zoho, ₹64,988 collected in Yarago \(less by ₹2,400\)/);
+  assert.equal(C(r, "invoice_unpaid").due, 0);
+  assert.match(C(r, "invoice_lag").summary, /^14 days late on average/); assert.equal(C(r, "invoice_lag").level, "amber");
+  const unpaid = audit({ clinicDays: days, invoices: [inv("INV-0774", "2026-10-08", 259074, 259074, "2026-10-15")] });
+  assert.match(C(unpaid, "invoice_unpaid").items[0].todo, /Record the day's payments/);
+  const none = audit({ invoices: null, expenses: null });
+  assert.equal(none.checks.filter((c) => c.level === "not_measured").length, 9);
+  assert.ok(none.score != null, "the score counts only what is measured");
+});
+
+check("books audit: expense narration, vendor, receipt, vague account, Petty Cash; and the score", () => {
+  assert.ok(weakNarration("ME DC SI 514834XXXXXX0502 SPOTIFYINDIA") && weakNarration("misc") && weakNarration(null)
+            && weakNarration("RTGS DR-SBIN0017873-DR SAMEERA SBI-NETBA NK (Ref# HDFCR52026)"));
+  assert.ok(!weakNarration("fuel exp amaze 05/09/2026") && !weakNarration("staff onam celebration expense(flower,banana,lemon)"));
+  const ex = (date: string, total: number, o: Record<string, unknown>) => ({ id: `e${++n}`, date, account: "Itemized", paidThrough: "Current Account",
+    description: "printer toner for OCT room", vendor: "Sri Ram Stores" as string | null, total, hasAttachment: true, ...o });
+  const r = audit({ expenses: [ex("2026-10-02", 4194, { paidThrough: "Petty Cash", description: "food exp (daksh) 07/09/2026", vendor: null, hasAttachment: false }),
+                               ex("2026-10-03", 139, { description: "ME DC SI 514834XXXXXX0502 SPOTIFYINDIA", account: "Miscellaneous Expenses", vendor: null }),
+                               ex("2026-09-20", 9999, { vendor: null, hasAttachment: false })] });
+  assert.deepEqual([C(r, "exp_narration").due, C(r, "exp_vendor").due, C(r, "exp_receipt").due, C(r, "exp_account").due, C(r, "exp_petty").due], [1, 1, 1, 1, 1],
+                   "the 20 Sep expense is before the rules start; the ₹139 one is under the vendor and receipt amounts");
+  assert.equal(C(r, "exp_petty").level, "red", "Pavin: all cash is banked, so any Petty Cash expense is off target");
+  // no bank lines at all is the one check off target: 2 points for each of the other 13, of 28
+  const empty = audit({});
+  assert.deepEqual(empty.checks.filter((c) => c.level !== "green").map((c) => c.key), ["bank_current"]);
+  assert.equal(empty.score, Math.round((26 / 28) * 100));
 });
 
 console.log(`\n${passed} reconciliation checks passed`);

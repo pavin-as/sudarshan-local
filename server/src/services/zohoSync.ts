@@ -5,7 +5,8 @@ import { createHash } from "node:crypto";
 import type { FastifyBaseLogger } from "fastify";
 import { one, q, withTx } from "../db.js";
 import { addDays, todayIST } from "../lib/time.js";
-import { listBankAccounts, listBankTransactions, listCustomerPayments, zohoAccountIds, zohoConfigured, ZohoError, type ZBankTxn } from "./zohoBooks.js";
+import { listBankAccounts, listBankTransactions, listCustomerPayments, listExpenses, listInvoices, zohoAccountIds, zohoConfigured, ZohoError,
+         type ZBankTxn } from "./zohoBooks.js";
 
 const sorted = (v: any): any => Array.isArray(v) ? v.map(sorted)
   : v && typeof v === "object" ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, sorted(v[k])])) : v;
@@ -33,6 +34,13 @@ export async function fetchZoho(from: string, to: string, requestedBy: number | 
     const lines: ZBankTxn[] = [];
     for (const a of chosen) lines.push(...(await listBankTransactions(a.accountId, from, to)));
     const payments = await listCustomerPayments(from, to);
+    // the Books audit's copies (D-054): a self-client without those READ scopes still copies the bank (-1 = not allowed)
+    const optional = async <T>(read: () => Promise<T[]>, key: string): Promise<T[] | null> => {
+      try { return await read(); }
+      catch (e) { if (e instanceof ZohoError && e.denied) { counts[key] = -1; return null; } throw e; }
+    };
+    const invoices = await optional(() => listInvoices(from, to), "invoices");
+    const expenses = await optional(() => listExpenses(from, to), "expenses");
 
     await withTx({ userId: requestedBy, source, summary: `Zoho copy updated for ${from} to ${to}` }, async (c) => {
       for (const a of chosen) {
@@ -76,6 +84,35 @@ export async function fetchZoho(from: string, to: string, requestedBy: number | 
                       [p.paymentId, p.date, p.mode, p.amount, p.accountId, p.accountName, p.description, p.reference, p.invoiceNumbers, p.raw, rawHash(p.raw)]);
         counts.payments++;
       }
+      if (invoices) {
+        counts.invoices = 0;
+        for (const i of invoices) {
+          await c.query(`INSERT INTO app.zoho_invoices (invoice_id, invoice_number, inv_date, customer_name, status, total, balance, created_time, raw, raw_hash)
+                         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+                         ON CONFLICT (invoice_id) DO UPDATE SET invoice_number = EXCLUDED.invoice_number, inv_date = EXCLUDED.inv_date,
+                           customer_name = EXCLUDED.customer_name, status = EXCLUDED.status, total = EXCLUDED.total, balance = EXCLUDED.balance,
+                           created_time = EXCLUDED.created_time, raw = EXCLUDED.raw, raw_hash = EXCLUDED.raw_hash, last_seen_at = now(), missing_since = NULL`,
+                        [i.invoiceId, i.number, i.date, i.customer, i.status, i.total, i.balance, i.createdTime, i.raw, rawHash(i.raw)]);
+          counts.invoices++;
+        }
+        await c.query(`UPDATE app.zoho_invoices SET missing_since = now() WHERE inv_date BETWEEN $1 AND $2 AND missing_since IS NULL AND NOT (invoice_id = ANY($3))`,
+                      [from, to, invoices.map((i) => i.invoiceId)]);
+      }
+      if (expenses) {
+        counts.expenses = 0;
+        for (const e of expenses) {
+          await c.query(`INSERT INTO app.zoho_expenses (expense_id, exp_date, account_name, paid_through, description, reference_number, vendor_name, total,
+                           has_attachment, created_time, raw, raw_hash) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+                         ON CONFLICT (expense_id) DO UPDATE SET exp_date = EXCLUDED.exp_date, account_name = EXCLUDED.account_name,
+                           paid_through = EXCLUDED.paid_through, description = EXCLUDED.description, reference_number = EXCLUDED.reference_number,
+                           vendor_name = EXCLUDED.vendor_name, total = EXCLUDED.total, has_attachment = EXCLUDED.has_attachment,
+                           created_time = EXCLUDED.created_time, raw = EXCLUDED.raw, raw_hash = EXCLUDED.raw_hash, last_seen_at = now(), missing_since = NULL`,
+                        [e.expenseId, e.date, e.account, e.paidThrough, e.description, e.reference, e.vendor, e.total, e.hasAttachment, e.createdTime, e.raw, rawHash(e.raw)]);
+          counts.expenses++;
+        }
+        await c.query(`UPDATE app.zoho_expenses SET missing_since = now() WHERE exp_date BETWEEN $1 AND $2 AND missing_since IS NULL AND NOT (expense_id = ANY($3))`,
+                      [from, to, expenses.map((e) => e.expenseId)]);
+      }
       await c.query(`UPDATE app.zoho_fetch_runs SET finished_at = now(), status = 'ok', counts = $2 WHERE id = $1`, [run, counts]);
     });
     return { runId: run, status: "ok", counts, message: null };
@@ -107,7 +144,9 @@ export async function zohoStatus(): Promise<ZohoStatus> {
   return { configured: zohoConfigured(), fetchedAt, feedRefreshedOn: known, stale, staleHours, running, lastRun: last ?? null };
 }
 
-/** Every 10 minutes: fetch the last 45 days when the copy is over 2 hours old, 08:00-22:00 only. */
+/** Every 10 minutes: fetch the last 45 days when the copy is over 2 hours old, 08:00-22:00 only. The first fetch of a
+ *  day goes back to the Books audit's start (D-054: what the bookkeeper categorised or entered late is seen), and each
+ *  fetch saves the day's audit score. */
 export function startZohoJobs(log: FastifyBaseLogger): NodeJS.Timeout[] {
   const tick = async () => {
     if (!zohoConfigured() || running) return;
@@ -116,8 +155,12 @@ export function startZohoJobs(log: FastifyBaseLogger): NodeJS.Timeout[] {
     const last = await one<{ started_at: string }>(`SELECT started_at::text FROM app.zoho_fetch_runs ORDER BY started_at DESC LIMIT 1`);
     if (last && Date.now() - Date.parse(last.started_at) < 2 * 3600_000) return;
     const today = todayIST();
-    const r = await fetchZoho(addDays(today, -45), today, null);
+    const { auditSettings, saveAuditSnapshot } = await import("./booksAuditData.js");
+    const auditFrom = (await auditSettings()).from;
+    const deepToday = await one(`SELECT 1 FROM app.zoho_fetch_runs WHERE status = 'ok' AND date_from <= $1 AND (started_at AT TIME ZONE 'Asia/Kolkata')::date = $2`, [auditFrom, today]);
+    const r = await fetchZoho(deepToday ? addDays(today, -45) : auditFrom, today, null);
     if (r.status === "failed") log.warn({ run: r.runId }, `Zoho fetch failed: ${r.message}`);
+    else await saveAuditSnapshot(today);
   };
   return [setInterval(() => { tick().catch((e) => log.error({ err: String(e?.message ?? e) }, "Zoho job failed")); }, 10 * 60_000)];
 }

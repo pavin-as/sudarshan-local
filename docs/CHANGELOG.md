@@ -5,6 +5,21 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Books audit; HDFC statements imported by PDF** (D-054).
+  - **Books audit (new page, admin and Dr Sameera):** how well Zoho Books is kept, checked every day and scored each
+    week: bank statement up to date and complete, no line imported twice, bank lines categorised (money in and out),
+    clinic money booked as the right kind, a Patients invoice for every clinic day matching Yarago and fully paid,
+    expenses with a narration, vendor, receipt, a clear account and none from Petty Cash. Only work over a week old
+    counts (Basith comes weekly). "Print Basith's sheet" prints what is due, with a box to tick.
+  - **Statements imported by PDF** (Yodlee's feed broke on 21 Oct): the UPI and card settlements in them are recognised
+    (double spaces, RY9181), and a line Zoho holds twice counts once. 22-27 Oct card fees now show.
+  - **Wording:** a card day with no settlement lists the possible causes (late batch, a bank line missing from Zoho, a
+    batch spanning two days, card entered under another method) instead of "settle the terminal batch daily".
+  - Technical: migration `0031_books_audit.sql` (`zoho_invoices`, `zoho_expenses`, `books_audit_snapshots`, setting
+    `books.audit`, `books.audit` for Dr Sameera, bank rule patterns); `services/booksAudit.ts` (pure),
+    `services/booksAuditData.ts`, `routes/booksAudit.ts`; `splitRepeats()` and `lineShape()` in `reconcile.ts`; the Zoho
+    fetch reads invoices and expenses when allowed (-1 in the run's counts when not) and once a day from the audit's
+    start; `setup-zoho.ps1` asks for `ZohoBooks.invoices.READ` and `ZohoBooks.expenses.READ`.
 - **HDFC's own POS rates; bank data end; cash before the book** (D-053).
   - Bank fees now use the clinic's HDFC commercials (terminal 66027444): RuPay debit and UPI free; other debit 0.40% up
     to ₹2,000, 0.90% above; credit 1.60%; business, commercial and foreign 2.75%; + tax (migration

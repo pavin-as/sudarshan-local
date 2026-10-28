@@ -324,7 +324,15 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
   - ask HDFC about 17 Oct UPI: ₹764.32 kept from ₹73,649 although the agreement says UPI is free.
 - [x] D-053 deployed 28 Oct 14:00; first fetch on the fixed code read 97 uncategorised lines (bank lines to 21 Oct).
 - [x] HDFC's own rates (TID 66027444) in force (migration 0030, applied 28 Oct). The "bank lines known up to" and
-      "before the cash book" fixes are committed: **not live until `update.ps1` runs again.**
+      "before the cash book" fixes and the fee tile's wording were deployed by `update.ps1` at 14:26, 28 Oct.
+- [x] Books audit and PDF statement fixes built (28 Oct, D-054, migration 0031): 33 + 18 checks pass, `api.test.ts`
+      passes, browser-checked with synthetic data at desktop and phone width. **Not committed, not deployed.**
+- [ ] Pavin, after deploying D-054 (`update.ps1`, outside clinic hours):
+  - run `scripts\setup-zoho.ps1` again with the invoice and expense scopes (RUNBOOK 14), then Books audit > Fetch from
+    Zoho;
+  - every Friday: Fetch from Zoho, Print Basith's sheet;
+  - decide about the second card terminal (TID 64061321, EGD494): ₹116.82 + ₹588.82 low-usage charge a month;
+  - while Yodlee's feed is broken, import HDFC's statement into Zoho each week.
 
 ## Next step
 Trial running on live Google data (D-025). Remaining, in order:

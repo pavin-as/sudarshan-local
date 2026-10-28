@@ -123,9 +123,40 @@ function firstRule(line: BankLine, rules: BankRule[]): BankRule | null {
     if (!r.isActive) continue;
     let re: RegExp;
     try { re = new RegExp(r.pattern, "i"); } catch { continue; }
-    if (re.test(line.description ?? "")) return r;
+    // a statement imported by PDF has double spaces where the feed has one (Zoho, 28 Oct 2026)
+    if (re.test((line.description ?? "").replace(/\s+/g, " ").trim())) return r;
   }
   return null;
+}
+
+/** A bank line's wording with what the feed masks and a PDF import spells out made equal: digits and X become #,
+ *  spaces collapse, the feed's "Ref Num: ..." tail goes ("XXXX7444TERMINAL 1 CARDS SETTL. 20/10/26 Ref Num: X" and
+ *  "66027444TERMINAL  1  CARDS  SETTL.  20/10/26" are one line). */
+export function lineShape(description: string | null): string {
+  return (description ?? "").toUpperCase().replace(/\s*\(?REF(\s*NUM:|#).*$/, "").replace(/[0-9X]/g, "#").replace(/\s+/g, " ").trim();
+}
+
+export interface Repeat<T> { kept: T; copy: T }
+/** Lines Zoho holds twice: a statement imported over the feed, or imported twice (same account, day, side, amount and
+ *  wording). The copy kept is the categorised one, else the older; the other is a repeat and is never counted. */
+export function splitRepeats<T extends BankLine>(lines: T[]): { lines: T[]; repeats: Repeat<T>[] } {
+  const done = (b: BankLine) => b.zohoStatus != null && b.zohoStatus !== "uncategorized";
+  const older = (a: BankLine, b: BankLine) => a.transactionId.length - b.transactionId.length || a.transactionId.localeCompare(b.transactionId);
+  const groups = new Map<string, T[]>();
+  for (const b of lines) {
+    if (b.missing) continue;
+    const k = `${b.accountId}|${b.date}|${b.debitOrCredit}|${Math.round(Number(b.amount) * 100)}|${lineShape(b.description)}`;
+    groups.set(k, [...(groups.get(k) ?? []), b]);
+  }
+  const repeated = new Set<string>();
+  const repeats: Repeat<T>[] = [];
+  for (const g of groups.values()) {
+    if (g.length < 2) continue;
+    const [kept, ...copies] = [...g].sort((a, b) => Number(done(b)) - Number(done(a)) || older(a, b));
+    for (const copy of copies) { repeats.push({ kept, copy }); repeated.add(copy.transactionId); }
+  }
+  repeats.sort((a, b) => a.copy.date.localeCompare(b.copy.date) || older(a.copy, b.copy));
+  return { lines: lines.filter((b) => !repeated.has(b.transactionId)), repeats };
 }
 
 /** Category of a Yarago service group (the setting recon.category_map); unknown groups count as procedure. */

@@ -1,13 +1,14 @@
 #Requires -RunAsAdministrator
 <#
-  Connect Sudarshan to Zoho Books, READ ONLY, for the money reconciliation (D-052). Safe to run again (e.g. to change the
-  bank account or after the Self Client was deleted).
+  Connect Sudarshan to Zoho Books, READ ONLY, for the money reconciliation (D-052) and the Books audit (D-054). Safe to run
+  again (e.g. to add the audit's scopes, change the bank account, or after the Self Client was deleted).
     powershell -ExecutionPolicy Bypass -File D:\Sudarshan\app\scripts\setup-zoho.ps1
   Before (Zoho admin, about 5 minutes; RUNBOOK 14):
     1 https://api-console.zoho.in > Add Client > Self Client > Create. Note the Client ID and Client Secret.
+      (Running it again: use the same Self Client, its Client ID and Client Secret.)
     2 Self Client > Generate Code, scope exactly:
-        ZohoBooks.banking.READ,ZohoBooks.customerpayments.READ,ZohoBooks.settings.READ
-      time 10 minutes, description "Sudarshan reconciliation (read only)". Copy the code.
+        ZohoBooks.banking.READ,ZohoBooks.customerpayments.READ,ZohoBooks.settings.READ,ZohoBooks.invoices.READ,ZohoBooks.expenses.READ
+      time 10 minutes, description "Sudarshan reconciliation and books audit (read only)". Copy the code.
   This script:
     1 swaps the code for a refresh token (refused if Zoho grants anything but READ scopes)
     2 reads the organisation's bank accounts and asks which ones are the clinic's
@@ -109,6 +110,12 @@ foreach ($b in $chosen) {
 try { $cp = Invoke-RestMethod -Uri "$Books/customerpayments?organization_id=$OrgId&date_start=$from&date_end=$to&per_page=200" -Headers $headers -TimeoutSec 30
       Write-Host "  customer payments in 7 days: $(@($cp.customerpayments).Count)" }
 catch { throw "$(ZohoProblem $_) listing customer payments: check ZohoBooks.customerpayments.READ. Nothing was saved." }
+# the Books audit (D-054): without these two scopes Sudarshan still works, and the audit says what it cannot measure
+foreach ($part in @(@('invoices', 'ZohoBooks.invoices.READ'), @('expenses', 'ZohoBooks.expenses.READ'))) {
+  try { $r = Invoke-RestMethod -Uri "$Books/$($part[0])?organization_id=$OrgId&date_start=$from&date_end=$to&per_page=200" -Headers $headers -TimeoutSec 30
+        Write-Host "  $($part[0]) in 7 days: $(@($r.($part[0])).Count)" }
+  catch { Write-Host "  $(ZohoProblem $_) reading $($part[0]): the Books audit will not measure them. Add $($part[1]) to the code's scope to have them." -ForegroundColor Yellow }
+}
 
 Write-Host "`n=== 4. Sudarshan's .env ===" -ForegroundColor Cyan
 Set-EnvValue $AppEnv 'ZOHO_DC' $Dc
@@ -122,4 +129,4 @@ Write-Host "  written to $AppEnv (values not shown)"
 if (Get-Service SudarshanServer -ErrorAction SilentlyContinue) { Restart-Service SudarshanServer; Start-Sleep 4; "  SudarshanServer: $((Get-Service SudarshanServer).Status)" }
 else { Write-Host '  SudarshanServer is not installed' -ForegroundColor Yellow }
 
-Write-Host "`nNext: Sudarshan > Reconciliation > Fetch from Zoho. The copy then refreshes every two hours, 08:00-22:00." -ForegroundColor Cyan
+Write-Host "`nNext: Sudarshan > Books audit > Fetch from Zoho (reads from the audit's start). The copy then refreshes every two hours, 08:00-22:00." -ForegroundColor Cyan

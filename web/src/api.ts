@@ -26,7 +26,7 @@ export type Role = "admin" | "doctor" | "manager" | "staff" | "optometrist" | "c
 export type Permission = "users.manage" | "settings.manage" | "appointments.read" | "appointments.write" |
   "patients.read" | "clinical.read" | "followups.write" | "audit.read" |
   "messages.send" | "messages.broadcast" | "payments.write" | "payments.refund" | "retina_ai.use" | "fundus.report" |
-  "reconciliation.read" | "cash.deposit" | "adjustments.submit" | "adjustments.approve";
+  "reconciliation.read" | "cash.deposit" | "adjustments.submit" | "adjustments.approve" | "books.audit";
 
 export interface User { id: number; username: string; fullName: string; role: Role; mustChangePassword: boolean; permissions: Permission[] }
 
@@ -170,4 +170,18 @@ export interface Adjustment {
   selfApproved: boolean; withdrawnAt: string | null; reversesId: number | null; replacesId: number | null; pairedWith: number | null; reversedBy: number | null;
   replacementId: number | null;
   effects: { onDate: string; measure: string; category: string | null; method: string | null; amount: number; zohoTxnId: string | null; words: string }[];
+}
+
+// ---------- Books audit (D-054) ----------
+export type AuditLevel = "green" | "amber" | "red" | "not_measured";
+export interface AuditItem { date: string; amount: number | null; what: string; todo: string }
+export interface AuditCheck { key: string; group: string; title: string; target: string; level: AuditLevel; due: number; notDue: number;
+  amount: number; summary: string; items: AuditItem[] }
+export interface AuditSettings { from: string; qualityFrom: string; dueDays: number; bankBehindDays: number; invoiceTolerance: number;
+  receiptAbove: number; vendorAbove: number; patientsCustomer: string; vagueAccounts: string[] }
+export interface BooksAuditResponse {
+  audit: { today: string; dueBefore: string; score: number | null; checks: AuditCheck[]; settings: AuditSettings; lastFetch: string | null;
+           readable: { invoices: boolean; expenses: boolean } };
+  trend: { weekEnding: string; onDate: string; score: number; checks: { key: string; level: AuditLevel; due: number; amount: number }[] }[];
+  zohoStatus: ZohoStatus;
 }

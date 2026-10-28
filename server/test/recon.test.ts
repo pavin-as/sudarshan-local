@@ -19,7 +19,7 @@ const B_UPI = 990000301, B_CASH = 990000302, B_CARD = 990000303, B_CARD2 = 99000
 const BILLS = [B_UPI, B_CASH, B_CARD, B_CARD2];
 for (const k of ["ZOHO_CLIENT_ID", "ZOHO_CLIENT_SECRET", "ZOHO_REFRESH_TOKEN", "ZOHO_ORG_ID", "ZOHO_BANK_ACCOUNTS", "ZOHO_DC"]) delete process.env[k];
 
-const savedCash = (await pool.query(`SELECT key, value FROM app.settings WHERE key IN ('cash.book','cash.limits')`)).rows;
+const savedCash = (await pool.query(`SELECT key, value FROM app.settings WHERE key IN ('cash.book','cash.limits','books.audit')`)).rows;
 async function cleanup() {
   await pool.query(`BEGIN; SET LOCAL app.skip_audit = 'on';
     ALTER TABLE app.cash_deposits DISABLE TRIGGER cash_deposits_guard;
@@ -43,6 +43,8 @@ async function cleanup() {
     DELETE FROM app.zoho_bank_txn_versions WHERE transaction_id LIKE 'ZZ-%';
     DELETE FROM app.zoho_bank_txns WHERE transaction_id LIKE 'ZZ-%';
     DELETE FROM app.zoho_customer_payments WHERE payment_id LIKE 'ZZ-%';
+    DELETE FROM app.zoho_invoices WHERE invoice_id LIKE 'ZZ-%';
+    DELETE FROM app.zoho_expenses WHERE expense_id LIKE 'ZZ-%';
     DELETE FROM app.zoho_bank_accounts WHERE account_id = 'ZZACC';
     DELETE FROM app.zoho_fetch_runs WHERE date_from BETWEEN '2026-02-01' AND '2026-03-31';
     DELETE FROM app.sessions WHERE user_id IN (SELECT id FROM app.users WHERE username LIKE 'zz_test_recon%');
@@ -115,6 +117,10 @@ setZohoTransport(async (req) => {
   if (path.endsWith("/bankaccounts")) return { status: 200, data: { code: 0, bankaccounts: [{ account_id: "ZZACC", account_name: "ZZ Current", account_type: "bank", feeds_last_refresh_date: "2026-10-28", bank_balance: 1 }], page_context: { has_more_page: false } } };
   if (path.endsWith("/banktransactions")) return { status: 200, data: { code: 0, banktransactions: listed(new URL(req.url).searchParams.get("filter_by")), page_context: { has_more_page: false } } };
   if (path.endsWith("/customerpayments")) return { status: 200, data: { code: 0, customerpayments: [{ payment_id: "ZZ-CP1", date: D, payment_mode: "Cash", amount: 5000, account_name: "Petty Cash" }], page_context: { has_more_page: false } } };
+  // the Books audit (D-054): a self-client without ZohoBooks.invoices.READ is refused, as Zoho does; expenses are read
+  if (path.endsWith("/invoices")) return { status: 401, data: { code: 57, message: "You are not authorized to perform this operation" } };
+  if (path.endsWith("/expenses")) return { status: 200, data: { code: 0, expenses: [{ expense_id: "ZZ-EX1", date: D, account_name: "Itemized", paid_through_account_name: "Petty Cash",
+    description: "misc", total: 2500, has_attachment: false }], page_context: { has_more_page: false } } };
   return { status: 404, data: { code: 1, message: "no such path in the fake" } };
 });
 
@@ -430,6 +436,31 @@ try {
     const after = await recon(mgr);
     assert.equal(row(after, "cash").status, "cash_in_hand"); assert.equal(after.totals.cashInHand, 3700);
     assert.equal(after.credits.find((c: any) => c.transactionId === "ZZ-CASH")?.state, "unmatched", "a cash deposit no recorded deposit explains is shown");
+  });
+
+  await step("Books audit (D-054): finance's own permission; a Zoho part it may not read is 'not measured', the rest still copied", async () => {
+    for (const c of [staff, opt, doc, mgr2, desk, mgr]) {
+      assert.equal((await call("GET", "/api/books-audit", c)).status, 403);
+      assert.equal((await call("POST", "/api/books-audit/fetch", c, {})).status, 403);
+    }
+    const run = (await pool.query(`SELECT counts FROM app.zoho_fetch_runs WHERE status = 'ok' ORDER BY started_at DESC LIMIT 1`)).rows[0].counts;
+    assert.deepEqual([run.invoices, run.expenses], [-1, 1], "invoices refused (no scope), expenses copied, the fetch still ok");
+    assert.equal((await pool.query(`SELECT paid_through FROM app.zoho_expenses WHERE expense_id = 'ZZ-EX1'`)).rows[0]?.paid_through, "Petty Cash");
+    const a = await call("GET", "/api/books-audit", admin);
+    assert.equal(a.status, 200, a.body?.message);
+    assert.deepEqual(a.body.audit.readable, { invoices: false, expenses: true });
+    const lvl = (k: string) => a.body.audit.checks.find((c: any) => c.key === k)?.level;
+    assert.equal(lvl("invoice_missing"), "not_measured"); assert.notEqual(lvl("exp_petty"), "not_measured");
+    assert.ok(["green", "amber", "red"].includes(lvl("uncat_in")));
+    const set = { from: "2026-03-01", qualityFrom: "2026-03-01", dueDays: 7, bankBehindDays: 3, invoiceTolerance: 100, receiptAbove: 2000, vendorAbove: 1000,
+                  patientsCustomer: "Patients", vagueAccounts: ["Suspense"] };
+    assert.equal((await call("PUT", "/api/books-audit/settings", mgr, set)).status, 403);
+    assert.equal((await call("PUT", "/api/books-audit/settings", admin, { ...set, dueDays: 0 })).status, 400);
+    assert.equal((await call("PUT", "/api/books-audit/settings", admin, set)).status, 200);
+    const b = (await call("GET", "/api/books-audit", admin)).body.audit;
+    const petty = b.checks.find((c: any) => c.key === "exp_petty");
+    assert.equal(petty.due, 1, "the ZZ expense paid from Petty Cash is due once the rules start before it");
+    assert.match(petty.items[0].todo, /Petty Cash/);
   });
 } finally {
   setZohoTransport(null);

@@ -21,7 +21,8 @@ export type Permission =
   | "reconciliation.read"   // finance, full view: reconciliation, cash book with deposit checks, bank fees, assistant (D-052)
   | "cash.deposit"          // cash desk: record a cash deposit without seeing Yarago's figures (blind, D-053)
   | "adjustments.submit"    // ask for a correction or adjustment to the reconciliation; withdraw or ask to reverse one
-  | "adjustments.approve";  // approve or reject adjustment requests; bank rules, fee rates, cash book settings (admin)
+  | "adjustments.approve"   // approve or reject adjustment requests; bank rules, fee rates, cash book settings (admin)
+  | "books.audit";          // how well Zoho Books is kept; print the bookkeeper's weekly sheet (D-054)
 
 /** Every permission, the page it belongs to and what it lets a person do: the Users page shows this list. */
 export const PERMISSION_INFO: { key: Permission; page: string; label: string }[] = [
@@ -40,6 +41,7 @@ export const PERMISSION_INFO: { key: Permission; page: string; label: string }[]
   { key: "reconciliation.read", page: "Reconciliation, Cash deposits", label: "Finance, full view: revenue, bank, cash checks, bank fees" },
   { key: "adjustments.submit", page: "Adjustments", label: "Ask for an adjustment; withdraw or ask to reverse one" },
   { key: "adjustments.approve", page: "Adjustments, Reconciliation", label: "Approve or reject adjustments; bank rules, fee rates, cash settings" },
+  { key: "books.audit", page: "Books audit", label: "See how well Zoho Books is kept; print the bookkeeper's weekly sheet" },
   { key: "audit.read", page: "Activity log", label: "See the activity log" },
   { key: "settings.manage", page: "Settings, Clinic calendar", label: "Change clinic settings, calendar and booking rules" },
   { key: "users.manage", page: "Users", label: "Add users, reset passwords, change roles and access" },

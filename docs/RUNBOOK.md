@@ -429,8 +429,10 @@ Set up on 25 Oct 2026 (Step 0).
 ## 14. Money reconciliation and Zoho Books (D-052)
 - **Connect Zoho (once, administrator, about 5 minutes).** Sudarshan only reads from Zoho.
   1. In https://api-console.zoho.in choose Add Client > Self Client > Create, and note the Client ID and Client Secret.
-  2. Self Client > Generate Code, with the scope exactly `ZohoBooks.banking.READ,ZohoBooks.customerpayments.READ,ZohoBooks.settings.READ`
-     and 10 minutes. Copy the code.
+  2. Self Client > Generate Code, with the scope exactly
+     `ZohoBooks.banking.READ,ZohoBooks.customerpayments.READ,ZohoBooks.settings.READ,ZohoBooks.invoices.READ,ZohoBooks.expenses.READ`
+     and 10 minutes. Copy the code. (The last two are for the Books audit, D-054. Already connected without them? Run
+     the script again with this scope, using the same Self Client.)
   3. Run, in an administrator PowerShell:
      `powershell -ExecutionPolicy Bypass -File D:\Sudarshan\app\scripts\setup-zoho.ps1`
      Paste the Client ID when asked. For the Client Secret and then the code, copy each one in the API console and press Enter: the script reads it from the clipboard, never shows it, and clears the clipboard (Ctrl+V does not paste at a hidden prompt). Choose the current account
@@ -441,8 +443,13 @@ Set up on 25 Oct 2026 (Step 0).
      hours from 08:00 to 22:00.
 - **The Claude-side Zoho connector** has create and delete tools. Sudarshan never uses it. If it stays connected for
   Claude, consider limiting its tools in Zoho's MCP console.
-- **Bank rules** (Reconciliation > Bank rules, admin) say which bank wording counts as clinic money. UPI (`RYX181`), card
-  (`TERMINAL 1`) and cash deposits (`CASH DEPOSIT BY`) are on; the terminal's monthly service charge is a `bank_charge`.
+- **Bank rules** (Reconciliation > Bank rules, admin) say which bank wording counts as clinic money. UPI (`RYX181` from
+  the feed, `RY9181` from a PDF statement), card (`TERMINAL 1`) and cash deposits (`CASH DEPOSIT BY`) are on; the
+  terminals' service, low-usage and settlement charges are `bank_charge`. Rules match with spaces collapsed.
+- **When Zoho's bank feed breaks** (Yodlee, as from 21 Oct 2026): import HDFC's statement into Zoho (Banking > the
+  account > Import statement, PDF, CSV or XLSX) from the day after the last line, then Fetch from Zoho. A line imported
+  twice (the statement over the feed) is counted once by Sudarshan; the Books audit lists the extra copy for Basith to
+  exclude in Zoho.
 - **Who sees finance (D-053):** Users > Access, per login. "Record cash deposits" = the cash desk (blind: no Yarago
   figures); "Finance, full view" = reconciliation, cash book and bank fees (Dr Sameera). Only the admin approves
   adjustments, voids deposits and changes rates. A change applies at the login's next click.
@@ -453,14 +460,19 @@ Set up on 25 Oct 2026 (Step 0).
   the bank" needs a look the same week. The cash book's start and limits are under Cash deposits > Cash book settings.
 - **Bank fees:** Reconciliation > Bank fees shows what HDFC kept from card (and, from 15 Oct 2026, UPI above ₹2,000)
   money, per day and month. When HDFC sends the POS agreement's rates, enter them under Bank fees > Rates > "Copy as new
-  rates" with the day they apply from. A card day "not settled within 2 days" means the terminal batch was not settled:
-  settle it daily (HDFC charges 0.5% or ₹499 on late batches).
+  rates" with the day they apply from. A card day with no settlement matched within 2 days: check that day's batch on the
+  terminal's settlement slip or HDFC's merchant report (a late batch costs 0.5% or ₹499); it may also be a bank line
+  missing from Zoho, a batch spanning two days, or card money entered under another method in Yarago.
 - **Daily use:** managers check yesterday's rows. A "Difference" is something to look into, and opening the row shows the
   bills and bank lines behind it. When the records do not tell the whole story, send an adjustment; the admin approves it
   under Adjustments > To approve. "Waiting for settlement" and "Cash not yet deposited" are normal.
 - **The assistant** needs Ollama running on shichika (it is installed; models `qwen3.5:9b`, `gemma4:12b`). Start it from
   the Start menu or with `ollama serve`. While it is not running, the panel says so and nothing else is affected.
   Ollama uses the GPU, which Yarago shares, so ask it questions sparingly during clinic hours.
+- **Books audit (D-054; admin and Dr Sameera):** every Friday open Books audit, press Fetch from Zoho, then **Print
+  Basith's sheet** and give it to him. It lists only work dated over a week ago, oldest first, with what to do and a box
+  to tick. The score and each week's trend show whether the backlog is shrinking. The admin changes the targets under
+  Books audit > Targets. Checks marked "Not measured" need the invoice and expense scopes (step 2 above).
 - **If Zoho fails:** the page shows the last failure. "Zoho refused the sign-in" means the Self Client was deleted or the
   token revoked: run setup-zoho.ps1 again. Until a fetch succeeds, nothing is called a difference ("Bank data not
   available").

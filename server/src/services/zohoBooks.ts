@@ -1,5 +1,5 @@
 // Zoho Books REST, read only, nothing else (no database here). D-052: the reconciliation reads bank accounts, bank-feed
-// lines and the bookkeeper's customer payments. Keys in .env (ZOHO_*; written by scripts/setup-zoho.ps1, never logged):
+// lines and the bookkeeper's customer payments; D-054: the Books audit also reads invoices and expenses. Keys in .env (ZOHO_*; written by scripts/setup-zoho.ps1, never logged):
 // a Self Client with READ scopes only. The only POST ever made is the OAuth token refresh; any other non-GET is refused
 // before it leaves the server. Sudarshan sends Zoho dates and account ids, never patient data.
 
@@ -26,7 +26,10 @@ let transport: ZohoTransport = https;
 /** Tests replace the Zoho call; nothing else should. */
 export function setZohoTransport(t: ZohoTransport | null) { transport = t ?? https; accessToken = null; }
 
-export class ZohoError extends Error {}
+export class ZohoError extends Error {
+  /** Zoho refused because the self-client lacks that READ scope (HTTP 401/403 on a read after a good sign-in). */
+  constructor(message: string, readonly denied = false) { super(message); }
+}
 
 /** Read-only guard: the token refresh is the only request that is not a GET. */
 export function allowed(req: ZohoRequest): boolean {
@@ -59,7 +62,8 @@ async function get(path: string, params: Record<string, string | number>): Promi
   const r = await send({ method: "GET", url: `${booksBase()}${path}?${qs}`, headers: { authorization: `Zoho-oauthtoken ${await token()}` } });
   if (r.status === 401) accessToken = null;
   if (r.status < 200 || r.status >= 300 || (r.data?.code != null && r.data.code !== 0))
-    throw new ZohoError(`Zoho refused the read (HTTP ${r.status})${r.data?.message ? `: ${String(r.data.message).slice(0, 200)}` : ""}`);
+    throw new ZohoError(`Zoho refused the read (HTTP ${r.status})${r.data?.message ? `: ${String(r.data.message).slice(0, 200)}` : ""}`,
+                        r.status === 401 || r.status === 403 || r.data?.code === 57);
   return r.data;
 }
 
@@ -122,6 +126,28 @@ export async function listBankTransactions(accountId: string, from: string, to: 
                description: str(t.description ?? t.payee), reference: str(t.reference_number), payee: str(t.payee), raw: t });
   }
   return out;
+}
+
+// ---------- the Books audit (D-054): ZohoBooks.invoices.READ and ZohoBooks.expenses.READ ----------
+export interface ZInvoice { invoiceId: string; number: string | null; date: string; customer: string | null; status: string | null; total: number;
+                            balance: number; createdTime: string | null; raw: any }
+export interface ZExpense { expenseId: string; date: string; account: string | null; paidThrough: string | null; description: string | null;
+                            reference: string | null; vendor: string | null; total: number; hasAttachment: boolean; createdTime: string | null; raw: any }
+const timeOrNull = (s: unknown) => (typeof s === "string" && /^\d{4}-\d{2}-\d{2}T/.test(s) ? s : null);
+
+export async function listInvoices(from: string, to: string): Promise<ZInvoice[]> {
+  const rows = await all("/invoices", "invoices", { date_start: from, date_end: to, sort_column: "date" });
+  return rows.filter((i) => dateOrNull(i.date)).map((i) => ({
+    invoiceId: String(i.invoice_id), number: str(i.invoice_number), date: dateOrNull(i.date)!, customer: str(i.customer_name), status: str(i.status),
+    total: Number(i.total ?? 0), balance: Number(i.balance ?? 0), createdTime: timeOrNull(i.created_time), raw: i }));
+}
+
+export async function listExpenses(from: string, to: string): Promise<ZExpense[]> {
+  const rows = await all("/expenses", "expenses", { date_start: from, date_end: to, sort_column: "date" });
+  return rows.filter((e) => dateOrNull(e.date)).map((e) => ({
+    expenseId: String(e.expense_id), date: dateOrNull(e.date)!, account: str(e.account_name), paidThrough: str(e.paid_through_account_name),
+    description: str(e.description), reference: str(e.reference_number), vendor: str(e.vendor_name), total: Number(e.total ?? 0),
+    hasAttachment: e.has_attachment === true || !!str(e.expense_receipt_name), createdTime: timeOrNull(e.created_time), raw: e }));
 }
 
 export async function listCustomerPayments(from: string, to: string): Promise<ZCustomerPayment[]> {

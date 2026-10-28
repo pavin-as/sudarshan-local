@@ -588,3 +588,24 @@ table.list tr.edge-cash td:first-child { box-shadow: inset 4px 0 0 var(--cash); 
 .cash-banner.over b.big { color: var(--vessel); }
 .access-table td { vertical-align: top; }
 .access-table tr.access-finance td { background: var(--cash-soft); }
+
+/* Books audit (D-054): the weekly score bar and Basith's printed Friday sheet */
+.audit-bar { background: var(--line-soft); border-radius: 3px; height: 0.7rem; overflow: hidden; }
+.audit-bar span { display: block; height: 100%; background: var(--line); }
+.audit-bar span.ok { background: var(--done); }
+.audit-bar span.warn { background: var(--disc); }
+.audit-bar span.bad { background: var(--vessel); }
+@media print {
+  @page audit { size: A4 portrait; margin: 12mm; }
+  .audit-sheet { page: audit; font-size: 9.5pt; color: #000; }
+  .audit-sheet h1 { font-size: 15pt; margin: 0 0 0.3rem; }
+  .audit-sheet h2 { font-size: 11pt; margin: 0.9rem 0 0.3rem; }
+  .audit-sheet table { width: 100%; border-collapse: collapse; }
+  .audit-sheet th, .audit-sheet td { border: 1px solid #999; padding: 0.15rem 0.3rem; text-align: left; vertical-align: top; }
+  .audit-sheet td.num { text-align: right; white-space: nowrap; }
+  .audit-sheet td:first-child { white-space: nowrap; }
+  .audit-sheet thead { display: table-header-group; }
+  .audit-sheet tr { break-inside: avoid; }
+  .audit-sheet .audit-box { width: 2.2rem; }
+  .audit-sheet-summary td { font-size: 9pt; }
+}

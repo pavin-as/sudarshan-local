@@ -116,7 +116,7 @@ export function feeReport(rows: FeeDayIn[], charges: ChargeLine[], fixed: FeeFix
   const cardSettled = card.filter((d) => d.fee != null), upiSettled = upi.filter((d) => d.fee != null);
   const cardFees = sum(cardSettled, (d) => d.fee!), upiFees = sum(upiSettled, (d) => d.fee!);
   const late = card.filter((d) => d.state === "not_settled" && bankKnownUntil != null && addDays(d.date, fixed.lateSettleDays) < bankKnownUntil)
-    .map((d) => ({ date: d.date, sales: d.sales, words: `Card money of ${money(d.sales)} not settled within ${fixed.lateSettleDays} days: settle the terminal batch daily (HDFC charges 0.5% or ₹499 on late batches)` }));
+    .map((d) => ({ date: d.date, sales: d.sales, words: `No card settlement matched ${money(d.sales)} within ${fixed.lateSettleDays} days. Check this day's batch on the terminal's settlement slip or HDFC's merchant report: a batch settled late costs 0.5% or ₹499; it may also be a bank line missing from Zoho, a batch spanning two days, or a card payment entered under another method in Yarago` }));
   return {
     days, months: [...months.values()].sort((a, b) => a.month.localeCompare(b.month) || a.method.localeCompare(b.method)),
     charges,

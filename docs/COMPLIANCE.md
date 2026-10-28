@@ -94,6 +94,9 @@ Sudarshan never changes Yarago. Corrections to patient details are made in Yarag
 18. Finance is given per login, never by role alone (D-053). The cash desk sees no Yarago cash figure: the server builds
     its answers from the desk view only. A recorded cash deposit cannot be edited or deleted (trigger); only an admin
     voids one, with a reason, and both stay in the activity log.
+19. The Books audit (D-054) reads Zoho invoices and expenses with READ scopes only, like rule 16. It shows and prints
+    Zoho's own bookkeeping (amounts, narrations, vendor names), never patient data; the printed sheet is for the
+    bookkeeper only and is kept like other accounts papers.
 
 **Network**
 12. Clinic LAN only. The server port is open to the local subnet only. Nothing on shichika is reachable from the internet

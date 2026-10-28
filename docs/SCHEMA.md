@@ -803,3 +803,18 @@ ledger's side, the other way round (0029 corrected the stored lines).
 `app.recon_bank_rules.class` may also be `bank_charge` (money out: the terminal's service charge).
 Settings: `cash.book` (`start`, `opening`, `bankFrom`), `cash.limits` (`warnAt`, `limit`, `carryBand`), `recon.fee_fixed`
 (`gstPct`, `servicePerMonth`, `perBatch`, `lateSettleDays`).
+
+## Books audit (0031, D-054)
+
+| Table | One row per | Notes |
+|---|---|---|
+| `app.zoho_invoices` | Zoho invoice | copy (`raw`, `raw_hash`); `inv_date`, `customer_name`, `status`, `total`, `balance`, `created_time` (when entered); `missing_since`; never deleted; not audited. Needs `ZohoBooks.invoices.READ` |
+| `app.zoho_expenses` | Zoho expense | copy; `account_name` (what for), `paid_through` (bank or Petty Cash), `description` (the narration), `vendor_name`, `total`, `has_attachment`; `missing_since`; not audited. Needs `ZohoBooks.expenses.READ` |
+| `app.books_audit_snapshots` | day | the audit's score and each check's level, due count and amount, saved after each Zoho read (the day's last wins); derived, not audited |
+
+`app.zoho_fetch_runs.counts` has `invoices` and `expenses`: the number copied, or -1 when Zoho refused for lack of the
+scope (the audit then shows those checks as "not measured").
+Setting `books.audit`: `from`, `qualityFrom` (expense rules), `dueDays`, `bankBehindDays`, `invoiceTolerance`,
+`receiptAbove`, `vendorAbove`, `patientsCustomer`, `vagueAccounts`.
+A bank line Zoho holds twice (a statement imported over the feed) stays in `zoho_bank_txns` as copied; readers drop the
+repeat with `splitRepeats()` (`services/reconcile.ts`).

@@ -5,7 +5,7 @@ import { one, q } from "../db.js";
 import { addDays } from "../lib/time.js";
 import { dayBands, type FeeFixed, type FeeRate } from "./bankFees.js";
 import { cashBook, type CashBook, type CashDeposit, type CashLimits } from "./cashBook.js";
-import { CATEGORIES, classifyCharge, METHODS, type BankLine, type BankRule, type Category, type Effect, type Method, type ReconInput } from "./reconcile.js";
+import { CATEGORIES, classifyCharge, METHODS, splitRepeats, type BankLine, type BankRule, type Category, type Effect, type Method, type ReconInput } from "./reconcile.js";
 import { zohoAccountIds } from "./zohoBooks.js";
 import { zohoStatus, type ZohoStatus } from "./zohoSync.js";
 
@@ -45,9 +45,10 @@ export async function feeFixed(): Promise<FeeFixed> {
 
 const BANK_COLS = `transaction_id AS "transactionId", account_id AS "accountId", txn_date AS "date", amount::float AS amount, debit_or_credit AS "debitOrCredit",
                    description, zoho_status AS "zohoStatus", missing_since IS NOT NULL AS missing`;
-const bankLines = (from: string, to: string) =>
-  q<BankLine>(`SELECT ${BANK_COLS} FROM app.zoho_bank_txns WHERE txn_date BETWEEN $1 AND $2 AND (cardinality($3::text[]) = 0 OR account_id = ANY($3))`,
-              [from, to, zohoAccountIds()]);
+/** The bank lines dated from..to, each once: a line Zoho holds twice (a statement imported over the feed) counts once. */
+export const bankLines = async (from: string, to: string) =>
+  splitRepeats(await q<BankLine>(`SELECT ${BANK_COLS} FROM app.zoho_bank_txns WHERE txn_date BETWEEN $1 AND $2 AND (cardinality($3::text[]) = 0 OR account_id = ANY($3))`,
+                                 [from, to, zohoAccountIds()])).lines;
 
 /** Bank charges (money out a bank_charge rule names) dated from..to. */
 export async function bankCharges(from: string, to: string, rules: BankRule[]) {
@@ -103,7 +104,6 @@ export async function loadInput(from: string, to: string, today: string, book?: 
   const rules = await loadRules();
   const maxWindow = Math.max(0, ...rules.filter((r) => r.isActive).map((r) => r.windowDays));
   const start = addDays(from, -maxWindow), end = addDays(to, maxWindow);
-  const accounts = zohoAccountIds();
   const [lines, payments, refunds, bank, settings, zs, rates, fixed] = await Promise.all([
     q(`SELECT line_id AS "lineId", source, source_id AS "sourceId", bill_no AS "billNo", on_date AS "onDate", patient_id AS "patientId",
               service_group AS "serviceGroup", item, amount FROM clinical.money_revenue_line WHERE on_date BETWEEN $1 AND $2`, [from, to]),
@@ -111,7 +111,7 @@ export async function loadInput(from: string, to: string, today: string, book?: 
               method, amount, ref FROM clinical.money_payment WHERE on_date BETWEEN $1 AND $2`, [start, to]),
     q(`SELECT refund_id AS "refundId", source, source_id AS "sourceId", bill_no AS "billNo", on_date AS "onDate", patient_id AS "patientId",
               method, amount, date_uncertain AS "dateUncertain" FROM clinical.money_refund WHERE on_date BETWEEN $1 AND $2`, [start, to]),
-    q<BankLine>(`SELECT ${BANK_COLS} FROM app.zoho_bank_txns WHERE txn_date BETWEEN $1 AND $2 AND (cardinality($3::text[]) = 0 OR account_id = ANY($3))`, [start, end, accounts]),
+    bankLines(start, end),
     reconSettings(),
     zohoStatus(),
     loadFeeRates(),

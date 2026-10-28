@@ -110,3 +110,25 @@ and the effects of approved adjustments. Calculated by `server/src/services/reco
 | Deposit check | Yarago net cash of the days a deposit covers + carried in − deposited = carried forward. Within ±`cash.limits.carryBand` (₹99): rounding; above: Short; below: Excess. "In the bank": exactly one cash-deposit credit of the same amount dated 0-3 days after the deposit, fitting no other deposit. |
 | Bank credits not counted | Credits no rule or approved classification recognises. |
 | Unpaid, discount or advance | Billed minus collected per source. Yarago keeps one running due per patient, so this is not split further. |
+
+## Books audit (D-054)
+
+How well Zoho Books is kept. Calculated by `server/src/services/booksAudit.ts`, tested in `test/recon.unit.test.ts`.
+Due = dated on or before today − `dueDays` (7); newer items are "not due yet" and never colour a check.
+
+| Check | Definition |
+|---|---|
+| Bank lines up to date | Days from the last bank line Zoho holds to today: green ≤ `bankBehindDays` (3), amber ≤ 7, red beyond. |
+| Days missing from the statement | Clinic days with Yarago UPI or card money and no bank line at all on either of the next two days (HDFC settles daily, Sundays included). |
+| Imported twice | Bank lines with the same account, day, side, amount and wording (digits and X made equal, spaces collapsed, the feed's "Ref Num" left off); the categorised copy is kept. Red from one. |
+| Money received / spent categorised | Zoho bank lines still uncategorised (repeats left out), money in and out. |
+| Clinic money booked as the right kind | Categorised UPI or card settlements that are not customer payments; cash deposits that are not transfers. Red from one. |
+| Patients invoice for every clinic day | Clinic days (Yarago payments) with no non-void invoice to the customer `patientsCustomer` dated that day. |
+| Invoice matches Yarago | That day's Patients invoice total against Yarago payments less refunds, beyond `invoiceTolerance` (₹100). |
+| Invoices fully paid | Patients invoices with a balance. |
+| Entered within the week | Average days from the invoice date to when it was entered in Zoho, for invoices of the last five weeks: green ≤ 7, amber ≤ 14. |
+| Expense narration | Expenses from `qualityFrom` whose description is under 8 characters or starts like the bank's own text (NEFT, RTGS, IMPS, UPI, ME DC, POS, ...). |
+| Vendor; receipt | Expenses from `vendorAbove` (₹1,000) with no vendor; from `receiptAbove` (₹2,000) with no attachment. |
+| Clear account; Petty Cash | Expenses in an account listed in `vagueAccounts`; expenses paid through Petty Cash. Red from one. |
+| Level | Green: nothing due. Amber: up to 3 due (none for the red-from-one checks). Red: more. |
+| Score | 2 points per green check, 1 per amber, 0 per red, over 2 per measured check, as a percentage. Checks Zoho does not let Sudarshan read are "not measured" and left out. |

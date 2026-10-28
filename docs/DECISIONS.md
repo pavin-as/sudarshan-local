@@ -726,6 +726,44 @@ optometrists, the doctor screen for the doctor.
   the fetch fix.) UPI: 17 Oct settled ₹764.32 short of ₹73,649 (1.04%) although the agreement says UPI is free: to ask
   the bank.
 
+### D-054 · 2026-10-28 · Accepted · Pavin (28 Oct: "a page to understand and audit how well Zoho Books is maintained … so I can [have] Basith clean up his work"; Basith gets no login, Pavin or Dr Sameera print his sheet every Friday, he comes once a week, "set all targets accordingly"); Claude chose the checks
+- **Books audit page** (permission `books.audit`: the admin, and Dr Sameera by migration 0031). It measures how well
+  Zoho Books is kept, from Sudarshan's read-only copy, and prints Basith's sheet.
+- **Weekly targets:** work dated more than 7 days ago (`dueDays`) must be done; newer work is "not due yet" and never
+  makes a check amber or red. Each check is green (nothing due), amber (a few, usually up to 3) or red. "Not measured"
+  when Zoho has not let Sudarshan read that part. Score = 2 points per green check, 1 per amber, of 2 per measured check.
+- **Checks:**
+  - **Bank statement:** last bank line at most 3 days old; no settlement day missing (a clinic day with UPI or card and
+    no bank line on either of the next two days); no line imported twice.
+  - **Bank lines categorised:** money in, money out (each with what to book it as: UPI or card settlement = customer
+    payment; cash deposit = transfer from Petty Cash; terminal charges = Bank Fees and Charges); clinic money booked as
+    the wrong kind.
+  - **Daily Patients invoice:** one per clinic day; total within ₹100 of Yarago's collection that day (payments less
+    refunds); no unpaid balance; entered within 7 days on average.
+  - **Expenses, from 1 Oct 2026 (rules new to Basith):** a narration of his own (not the bank's text, at least 8
+    characters); a vendor from ₹1,000; a receipt from ₹2,000; not in a catch-all account; none paid from Petty Cash (all
+    clinic cash is banked, D-053).
+- **The sheet** lists only what is due, oldest first, at most 150 lines a check, with a box to tick. The score is saved
+  after each Zoho read (`books_audit_snapshots`) and shown week by week (Saturday to Friday).
+- **More of Zoho, still read only:** invoices and expenses (scopes `ZohoBooks.invoices.READ`, `ZohoBooks.expenses.READ`,
+  added by running `setup-zoho.ps1` again). Without them the bank is still copied and those checks are "not measured".
+  The first Zoho read of each day goes back to the audit's start (1 Apr 2026), so late categorisation is seen.
+- **The HDFC statement imported by PDF (28 Oct; Yodlee's feed broken since 21 Oct):**
+  - Its lines spell the UPI merchant id in full (RY9181; the feed masks it as RYX181) and have double spaces. Rules now
+    match the description with spaces collapsed, and the UPI rule takes either id.
+  - Zoho holds a line twice when a statement is imported over the feed. Such a repeat (same account, day, side, amount
+    and wording, with digits and X made equal and the feed's "Ref Num" left off) is counted once by the reconciliation
+    and the cash book: the categorised copy is kept, else the older. The audit lists the copies for Basith to exclude.
+    On 28 Oct: 8 such pairs since 30 Aug.
+  - The terminal charge rule also takes "LOW USAGE CHARGES" and "SETTLEMENT CHARGE", and the masked month ("SEPXX").
+- **Found on live data, 28 Oct:**
+  - **A second card terminal**, TID 64061321 (merchant EGD494), costs ₹116.82 a month and ₹588.82 a month in
+    low-usage charges (since June 2026). A third merchant id, EHD956, had a ₹1.18 settlement charge in August.
+  - With the PDF lines, 22-26 Oct card settled net: ₹809.56 kept on ₹59,716. 21 Oct card and 19 and 21 Oct UPI did not
+    match: the bank paid more than Yarago shows (₹1,370.60 card, ₹2,800 and ₹569.79 UPI).
+  - The daily "Patients" invoices end at 10 Oct, entered 12-15 days late; 26 Sep (₹2,59,074) is unpaid in Zoho.
+  - Expenses paid from Petty Cash in Sep-Oct (food, fuel, flowers) although all clinic cash is banked.
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

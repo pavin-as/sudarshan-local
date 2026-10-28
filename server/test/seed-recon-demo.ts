@@ -106,7 +106,36 @@ await c.query(`INSERT INTO app.cash_deposits (request_key, deposited_on, covers_
               [randomUUID(), depOn, depTo, depAmt, desk]);
 await c.query(`INSERT INTO app.zoho_bank_accounts (account_id, account_name, account_type, feed_refreshed_on) VALUES ('ZDACC','TEST Current Account','bank',$1)
                ON CONFLICT (account_id) DO UPDATE SET feed_refreshed_on = $1`, [today]);
-await c.query(`INSERT INTO app.zoho_fetch_runs (date_from, date_to, status, finished_at, counts) VALUES ($1, $2, 'ok', now(), '{"lines": ${bank.length}}')`, [addDays(today, -20), today]);
+// Books audit (D-054): older work the bookkeeper has not done, a statement line imported twice, daily invoices and expenses
+await c.query(`DELETE FROM app.zoho_invoices WHERE invoice_id LIKE 'ZD-%'; DELETE FROM app.zoho_expenses WHERE expense_id LIKE 'ZD-%'; DELETE FROM app.books_audit_snapshots`);
+for (const [tid, k, amt, desc] of [["ZD-OUT1", 12, 18000, "NEFT DR-CNRB0000001-TEST OPTOMETRIST-NETBANK MUM-SALARY"], ["ZD-OUT2", 15, 4130, "ME DC SI 5XXXXX0001 AMAZON"],
+                                   ["ZD-OUT3", 18, 21.24, "SETTLEMENT CHARGE-SEP26-RY9181"]] as const)
+  await c.query(`INSERT INTO app.zoho_bank_txns (transaction_id, account_id, txn_date, amount, debit_or_credit, transaction_type, zoho_status, description, raw, raw_hash)
+                 VALUES ($1,'ZDACC',$2,$3,'debit','uncategorized','uncategorized',$4,'{}','demo')`, [tid, addDays(today, -k), amt, desc]);
+const first = bank.find(([tid]) => tid.startsWith("ZD-UPI-"))!;
+await c.query(`INSERT INTO app.zoho_bank_txns (transaction_id, account_id, txn_date, amount, debit_or_credit, transaction_type, zoho_status, description, raw, raw_hash)
+               SELECT 'ZD-PDF-1', account_id, txn_date, amount, debit_or_credit, transaction_type, zoho_status, replace(replace($2, 'RYX181', 'RY9181'), ' ', '  '), '{}', 'demo'
+                 FROM app.zoho_bank_txns WHERE transaction_id = $1`, [first[0], first[2].replace(/ Ref Num:.*$/, "")]);
+const inv = async (n: string, date: string, total: number, balance: number, entered: string) =>
+  c.query(`INSERT INTO app.zoho_invoices (invoice_id, invoice_number, inv_date, customer_name, status, total, balance, created_time, raw, raw_hash)
+           VALUES ($1,$1,$2,'Patients',$3,$4,$5,$6,'{}','demo')`, [`ZD-${n}`, date, balance ? "overdue" : "paid", total, balance, `${entered}T15:00:00+05:30`]);
+await inv("INV-0901", addDays(today, -16), 61922, 0, addDays(today, -4));
+await inv("INV-0902", addDays(today, -15), 259074, 259074, addDays(today, -4));
+await inv("INV-0903", openDays[0], Math.round(await cashOf(openDays[0], openDays[0])) + 9000, 0, addDays(today, -1));
+for (const [eid, k, acct, through, desc, vendor, total, att] of [
+  ["ZD-EX1", 9, "Itemized", "Petty Cash", "food exp (staff meeting) 02/10/2026", null, 4194, false],
+  ["ZD-EX2", 10, "Subscription Charge", "TEST Current Account", "ME DC SI 5XXXXX0001 SPOTIFYINDIA", null, 139, false],
+  ["ZD-EX3", 11, "Miscellaneous Expenses", "TEST Current Account", "misc", null, 2500, false],
+  ["ZD-EX4", 12, "Repairs and Maintenance", "TEST Current Account", "AC service, OCT room (Cool Air Tirur)", "Cool Air Tirur", 3200, true],
+] as const)
+  await c.query(`INSERT INTO app.zoho_expenses (expense_id, exp_date, account_name, paid_through, description, vendor_name, total, has_attachment, raw, raw_hash)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'{}','demo')`, [eid, addDays(today, -k), acct, through, desc, vendor, total, att]);
+await c.query(`UPDATE app.settings SET value = jsonb_set(jsonb_set(value, '{from}', to_jsonb($1::text)), '{qualityFrom}', to_jsonb($1::text)) WHERE key = 'books.audit'`, [addDays(today, -20)]);
+await c.query(`INSERT INTO app.user_permissions (user_id, permission, allowed, set_by) VALUES ($1,'books.audit',true,$2) ON CONFLICT (user_id, permission) DO NOTHING`, [mgr, adm]);
+await c.query(`INSERT INTO app.books_audit_snapshots (on_date, score, checks) VALUES ($1, 38, '[]'), ($2, 46, '[]'), ($3, 54, '[]')`,
+              [addDays(today, -21), addDays(today, -14), addDays(today, -7)]);
+await c.query(`INSERT INTO app.zoho_fetch_runs (date_from, date_to, status, finished_at, counts) VALUES ($1, $2, 'ok', now(), $3)`,
+              [addDays(today, -20), today, JSON.stringify({ lines: bank.length, invoices: 3, expenses: 4 })]);
 
 // one approved request (a method correction) and one waiting (the UPI refund), as a manager would send them
 const d3 = corrDay, d4 = refundDay;
