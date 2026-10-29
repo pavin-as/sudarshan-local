@@ -244,6 +244,11 @@ with cut-offs from `?validation=<frozen validation set>` or the starting cut-off
 - **Screen:** `pages/Collections.tsx`: headline and source cards, method tiles, service bars, hour bars, "Worth a look",
   the payment list (filtered by the card, tile or hour clicked), a lines drawer and a bill drawer; print hides the
   controls. Source colours are `--src-clinic` and `--src-pharmacy`.
+- **Bills without lines (D-058):** billed is always the sum of `money_revenue_line`, never a bill total or what was
+  collected. A clinic bill with a total and no lines yet (its lines come a sync cycle later) is returned in
+  `notItemised` and shown under "Worth a look"; the lines' tables (`tbl_payment_receptionist_new`, `tbl_payment_lab`,
+  `tbl_payment_injectionorlaser_procedure_for_billing`, `tbl_payment_others_details`) are all hot tables, as is
+  `tblpatientopdrefunddetails`.
 
 ### Books audit (D-054)
 - **Checks:** `services/booksAudit.ts` is pure: `booksAudit(input)` returns each check (group, title, target, level,

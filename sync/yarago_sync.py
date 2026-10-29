@@ -54,6 +54,9 @@ HOT_TABLES = [
     # pharmacy and optical orders and their lines (D-056): with the payments above, so the day's pharmacy sales and
     # payments reach the reconciliation together (they were nightly, so a payment waited a day for its order)
     "tblopticalpatientorders", "tblopticalpatientorderdetails",
+    # the rest of a clinic bill's lines (investigations, other charges) and OPD refunds (D-058): nightly before, so on the
+    # day a bill for an OCT showed no items and the Day collection's billed fell short of collected until the next night
+    "tbl_payment_lab", "tbl_payment_others_details", "tblpatientopdrefunddetails",
     # pharmacy purchases and what is paid to wholesalers (D-033): small tables, so the balance is minutes old, not a day
     "tblopticalpharmacypurchase", "tblopticalpharmacypurchasedetails", "tblpurchasepaymentdetails",
 ]

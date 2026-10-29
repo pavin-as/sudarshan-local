@@ -776,6 +776,10 @@ Views (`db/views/40_money.sql`, re-applied with the others):
 - `clinical.money_refund`: clinic refunds by method; pharmacy refunds with method `unrecorded`.
 - D-057 added, as last columns: `money_bill.billed_at`; `money_payment.at` (bill or pharmacy payment time) and
   `bill_key` (clinic bill id or pharmacy order id, matching `money_revenue_line.source_id`); `money_refund.at`.
+- Every Yarago table these views read for money is copied every 150 s (D-056, D-058): bills, their four kinds of line
+  (`tbl_payment_receptionist_new`, `tbl_payment_lab`, `tbl_payment_injectionorlaser_procedure_for_billing`,
+  `tbl_payment_others_details`), OPD refunds, pharmacy orders, their lines and payments. The master lists that name the
+  lines (`tbl_mst_*`) are copied at night.
 
 | Table | One row per | Notes |
 |---|---|---|

@@ -335,6 +335,9 @@ Latest follow-up per patient: overdue <=30d 271, 31-90d 367, 91-365d 1,537, >1y 
       **Not live until `update.ps1` runs** (it applies the views and restarts the sync service).
 - [x] Day collection page, finance only (D-057): 6 + 37 + 18 checks pass; browser-checked with synthetic data at desktop
       and phone width; the cash desk login is refused. **Not live until `update.ps1` runs.**
+- [x] Day collection billed short of collected on 28 Oct (D-058): investigation lines synced only at night; now hot,
+      and bills without lines are named. 10 + 37 + 19 checks pass; 28 Oct and eight other days checked read-only on
+      live data; browser-checked with synthetic data. **Not live until `update.ps1` runs** (it restarts the sync service).
 - [ ] Pavin: ask HDFC to close terminal 64061321 (EGD494) if it is not one of the three machines in use: ₹705.64 a month
       since July 2026. Check which terminal each of the three machines is (the TID is on its settlement slip).
 - [ ] Pavin:

@@ -5,6 +5,17 @@ Add entries under **Unreleased** while working; `update.ps1 -Message` text shoul
 Dates are when deployed on shichika.
 
 ## Unreleased
+- **Day collection: investigations counted the same day** (D-058).
+  - On 28 Oct the page showed clinic billed ₹18,750 against collected ₹41,450: the 11 investigation bills (OCT, ONH,
+    perimetry; ₹22,700) had no items until the nightly copy. Investigations, other charges and OPD refunds now sync
+    every few minutes like the rest of the bill; 28 Oct now reads billed ₹41,450, collected ₹41,450, gap ₹0.
+  - A bill whose items have not arrived yet is named under "Bills without items yet" instead of leaving a gap
+    unexplained; its bill drawer says so too. The reconciliation and the cash book get today's refunds the same day.
+  - Technical: `tbl_payment_lab`, `tbl_payment_others_details`, `tblpatientopdrefunddetails` added to `HOT_TABLES` in
+    `sync/yarago_sync.py`; `daySummary()` returns `notItemised` (clinic bills with a total and no lines) and
+    `billedVsCollected[].notItemised`; 4 new checks in `test/collections.unit.test.ts` (28 Oct shape, mixed bill, free
+    review) and a Day collection step in `test/recon.test.ts` (mixed consultation + investigation + procedure bill, a
+    bill whose line arrives late, the cash desk refused). No view or migration change.
 - **Day collection (new page, finance only)** (D-057).
   - What the day brought in, at a glance: the total with clinic and pharmacy, each method, what it was for, the hours,
     and refunds, discounts and money left due. Today refreshes every minute; any other day can be picked.

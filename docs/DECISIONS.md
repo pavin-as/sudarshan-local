@@ -826,6 +826,22 @@ optometrists, the doctor screen for the doctor.
 - **Colours:** clinic is blue (#2b6cb0) and pharmacy is brown (#b5651d) wherever the two appear. The pair passes the
   colour-blind separation check, and the legend and labels never rely on colour alone.
 
+### D-058 · 2026-10-29 · Accepted · Pavin (29 Oct: Day collection for 28 Oct showed clinic billed ₹18,750 against collected ₹41,450; "Correct the underlying mapping or sync issue"); Claude found the cause
+- **What happened:** 11 of 28 Oct's 50 clinic bills were for investigations (OCT, ONH, perimetry, CCT, fundus photo:
+  ₹22,700; counted as "procedure" by `recon.category_map`). Yarago keeps those lines in `tbl_payment_lab`, which
+  Sudarshan copied only at night. So on the day the bills and payments were there but not their lines: billed showed
+  only the consultations (₹18,750). After the 01:00 copy on 29 Oct the view gave billed ₹41,450, collected ₹41,450,
+  gap ₹0. The mapping in `db/views/40_money.sql` was right; the timing was not.
+- **Same day:** `tbl_payment_lab`, `tbl_payment_others_details` (other charges) and `tblpatientopdrefunddetails` (OPD
+  refunds, which also take cash off the cash book) are hot tables, copied every 150 s from the nightly checkpoint like
+  the bill and its other lines. All three are small (21,371, 2,112 and 383 rows) and have an id and a modified column.
+- **Never a silent gap:** a clinic bill with a total but none of its lines in Sudarshan's copy (a sync cycle can copy a
+  bill a moment before its lines) is listed under "Bills without items yet" in Worth a look, and its bill drawer says
+  the lines are on their way. Billed is not filled in from the bill total or from what was collected: it stays the sum
+  of the lines, so nothing is counted twice and the service breakdown always adds up to it.
+- **Not changed:** the item names come from Yarago's master lists (tests, charge types, procedures), still copied at
+  night; a test added to Yarago during the day shows as "Not named" until then, with its amount counted.
+
 ## Proposed (not yet decided)
 
 - **P-1** (later) Which of the 16 scheduling rules should *block* a booking rather than warn; for now all warn (D-022). Owner: Pavin, Dr. Sameera. List with real-data counts and suggestions: `docs/RULES_FOR_REVIEW.md`.

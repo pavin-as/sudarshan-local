@@ -24,8 +24,8 @@ interface Summary {
   byMethod: { method: Method; amount: number; count: number; by: SourceSplit }[];
   byService: { source: MoneySource; group: string; amount: number; lines: number; items: { item: string; amount: number; lines: number }[] }[];
   byHour: { hour: number; amount: number; count: number; by: SourceSplit }[];
-  billedVsCollected: { source: MoneySource; billed: number; collected: number; gap: number }[];
-  payments: Pay[]; refunds: Ref[]; lines: Line[]; discounts: Bill[]; dues: Bill[]; untimed: number;
+  billedVsCollected: { source: MoneySource; billed: number; collected: number; gap: number; notItemised: number }[];
+  payments: Pay[]; refunds: Ref[]; lines: Line[]; discounts: Bill[]; dues: Bill[]; notItemised: Bill[]; untimed: number;
   lastWeek: { date: string; collected: number; byThisTime: boolean } | null;
 }
 interface Filter { method?: Method; source?: MoneySource; hour?: number }
@@ -195,12 +195,12 @@ function HourBars({ s, picked, onPick }: { s: Summary; picked?: number; onPick: 
 
 function Attention({ s, onBill }: { s: Summary; onBill: (b: { source: MoneySource; key: string }) => void }) {
   const gaps = s.billedVsCollected.filter((x) => Math.abs(x.gap) >= 1);
-  if (!s.refunds.length && !s.discounts.length && !s.dues.length && !gaps.length) return null;
+  if (!s.refunds.length && !s.discounts.length && !s.dues.length && !gaps.length && !s.notItemised.length) return null;
   const who = (x: { name: string | null; mrd: string | null; patientId: number | null }) =>
     x.patientId ? <Link to={`/patients/${x.patientId}`} onClick={(e) => e.stopPropagation()}>{x.name ?? "Patient"}</Link> : "-";
   return (
     <section className="panel">
-      <div className="panel-head"><h2 className="grow">Worth a look</h2><span className="small muted">Refunds, discounts, money still due, billed against collected</span></div>
+      <div className="panel-head"><h2 className="grow">Worth a look</h2><span className="small muted">Refunds, discounts, money still due, billed against collected, bills without items</span></div>
       <div className="collect-attn">
         {!!s.refunds.length && <div id="day-refunds"><h3>Refunded <span className="fig">{rupees(s.totals.refunds)}</span></h3>
           <table className="list compact"><tbody>{s.refunds.map((r) => <tr key={r.refundId}><td className="nowrap">{hhmm(r.at)}</td><td>{who(r)} <span className="small muted">{r.mrd ?? ""}</span></td>
@@ -215,7 +215,13 @@ function Attention({ s, onBill }: { s: Summary; onBill: (b: { source: MoneySourc
         {!!gaps.length && <div><h3>Billed against collected</h3>
           <table className="list compact"><thead><tr><th /><th className="right">Billed</th><th className="right">Collected</th><th className="right">Gap</th></tr></thead>
             <tbody>{gaps.map((x) => <tr key={x.source}><td>{SRC[x.source]}</td><td className="right fig">{rupees(x.billed)}</td><td className="right fig">{rupees(x.collected)}</td><td className="right fig">{r0(x.gap)}</td></tr>)}</tbody></table>
-          <p className="small muted">A gap is a discount, money left due, an advance paid for later (spectacles) or a balance paid for an earlier day.</p></div>}
+          <p className="small muted">A gap is a discount, money left due, an advance paid for later (spectacles) or a balance paid for an earlier day.
+            {gaps.some((x) => x.notItemised) && <> Bills whose items are not copied yet count as not billed until they are.</>}</p></div>}
+        {!!s.notItemised.length && <div><h3>Bills without items yet <span className="fig">{rupees(sumOf(s.notItemised, (b) => b.total))}</span></h3>
+          <p className="small muted">{s.notItemised.length} clinic bill{s.notItemised.length === 1 ? "" : "s"} in Yarago with no lines in Sudarshan's copy yet.
+            The lines come with the next copy, within a few minutes; until then billed is short by about this much.</p>
+          <table className="list compact"><tbody>{s.notItemised.map((b) => <tr key={b.billKey} className="clickable" onClick={() => onBill({ source: "clinic", key: b.billKey })}>
+            <td className="nowrap">{hhmm(b.at)}</td><td>{who(b)} <span className="small muted">{b.mrd ?? ""}</span></td><td className="small">bill {b.billNo}</td><td className="right fig">{rupees(b.total)}</td></tr>)}</tbody></table></div>}
       </div>
     </section>
   );
@@ -288,7 +294,8 @@ function BillDrawer({ source, billKey, onClose }: { source: MoneySource; billKey
           <section><h3>What was billed</h3>
             <table className="list compact">
               <thead><tr><th>Item</th><th className="right">Qty</th><th className="right">Amount</th></tr></thead>
-              <tbody>{(b.lines as any[]).map((l, i) => <tr key={i}><td>{l.item ?? l.group}{l.item && (l.kind ?? l.group) !== l.item && <div className="small muted">{l.kind ?? l.group}</div>}</td><td className="right fig">{l.qty || ""}</td><td className="right fig">{rupees(l.amount)}</td></tr>)}</tbody>
+              <tbody>{!b.lines.length && <tr><td colSpan={3} className="small muted">No lines in Sudarshan's copy of Yarago yet: they come with the next copy, within a few minutes.</td></tr>}
+                {(b.lines as any[]).map((l, i) => <tr key={i}><td>{l.item ?? l.group}{l.item && (l.kind ?? l.group) !== l.item && <div className="small muted">{l.kind ?? l.group}</div>}</td><td className="right fig">{l.qty || ""}</td><td className="right fig">{rupees(l.amount)}</td></tr>)}</tbody>
               <tfoot>
                 {source === "clinic" && <tr className="subtotal"><td colSpan={2}>Bill total in Yarago</td><td className="right fig">{rupees(b.total)}</td></tr>}
                 {!!b.discount && <tr><td colSpan={2}>Discount</td><td className="right fig">{r0(-b.discount)}</td></tr>}

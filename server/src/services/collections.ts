@@ -28,11 +28,12 @@ export interface DaySummary {
   byMethod: { method: Method; amount: number; count: number; by: SourceSplit }[];
   byService: { source: MoneySource; group: string; category: Category; amount: number; lines: number; items: { item: string; amount: number; lines: number }[] }[];
   byHour: { hour: number; amount: number; count: number; by: SourceSplit }[];
-  billedVsCollected: { source: MoneySource; billed: number; collected: number; gap: number }[];
+  billedVsCollected: { source: MoneySource; billed: number; collected: number; gap: number; notItemised: number }[];
   payments: (Omit<DayPayment, "source"> & { source: MoneySource; yaragoSource: string })[];
   refunds: (Omit<DayRefund, "source"> & { source: MoneySource; yaragoSource: string })[];
   lines: (Omit<DayLine, "source"> & { source: MoneySource })[];
   discounts: DayBill[]; dues: DayBill[];
+  notItemised: DayBill[]; // clinic bills with a total but none of their lines in Sudarshan's copy yet (D-058): billed reads short by them
   untimed: number;        // payments with no time in Yarago: left out of byHour, counted everywhere else
   lastWeek: { date: string; collected: number; byThisTime: boolean } | null;
 }
@@ -97,6 +98,10 @@ export function daySummary(inp: DayInput): DaySummary {
   const billKeys = new Set(pays.map((p) => `${sourceOf(p.source)}|${p.billKey ?? p.sourceId}`));
   const patients = new Set(pays.map((p) => p.patientId).filter((x) => x != null));
   const bills = inp.bills;
+  // a clinic bill can reach Sudarshan a sync cycle before its lines (before D-058, a night before): say so, not just a gap
+  const itemised = new Set(lines.filter((l) => sourceOf(l.source) === "clinic").map((l) => l.sourceId));
+  const notItemised = bills.filter((b) => P(b.total) > 0 && !itemised.has(b.billKey)).sort(byTime);
+  const notItemisedP = notItemised.reduce((s, b) => s + P(b.total), 0);
 
   return {
     date: inp.date,
@@ -106,7 +111,8 @@ export function daySummary(inp: DayInput): DaySummary {
               firstAt: timed[0]?.at ?? null, lastAt: timed[timed.length - 1]?.at ?? null,
               discount: R(bills.reduce((s, b) => s + P(b.discount), 0)), due: R(bills.reduce((s, b) => s + P(b.due), 0)) },
     byMethod, byService, byHour,
-    billedVsCollected: (["clinic", "pharmacy"] as const).map((s) => ({ source: s, billed: R(billedBy[s]), collected: R(collectedBy[s]), gap: R(billedBy[s] - collectedBy[s]) }))
+    billedVsCollected: (["clinic", "pharmacy"] as const).map((s) => ({ source: s, billed: R(billedBy[s]), collected: R(collectedBy[s]), gap: R(billedBy[s] - collectedBy[s]),
+                                                                 notItemised: s === "clinic" ? R(notItemisedP) : 0 }))
       .filter((x) => x.billed || x.collected),
     payments: [...pays].sort((a, b) => byTime(a, b) || a.paymentId.localeCompare(b.paymentId))
       .map((p) => ({ ...p, amount: Number(p.amount), source: sourceOf(p.source), yaragoSource: p.source })),
@@ -114,6 +120,7 @@ export function daySummary(inp: DayInput): DaySummary {
     lines: lines.map((l) => ({ ...l, amount: Number(l.amount), source: sourceOf(l.source) })),
     discounts: bills.filter((b) => P(b.discount) > 0).sort(byTime),
     dues: bills.filter((b) => P(b.due) > 0).sort(byTime),
+    notItemised,
     untimed: pays.length - timed.length,
     lastWeek: inp.lastWeek ?? null,
   };

@@ -1,6 +1,7 @@
 // Money reconciliation (D-052) against a TEST database, with Zoho and the local model faked.
 //   SUDARSHAN_ENV=/path/to/test.env npx tsx test/recon.test.ts
-// Synthetic Yarago bills on 2 Mar 2026 (patients 990000301-303, MRD SPD99921-23, bills 990000301-304), Zoho lines ZZ-*,
+// Synthetic Yarago bills on 2 Mar 2026 (patients 990000301-303, MRD SPD99921-23, bills 990000301-304), and on 9 Mar for the
+// Day collection (bills 990000305-306), Zoho lines ZZ-*,
 // users zz_test_recon_*; all removed afterwards (the adjustment guards are switched off for the clean-up only).
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
@@ -16,7 +17,8 @@ console.log(`test database: ${(await pool.query("SELECT current_database() AS d"
 const D = "2026-03-02", NEXT = "2026-03-03";
 const P1 = 990000301, P2 = 990000302, P3 = 990000303;
 const B_UPI = 990000301, B_CASH = 990000302, B_CARD = 990000303, B_CARD2 = 990000304, REFUND = 990000301;
-const BILLS = [B_UPI, B_CASH, B_CARD, B_CARD2];
+const D9 = "2026-03-09", B_MIX = 990000305, B_LATE = 990000306, MST = 990000301;
+const BILLS = [B_UPI, B_CASH, B_CARD, B_CARD2, B_MIX, B_LATE];
 for (const k of ["ZOHO_CLIENT_ID", "ZOHO_CLIENT_SECRET", "ZOHO_REFRESH_TOKEN", "ZOHO_ORG_ID", "ZOHO_BANK_ACCOUNTS", "ZOHO_DC"]) delete process.env[k];
 
 const savedCash = (await pool.query(`SELECT key, value FROM app.settings WHERE key IN ('cash.book','cash.limits','books.audit')`)).rows;
@@ -55,6 +57,9 @@ async function cleanup() {
     DELETE FROM yarago.tbl_payment_lab WHERE nbillid IN (${BILLS});
     DELETE FROM yarago.tbl_payment_injectionorlaser_procedure_for_billing WHERE nbillid IN (${BILLS});
     DELETE FROM yarago.tblpatientopdrefunddetails WHERE aoprefundid = ${REFUND};
+    DELETE FROM yarago.tbl_mst_chargetype WHERE typeid = ${MST};
+    DELETE FROM yarago.tbl_mst_labstudies WHERE id = ${MST};
+    DELETE FROM yarago.tbl_mst_sub_surgical_types WHERE subsurgid = ${MST};
     DELETE FROM yarago.tblpatientregistration WHERE apatient_id IN (${P1}, ${P2}, ${P3});
     COMMIT;`);
   for (const s of savedCash) await pool.query(`UPDATE app.settings SET value = $2 WHERE key = $1`, [s.key, s.value]);
@@ -75,7 +80,17 @@ await pool.query(`BEGIN; SET LOCAL app.skip_audit = 'on';
     (${B_UPI}, ${P1}, 1500, 0, '${D} 10:00', 1, 'ZB301', ${B_UPI}, 0, 0, 0, 1500, 1),
     (${B_CASH}, ${P2}, 5000, 0, '${D} 10:30', 1, 'ZB302', ${B_CASH}, 5000, 0, 0, 0, NULL),
     (${B_CARD}, ${P3}, 2000, 0, '${D} 11:00', 1, 'ZB303', ${B_CARD}, 0, 2000, 0, 0, NULL),
-    (${B_CARD2}, ${P3}, 3000, 0, '${D} 11:30', 1, 'ZB304', ${B_CARD2}, 0, 3000, 0, 0, NULL);
+    (${B_CARD2}, ${P3}, 3000, 0, '${D} 11:30', 1, 'ZB304', ${B_CARD2}, 0, 3000, 0, 0, NULL),
+    -- 9 Mar (Day collection, D-058): bill 305 consultation 500 + OCT 1,200 + Razumab 9,000 paid by card and UPI; 306 an OCT alone
+    (${B_MIX}, ${P1}, 10700, 0, '${D9} 09:30', 1, 'ZB305', ${B_MIX}, 0, 10000, 0, 700, 1),
+    (${B_LATE}, ${P2}, 1200, 0, '${D9} 10:15', 1, 'ZB306', ${B_LATE}, 0, 0, 0, 1200, 2);
+  INSERT INTO yarago.tbl_mst_chargetype (typeid, chargetypename) VALUES (${MST}, 'CONSULTATION');
+  INSERT INTO yarago.tbl_mst_labstudies (id, labtestname) VALUES (${MST}, 'OCT RE');
+  INSERT INTO yarago.tbl_mst_sub_surgical_types (subsurgid, subsurgicaltypename) VALUES (${MST}, 'Inj Razumab');
+  INSERT INTO yarago.tbl_payment_receptionist_new (trow_id, nbillid, tdateofpayment, patient_id, chargetypeid, chargepaidamount, active) VALUES (${B_MIX}, ${B_MIX}, '${D9} 09:30', ${P1}, ${MST}, 500, 1);
+  INSERT INTO yarago.tbl_payment_lab (trow_id, nbillid, tdateofpayment, patient_id, labtypeid, labpaidamount, active) VALUES (${B_MIX}, ${B_MIX}, '${D9} 09:30', ${P1}, ${MST}, 1200, 1);
+  INSERT INTO yarago.tbl_payment_injectionorlaser_procedure_for_billing (trow_id, nbillid, tdateofpayment, patient_id, procedureid, procedureamount, active) VALUES
+    (${B_MIX}, ${B_MIX}, '${D9} 09:30', ${P1}, ${MST}, 9000, 1);
   INSERT INTO yarago.tbl_payment_lab (trow_id, nbillid, tdateofpayment, patient_id, labpaidamount, active) VALUES (${B_UPI}, ${B_UPI}, '${D} 10:00', ${P1}, 1500, 1);
   INSERT INTO yarago.tbl_payment_receptionist_new (trow_id, nbillid, tdateofpayment, patient_id, chargepaidamount, active) VALUES (${B_CASH}, ${B_CASH}, '${D} 10:30', ${P2}, 5000, 1);
   INSERT INTO yarago.tbl_payment_injectionorlaser_procedure_for_billing (trow_id, nbillid, tdateofpayment, patient_id, procedureamount, active) VALUES
@@ -196,6 +211,32 @@ try {
     assert.equal((await call("POST", "/api/recon/bank-rules", mgr, { position: 50, pattern: "ZZ", class: "not_clinic", method: null, windowDays: 1, isActive: false })).status, 403);
     assert.equal((await call("PUT", "/api/recon/settings", mgr, { tolerance: { card: 5 } })).status, 403);
     assert.equal((await call("GET", `/api/recon?from=${D}&to=2026-07-01`, mgr)).status, 400, "at most 92 days");
+  });
+
+  await step("Day collection (D-058): a bill of consultation, investigation and procedure counts each line once; a bill whose lines are not copied yet is named, then fills in", async () => {
+    for (const c of [staff, desk, mgr2]) assert.equal((await call("GET", `/api/collections/day?date=${D9}`, c)).status, 403);
+    const day = async () => { const r = await call("GET", `/api/collections/day?date=${D9}`, mgr); assert.equal(r.status, 200, r.body?.message); return r.body.summary; };
+    let s = await day();
+    assert.deepEqual([s.totals.billed, s.totals.collected, s.totals.bills, s.totals.payments], [10700, 11900, 2, 3]);
+    assert.deepEqual(s.billedVsCollected, [{ source: "clinic", billed: 10700, collected: 11900, gap: -1200, notItemised: 1200 }]);
+    assert.deepEqual(s.notItemised.map((b: any) => [b.billNo, b.total]), [["ZB306", 1200]], "the OCT bill is named, not left as an unexplained gap");
+    // the investigation line arrives with the next sync cycle (before D-058: the next night)
+    await pool.query(`INSERT INTO yarago.tbl_payment_lab (trow_id, nbillid, tdateofpayment, patient_id, labtypeid, labpaidamount, active)
+                      VALUES (${B_LATE}, ${B_LATE}, '${D9} 10:15', ${P2}, ${MST}, 1200, 1)`);
+    s = await day();
+    assert.deepEqual(s.billedVsCollected, [{ source: "clinic", billed: 11900, collected: 11900, gap: 0, notItemised: 0 }]);
+    assert.deepEqual(s.notItemised, []);
+    assert.deepEqual(s.byService.map((g: any) => [g.group, g.amount, g.lines]), [["Injections", 9000, 1], ["Investigations", 2400, 2], ["Consultation & charges", 500, 1]]);
+    assert.deepEqual(s.byService[1].items, [{ item: "OCT", amount: 2400, lines: 2 }]);
+    assert.deepEqual([s.totals.discount, s.totals.due], [0, 0]);
+    const b = await call("GET", `/api/collections/bill?source=clinic&key=${B_MIX}`, mgr);
+    assert.equal(b.status, 200, b.body?.message);
+    assert.deepEqual(b.body.bill.lines.map((l: any) => [l.group, l.item, l.amount]).sort(),
+                     [["Consultation & charges", "Consultation", 500], ["Injections", "Inj Razumab", 9000], ["Investigations", "OCT", 1200]]);
+    assert.equal(b.body.bill.total, 10700);
+    assert.deepEqual(b.body.bill.payments.map((p: any) => [p.method, p.amount]).sort(), [["card", 10000], ["upi", 700]]);
+    const r9 = await call("GET", `/api/recon?from=${D9}&to=${D9}`, mgr);
+    assert.equal(r9.status, 200); assert.deepEqual([r9.body.result.totals.billed, r9.body.result.totals.collected], [11900, 11900], "the reconciliation reads the same lines");
   });
 
   await step("without Zoho the bank side is 'not available', never a difference", async () => {
